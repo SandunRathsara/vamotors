@@ -332,10 +332,110 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="text" placeholder="Search approvals...">
             </div>
+            <div class="view-toggle" data-toggle-group="main">
+              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+            </div>
           </div>
         </div>
 
-        <!-- Approval Items -->
+        <!-- Table View -->
+        <div class="table-view-container card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Requested By</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="approval-type-badge discount">Discount</span></td>
+                  <td>
+                    <div class="font-semibold">Discount Request — Bajaj Pulsar NS200 2024</div>
+                    <div class="text-xs text-muted">15% discount (Rs. 67,500) on listed price Rs. 450,000</div>
+                  </td>
+                  <td>Dinesh Silva</td>
+                  <td>2 hours ago</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td>
+                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-success);font-weight:600;">Approve</a>
+                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-danger);font-weight:600;">Reject</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="approval-type-badge write-off">Write-off</span></td>
+                  <td>
+                    <div class="font-semibold">Write-off Request — Hero Splendor+ 2022</div>
+                    <div class="text-xs text-muted">Frame damage beyond economical repair. Disposal value: Rs. 25,000</div>
+                  </td>
+                  <td>Ruwan Bandara</td>
+                  <td>5 hours ago</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td>
+                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-success);font-weight:600;">Approve</a>
+                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-danger);font-weight:600;">Reject</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="approval-type-badge refund">Refund</span></td>
+                  <td>
+                    <div class="font-semibold">Advance Refund — TVS Apache RTR 160 2024</div>
+                    <div class="text-xs text-muted">Refund of Rs. 35,000 advance. Customer found alternative vehicle.</div>
+                  </td>
+                  <td>Nimal Fernando</td>
+                  <td>1 day ago</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td>
+                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-success);font-weight:600;">Approve</a>
+                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-danger);font-weight:600;">Reject</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="approval-type-badge edit">Edit</span></td>
+                  <td>
+                    <div class="font-semibold">Sale Record Edit — Honda Dio 2023</div>
+                    <div class="text-xs text-muted">Correction to sale price: Rs. 245,000 to Rs. 240,000</div>
+                  </td>
+                  <td>Suresh Kumar</td>
+                  <td>2 days ago</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+                <tr>
+                  <td><span class="approval-type-badge discount">Discount</span></td>
+                  <td>
+                    <div class="font-semibold">Discount Request — Yamaha FZ-S V3 2023</div>
+                    <div class="text-xs text-muted">Discount too high for vehicle margin</div>
+                  </td>
+                  <td>Dinesh Silva</td>
+                  <td>3 days ago</td>
+                  <td><span class="badge badge-danger">Rejected</span></td>
+                  <td><span class="badge badge-danger">Rejected</span></td>
+                </tr>
+                <tr>
+                  <td><span class="approval-type-badge write-off">Write-off</span></td>
+                  <td>
+                    <div class="font-semibold">Write-off — Bajaj CT100 2020</div>
+                    <div class="text-xs text-muted">Disposal proceeds: Rs. 15,000</div>
+                  </td>
+                  <td>Chaminda Rathnayake</td>
+                  <td>1 week ago</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Card View (Approval Items) -->
+        <div class="card-view-container" style="display:none;">
 
         <!-- 1. APPLY_DISCOUNT - Pending -->
         <div class="approval-item">
@@ -519,6 +619,8 @@
             Approved by <span class="reviewer">Kamal Perera</span> &middot; 6 days ago
           </div>
         </div>
+
+        </div><!-- /.card-view-container -->
 
       </div>
     </div>

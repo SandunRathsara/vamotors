@@ -123,6 +123,10 @@
             </div>
           </div>
           <div class="toolbar-right">
+            <div class="view-toggle" data-toggle-group="main">
+              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+            </div>
             <button class="btn btn-primary" onclick="openSlideOver('addCustomerPanel')">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Customer
@@ -132,174 +136,489 @@
 
         <!-- Table Card -->
         <div class="card">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>NIC</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>Address</th>
-                  <th>Vehicles</th>
-                  <th>Last Purchase</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Kamal Perera</a></td>
-                  <td>199012345678</td>
-                  <td>077-1234567</td>
-                  <td>kamal.perera@gmail.com</td>
-                  <td class="truncate" style="max-width: 200px;">42/A, Galle Road, Dehiwala</td>
-                  <td><span class="badge badge-info">3</span></td>
-                  <td>2026-02-15</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Nimal Fernando</a></td>
-                  <td>198523456789</td>
-                  <td>071-9876543</td>
-                  <td>nimal.fernando@yahoo.com</td>
-                  <td class="truncate" style="max-width: 200px;">156, Kandy Road, Kadawatha</td>
-                  <td><span class="badge badge-info">2</span></td>
-                  <td>2026-01-22</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Suresh Kumar</a></td>
-                  <td>880345678V</td>
-                  <td>076-3456789</td>
-                  <td>&mdash;</td>
-                  <td class="truncate" style="max-width: 200px;">23, Main Street, Negombo</td>
-                  <td><span class="badge badge-info">1</span></td>
-                  <td>2025-12-10</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Lakshmi Jayawardena</a></td>
-                  <td>199245678901</td>
-                  <td>077-8765432</td>
-                  <td>lakshmi.j@outlook.com</td>
-                  <td class="truncate" style="max-width: 200px;">8/2, Temple Road, Mount Lavinia</td>
-                  <td><span class="badge badge-info">2</span></td>
-                  <td>2026-03-01</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Dinesh Silva</a></td>
-                  <td>910567890V</td>
-                  <td>070-1122334</td>
-                  <td>&mdash;</td>
-                  <td class="truncate" style="max-width: 200px;">67, High Level Road, Nugegoda</td>
-                  <td><span class="badge badge-info">1</span></td>
-                  <td>2025-11-18</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Tharushi De Silva</a></td>
-                  <td>199567890123</td>
-                  <td>075-5566778</td>
-                  <td>tharushi.ds@gmail.com</td>
-                  <td class="truncate" style="max-width: 200px;">15, Peradeniya Road, Kandy</td>
-                  <td><span class="badge badge-info">1</span></td>
-                  <td>2026-02-28</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Anura Kumara</a></td>
-                  <td>197834567890</td>
-                  <td>071-2233445</td>
-                  <td>&mdash;</td>
-                  <td class="truncate" style="max-width: 200px;">201, Colombo Road, Piliyandala</td>
-                  <td><span class="badge badge-info">3</span></td>
-                  <td>2026-01-05</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Priyantha Dissanayake</a></td>
-                  <td>198789012345</td>
-                  <td>077-4455667</td>
-                  <td>priyantha.d@hotmail.com</td>
-                  <td class="truncate" style="max-width: 200px;">34/B, Matara Road, Galle</td>
-                  <td><span class="badge badge-info">2</span></td>
-                  <td>2025-10-30</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Madhavi Wickramasinghe</a></td>
-                  <td>199301234567</td>
-                  <td>076-6677889</td>
-                  <td>madhavi.w@gmail.com</td>
-                  <td class="truncate" style="max-width: 200px;">90, Baseline Road, Borella</td>
-                  <td><span class="badge badge-info">1</span></td>
-                  <td>2026-03-05</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Rohan Gunaratne</a></td>
-                  <td>820678901V</td>
-                  <td>070-9988776</td>
-                  <td>&mdash;</td>
-                  <td class="truncate" style="max-width: 200px;">12, Dambulla Road, Kurunegala</td>
-                  <td><span class="badge badge-info">2</span></td>
-                  <td>2025-09-14</td>
-                  <td>
-                    <div class="flex gap-8">
-                      <button class="btn btn-ghost btn-sm">View</button>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="table-view-container" data-toggle-group="main">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>NIC</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Address</th>
+                    <th>Vehicles</th>
+                    <th>Last Purchase</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Kamal Perera</a></td>
+                    <td>199012345678</td>
+                    <td>077-1234567</td>
+                    <td>kamal.perera@gmail.com</td>
+                    <td class="truncate" style="max-width: 200px;">42/A, Galle Road, Dehiwala</td>
+                    <td><span class="badge badge-info">3</span></td>
+                    <td>2026-02-15</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Nimal Fernando</a></td>
+                    <td>198523456789</td>
+                    <td>071-9876543</td>
+                    <td>nimal.fernando@yahoo.com</td>
+                    <td class="truncate" style="max-width: 200px;">156, Kandy Road, Kadawatha</td>
+                    <td><span class="badge badge-info">2</span></td>
+                    <td>2026-01-22</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Suresh Kumar</a></td>
+                    <td>880345678V</td>
+                    <td>076-3456789</td>
+                    <td>&mdash;</td>
+                    <td class="truncate" style="max-width: 200px;">23, Main Street, Negombo</td>
+                    <td><span class="badge badge-info">1</span></td>
+                    <td>2025-12-10</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Lakshmi Jayawardena</a></td>
+                    <td>199245678901</td>
+                    <td>077-8765432</td>
+                    <td>lakshmi.j@outlook.com</td>
+                    <td class="truncate" style="max-width: 200px;">8/2, Temple Road, Mount Lavinia</td>
+                    <td><span class="badge badge-info">2</span></td>
+                    <td>2026-03-01</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Dinesh Silva</a></td>
+                    <td>910567890V</td>
+                    <td>070-1122334</td>
+                    <td>&mdash;</td>
+                    <td class="truncate" style="max-width: 200px;">67, High Level Road, Nugegoda</td>
+                    <td><span class="badge badge-info">1</span></td>
+                    <td>2025-11-18</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Tharushi De Silva</a></td>
+                    <td>199567890123</td>
+                    <td>075-5566778</td>
+                    <td>tharushi.ds@gmail.com</td>
+                    <td class="truncate" style="max-width: 200px;">15, Peradeniya Road, Kandy</td>
+                    <td><span class="badge badge-info">1</span></td>
+                    <td>2026-02-28</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Anura Kumara</a></td>
+                    <td>197834567890</td>
+                    <td>071-2233445</td>
+                    <td>&mdash;</td>
+                    <td class="truncate" style="max-width: 200px;">201, Colombo Road, Piliyandala</td>
+                    <td><span class="badge badge-info">3</span></td>
+                    <td>2026-01-05</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Priyantha Dissanayake</a></td>
+                    <td>198789012345</td>
+                    <td>077-4455667</td>
+                    <td>priyantha.d@hotmail.com</td>
+                    <td class="truncate" style="max-width: 200px;">34/B, Matara Road, Galle</td>
+                    <td><span class="badge badge-info">2</span></td>
+                    <td>2025-10-30</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Madhavi Wickramasinghe</a></td>
+                    <td>199301234567</td>
+                    <td>076-6677889</td>
+                    <td>madhavi.w@gmail.com</td>
+                    <td class="truncate" style="max-width: 200px;">90, Baseline Road, Borella</td>
+                    <td><span class="badge badge-info">1</span></td>
+                    <td>2026-03-05</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" style="color: var(--color-info); font-weight: 600;">Rohan Gunaratne</a></td>
+                    <td>820678901V</td>
+                    <td>070-9988776</td>
+                    <td>&mdash;</td>
+                    <td class="truncate" style="max-width: 200px;">12, Dambulla Road, Kurunegala</td>
+                    <td><span class="badge badge-info">2</span></td>
+                    <td>2025-09-14</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
+
+          <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Kamal Perera</div>
+                  <div class="data-card-subtitle">199012345678</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>077-1234567</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>kamal.perera@gmail.com</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>42/A, Galle Road, Dehiwala</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">3</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2026-02-15</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Nimal Fernando</div>
+                  <div class="data-card-subtitle">198523456789</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>071-9876543</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>nimal.fernando@yahoo.com</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>156, Kandy Road, Kadawatha</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">2</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2026-01-22</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Suresh Kumar</div>
+                  <div class="data-card-subtitle">880345678V</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>076-3456789</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>&mdash;</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>23, Main Street, Negombo</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">1</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2025-12-10</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Lakshmi Jayawardena</div>
+                  <div class="data-card-subtitle">199245678901</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>077-8765432</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>lakshmi.j@outlook.com</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>8/2, Temple Road, Mount Lavinia</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">2</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2026-03-01</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Dinesh Silva</div>
+                  <div class="data-card-subtitle">910567890V</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>070-1122334</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>&mdash;</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>67, High Level Road, Nugegoda</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">1</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2025-11-18</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Tharushi De Silva</div>
+                  <div class="data-card-subtitle">199567890123</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>075-5566778</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>tharushi.ds@gmail.com</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>15, Peradeniya Road, Kandy</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">1</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2026-02-28</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Anura Kumara</div>
+                  <div class="data-card-subtitle">197834567890</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>071-2233445</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>&mdash;</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>201, Colombo Road, Piliyandala</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">3</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2026-01-05</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Priyantha Dissanayake</div>
+                  <div class="data-card-subtitle">198789012345</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>077-4455667</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>priyantha.d@hotmail.com</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>34/B, Matara Road, Galle</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">2</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2025-10-30</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Madhavi Wickramasinghe</div>
+                  <div class="data-card-subtitle">199301234567</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>076-6677889</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>madhavi.w@gmail.com</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>90, Baseline Road, Borella</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">1</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2026-03-05</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Rohan Gunaratne</div>
+                  <div class="data-card-subtitle">820678901V</div>
+                </div>
+              </div>
+              <div class="data-card-row">
+                <span>Phone</span>
+                <span>070-9988776</span>
+              </div>
+              <div class="data-card-row">
+                <span>Email</span>
+                <span>&mdash;</span>
+              </div>
+              <div class="data-card-row">
+                <span>Address</span>
+                <span>12, Dambulla Road, Kurunegala</span>
+              </div>
+              <div class="data-card-row">
+                <span>Vehicles Purchased</span>
+                <span><span class="badge badge-info">2</span></span>
+              </div>
+              <div class="data-card-footer">
+                <span>2025-09-14</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="card-footer">
             <div class="pagination">
               <span class="pagination-info">Showing 1 to 10 of 10 customers</span>

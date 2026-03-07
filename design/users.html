@@ -267,6 +267,10 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" placeholder="Search users...">
               </div>
+              <div class="view-toggle" data-toggle-group="main">
+                <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+                <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+              </div>
               <button class="btn btn-primary" onclick="openSlideOver('addUserPanel')">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Add User
@@ -275,6 +279,7 @@
           </div>
 
           <div class="card">
+            <div class="table-view-container" data-toggle-group="main">
             <div class="table-container">
               <table>
                 <thead>
@@ -449,6 +454,112 @@
                 </tbody>
               </table>
             </div>
+            </div><!-- /table-view-container -->
+
+            <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
+              <!-- Kamal Perera -->
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div>
+                    <div class="data-card-title">Kamal Perera</div>
+                    <div class="data-card-subtitle">kamal@vamotors.lk</div>
+                  </div>
+                  <span class="badge badge-success">Active</span>
+                </div>
+                <div class="data-card-row"><span>Roles</span><span><span class="badge badge-info">Manager</span> <span class="badge" style="background: var(--status-purchased-bg); color: var(--status-purchased);">Admin</span></span></div>
+                <div class="data-card-row"><span>Last Login</span><span>Today</span></div>
+                <div class="data-card-footer">
+                  <div class="data-card-actions">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Nimal Fernando -->
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div>
+                    <div class="data-card-title">Nimal Fernando</div>
+                    <div class="data-card-subtitle">nimal@vamotors.lk</div>
+                  </div>
+                  <span class="badge badge-success">Active</span>
+                </div>
+                <div class="data-card-row"><span>Roles</span><span><span class="badge badge-warning">Cashier</span></span></div>
+                <div class="data-card-row"><span>Last Login</span><span>Today</span></div>
+                <div class="data-card-footer">
+                  <div class="data-card-actions">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Suresh Kumar -->
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div>
+                    <div class="data-card-title">Suresh Kumar</div>
+                    <div class="data-card-subtitle">suresh@vamotors.lk</div>
+                  </div>
+                  <span class="badge badge-success">Active</span>
+                </div>
+                <div class="data-card-row"><span>Roles</span><span><span class="badge badge-success">Sales Person</span></span></div>
+                <div class="data-card-row"><span>Last Login</span><span>Yesterday</span></div>
+                <div class="data-card-footer">
+                  <div class="data-card-actions">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Dinesh Silva -->
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div>
+                    <div class="data-card-title">Dinesh Silva</div>
+                    <div class="data-card-subtitle">dinesh@vamotors.lk</div>
+                  </div>
+                  <span class="badge badge-success">Active</span>
+                </div>
+                <div class="data-card-row"><span>Roles</span><span><span class="badge badge-success">Sales Person</span></span></div>
+                <div class="data-card-row"><span>Last Login</span><span>2 days ago</span></div>
+                <div class="data-card-footer">
+                  <div class="data-card-actions">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Chaminda Rathnayake -->
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div>
+                    <div class="data-card-title">Chaminda Rathnayake</div>
+                    <div class="data-card-subtitle">chaminda@vamotors.lk</div>
+                  </div>
+                  <span class="badge badge-success">Active</span>
+                </div>
+                <div class="data-card-row"><span>Roles</span><span><span class="badge badge-warning">Cashier</span> <span class="badge badge-success">Sales Person</span></span></div>
+                <div class="data-card-row"><span>Last Login</span><span>Today</span></div>
+                <div class="data-card-footer">
+                  <div class="data-card-actions">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Priya Mendis -->
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div>
+                    <div class="data-card-title" style="color: var(--text-tertiary);">Priya Mendis</div>
+                    <div class="data-card-subtitle">priya@vamotors.lk</div>
+                  </div>
+                  <span class="badge" style="background: var(--bg-surface-hover); color: var(--text-tertiary);">Inactive</span>
+                </div>
+                <div class="data-card-row"><span>Roles</span><span><span class="badge badge-success">Sales Person</span></span></div>
+                <div class="data-card-row"><span>Last Login</span><span>2 weeks ago</span></div>
+                <div class="data-card-footer">
+                  <div class="data-card-actions">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                  </div>
+                </div>
+              </div>
+            </div><!-- /card-view-container -->
           </div>
         </div>
 

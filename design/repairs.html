@@ -122,6 +122,10 @@
             <button class="filter-btn">Completed</button>
           </div>
           <div class="toolbar-right">
+            <div class="view-toggle" data-toggle-group="main">
+              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+            </div>
             <button class="btn btn-primary" onclick="openSlideOver('sendRepairPanel')">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Send for Repair
@@ -131,131 +135,385 @@
 
         <!-- Table -->
         <div class="card">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Vehicle</th>
-                  <th>Vendor</th>
-                  <th>Repair Request</th>
-                  <th>Date Sent</th>
-                  <th>Date Returned</th>
-                  <th>Cost</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- In Progress -->
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Hero Splendor+ 2023</a></td>
-                  <td>Chaminda Motors - Colombo</td>
-                  <td class="truncate" style="max-width: 220px;">Front brake pads worn, rear brake cable stretched</td>
-                  <td>04 Mar 2026</td>
-                  <td style="color: var(--text-tertiary);">--</td>
-                  <td style="color: var(--text-tertiary);">--</td>
-                  <td><span class="badge badge-in-repair">In Progress</span></td>
-                  <td>
-                    <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2025</a></td>
-                  <td>LK Auto Garage - Kandy</td>
-                  <td class="truncate" style="max-width: 220px;">Oil leak from engine gasket, needs immediate attention</td>
-                  <td>01 Mar 2026</td>
-                  <td style="color: var(--text-tertiary);">--</td>
-                  <td style="color: var(--text-tertiary);">--</td>
-                  <td><span class="badge badge-in-repair">In Progress</span></td>
-                  <td>
-                    <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2024</a></td>
-                  <td>Ranjan's Workshop - Galle</td>
-                  <td class="truncate" style="max-width: 220px;">Electrical issue - headlight flickering intermittently</td>
-                  <td>26 Feb 2026</td>
-                  <td style="color: var(--text-tertiary);">--</td>
-                  <td style="color: var(--text-tertiary);">--</td>
-                  <td><span class="badge badge-in-repair">In Progress</span></td>
-                  <td>
-                    <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
-                  </td>
-                </tr>
-                <!-- Completed -->
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2024</a></td>
-                  <td>AutoFix Lanka - Matara</td>
-                  <td class="truncate" style="max-width: 220px;">Chain sprocket replacement needed, chain too loose</td>
-                  <td>15 Feb 2026</td>
-                  <td>20 Feb 2026</td>
-                  <td style="font-weight: 600;">Rs. 4,500</td>
-                  <td><span class="badge badge-in-stock">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Yamaha FZ-S V3 2025</a></td>
-                  <td>Chaminda Motors - Colombo</td>
-                  <td class="truncate" style="max-width: 220px;">Full service - oil change, filter, spark plug replacement</td>
-                  <td>08 Feb 2026</td>
-                  <td>10 Feb 2026</td>
-                  <td style="font-weight: 600;">Rs. 3,200</td>
-                  <td><span class="badge badge-in-stock">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar NS200 2024</a></td>
-                  <td>LK Auto Garage - Kandy</td>
-                  <td class="truncate" style="max-width: 220px;">Clutch plate worn out, gear shifting difficulty</td>
-                  <td>25 Jan 2026</td>
-                  <td>30 Jan 2026</td>
-                  <td style="font-weight: 600;">Rs. 7,800</td>
-                  <td><span class="badge badge-in-stock">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2024</a></td>
-                  <td>Ranjan's Workshop - Galle</td>
-                  <td class="truncate" style="max-width: 220px;">Tyre replacement - front and rear, wheel alignment</td>
-                  <td>12 Jan 2026</td>
-                  <td>14 Jan 2026</td>
-                  <td style="font-weight: 600;">Rs. 8,500</td>
-                  <td><span class="badge badge-in-stock">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Suzuki Gixxer SF 2024</a></td>
-                  <td>AutoFix Lanka - Matara</td>
-                  <td class="truncate" style="max-width: 220px;">Fuel injector cleaning, throttle body service</td>
-                  <td>02 Dec 2025</td>
-                  <td>05 Dec 2025</td>
-                  <td style="font-weight: 600;">Rs. 5,200</td>
-                  <td><span class="badge badge-in-stock">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="table-view-container" data-toggle-group="main">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Vendor</th>
+                    <th>Repair Request</th>
+                    <th>Date Sent</th>
+                    <th>Date Returned</th>
+                    <th>Cost</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- In Progress -->
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Hero Splendor+ 2023</a></td>
+                    <td>Chaminda Motors - Colombo</td>
+                    <td class="truncate" style="max-width: 220px;">Front brake pads worn, rear brake cable stretched</td>
+                    <td>04 Mar 2026</td>
+                    <td style="color: var(--text-tertiary);">--</td>
+                    <td style="color: var(--text-tertiary);">--</td>
+                    <td><span class="badge badge-in-repair">In Progress</span></td>
+                    <td>
+                      <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2025</a></td>
+                    <td>LK Auto Garage - Kandy</td>
+                    <td class="truncate" style="max-width: 220px;">Oil leak from engine gasket, needs immediate attention</td>
+                    <td>01 Mar 2026</td>
+                    <td style="color: var(--text-tertiary);">--</td>
+                    <td style="color: var(--text-tertiary);">--</td>
+                    <td><span class="badge badge-in-repair">In Progress</span></td>
+                    <td>
+                      <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2024</a></td>
+                    <td>Ranjan's Workshop - Galle</td>
+                    <td class="truncate" style="max-width: 220px;">Electrical issue - headlight flickering intermittently</td>
+                    <td>26 Feb 2026</td>
+                    <td style="color: var(--text-tertiary);">--</td>
+                    <td style="color: var(--text-tertiary);">--</td>
+                    <td><span class="badge badge-in-repair">In Progress</span></td>
+                    <td>
+                      <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
+                    </td>
+                  </tr>
+                  <!-- Completed -->
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2024</a></td>
+                    <td>AutoFix Lanka - Matara</td>
+                    <td class="truncate" style="max-width: 220px;">Chain sprocket replacement needed, chain too loose</td>
+                    <td>15 Feb 2026</td>
+                    <td>20 Feb 2026</td>
+                    <td style="font-weight: 600;">Rs. 4,500</td>
+                    <td><span class="badge badge-in-stock">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Yamaha FZ-S V3 2025</a></td>
+                    <td>Chaminda Motors - Colombo</td>
+                    <td class="truncate" style="max-width: 220px;">Full service - oil change, filter, spark plug replacement</td>
+                    <td>08 Feb 2026</td>
+                    <td>10 Feb 2026</td>
+                    <td style="font-weight: 600;">Rs. 3,200</td>
+                    <td><span class="badge badge-in-stock">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar NS200 2024</a></td>
+                    <td>LK Auto Garage - Kandy</td>
+                    <td class="truncate" style="max-width: 220px;">Clutch plate worn out, gear shifting difficulty</td>
+                    <td>25 Jan 2026</td>
+                    <td>30 Jan 2026</td>
+                    <td style="font-weight: 600;">Rs. 7,800</td>
+                    <td><span class="badge badge-in-stock">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2024</a></td>
+                    <td>Ranjan's Workshop - Galle</td>
+                    <td class="truncate" style="max-width: 220px;">Tyre replacement - front and rear, wheel alignment</td>
+                    <td>12 Jan 2026</td>
+                    <td>14 Jan 2026</td>
+                    <td style="font-weight: 600;">Rs. 8,500</td>
+                    <td><span class="badge badge-in-stock">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Suzuki Gixxer SF 2024</a></td>
+                    <td>AutoFix Lanka - Matara</td>
+                    <td class="truncate" style="max-width: 220px;">Fuel injector cleaning, throttle body service</td>
+                    <td>02 Dec 2025</td>
+                    <td>05 Dec 2025</td>
+                    <td style="font-weight: 600;">Rs. 5,200</td>
+                    <td><span class="badge badge-in-stock">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
+            <!-- In Progress -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Hero Splendor+ 2023</div>
+                  <div class="data-card-subtitle">Chaminda Motors - Colombo</div>
+                </div>
+                <span class="badge badge-in-repair">In Progress</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Front brake pads worn, rear brake cable stretched</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>04 Mar 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>&mdash;</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Pending</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Honda Dio 2025</div>
+                  <div class="data-card-subtitle">LK Auto Garage - Kandy</div>
+                </div>
+                <span class="badge badge-in-repair">In Progress</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Oil leak from engine gasket, needs immediate attention</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>01 Mar 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>&mdash;</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Pending</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">TVS Apache RTR 160 2024</div>
+                  <div class="data-card-subtitle">Ranjan's Workshop - Galle</div>
+                </div>
+                <span class="badge badge-in-repair">In Progress</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Electrical issue - headlight flickering intermittently</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>26 Feb 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>&mdash;</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Pending</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-secondary btn-sm" onclick="openSlideOver('completeRepairPanel')">Complete</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Completed -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Bajaj Pulsar 150 2024</div>
+                  <div class="data-card-subtitle">AutoFix Lanka - Matara</div>
+                </div>
+                <span class="badge badge-in-stock">Completed</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Chain sprocket replacement needed, chain too loose</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>15 Feb 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>20 Feb 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Rs. 4,500</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Yamaha FZ-S V3 2025</div>
+                  <div class="data-card-subtitle">Chaminda Motors - Colombo</div>
+                </div>
+                <span class="badge badge-in-stock">Completed</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Full service - oil change, filter, spark plug replacement</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>08 Feb 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>10 Feb 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Rs. 3,200</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Bajaj Pulsar NS200 2024</div>
+                  <div class="data-card-subtitle">LK Auto Garage - Kandy</div>
+                </div>
+                <span class="badge badge-in-stock">Completed</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Clutch plate worn out, gear shifting difficulty</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>25 Jan 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>30 Jan 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Rs. 7,800</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Honda Dio 2024</div>
+                  <div class="data-card-subtitle">Ranjan's Workshop - Galle</div>
+                </div>
+                <span class="badge badge-in-stock">Completed</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Tyre replacement - front and rear, wheel alignment</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>12 Jan 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>14 Jan 2026</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Rs. 8,500</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Suzuki Gixxer SF 2024</div>
+                  <div class="data-card-subtitle">AutoFix Lanka - Matara</div>
+                </div>
+                <span class="badge badge-in-stock">Completed</span>
+              </div>
+              <div class="data-card-row">
+                <span>Repair Request</span>
+                <span>Fuel injector cleaning, throttle body service</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Sent</span>
+                <span>02 Dec 2025</span>
+              </div>
+              <div class="data-card-row">
+                <span>Date Returned</span>
+                <span>05 Dec 2025</span>
+              </div>
+              <div class="data-card-row">
+                <span>Cost</span>
+                <span>Rs. 5,200</span>
+              </div>
+              <div class="data-card-footer">
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Pagination -->

@@ -127,6 +127,10 @@
             <input type="date" class="form-input" style="width: 140px; padding: 7px 10px; font-size: 0.82rem;" value="2026-03-07">
           </div>
           <div class="toolbar-right">
+            <div class="view-toggle" data-toggle-group="main">
+              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+            </div>
             <button class="btn btn-primary" onclick="openSlideOver('newSalePanel')">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Record Sale
@@ -136,188 +140,353 @@
 
         <!-- Table -->
         <div class="card">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Vehicle</th>
-                  <th>Sale Type</th>
-                  <th>Customer</th>
-                  <th>Sale Price</th>
-                  <th>Profit/Loss</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Cash Immediate -->
-                <tr>
-                  <td>05 Mar 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2024</a></td>
-                  <td><span class="badge badge-info">Cash Immediate</span></td>
-                  <td>Kamal Perera</td>
-                  <td style="font-weight: 600;">Rs. 295,000</td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 80,000</td>
-                  <td><span class="badge badge-sold">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>28 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Yamaha FZ-S V3 2025</a></td>
-                  <td><span class="badge badge-info">Cash Immediate</span></td>
-                  <td>Nimal Fernando</td>
-                  <td style="font-weight: 600;">Rs. 450,000</td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 70,000</td>
-                  <td><span class="badge badge-sold">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>20 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2023</a></td>
-                  <td><span class="badge badge-info">Cash Immediate</span></td>
-                  <td>Suresh Kumar</td>
-                  <td style="font-weight: 600;">Rs. 250,000</td>
-                  <td style="font-weight: 600; color: var(--color-danger);">-Rs. 35,000</td>
-                  <td><span class="badge badge-sold">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <!-- Cash with Advance -->
-                <tr>
-                  <td>15 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar NS200 2024</a></td>
-                  <td><span class="badge badge-advance-placed">Cash with Advance</span></td>
-                  <td>Dinesh Silva</td>
-                  <td style="font-weight: 600;">
-                    Rs. 520,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Advance: Rs. 100,000</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 110,000</td>
-                  <td><span class="badge badge-advance-placed">Advance Placed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>08 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2025</a></td>
-                  <td><span class="badge badge-advance-placed">Cash with Advance</span></td>
-                  <td>Chaminda Rathnayake</td>
-                  <td style="font-weight: 600;">
-                    Rs. 310,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Advance: Rs. 50,000</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 65,000</td>
-                  <td><span class="badge badge-advance-placed">Advance Placed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>01 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2024</a></td>
-                  <td><span class="badge badge-advance-placed">Cash with Advance</span></td>
-                  <td>Ruwan Bandara</td>
-                  <td style="font-weight: 600;">
-                    Rs. 265,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Advance: Rs. 30,000</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 70,000</td>
-                  <td><span class="badge badge-sold">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <!-- Lease/Finance -->
-                <tr>
-                  <td>22 Jan 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Suzuki Gixxer SF 2024</a></td>
-                  <td><span class="badge badge-finance-pending">Lease/Finance</span></td>
-                  <td>Priya Mendis</td>
-                  <td style="font-weight: 600;">
-                    Rs. 650,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">via People's Leasing</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 130,000</td>
-                  <td><span class="badge badge-finance-pending">Finance Pending</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>10 Jan 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda CB Hornet 2025</a></td>
-                  <td><span class="badge badge-finance-pending">Lease/Finance</span></td>
-                  <td>Lakshmi Jayawardena</td>
-                  <td style="font-weight: 600;">
-                    Rs. 580,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">via LOLC Finance</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 95,000</td>
-                  <td><span class="badge badge-sold">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <!-- Trade-in -->
-                <tr>
-                  <td>18 Dec 2025</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2024</a></td>
-                  <td><span class="badge badge-purchased">Trade-in</span></td>
-                  <td>Anura Kumara</td>
-                  <td style="font-weight: 600;">
-                    Rs. 420,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Trade-in: Hero Splendor+ (Rs. 120,000)</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--color-success);">+Rs. 100,000</td>
-                  <td><span class="badge badge-sold">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>25 Nov 2025</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2023</a></td>
-                  <td><span class="badge badge-purchased">Trade-in</span></td>
-                  <td>Tharushi De Silva</td>
-                  <td style="font-weight: 600;">
-                    Rs. 280,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Trade-in: Honda Dio 2020 (Rs. 95,000)</div>
-                  </td>
-                  <td style="font-weight: 600; color: var(--color-danger);">-Rs. 5,000</td>
-                  <td><span class="badge badge-sold">Completed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="table-view-container" data-toggle-group="main">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Vehicle</th>
+                    <th>Sale Type</th>
+                    <th>Customer</th>
+                    <th>Sale Price</th>
+                    <th>Profit/Loss</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Cash Immediate -->
+                  <tr>
+                    <td>05 Mar 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2024</a></td>
+                    <td><span class="badge badge-info">Cash Immediate</span></td>
+                    <td>Kamal Perera</td>
+                    <td style="font-weight: 600;">Rs. 295,000</td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 80,000</td>
+                    <td><span class="badge badge-sold">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>28 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Yamaha FZ-S V3 2025</a></td>
+                    <td><span class="badge badge-info">Cash Immediate</span></td>
+                    <td>Nimal Fernando</td>
+                    <td style="font-weight: 600;">Rs. 450,000</td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 70,000</td>
+                    <td><span class="badge badge-sold">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>20 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2023</a></td>
+                    <td><span class="badge badge-info">Cash Immediate</span></td>
+                    <td>Suresh Kumar</td>
+                    <td style="font-weight: 600;">Rs. 250,000</td>
+                    <td style="font-weight: 600; color: var(--color-danger);">-Rs. 35,000</td>
+                    <td><span class="badge badge-sold">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <!-- Cash with Advance -->
+                  <tr>
+                    <td>15 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar NS200 2024</a></td>
+                    <td><span class="badge badge-advance-placed">Cash with Advance</span></td>
+                    <td>Dinesh Silva</td>
+                    <td style="font-weight: 600;">
+                      Rs. 520,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Advance: Rs. 100,000</div>
+                    </td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 110,000</td>
+                    <td><span class="badge badge-advance-placed">Advance Placed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>08 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2025</a></td>
+                    <td><span class="badge badge-advance-placed">Cash with Advance</span></td>
+                    <td>Chaminda Rathnayake</td>
+                    <td style="font-weight: 600;">
+                      Rs. 310,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Advance: Rs. 50,000</div>
+                    </td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 65,000</td>
+                    <td><span class="badge badge-advance-placed">Advance Placed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>01 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2024</a></td>
+                    <td><span class="badge badge-advance-placed">Cash with Advance</span></td>
+                    <td>Ruwan Bandara</td>
+                    <td style="font-weight: 600;">
+                      Rs. 265,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Advance: Rs. 30,000</div>
+                    </td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 70,000</td>
+                    <td><span class="badge badge-sold">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <!-- Lease/Finance -->
+                  <tr>
+                    <td>22 Jan 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Suzuki Gixxer SF 2024</a></td>
+                    <td><span class="badge badge-finance-pending">Lease/Finance</span></td>
+                    <td>Priya Mendis</td>
+                    <td style="font-weight: 600;">
+                      Rs. 650,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">via People's Leasing</div>
+                    </td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 130,000</td>
+                    <td><span class="badge badge-finance-pending">Finance Pending</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>10 Jan 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda CB Hornet 2025</a></td>
+                    <td><span class="badge badge-finance-pending">Lease/Finance</span></td>
+                    <td>Lakshmi Jayawardena</td>
+                    <td style="font-weight: 600;">
+                      Rs. 580,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">via LOLC Finance</div>
+                    </td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 95,000</td>
+                    <td><span class="badge badge-sold">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <!-- Trade-in -->
+                  <tr>
+                    <td>18 Dec 2025</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2024</a></td>
+                    <td><span class="badge badge-purchased">Trade-in</span></td>
+                    <td>Anura Kumara</td>
+                    <td style="font-weight: 600;">
+                      Rs. 420,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Trade-in: Hero Splendor+ (Rs. 120,000)</div>
+                    </td>
+                    <td style="font-weight: 600; color: var(--color-success);">+Rs. 100,000</td>
+                    <td><span class="badge badge-sold">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>25 Nov 2025</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2023</a></td>
+                    <td><span class="badge badge-purchased">Trade-in</span></td>
+                    <td>Tharushi De Silva</td>
+                    <td style="font-weight: 600;">
+                      Rs. 280,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Trade-in: Honda Dio 2020 (Rs. 95,000)</div>
+                    </td>
+                    <td style="font-weight: 600; color: var(--color-danger);">-Rs. 5,000</td>
+                    <td><span class="badge badge-sold">Completed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Honda Dio 2024</a></div>
+                  <div class="data-card-subtitle">05 Mar 2026</div>
+                </div>
+                <span class="badge badge-info">Cash Immediate</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Kamal Perera</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 295,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 80,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Completed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Yamaha FZ-S V3 2025</a></div>
+                  <div class="data-card-subtitle">28 Feb 2026</div>
+                </div>
+                <span class="badge badge-info">Cash Immediate</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Nimal Fernando</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 450,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 70,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Completed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">TVS Apache RTR 160 2023</a></div>
+                  <div class="data-card-subtitle">20 Feb 2026</div>
+                </div>
+                <span class="badge badge-info">Cash Immediate</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Suresh Kumar</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 250,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-danger);">-Rs. 35,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Completed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Bajaj Pulsar NS200 2024</a></div>
+                  <div class="data-card-subtitle">15 Feb 2026</div>
+                </div>
+                <span class="badge badge-advance-placed">Cash with Advance</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Dinesh Silva</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 520,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 110,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-advance-placed">Advance Placed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Honda Dio 2025</a></div>
+                  <div class="data-card-subtitle">08 Feb 2026</div>
+                </div>
+                <span class="badge badge-advance-placed">Cash with Advance</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Chaminda Rathnayake</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 310,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 65,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-advance-placed">Advance Placed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Bajaj Pulsar 150 2024</a></div>
+                  <div class="data-card-subtitle">01 Feb 2026</div>
+                </div>
+                <span class="badge badge-advance-placed">Cash with Advance</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Ruwan Bandara</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 265,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 70,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Completed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Suzuki Gixxer SF 2024</a></div>
+                  <div class="data-card-subtitle">22 Jan 2026</div>
+                </div>
+                <span class="badge badge-finance-pending">Lease/Finance</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Priya Mendis</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 650,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 130,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-finance-pending">Finance Pending</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Honda CB Hornet 2025</a></div>
+                  <div class="data-card-subtitle">10 Jan 2026</div>
+                </div>
+                <span class="badge badge-finance-pending">Lease/Finance</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Lakshmi Jayawardena</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 580,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 95,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Completed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">TVS Apache RTR 160 2024</a></div>
+                  <div class="data-card-subtitle">18 Dec 2025</div>
+                </div>
+                <span class="badge badge-purchased">Trade-in</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Anura Kumara</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 420,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-success);">+Rs. 100,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Completed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Bajaj Pulsar 150 2023</a></div>
+                  <div class="data-card-subtitle">25 Nov 2025</div>
+                </div>
+                <span class="badge badge-purchased">Trade-in</span>
+              </div>
+              <div class="data-card-row"><span>Customer</span><span>Tharushi De Silva</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span style="font-weight: 600;">Rs. 280,000</span></div>
+              <div class="data-card-row"><span>Profit/Loss</span><span style="font-weight: 600; color: var(--color-danger);">-Rs. 5,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Completed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
           </div>
 
           <!-- Pagination -->

@@ -131,10 +131,14 @@
             </div>
             <button class="filter-btn active">All</button>
             <button class="filter-btn">Supplier</button>
-            <button class="filter-btn">Repair Vendor</button>
+            <button class="filter-btn">Garage</button>
             <button class="filter-btn">Finance Company</button>
           </div>
           <div class="toolbar-right">
+            <div class="view-toggle" data-toggle-group="main">
+              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+            </div>
             <button class="btn btn-primary" onclick="openSlideOver('addThirdPartyPanel')">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Third Party
@@ -144,6 +148,7 @@
 
         <!-- Table Card -->
         <div class="card">
+          <div class="table-view-container" data-toggle-group="main">
           <div class="table-container">
             <table>
               <thead>
@@ -235,10 +240,10 @@
                     </div>
                   </td>
                 </tr>
-                <!-- Repair Vendors -->
+                <!-- Garages -->
                 <tr>
                   <td style="font-weight: 600;">Chaminda Motors - Colombo</td>
-                  <td><span class="badge badge-warning">Repair Vendor</span></td>
+                  <td><span class="badge badge-warning">Garage</span></td>
                   <td>Chaminda Herath</td>
                   <td>077-3344556</td>
                   <td>&mdash;</td>
@@ -253,7 +258,7 @@
                 </tr>
                 <tr>
                   <td style="font-weight: 600;">LK Auto Garage - Kandy</td>
-                  <td><span class="badge badge-warning">Repair Vendor</span></td>
+                  <td><span class="badge badge-warning">Garage</span></td>
                   <td>Lalith Kumara</td>
                   <td>071-5567890</td>
                   <td>lkauto@gmail.com</td>
@@ -268,7 +273,7 @@
                 </tr>
                 <tr>
                   <td style="font-weight: 600;">Ranjan's Workshop - Galle</td>
-                  <td><span class="badge badge-warning">Repair Vendor</span></td>
+                  <td><span class="badge badge-warning">Garage</span></td>
                   <td>Ranjan Pathirana</td>
                   <td>076-2233445</td>
                   <td>&mdash;</td>
@@ -283,7 +288,7 @@
                 </tr>
                 <tr>
                   <td style="font-weight: 600;">AutoFix Lanka - Matara</td>
-                  <td><span class="badge badge-warning">Repair Vendor</span></td>
+                  <td><span class="badge badge-warning">Garage</span></td>
                   <td>Nuwan Bandara</td>
                   <td>070-8899001</td>
                   <td>autofix.matara@gmail.com</td>
@@ -345,6 +350,239 @@
               </tbody>
             </table>
           </div>
+          </div><!-- /table-view-container -->
+
+          <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
+            <!-- Ideal Motors Colombo -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Ideal Motors Colombo</div>
+                  <div class="data-card-subtitle">Ravi Mendis</div>
+                </div>
+                <span class="badge badge-info">Supplier</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>011-2567890</span></div>
+              <div class="data-card-row"><span>Email</span><span>sales@idealmotors.lk</span></div>
+              <div class="data-card-row"><span>Address</span><span>148, Duplication Road, Colombo 03</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-info">12 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- United Motors Kandy -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">United Motors Kandy</div>
+                  <div class="data-card-subtitle">Prasanna Wijesinghe</div>
+                </div>
+                <span class="badge badge-info">Supplier</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>081-2234567</span></div>
+              <div class="data-card-row"><span>Email</span><span>kandy@unitedmotors.lk</span></div>
+              <div class="data-card-row"><span>Address</span><span>56, Peradeniya Road, Kandy</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-info">8 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- Stafford Motor Co. -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Stafford Motor Co.</div>
+                  <div class="data-card-subtitle">Ajith Ratnayake</div>
+                </div>
+                <span class="badge badge-info">Supplier</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>011-2445566</span></div>
+              <div class="data-card-row"><span>Email</span><span>info@staffordmotor.lk</span></div>
+              <div class="data-card-row"><span>Address</span><span>300, Galle Road, Colombo 04</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-info">5 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- David Pieris Motor Co. -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">David Pieris Motor Co.</div>
+                  <div class="data-card-subtitle">Harsha Fernando</div>
+                </div>
+                <span class="badge badge-info">Supplier</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>011-2789012</span></div>
+              <div class="data-card-row"><span>Email</span><span>harsha@dpmc.lk</span></div>
+              <div class="data-card-row"><span>Address</span><span>61, Jethawana Road, Colombo 14</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-info">15 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- Diesel & Motor Engineering (DIMO) -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Diesel &amp; Motor Engineering (DIMO)</div>
+                  <div class="data-card-subtitle">Sampath Jayasuriya</div>
+                </div>
+                <span class="badge badge-info">Supplier</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>011-2449797</span></div>
+              <div class="data-card-row"><span>Email</span><span>sampath@dimo.lk</span></div>
+              <div class="data-card-row"><span>Address</span><span>65, Jetawana Road, Colombo 14</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-info">20 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- Chaminda Motors - Colombo -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Chaminda Motors - Colombo</div>
+                  <div class="data-card-subtitle">Chaminda Herath</div>
+                </div>
+                <span class="badge badge-warning">Garage</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>077-3344556</span></div>
+              <div class="data-card-row"><span>Email</span><span>&mdash;</span></div>
+              <div class="data-card-row"><span>Address</span><span>22/B, Dematagoda Road, Colombo 09</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-warning">7 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- LK Auto Garage - Kandy -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">LK Auto Garage - Kandy</div>
+                  <div class="data-card-subtitle">Lalith Kumara</div>
+                </div>
+                <span class="badge badge-warning">Garage</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>071-5567890</span></div>
+              <div class="data-card-row"><span>Email</span><span>lkauto@gmail.com</span></div>
+              <div class="data-card-row"><span>Address</span><span>89, William Gopallawa Mawatha, Kandy</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-warning">4 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- Ranjan's Workshop - Galle -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Ranjan's Workshop - Galle</div>
+                  <div class="data-card-subtitle">Ranjan Pathirana</div>
+                </div>
+                <span class="badge badge-warning">Garage</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>076-2233445</span></div>
+              <div class="data-card-row"><span>Email</span><span>&mdash;</span></div>
+              <div class="data-card-row"><span>Address</span><span>17, Matara Road, Galle</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-warning">3 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- AutoFix Lanka - Matara -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">AutoFix Lanka - Matara</div>
+                  <div class="data-card-subtitle">Nuwan Bandara</div>
+                </div>
+                <span class="badge badge-warning">Garage</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>070-8899001</span></div>
+              <div class="data-card-row"><span>Email</span><span>autofix.matara@gmail.com</span></div>
+              <div class="data-card-row"><span>Address</span><span>45, Anagarika Dharmapala Mawatha, Matara</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-warning">2 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- People's Leasing -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">People's Leasing</div>
+                  <div class="data-card-subtitle">Saman Priyankara</div>
+                </div>
+                <span class="badge badge-finance">Finance Company</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>011-2481481</span></div>
+              <div class="data-card-row"><span>Email</span><span>saman@plc.lk</span></div>
+              <div class="data-card-row"><span>Address</span><span>1161, Baseline Road, Colombo 09</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-finance">9 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- LOLC Finance -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">LOLC Finance</div>
+                  <div class="data-card-subtitle">Dilshan Amarasinghe</div>
+                </div>
+                <span class="badge badge-finance">Finance Company</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>011-5880880</span></div>
+              <div class="data-card-row"><span>Email</span><span>dilshan@lolcfinance.com</span></div>
+              <div class="data-card-row"><span>Address</span><span>100/1, Sri Jayewardenepura Mawatha, Rajagiriya</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-finance">6 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+            <!-- Central Finance -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Central Finance</div>
+                  <div class="data-card-subtitle">Kumari Perera</div>
+                </div>
+                <span class="badge badge-finance">Finance Company</span>
+              </div>
+              <div class="data-card-row"><span>Phone</span><span>011-2300500</span></div>
+              <div class="data-card-row"><span>Email</span><span>kumari@cf.lk</span></div>
+              <div class="data-card-row"><span>Address</span><span>270, Vauxhall Street, Colombo 02</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-finance">4 vehicles</span>
+                <div class="data-card-actions">
+                  <button class="btn btn-ghost btn-sm">Edit</button>
+                </div>
+              </div>
+            </div>
+          </div><!-- /card-view-container -->
+
           <div class="card-footer">
             <div class="pagination">
               <span class="pagination-info">Showing 1 to 12 of 12 third parties</span>
@@ -376,7 +614,7 @@
         <select class="form-select" id="thirdPartyType">
           <option value="">Select type...</option>
           <option value="supplier">Supplier</option>
-          <option value="repair_vendor">Repair Vendor</option>
+          <option value="repair_vendor">Garage</option>
           <option value="finance_company">Finance Company</option>
         </select>
       </div>

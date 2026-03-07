@@ -126,6 +126,10 @@
             <input type="date" class="form-input" style="width: 140px; padding: 7px 10px; font-size: 0.82rem;" value="2026-03-07">
           </div>
           <div class="toolbar-right">
+            <div class="view-toggle" data-toggle-group="main">
+              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+            </div>
             <button class="btn btn-primary" onclick="openSlideOver('newPurchasePanel')">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               New Purchase
@@ -135,158 +139,313 @@
 
         <!-- Table -->
         <div class="card">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Vehicle</th>
-                  <th>Type</th>
-                  <th>Supplier</th>
-                  <th>Purchase Price</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>07 Mar 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2025</a></td>
-                  <td><span class="badge badge-info">Cash</span></td>
-                  <td>Ideal Motors Colombo</td>
-                  <td style="font-weight: 600;">Rs. 245,000</td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>02 Mar 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2024</a></td>
-                  <td><span class="badge badge-info">Cash</span></td>
-                  <td>United Motors Kandy</td>
-                  <td style="font-weight: 600;">Rs. 195,000</td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>25 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2024</a></td>
-                  <td><span class="badge badge-warning">Lease Settlement</span></td>
-                  <td>Stafford Motor Co.</td>
-                  <td style="font-weight: 600;">
-                    Rs. 320,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Settlement: Rs. 180,000 + Cash: Rs. 140,000</div>
-                  </td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>18 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Yamaha FZ-S V3 2025</a></td>
-                  <td><span class="badge badge-info">Cash</span></td>
-                  <td>David Pieris Motor Co.</td>
-                  <td style="font-weight: 600;">Rs. 380,000</td>
-                  <td><span class="badge badge-sold">Sold</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>10 Feb 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Suzuki Gixxer SF 2024</a></td>
-                  <td><span class="badge badge-success">Brand New</span></td>
-                  <td>Ideal Motors Colombo</td>
-                  <td style="font-weight: 600;">Rs. 520,000</td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>28 Jan 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Hero Splendor+ 2023</a></td>
-                  <td><span class="badge badge-info">Cash</span></td>
-                  <td>United Motors Kandy</td>
-                  <td style="font-weight: 600;">Rs. 180,000</td>
-                  <td><span class="badge badge-in-repair">In Repair</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>15 Jan 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar NS200 2024</a></td>
-                  <td><span class="badge badge-warning">Lease Settlement</span></td>
-                  <td>Stafford Motor Co.</td>
-                  <td style="font-weight: 600;">
-                    Rs. 410,000
-                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Settlement: Rs. 250,000 + Cash: Rs. 160,000</div>
-                  </td>
-                  <td><span class="badge badge-advance-placed">Advance Placed</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>05 Jan 2026</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda CB Hornet 2025</a></td>
-                  <td><span class="badge badge-success">Brand New</span></td>
-                  <td>David Pieris Motor Co.</td>
-                  <td style="font-weight: 600;">Rs. 850,000</td>
-                  <td><span class="badge badge-finance-pending">Finance Pending</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>20 Dec 2025</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2024</a></td>
-                  <td><span class="badge badge-info">Cash</span></td>
-                  <td>Ideal Motors Colombo</td>
-                  <td style="font-weight: 600;">Rs. 215,000</td>
-                  <td><span class="badge badge-sold">Sold</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-                <tr>
-                  <td>08 Nov 2025</td>
-                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2023</a></td>
-                  <td><span class="badge badge-info">Cash</span></td>
-                  <td>United Motors Kandy</td>
-                  <td style="font-weight: 600;">Rs. 285,000</td>
-                  <td><span class="badge badge-sold">Sold</span></td>
-                  <td>
-                    <button class="btn btn-ghost btn-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="table-view-container" data-toggle-group="main">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Vehicle</th>
+                    <th>Type</th>
+                    <th>Supplier</th>
+                    <th>Purchase Price</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>07 Mar 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2025</a></td>
+                    <td><span class="badge badge-info">Cash</span></td>
+                    <td>Ideal Motors Colombo</td>
+                    <td style="font-weight: 600;">Rs. 245,000</td>
+                    <td><span class="badge badge-in-stock">In Stock</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>02 Mar 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2024</a></td>
+                    <td><span class="badge badge-info">Cash</span></td>
+                    <td>United Motors Kandy</td>
+                    <td style="font-weight: 600;">Rs. 195,000</td>
+                    <td><span class="badge badge-in-stock">In Stock</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>25 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2024</a></td>
+                    <td><span class="badge badge-warning">Lease Settlement</span></td>
+                    <td>Stafford Motor Co.</td>
+                    <td style="font-weight: 600;">
+                      Rs. 320,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Settlement: Rs. 180,000 + Cash: Rs. 140,000</div>
+                    </td>
+                    <td><span class="badge badge-in-stock">In Stock</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>18 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Yamaha FZ-S V3 2025</a></td>
+                    <td><span class="badge badge-info">Cash</span></td>
+                    <td>David Pieris Motor Co.</td>
+                    <td style="font-weight: 600;">Rs. 380,000</td>
+                    <td><span class="badge badge-sold">Sold</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>10 Feb 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Suzuki Gixxer SF 2024</a></td>
+                    <td><span class="badge badge-success">Brand New</span></td>
+                    <td>Ideal Motors Colombo</td>
+                    <td style="font-weight: 600;">Rs. 520,000</td>
+                    <td><span class="badge badge-in-stock">In Stock</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>28 Jan 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Hero Splendor+ 2023</a></td>
+                    <td><span class="badge badge-info">Cash</span></td>
+                    <td>United Motors Kandy</td>
+                    <td style="font-weight: 600;">Rs. 180,000</td>
+                    <td><span class="badge badge-in-repair">In Repair</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>15 Jan 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar NS200 2024</a></td>
+                    <td><span class="badge badge-warning">Lease Settlement</span></td>
+                    <td>Stafford Motor Co.</td>
+                    <td style="font-weight: 600;">
+                      Rs. 410,000
+                      <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Settlement: Rs. 250,000 + Cash: Rs. 160,000</div>
+                    </td>
+                    <td><span class="badge badge-advance-placed">Advance Placed</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>05 Jan 2026</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda CB Hornet 2025</a></td>
+                    <td><span class="badge badge-success">Brand New</span></td>
+                    <td>David Pieris Motor Co.</td>
+                    <td style="font-weight: 600;">Rs. 850,000</td>
+                    <td><span class="badge badge-finance-pending">Finance Pending</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>20 Dec 2025</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2024</a></td>
+                    <td><span class="badge badge-info">Cash</span></td>
+                    <td>Ideal Motors Colombo</td>
+                    <td style="font-weight: 600;">Rs. 215,000</td>
+                    <td><span class="badge badge-sold">Sold</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>08 Nov 2025</td>
+                    <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2023</a></td>
+                    <td><span class="badge badge-info">Cash</span></td>
+                    <td>United Motors Kandy</td>
+                    <td style="font-weight: 600;">Rs. 285,000</td>
+                    <td><span class="badge badge-sold">Sold</span></td>
+                    <td>
+                      <button class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Honda Dio 2025</a></div>
+                  <div class="data-card-subtitle">07 Mar 2026</div>
+                </div>
+                <span class="badge badge-info">Cash</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>Ideal Motors Colombo</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 245,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-in-stock">In Stock</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Bajaj Pulsar 150 2024</a></div>
+                  <div class="data-card-subtitle">02 Mar 2026</div>
+                </div>
+                <span class="badge badge-info">Cash</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>United Motors Kandy</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 195,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-in-stock">In Stock</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">TVS Apache RTR 160 2024</a></div>
+                  <div class="data-card-subtitle">25 Feb 2026</div>
+                </div>
+                <span class="badge badge-warning">Lease Settlement</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>Stafford Motor Co.</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 320,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-in-stock">In Stock</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Yamaha FZ-S V3 2025</a></div>
+                  <div class="data-card-subtitle">18 Feb 2026</div>
+                </div>
+                <span class="badge badge-info">Cash</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>David Pieris Motor Co.</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 380,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Sold</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Suzuki Gixxer SF 2024</a></div>
+                  <div class="data-card-subtitle">10 Feb 2026</div>
+                </div>
+                <span class="badge badge-success">Brand New</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>Ideal Motors Colombo</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 520,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-in-stock">In Stock</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Hero Splendor+ 2023</a></div>
+                  <div class="data-card-subtitle">28 Jan 2026</div>
+                </div>
+                <span class="badge badge-info">Cash</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>United Motors Kandy</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 180,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-in-repair">In Repair</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Bajaj Pulsar NS200 2024</a></div>
+                  <div class="data-card-subtitle">15 Jan 2026</div>
+                </div>
+                <span class="badge badge-warning">Lease Settlement</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>Stafford Motor Co.</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 410,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-advance-placed">Advance Placed</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Honda CB Hornet 2025</a></div>
+                  <div class="data-card-subtitle">05 Jan 2026</div>
+                </div>
+                <span class="badge badge-success">Brand New</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>David Pieris Motor Co.</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 850,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-finance-pending">Finance Pending</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">Honda Dio 2024</a></div>
+                  <div class="data-card-subtitle">20 Dec 2025</div>
+                </div>
+                <span class="badge badge-info">Cash</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>Ideal Motors Colombo</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 215,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Sold</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html" style="color: var(--color-info);">TVS Apache RTR 160 2023</a></div>
+                  <div class="data-card-subtitle">08 Nov 2025</div>
+                </div>
+                <span class="badge badge-info">Cash</span>
+              </div>
+              <div class="data-card-row"><span>Supplier</span><span>United Motors Kandy</span></div>
+              <div class="data-card-row"><span>Purchase Price</span><span style="font-weight: 600;">Rs. 285,000</span></div>
+              <div class="data-card-footer">
+                <span class="badge badge-sold">Sold</span>
+                <div class="data-card-actions"><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></div>
+              </div>
+            </div>
           </div>
 
           <!-- Pagination -->

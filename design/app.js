@@ -97,13 +97,47 @@ function initTabs() {
 }
 
 // --- View Toggle (Table/Card) ---
+// Supports multiple toggles per page via data-toggle-group attribute.
+// Each toggle group needs: [data-toggle-group="groupName"] on the .view-toggle container,
+// a .table-view-container and .card-view-container inside the same parent section.
+// Falls back to legacy id-based approach for backwards compatibility.
 function initViewToggle() {
+  // New: data-attribute based multi-toggle
+  document.querySelectorAll('.view-toggle[data-toggle-group]').forEach(toggle => {
+    const group = toggle.getAttribute('data-toggle-group');
+    const tableBtn = toggle.querySelector('[data-view="table"]');
+    const cardBtn = toggle.querySelector('[data-view="card"]');
+    // Find sibling containers within the same card/section
+    const section = toggle.closest('.card') || toggle.closest('.page-content') || toggle.parentElement.parentElement;
+    const tableView = section.querySelector('.table-view-container');
+    const cardView = section.querySelector('.card-view-container');
+
+    if (!tableBtn || !cardBtn || !tableView || !cardView) return;
+
+    tableBtn.addEventListener('click', () => {
+      tableBtn.classList.add('active');
+      cardBtn.classList.remove('active');
+      tableView.style.display = 'block';
+      cardView.style.display = 'none';
+    });
+
+    cardBtn.addEventListener('click', () => {
+      cardBtn.classList.add('active');
+      tableBtn.classList.remove('active');
+      cardView.style.display = 'grid';
+      tableView.style.display = 'none';
+    });
+  });
+
+  // Legacy: id-based single toggle (vehicles.html backwards compat)
   const tableViewBtn = document.getElementById('tableViewBtn');
   const cardViewBtn = document.getElementById('cardViewBtn');
   const tableView = document.getElementById('tableView');
   const cardView = document.getElementById('cardView');
 
   if (!tableViewBtn || !cardViewBtn) return;
+  // Skip if already handled by data-attribute approach
+  if (tableViewBtn.closest('[data-toggle-group]')) return;
 
   tableViewBtn.addEventListener('click', () => {
     tableViewBtn.classList.add('active');

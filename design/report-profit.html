@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profit Per Vehicle Report - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      transition: color 0.15s;
+    }
+    .back-link:hover {
+      color: var(--text-primary);
+    }
+    .back-link svg {
+      width: 16px;
+      height: 16px;
+    }
+    .report-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .report-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .report-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .date-input {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+    .date-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+    }
+    .date-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-tertiary);
+    }
+    .text-profit { color: var(--color-success); font-weight: 700; }
+    .text-loss { color: var(--color-danger); font-weight: 700; }
+    tfoot td {
+      font-weight: 800;
+      border-top: 2px solid var(--border-color-strong);
+      background: var(--bg-surface-hover);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="vehicles.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg>
+            <span class="nav-label">Vehicles</span>
+          </a>
+          <a href="purchases.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span class="nav-label">Purchases</span>
+          </a>
+          <a href="sales.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="nav-label">Sales</span>
+          </a>
+          <a href="repairs.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span class="nav-label">Repairs</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Customers</span>
+          </a>
+          <a href="third-parties.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            <span class="nav-label">Third Parties</span>
+          </a>
+          <a href="reports.html" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <span class="nav-label">Reports</span>
+          </a>
+          <a href="approvals.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span class="nav-label">Approvals</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span class="nav-label">Settings</span>
+          </a>
+          <a href="users.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Users &amp; Roles</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <h1 class="page-title">Profit Per Vehicle Report</h1>
+            <p class="page-subtitle">Detailed profit/loss breakdown by vehicle</p>
+          </div>
+        </div>
+        <div class="header-search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Search vehicles...">
+        </div>
+        <div class="header-right">
+          <div style="position: relative;">
+            <button class="header-icon-btn" id="notificationBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+          </div>
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
+          </button>
+          <div class="user-menu">
+            <div class="user-avatar">KP</div>
+            <span class="user-name">Kamal P.</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+
+        <!-- Back Link -->
+        <a href="reports.html" class="back-link">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Back to Reports
+        </a>
+
+        <!-- Toolbar -->
+        <div class="report-toolbar">
+          <div class="report-toolbar-left">
+            <span class="date-label">From</span>
+            <input type="date" class="date-input" value="2026-03-01">
+            <span class="date-label">To</span>
+            <input type="date" class="date-input" value="2026-03-07">
+            <button class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              Generate
+            </button>
+          </div>
+          <div class="report-toolbar-right">
+            <div class="view-toggle" data-toggle-group="main">
+              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
+            </div>
+            <button class="btn btn-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+            <button class="btn btn-secondary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Export PDF
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Summary -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Revenue</div>
+            <div class="kpi-value">Rs. 5,800,000</div>
+            <div class="kpi-change positive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +12.3% vs last month
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Cost Basis</div>
+            <div class="kpi-value">Rs. 3,350,000</div>
+            <div class="kpi-change negative">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+              +8.1% vs last month
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Profit</div>
+            <div class="kpi-value" style="color: var(--color-success);">Rs. 2,450,000</div>
+            <div class="kpi-change positive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +18.7% vs last month
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Average Margin</div>
+            <div class="kpi-value">18.5%</div>
+            <div class="kpi-change positive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +2.1% vs last month
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Vehicle Profit Breakdown</div>
+            <span class="text-sm text-muted">March 2026</span>
+          </div>
+          <div class="table-view-container" data-toggle-group="main">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vehicle</th>
+                  <th class="text-right">Purchase Price</th>
+                  <th class="text-right">Additional Costs</th>
+                  <th class="text-right">Repair Costs</th>
+                  <th class="text-right">Total Cost</th>
+                  <th class="text-right">Sale Price</th>
+                  <th class="text-right">Profit/Loss</th>
+                  <th class="text-right">Margin %</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Bajaj Pulsar NS200 2024</div>
+                    <div class="text-xs text-muted">WP-KA-1234</div>
+                  </td>
+                  <td class="text-right">Rs. 420,000</td>
+                  <td class="text-right">Rs. 5,500</td>
+                  <td class="text-right">Rs. 12,700</td>
+                  <td class="text-right font-semibold">Rs. 438,200</td>
+                  <td class="text-right">Rs. 535,000</td>
+                  <td class="text-right text-profit">Rs. 96,800</td>
+                  <td class="text-right text-profit">22.1%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Honda Dio 2023</div>
+                    <div class="text-xs text-muted">WP-CB-5678</div>
+                  </td>
+                  <td class="text-right">Rs. 195,000</td>
+                  <td class="text-right">Rs. 3,000</td>
+                  <td class="text-right">Rs. 4,200</td>
+                  <td class="text-right font-semibold">Rs. 202,200</td>
+                  <td class="text-right">Rs. 245,000</td>
+                  <td class="text-right text-profit">Rs. 42,800</td>
+                  <td class="text-right text-profit">21.2%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">TVS Apache RTR 160 2024</div>
+                    <div class="text-xs text-muted">WP-GQ-9012</div>
+                  </td>
+                  <td class="text-right">Rs. 380,000</td>
+                  <td class="text-right">Rs. 4,000</td>
+                  <td class="text-right">Rs. 8,500</td>
+                  <td class="text-right font-semibold">Rs. 392,500</td>
+                  <td class="text-right">Rs. 465,000</td>
+                  <td class="text-right text-profit">Rs. 72,500</td>
+                  <td class="text-right text-profit">18.5%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Yamaha FZ-S V3 2023</div>
+                    <div class="text-xs text-muted">SP-AB-3456</div>
+                  </td>
+                  <td class="text-right">Rs. 340,000</td>
+                  <td class="text-right">Rs. 3,500</td>
+                  <td class="text-right">Rs. 0</td>
+                  <td class="text-right font-semibold">Rs. 343,500</td>
+                  <td class="text-right">Rs. 420,000</td>
+                  <td class="text-right text-profit">Rs. 76,500</td>
+                  <td class="text-right text-profit">22.3%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Hero Splendor+ 2024</div>
+                    <div class="text-xs text-muted">WP-MH-7890</div>
+                  </td>
+                  <td class="text-right">Rs. 175,000</td>
+                  <td class="text-right">Rs. 2,500</td>
+                  <td class="text-right">Rs. 3,800</td>
+                  <td class="text-right font-semibold">Rs. 181,300</td>
+                  <td class="text-right">Rs. 225,000</td>
+                  <td class="text-right text-profit">Rs. 43,700</td>
+                  <td class="text-right text-profit">24.1%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Suzuki Gixxer SF 2024</div>
+                    <div class="text-xs text-muted">WP-DA-2345</div>
+                  </td>
+                  <td class="text-right">Rs. 450,000</td>
+                  <td class="text-right">Rs. 6,000</td>
+                  <td class="text-right">Rs. 15,200</td>
+                  <td class="text-right font-semibold">Rs. 471,200</td>
+                  <td class="text-right">Rs. 558,000</td>
+                  <td class="text-right text-profit">Rs. 86,800</td>
+                  <td class="text-right text-profit">18.4%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Honda CB Hornet 2023</div>
+                    <div class="text-xs text-muted">CP-NW-6789</div>
+                  </td>
+                  <td class="text-right">Rs. 395,000</td>
+                  <td class="text-right">Rs. 4,500</td>
+                  <td class="text-right">Rs. 22,800</td>
+                  <td class="text-right font-semibold">Rs. 422,300</td>
+                  <td class="text-right">Rs. 510,000</td>
+                  <td class="text-right text-profit">Rs. 87,700</td>
+                  <td class="text-right text-profit">20.8%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Bajaj CT125X 2023</div>
+                    <div class="text-xs text-muted">WP-KD-4567</div>
+                  </td>
+                  <td class="text-right">Rs. 210,000</td>
+                  <td class="text-right">Rs. 3,200</td>
+                  <td class="text-right">Rs. 18,500</td>
+                  <td class="text-right font-semibold">Rs. 231,700</td>
+                  <td class="text-right">Rs. 218,000</td>
+                  <td class="text-right text-loss">-Rs. 13,700</td>
+                  <td class="text-right text-loss">-5.9%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">TVS Ntorq 125 2024</div>
+                    <div class="text-xs text-muted">WP-BH-8901</div>
+                  </td>
+                  <td class="text-right">Rs. 285,000</td>
+                  <td class="text-right">Rs. 3,800</td>
+                  <td class="text-right">Rs. 6,300</td>
+                  <td class="text-right font-semibold">Rs. 295,100</td>
+                  <td class="text-right">Rs. 348,000</td>
+                  <td class="text-right text-profit">Rs. 52,900</td>
+                  <td class="text-right text-profit">17.9%</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="font-semibold">Yamaha Ray ZR 2022</div>
+                    <div class="text-xs text-muted">NW-EF-2341</div>
+                  </td>
+                  <td class="text-right">Rs. 225,000</td>
+                  <td class="text-right">Rs. 4,200</td>
+                  <td class="text-right">Rs. 28,600</td>
+                  <td class="text-right font-semibold">Rs. 257,800</td>
+                  <td class="text-right">Rs. 245,000</td>
+                  <td class="text-right text-loss">-Rs. 12,800</td>
+                  <td class="text-right text-loss">-5.0%</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td class="font-bold">Totals (10 vehicles)</td>
+                  <td class="text-right">Rs. 3,075,000</td>
+                  <td class="text-right">Rs. 40,200</td>
+                  <td class="text-right">Rs. 120,600</td>
+                  <td class="text-right">Rs. 3,235,800</td>
+                  <td class="text-right">Rs. 3,769,000</td>
+                  <td class="text-right text-profit">Rs. 533,200</td>
+                  <td class="text-right text-profit">16.5%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          </div><!-- /table-view-container -->
+
+          <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
+            <!-- Bajaj Pulsar NS200 2024 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Bajaj Pulsar NS200 2024</div>
+                  <div class="data-card-subtitle">WP-KA-1234</div>
+                </div>
+                <span class="badge badge-success">22.1%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 420,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 5,500</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 12,700</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 438,200</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 535,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 96,800</span>
+              </div>
+            </div>
+            <!-- Honda Dio 2023 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Honda Dio 2023</div>
+                  <div class="data-card-subtitle">WP-CB-5678</div>
+                </div>
+                <span class="badge badge-success">21.2%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 195,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 3,000</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 4,200</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 202,200</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 245,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 42,800</span>
+              </div>
+            </div>
+            <!-- TVS Apache RTR 160 2024 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">TVS Apache RTR 160 2024</div>
+                  <div class="data-card-subtitle">WP-GQ-9012</div>
+                </div>
+                <span class="badge badge-success">18.5%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 380,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 4,000</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 8,500</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 392,500</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 465,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 72,500</span>
+              </div>
+            </div>
+            <!-- Yamaha FZ-S V3 2023 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Yamaha FZ-S V3 2023</div>
+                  <div class="data-card-subtitle">SP-AB-3456</div>
+                </div>
+                <span class="badge badge-success">22.3%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 340,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 3,500</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 0</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 343,500</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 420,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 76,500</span>
+              </div>
+            </div>
+            <!-- Hero Splendor+ 2024 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Hero Splendor+ 2024</div>
+                  <div class="data-card-subtitle">WP-MH-7890</div>
+                </div>
+                <span class="badge badge-success">24.1%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 175,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 2,500</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 3,800</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 181,300</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 225,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 43,700</span>
+              </div>
+            </div>
+            <!-- Suzuki Gixxer SF 2024 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Suzuki Gixxer SF 2024</div>
+                  <div class="data-card-subtitle">WP-DA-2345</div>
+                </div>
+                <span class="badge badge-success">18.4%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 450,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 6,000</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 15,200</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 471,200</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 558,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 86,800</span>
+              </div>
+            </div>
+            <!-- Honda CB Hornet 2023 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Honda CB Hornet 2023</div>
+                  <div class="data-card-subtitle">CP-NW-6789</div>
+                </div>
+                <span class="badge badge-success">20.8%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 395,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 4,500</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 22,800</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 422,300</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 510,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 87,700</span>
+              </div>
+            </div>
+            <!-- Bajaj CT125X 2023 (LOSS) -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Bajaj CT125X 2023</div>
+                  <div class="data-card-subtitle">WP-KD-4567</div>
+                </div>
+                <span class="badge badge-danger">-5.9%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 210,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 3,200</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 18,500</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 231,700</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 218,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-loss" style="font-size:1rem;">-Rs. 13,700</span>
+              </div>
+            </div>
+            <!-- TVS Ntorq 125 2024 -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">TVS Ntorq 125 2024</div>
+                  <div class="data-card-subtitle">WP-BH-8901</div>
+                </div>
+                <span class="badge badge-success">17.9%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 285,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 3,800</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 6,300</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 295,100</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 348,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-profit" style="font-size:1rem;">Rs. 52,900</span>
+              </div>
+            </div>
+            <!-- Yamaha Ray ZR 2022 (LOSS) -->
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title">Yamaha Ray ZR 2022</div>
+                  <div class="data-card-subtitle">NW-EF-2341</div>
+                </div>
+                <span class="badge badge-danger">-5.0%</span>
+              </div>
+              <div class="data-card-row"><span>Purchase Price</span><span>Rs. 225,000</span></div>
+              <div class="data-card-row"><span>Additional Costs</span><span>Rs. 4,200</span></div>
+              <div class="data-card-row"><span>Repair Costs</span><span>Rs. 28,600</span></div>
+              <div class="data-card-row"><span>Total Cost</span><span style="font-weight:600;">Rs. 257,800</span></div>
+              <div class="data-card-row"><span>Sale Price</span><span>Rs. 245,000</span></div>
+              <div class="data-card-footer">
+                <span class="text-loss" style="font-size:1rem;">-Rs. 12,800</span>
+              </div>
+            </div>
+          </div><!-- /card-view-container -->
+
+          <!-- Pagination -->
+          <div class="card-footer">
+            <div class="pagination">
+              <div class="pagination-info">Showing 1 to 10 of 24 vehicles</div>
+              <div class="pagination-buttons">
+                <button class="pagination-btn" disabled>&laquo; Prev</button>
+                <button class="pagination-btn active">1</button>
+                <button class="pagination-btn">2</button>
+                <button class="pagination-btn">3</button>
+                <button class="pagination-btn">Next &raquo;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
