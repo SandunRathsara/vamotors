@@ -1,5 +1,5 @@
 # Technical Specification: Vehicle Sale Management System
-**Version:** 1.1
+**Version:** 1.2
 **Date:** 2026-03-07
 **Status:** Final Draft
 **Author:** Requirements-to-Specs Agent
@@ -86,9 +86,9 @@ The Vehicle Sale Management System (VSMS) is a web-based business operations pla
 
 ## 3. Entity Definitions
 
-### 3.1 Vehicle
+### 3.1 Vehicle (Identity)
 
-The core entity of the system. A vehicle can appear multiple times across its lifetime (re-purchased after prior sale). Each purchase creates a new `VehicleRecord` linked to the same physical vehicle identity via chassis/engine number.
+The core identity entity representing a single physical vehicle. A vehicle record is **never duplicated** — it is created once and linked to all purchase and sale transactions across its lifetime. When a previously sold vehicle is re-purchased, the existing vehicle identity is reused and a new `PurchaseRecord` is linked to it.
 
 | Field                  | Type        | Required | Notes                                                             |
 |------------------------|-------------|----------|-------------------------------------------------------------------|
@@ -99,16 +99,14 @@ The core entity of the system. A vehicle can appear multiple times across its li
 | colour                 | String      | Yes      |                                                                   |
 | engineNumber           | String      | Yes      | Unique per physical vehicle                                       |
 | chassisNumber          | String      | Yes      | Unique per physical vehicle                                       |
-| registrationNumber     | String      | No       | Required for registered vehicles; nullable for unregistered       |
+| vin                    | String      | No       | Vehicle Identification Number; optional                           |
+| crNumber               | String      | No       | Vehicle Registration Document Number (CR); optional               |
 | fuelType               | Enum        | Yes      | PETROL, DIESEL, HYBRID, ELECTRIC, OTHER                           |
 | transmission           | Enum        | Yes      | MANUAL, AUTOMATIC, CVT, OTHER                                     |
-| purchaseType           | Enum        | Yes      | CASH, LEASE_SETTLEMENT, BRAND_NEW                                 |
 | primaryStatus          | Enum        | Yes      | See Section 4 — lifecycle state machine                           |
 | isAvailableForSale     | Boolean     | Yes      | Secondary availability flag — see Section 4                       |
 | unavailabilityReason   | String      | No       | Free text when isAvailableForSale = false                         |
-| supplierId             | UUID        | No       | FK to Supplier (nullable for brand new from company)              |
-| purchaseDate           | Date        | Yes      |                                                                   |
-| purchasePrice          | Integer     | Yes      | Total purchase cost (smallest currency unit)                      |
+| activePurchaseId       | UUID        | No       | FK to PurchaseRecord — the current/active purchase record         |
 | listedPrice            | Integer     | No       | Current asking/listed sale price (smallest currency unit); editable at any time before sale |
 | notes                  | Text        | No       | General notes                                                     |
 | isWrittenOff           | Boolean     | Yes      | Default false                                                     |
@@ -119,11 +117,36 @@ The core entity of the system. A vehicle can appear multiple times across its li
 | createdByUserId        | UUID        | Yes      |                                                                   |
 
 **Notes:**
-- VIN is not required.
+- VIN (Vehicle Identification Number) and CR Number (Vehicle Registration Document Number) are both optional. A vehicle may be entered without either or both.
 - Condition rating and photos are not required.
-- A vehicle with no registration number may still be sold.
-- The same chassis/engine number can exist in multiple Vehicle records (re-purchase scenario). No unique constraint on these fields across the table; uniqueness is enforced at the application layer only within active (non-sold, non-written-off) records.
-- `listedPrice` is optional and independent of `purchasePrice`. It represents the price displayed/advertised to customers and may be updated freely by authorised staff while the vehicle is unsold. A sale at below `listedPrice` constitutes a discount and requires manager approval (see Section 8.3).
+- A vehicle with no VIN or CR number may still be sold.
+- `engineNumber` + `chassisNumber` combination has a unique constraint. When a vehicle with matching engine and chassis numbers is being purchased again, the system links the new purchase to the existing Vehicle record.
+- `activePurchaseId` points to the current purchase record. When a vehicle is re-purchased, this is updated to the new purchase record.
+- `listedPrice` is optional and independent of purchase price. It represents the price displayed/advertised to customers and may be updated freely by authorised staff while the vehicle is unsold. A sale at below `listedPrice` constitutes a discount and requires manager approval (see Section 8.3).
+
+### 3.1a PurchaseRecord
+
+Each purchase transaction for a vehicle. A single Vehicle can have multiple PurchaseRecords across its lifetime (purchased, sold, re-purchased). Each purchase has its own independent cost basis.
+
+| Field                  | Type        | Required | Notes                                                             |
+|------------------------|-------------|----------|-------------------------------------------------------------------|
+| id                     | UUID        | Yes      | Primary key                                                       |
+| vehicleId              | UUID        | Yes      | FK to Vehicle (many-to-one)                                       |
+| purchaseType           | Enum        | Yes      | CASH, LEASE_SETTLEMENT, BRAND_NEW                                 |
+| supplierId             | UUID        | No       | FK to Supplier                                                    |
+| purchaseDate           | Date        | Yes      |                                                                   |
+| purchasePrice          | Integer     | Yes      | Total purchase cost (smallest currency unit)                      |
+| notes                  | Text        | No       |                                                                   |
+| tradeInSourceSaleId    | UUID        | No       | FK to SaleRecord — populated if this purchase originated from a trade-in |
+| createdBy              | UUID        | Yes      | FK to User                                                        |
+| createdAt              | DateTime    | Yes      |                                                                   |
+| updatedAt              | DateTime    | Yes      |                                                                   |
+
+**Notes:**
+- When a vehicle is first entered, both a Vehicle record and a PurchaseRecord are created simultaneously.
+- When a previously sold vehicle is re-purchased, only a new PurchaseRecord is created and linked to the existing Vehicle. The Vehicle's `activePurchaseId` is updated.
+- All cost basis calculations (VehicleCost, RepairRecord) are linked via `purchaseRecordId` to scope costs to a specific purchase lifecycle.
+- `LeasePurchaseDetail` (Section 3.4) links to PurchaseRecord instead of Vehicle.
 
 ### 3.2 VehicleMileageHistory
 
@@ -143,10 +166,11 @@ Tracks mileage at each recorded point in time.
 
 Additional costs associated with a vehicle beyond the purchase price (e.g., transport, taxes, inspections).
 
-| Field       | Type     | Required | Notes                                          |
-|-------------|----------|----------|------------------------------------------------|
-| id          | UUID     | Yes      |                                                |
-| vehicleId   | UUID     | Yes      | FK to Vehicle                                  |
+| Field            | Type     | Required | Notes                                          |
+|------------------|----------|----------|------------------------------------------------|
+| id               | UUID     | Yes      |                                                |
+| vehicleId        | UUID     | Yes      | FK to Vehicle                                  |
+| purchaseRecordId | UUID     | Yes      | FK to PurchaseRecord — scopes cost to a specific purchase lifecycle |
 | category    | String   | Yes      | e.g., "Transport", "Tax", "Inspection"         |
 | amount      | Integer  | Yes      | Smallest currency unit                         |
 | description | Text     | No       |                                                |
@@ -161,14 +185,14 @@ Supplementary record for vehicles bought via lease settlement.
 | Field               | Type    | Required | Notes                                             |
 |---------------------|---------|----------|---------------------------------------------------|
 | id                  | UUID    | Yes      |                                                   |
-| vehicleId           | UUID    | Yes      | FK to Vehicle (1:1)                               |
+| purchaseRecordId    | UUID    | Yes      | FK to PurchaseRecord (1:1)                        |
 | institutionType     | Enum    | Yes      | BANK, FINANCE_COMPANY, PRIVATE_PARTY              |
 | institutionName     | String  | Yes      |                                                   |
 | settlementReference | String  | Yes      | Loan/agreement reference number                   |
 | settlementAmount    | Integer | Yes      | Amount paid to institution to clear the lease     |
 | cashToSeller        | Integer | Yes      | Amount paid directly to the seller                |
 
-Note: `settlementAmount + cashToSeller` should equal `Vehicle.purchasePrice`. Validation enforced at application layer.
+Note: `settlementAmount + cashToSeller` should equal `PurchaseRecord.purchasePrice`. Validation enforced at application layer.
 
 ### 3.5 Supplier
 
@@ -250,9 +274,11 @@ One repair event per vehicle. Multiple repairs allowed over the vehicle's lifeti
 | Field          | Type     | Required | Notes                                             |
 |----------------|----------|----------|---------------------------------------------------|
 | id             | UUID     | Yes      |                                                   |
-| vehicleId      | UUID     | Yes      | FK to Vehicle                                     |
-| vendorId       | UUID     | Yes      | FK to RepairVendor                                |
-| description    | Text     | Yes      | Nature of repair                                  |
+| vehicleId        | UUID     | Yes      | FK to Vehicle                                     |
+| purchaseRecordId | UUID     | Yes      | FK to PurchaseRecord — scopes repair to a specific purchase lifecycle |
+| vendorId         | UUID     | Yes      | FK to RepairVendor                                |
+| repairRequest    | Text     | Yes      | What needs to be repaired and why — entered when the vehicle is sent for repair |
+| repairSummary    | Text     | No       | What was actually repaired and how — entered when the vehicle returns from repair |
 | invoiceAmount  | Integer  | Yes      | Actual invoice amount (no estimates stored)       |
 | invoiceDate    | Date     | Yes      |                                                   |
 | sentForRepairAt| Date     | Yes      | Date vehicle left the showroom                    |
@@ -456,8 +482,7 @@ This separation cleanly handles cases like:
 |---------------------|-----------------------------------------------------------------------------|
 | PURCHASED           | Vehicle just entered the system via a purchase record                       |
 | IN_STOCK            | Vehicle is physically present and available to be managed                   |
-| SENT_FOR_REPAIR     | Vehicle has been sent to a repair vendor                                     |
-| IN_REPAIR           | Vehicle is actively with a repair vendor                                     |
+| IN_REPAIR           | Vehicle has been sent to a repair vendor and is currently with them         |
 | ADVANCE_PLACED      | A customer has placed an advance payment on the vehicle                     |
 | ADVANCE_EXPIRED     | The advance period has elapsed — awaiting staff decision                    |
 | FINANCE_PENDING     | Lease sale initiated — waiting for finance company approval                 |
@@ -473,12 +498,9 @@ PURCHASED
   └─► IN_STOCK
 
 IN_STOCK
-  ├─► SENT_FOR_REPAIR
+  ├─► IN_REPAIR (sent for repair)
   ├─► ADVANCE_PLACED
   └─► FINANCE_PENDING (lease sale initiated)
-
-SENT_FOR_REPAIR
-  └─► IN_REPAIR
 
 IN_REPAIR
   └─► IN_STOCK (returned from repair)
@@ -510,7 +532,6 @@ ADVANCE_EXPIRED
 |--------------------|--------------------|------------------------------------------------------------|
 | PURCHASED          | false (default)    | Not yet processed into stock                               |
 | IN_STOCK           | Editable by staff  | Staff can toggle with a reason                             |
-| SENT_FOR_REPAIR    | false (forced)     | System sets false; staff cannot override                   |
 | IN_REPAIR          | false (forced)     | System sets false; staff cannot override                   |
 | ADVANCE_PLACED     | false (forced)     | Reserved for a customer                                    |
 | ADVANCE_EXPIRED    | false (forced)     | Pending decision — staff cannot mark available until decision |
@@ -533,16 +554,16 @@ When staff sets `isAvailableForSale = false` on an IN_STOCK vehicle, an `unavail
 **Trigger:** Staff creates a new vehicle record and selects purchase type CASH.
 
 **Required inputs:**
-- All vehicle core fields (make, model, year, colour, engine number, chassis number, registration number, fuel type, transmission)
+- All vehicle core fields (make, model, year, colour, engine number, chassis number, VIN, CR number, fuel type, transmission)
 - Mileage (initial entry into mileage history)
 - Supplier (select existing or create new)
 - Purchase date
 - Purchase price (cash paid)
 
-**Outcome:** Vehicle record created with `primaryStatus = PURCHASED`. Staff must manually transition to `IN_STOCK` once vehicle is physically received and verified.
+**Outcome:** Vehicle record created (or existing vehicle identity matched by engine+chassis number and reused) with a new PurchaseRecord. `primaryStatus = PURCHASED`. Staff must manually transition to `IN_STOCK` once vehicle is physically received and verified.
 
 **Business Rules:**
-- Registration number is required (see B6) but there is no restriction on selling unregistered vehicles — system stores null and allows the sale process to proceed.
+- VIN and CR number are both optional — there is no restriction on selling vehicles without these numbers.
 - Supplier field is required for secondhand cash purchases.
 
 #### 5.1.2 Process Type: Lease Settlement Purchase
@@ -567,15 +588,15 @@ When staff sets `isAvailableForSale = false` on an IN_STOCK vehicle, an `unavail
 **Trigger:** Staff creates a new vehicle record and selects purchase type BRAND_NEW.
 
 **Required inputs:**
-- All vehicle core fields except registration number (nullable)
+- All vehicle core fields (VIN and CR number both optional)
 - Supplier is the company/dealer — required (create if not exists)
 - Purchase price (invoice price)
 
-**Outcome:** Vehicle record created without registration number. Registration number can be added later via an edit. Status = PURCHASED.
+**Outcome:** Vehicle record created (or existing identity matched) with a new PurchaseRecord. VIN and CR number can be added later via edit. Status = PURCHASED.
 
 **Business Rules:**
-- No VIN required.
-- No restriction on selling an unregistered brand-new vehicle.
+- VIN and CR number are both optional.
+- No restriction on selling a vehicle without VIN or CR number.
 
 #### 5.1.4 Additional Costs
 
@@ -591,23 +612,18 @@ These costs feed into the profit calculation (see Section 7).
 
 ### 5.2 Vehicle Repair Process
 
-**States involved:** IN_STOCK → SENT_FOR_REPAIR → IN_REPAIR → IN_STOCK
+**States involved:** IN_STOCK → IN_REPAIR → IN_STOCK
 
-#### Step 1: Mark as Sent for Repair
+#### Step 1: Send for Repair
 
 - Staff selects a vehicle in IN_STOCK status.
 - Staff selects a repair vendor (from vendor list; create if not exists).
-- Staff provides a description of the repair required.
+- Staff enters a repair request describing what needs to be repaired and why (required).
 - Staff records the date the vehicle is being sent.
-- System sets `primaryStatus = SENT_FOR_REPAIR`, `isAvailableForSale = false`.
-- RepairRecord created with `sentForRepairAt` populated.
+- System sets `primaryStatus = IN_REPAIR`, `isAvailableForSale = false`.
+- RepairRecord created with `repairRequest` and `sentForRepairAt` populated.
 
-#### Step 2: Mark as In Repair (optional intermediate step)
-
-- System or staff can mark transition to `IN_REPAIR` once vendor confirms receipt.
-- This step may be combined with Step 1 in the UI (configurable).
-
-#### Step 3: Mark as Returned from Repair
+#### Step 2: Mark as Returned from Repair
 
 - Staff records the return:
   - Actual invoice amount
@@ -699,7 +715,7 @@ Invoices are generated in-system from a template populated with the following fi
 
 **Seller Information:** Business name, address (from system config)
 **Buyer Information:** Full name, NIC/Passport number, address
-**Vehicle Details:** Make, model, year, chassis number, engine number, registration number, mileage at sale
+**Vehicle Details:** Make, model, year, chassis number, engine number, VIN (if available), CR number (if available), mileage at sale
 **Transaction Details:** Sale price, payment method (CASH / CHEQUE / BANK_TRANSFER), sale date
 **Legal Declarations:**
 - Seller declares ownership of the vehicle
@@ -761,10 +777,10 @@ All decisions require the acting staff member to be recorded (`expiredActionBy`)
 
 ### 7.1 Per-Vehicle Cost Basis
 
-Total cost of a vehicle = sum of:
-1. `Vehicle.purchasePrice`
-2. Sum of all `RepairRecord.invoiceAmount` for the vehicle
-3. Sum of all `VehicleCost.amount` for the vehicle
+Total cost of a vehicle (per purchase lifecycle) = sum of:
+1. `PurchaseRecord.purchasePrice`
+2. Sum of all `RepairRecord.invoiceAmount` linked to the same PurchaseRecord
+3. Sum of all `VehicleCost.amount` linked to the same PurchaseRecord
 
 ### 7.2 Profit Calculation
 
@@ -789,7 +805,7 @@ Per vehicle, the system must display:
 
 | Line Item            | Source                                  |
 |----------------------|-----------------------------------------|
-| Purchase Price       | Vehicle.purchasePrice                   |
+| Purchase Price       | PurchaseRecord.purchasePrice            |
 | Repair Costs         | Sum of RepairRecord.invoiceAmount        |
 | Other Costs          | Sum of VehicleCost.amount               |
 | Total Cost Basis     | Computed sum                            |
@@ -1075,11 +1091,13 @@ The `SaleRecord.tradeInValue` field stores the value attributed to the trade-in.
 ### 13.3 Purchase Side (Vehicle Being Acquired via Trade-in)
 
 If the dealership intends to resell the traded-in vehicle:
-- A new Vehicle record is created (purchase type: CASH, purchase price = trade-in value agreed)
+- If the vehicle's chassis+engine number already exists in the system, the existing Vehicle identity is reused and a new PurchaseRecord is linked to it
+- If the vehicle is new to the system, a new Vehicle identity record is created
+- A new PurchaseRecord is created (purchase type: CASH, purchase price = trade-in value agreed)
 - Supplier = the customer from the trade-in sale (link to Customer record, not Supplier)
-- The trade-in vehicle enters the standard vehicle lifecycle from PURCHASED status
+- The vehicle enters the standard lifecycle from PURCHASED status
 
-**Implementation note:** A `tradeInSourceSaleId` field on the Vehicle record links the new purchase back to the originating sale for audit and reporting purposes.
+**Implementation note:** A `tradeInSourceSaleId` field on the PurchaseRecord links the new purchase back to the originating sale for audit and reporting purposes.
 
 ### 13.4 Financial Impact
 

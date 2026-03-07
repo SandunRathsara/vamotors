@@ -6,7 +6,7 @@
 | Field | Details |
 |---|---|
 | Document Title | Business Requirements Specification — Vehicle Sale Management System |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-03-07 |
 | Status | Pending Client Sign-Off |
 | Prepared By | Development Team |
@@ -143,8 +143,8 @@ Requirements are categorised by priority:
 | ID | BR-004 |
 | Category | Vehicle Purchase |
 | Priority | Must Have |
-| Requirement | The system must record the following details for every vehicle: make, model, year of manufacture, colour, engine number, chassis number, registration number (where available), mileage at purchase, fuel type, and transmission type. |
-| Acceptance Criteria | All listed fields are present on the vehicle purchase form. Engine number and chassis number are required fields. Registration number is optional. A vehicle record cannot be saved without the required fields. |
+| Requirement | The system must record the following details for every vehicle: make, model, year of manufacture, colour, engine number, chassis number, VIN (Vehicle Identification Number), CR number (Vehicle Registration Document Number), mileage at purchase, fuel type, and transmission type. Both VIN and CR number are optional — a vehicle may be entered without either or both of these numbers. |
+| Acceptance Criteria | All listed fields are present on the vehicle purchase form. Engine number and chassis number are required fields. VIN and CR number are both optional fields. A vehicle record can be saved without VIN or CR number. Both numbers can be added or updated at any later point via the vehicle edit function. |
 
 ---
 
@@ -200,8 +200,8 @@ Requirements are categorised by priority:
 | ID | BR-009 |
 | Category | Repair Management |
 | Priority | Must Have |
-| Requirement | The system must allow staff to send a vehicle to a repair vendor and record this action. The system must maintain a directory of repair vendors with their contact details. When a vehicle is sent for repair, its status must automatically update to reflect this. |
-| Acceptance Criteria | Staff can select a vehicle and initiate a "Send for Repair" action by selecting a vendor from the vendor directory and recording the date sent. The vehicle status changes to "Sent for Repair." The vendor directory can be maintained (add, edit vendors) by authorised staff. |
+| Requirement | The system must allow staff to send a vehicle to a repair vendor and record this action. When sending a vehicle for repair, staff must be able to enter a repair request describing what needs to be repaired and why. The system must maintain a directory of repair vendors with their contact details. When a vehicle is sent for repair, its status must automatically change to "In Repair." |
+| Acceptance Criteria | Staff can select a vehicle and initiate a "Send for Repair" action by selecting a vendor from the vendor directory, recording the date sent, and entering a repair request describing what needs to be repaired and why. The repair request is saved against the repair record and is visible in the repair history. The vehicle status changes to "In Repair." The vendor directory can be maintained (add, edit vendors) by authorised staff. |
 
 ---
 
@@ -211,8 +211,8 @@ Requirements are categorised by priority:
 | ID | BR-010 |
 | Category | Repair Management |
 | Priority | Must Have |
-| Requirement | When a vehicle is returned from repair, staff must record the actual repair invoice amount. The system does not require estimates or quotes — only the final invoiced amount. The repair record must include the vendor, the date sent, the date returned, and the final cost. |
-| Acceptance Criteria | Staff can mark a vehicle as returned from repair and enter the final invoice amount. The repair record is saved with vendor details, date sent, date returned, and cost. The repair cost is automatically added to the vehicle's total cost basis. |
+| Requirement | When a vehicle is returned from repair, staff must record the actual repair invoice amount. The system does not require estimates or quotes — only the final invoiced amount. The repair record must include the vendor, the repair request entered at the time of sending, a repair summary describing what was actually done (entered on return), the date sent, the date returned, and the final cost. |
+| Acceptance Criteria | Staff can mark a vehicle as returned from repair and enter the final invoice amount. The repair record is saved with vendor details, the original repair request, a repair summary of what was done, date sent, date returned, and cost. The repair cost is automatically added to the vehicle's total cost basis. |
 
 ---
 
@@ -222,8 +222,8 @@ Requirements are categorised by priority:
 | ID | BR-011 |
 | Category | Repair Management |
 | Priority | Must Have |
-| Requirement | Each vehicle must maintain a complete repair history, showing all past repair events in chronological order including the vendor, dates, and costs. |
-| Acceptance Criteria | The vehicle detail view includes a repair history section listing all repair records for that vehicle. Each entry shows the vendor name, date sent, date returned, and invoice amount. |
+| Requirement | Each vehicle must maintain a complete repair history, showing all past repair events in chronological order including the vendor, the repair request, the repair summary, dates, and costs. |
+| Acceptance Criteria | The vehicle detail view includes a repair history section listing all repair records for that vehicle. Each entry shows the vendor name, the repair request, the repair summary, date sent, date returned, and invoice amount. |
 
 ---
 
@@ -246,7 +246,7 @@ Requirements are categorised by priority:
 | ID | BR-013 |
 | Category | Vehicle Status |
 | Priority | Must Have |
-| Requirement | Every vehicle in the system must have a clearly defined status that reflects its current position in the business lifecycle. The defined statuses are: Purchased, In Stock, Sent for Repair, In Repair, Advance Placed, Advance Expired, Finance Pending, Delivery Order Received, Sold, and Written Off. |
+| Requirement | Every vehicle in the system must have a clearly defined status that reflects its current position in the business lifecycle. The defined statuses are: Purchased, In Stock, In Repair, Advance Placed, Advance Expired, Finance Pending, Delivery Order Received, Sold, and Written Off. |
 | Acceptance Criteria | Every vehicle record displays its current status prominently. The status is updated automatically when relevant actions are taken (e.g., sending for repair, recording an advance, finalising a sale). Staff cannot manually set a status to a state that does not reflect an actual recorded transaction. |
 
 ---
@@ -258,7 +258,7 @@ Requirements are categorised by priority:
 | Category | Vehicle Status |
 | Priority | Must Have |
 | Requirement | In addition to its lifecycle status, each in-stock vehicle must have a separate availability flag indicating whether it is currently available for sale to customers. Staff must be able to mark a vehicle as "Not Available for Sale" and record a reason (for example, "Not yet in showroom" or "Out for inspection"). Vehicles in repair, under an active advance, or in the finance process must be automatically flagged as unavailable. |
-| Acceptance Criteria | In-stock vehicles display an availability indicator. An authorised staff member can toggle a vehicle's availability and must enter a reason when marking it as unavailable. Vehicles with status "Sent for Repair," "In Repair," "Advance Placed," "Finance Pending," or "Delivery Order Received" are automatically shown as unavailable and this cannot be manually overridden to "available" while in those states. |
+| Acceptance Criteria | In-stock vehicles display an availability indicator. An authorised staff member can toggle a vehicle's availability and must enter a reason when marking it as unavailable. Vehicles with status "In Repair," "Advance Placed," "Finance Pending," or "Delivery Order Received" are automatically shown as unavailable and this cannot be manually overridden to "available" while in those states. |
 
 ---
 
@@ -356,7 +356,7 @@ Requirements are categorised by priority:
 | Category | Invoice |
 | Priority | Must Have |
 | Requirement | The system must generate a printable invoice in PDF format for every completed vehicle sale. The invoice must contain all information required to serve as a formal document of sale between the dealership and the customer. |
-| Acceptance Criteria | A PDF invoice can be generated from any completed sale record. The invoice contains: full names, NIC or passport numbers, and addresses for both seller (dealership) and buyer; vehicle make, model, year, chassis number, engine number, registration number, and mileage; total sale price, payment method, and date of sale; a declaration of legal ownership and encumbrance-free status with transfer of liability to the buyer; and signature lines for both parties. The PDF is formatted for standard paper sizes and is suitable for printing. |
+| Acceptance Criteria | A PDF invoice can be generated from any completed sale record. The invoice contains: full names, NIC or passport numbers, and addresses for both seller (dealership) and buyer; vehicle make, model, year, chassis number, engine number, VIN (if available), CR number (if available), and mileage; total sale price, payment method, and date of sale; a declaration of legal ownership and encumbrance-free status with transfer of liability to the buyer; and signature lines for both parties. The PDF is formatted for standard paper sizes and is suitable for printing. |
 
 ---
 
@@ -547,8 +547,8 @@ Requirements are categorised by priority:
 | ID | BR-038 |
 | Category | Data Retention |
 | Priority | Must Have |
-| Requirement | The same vehicle (identified by chassis number or engine number) may appear in the system more than once if the dealership purchases it again after a previous sale. Each purchase instance must be treated as a separate, independent vehicle record with its own cost basis, repair history, and sale record. |
-| Acceptance Criteria | The system permits creation of a new vehicle purchase record with a chassis or engine number that already exists in the system for a previously sold vehicle. Both records coexist and are independently accessible. The system does not block or warn about duplicate chassis/engine numbers in this context. |
+| Requirement | The same physical vehicle (identified by its chassis number and engine number) must exist as a single vehicle identity record in the system, regardless of how many times it is purchased or sold by the dealership. Every purchase and sale transaction must be linked to this single vehicle identity. When a vehicle that was previously sold is re-purchased, a new purchase record is created and linked to the existing vehicle record — the vehicle itself is not duplicated. The vehicle's complete transaction history (all purchases, sales, and repairs across its lifetime) must be viewable from the single vehicle record. |
+| Acceptance Criteria | When recording a purchase for a vehicle whose chassis and engine number already exist in the system, the system links the new purchase to the existing vehicle record rather than creating a duplicate vehicle. The vehicle detail view shows the full history of all purchases, sales, and repairs associated with that vehicle across its lifetime. Each purchase instance maintains its own independent cost basis, repair history, and sale record. |
 
 ---
 
@@ -578,7 +578,6 @@ The expiry date is calculated automatically by the system when the advance is re
 
 Vehicles in the following statuses must be automatically marked as unavailable for sale and cannot be manually overridden to "available" while in these states:
 
-- Sent for Repair
 - In Repair
 - Advance Placed
 - Finance Pending
@@ -648,8 +647,7 @@ Vehicle statuses follow defined transitions. The following transitions are valid
 | From Status | Valid Next Status(es) |
 |---|---|
 | Purchased | In Stock |
-| In Stock | Sent for Repair, Advance Placed, Finance Pending, Sold, Written Off |
-| Sent for Repair | In Repair |
+| In Stock | In Repair, Advance Placed, Finance Pending, Sold, Written Off |
 | In Repair | In Stock |
 | Advance Placed | Sold, Advance Expired |
 | Advance Expired | In Stock (on cancellation), Sold (on conversion) |
@@ -902,4 +900,4 @@ By signing below, I confirm that:
 
 *End of Document*
 
-*Document Version 1.0 — Vehicle Sale Management System Business Requirements Specification — 2026-03-07*
+*Document Version 1.1 — Vehicle Sale Management System Business Requirements Specification — 2026-03-07*
