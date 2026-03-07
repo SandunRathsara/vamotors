@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .quick-action-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 20px 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: all 0.15s;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .quick-action-btn:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-color-strong);
+    }
+    .quick-action-btn .icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .quick-action-btn svg { width: 20px; height: 20px; }
+    .notif-panel-item {
+      display: flex;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-color);
+      align-items: flex-start;
+    }
+    .notif-panel-item:last-child { border-bottom: none; }
+    .notif-panel-item.unread .notif-panel-text p { font-weight: 600; }
+    .notif-panel-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .notif-panel-icon svg { width: 16px; height: 16px; }
+    .notif-panel-text { flex: 1; min-width: 0; }
+    .notif-panel-text p { font-size: 0.8rem; color: var(--text-primary); line-height: 1.4; }
+    .notif-panel-text .time { font-size: 0.7rem; color: var(--text-tertiary); margin-top: 2px; }
+    .kpi-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+    .kpi-icon svg { width: 20px; height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="vehicles.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg>
+            <span class="nav-label">Vehicles</span>
+          </a>
+          <a href="purchases.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span class="nav-label">Purchases</span>
+          </a>
+          <a href="sales.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="nav-label">Sales</span>
+          </a>
+          <a href="repairs.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span class="nav-label">Repairs</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Customers</span>
+          </a>
+          <a href="third-parties.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            <span class="nav-label">Third Parties</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <span class="nav-label">Reports</span>
+          </a>
+          <a href="approvals.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span class="nav-label">Approvals</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span class="nav-label">Settings</span>
+          </a>
+          <a href="users.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Users &amp; Roles</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search vehicles, customers...">
+          </div>
+
+          <!-- Notification Bell -->
+          <div style="position: relative;">
+            <button class="header-icon-btn" id="notificationBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+            <div class="notification-dropdown" id="notificationDropdown">
+              <div class="notification-dropdown-header">
+                <h3>Notifications</h3>
+                <a href="#" style="font-size: 0.78rem; font-weight: 600; color: var(--text-tertiary);">Mark all read</a>
+              </div>
+              <div class="notification-list">
+                <div class="notification-item unread">
+                  <div class="notification-icon approval">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                  </div>
+                  <div class="notification-text">
+                    <p><strong>Discount approval</strong> requested by Nimal Fernando for Bajaj Pulsar 150 - Rs. 25,000 off</p>
+                    <div class="time">10 minutes ago</div>
+                  </div>
+                </div>
+                <div class="notification-item unread">
+                  <div class="notification-icon approval">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                  </div>
+                  <div class="notification-text">
+                    <p><strong>Write-off approval</strong> requested for Honda Dio (WP-KA-5521) - Engine damage</p>
+                    <div class="time">45 minutes ago</div>
+                  </div>
+                </div>
+                <div class="notification-item unread">
+                  <div class="notification-icon sale">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  </div>
+                  <div class="notification-text">
+                    <p><strong>Sale completed</strong> - TVS Apache RTR 160 sold to Suresh Kumar for Rs. 485,000</p>
+                    <div class="time">2 hours ago</div>
+                  </div>
+                </div>
+                <div class="notification-item">
+                  <div class="notification-icon repair">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  </div>
+                  <div class="notification-text">
+                    <p><strong>Repair completed</strong> - Yamaha FZ-S V3 returned from Perera Motors</p>
+                    <div class="time">4 hours ago</div>
+                  </div>
+                </div>
+                <div class="notification-item">
+                  <div class="notification-icon alert">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div class="notification-text">
+                    <p><strong>Refund approval</strong> needed - Lakshmi Jayawardena requesting Rs. 50,000 advance refund</p>
+                    <div class="time">5 hours ago</div>
+                  </div>
+                </div>
+              </div>
+              <div class="notification-dropdown-footer">
+                <a href="approvals.html">View all notifications</a>
+              </div>
+            </div>
+          </div>
+
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
+          </button>
+
+          <div class="user-menu">
+            <div class="user-avatar">KP</div>
+            <span class="user-name">Kamal Perera</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: var(--color-info-light); color: var(--color-info);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg>
+            </div>
+            <div class="kpi-label">Total Vehicles</div>
+            <div class="kpi-value">47</div>
+            <div class="kpi-change positive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +8 this month
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: var(--color-warning-light); color: var(--color-warning);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <div class="kpi-label">In Repair</div>
+            <div class="kpi-value">5</div>
+            <div class="kpi-change negative">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+              +2 from last week
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: var(--color-success-light); color: var(--color-success);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="kpi-label">Active Sales</div>
+            <div class="kpi-value">12</div>
+            <div class="kpi-change positive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +3 this week
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: var(--status-purchased-bg); color: var(--status-purchased);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            </div>
+            <div class="kpi-label">Monthly Profit</div>
+            <div class="kpi-value">Rs. 2.45M</div>
+            <div class="kpi-change positive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              +18% vs last month
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Grid: Content + Notification Panel -->
+        <div class="grid-sidebar">
+          <!-- Left: Main Area -->
+          <div>
+            <!-- Recent Activity -->
+            <div class="card mb-24">
+              <div class="card-header">
+                <h2 class="card-title">Recent Activity</h2>
+                <a href="#" class="btn btn-ghost btn-sm">View all</a>
+              </div>
+              <div class="card-body">
+                <div class="timeline">
+                  <div class="timeline-item">
+                    <div style="font-size: 0.88rem; font-weight: 600;">New purchase recorded</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Bajaj Pulsar 150 (2024) purchased from Chaminda Rathnayake for Rs. 320,000</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 4px;">Today, 10:30 AM</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div style="font-size: 0.88rem; font-weight: 600;">Sale completed</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">TVS Apache RTR 160 sold to Suresh Kumar for Rs. 485,000 (Cash payment)</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 4px;">Today, 9:15 AM</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div style="font-size: 0.88rem; font-weight: 600;">Vehicle sent for repair</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Honda Dio sent to Perera Motors for engine tuning - Est. cost Rs. 12,500</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 4px;">Yesterday, 4:45 PM</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div style="font-size: 0.88rem; font-weight: 600;">Advance payment received</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Lakshmi Jayawardena placed Rs. 50,000 advance on Yamaha FZ-S V3</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 4px;">Yesterday, 2:30 PM</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div style="font-size: 0.88rem; font-weight: 600;">Repair completed</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Suzuki Gixxer returned from Silva Auto Works - Brake replacement (Rs. 8,200)</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 4px;">Yesterday, 11:00 AM</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div style="font-size: 0.88rem; font-weight: 600;">New customer added</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Dinesh Silva registered as a new customer (NIC: 941234567V)</div>
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 4px;">Mar 5, 3:20 PM</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+              <div class="card-header">
+                <h2 class="card-title">Quick Actions</h2>
+              </div>
+              <div class="card-body">
+                <div class="grid-3">
+                  <a href="purchases.html" class="quick-action-btn">
+                    <div class="icon-circle" style="background: var(--color-info-light); color: var(--color-info);">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                    </div>
+                    New Purchase
+                  </a>
+                  <a href="sales.html" class="quick-action-btn">
+                    <div class="icon-circle" style="background: var(--color-success-light); color: var(--color-success);">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    Record Sale
+                  </a>
+                  <a href="repairs.html" class="quick-action-btn">
+                    <div class="icon-circle" style="background: var(--color-warning-light); color: var(--color-warning);">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    </div>
+                    Send for Repair
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Notification Panel -->
+          <div>
+            <div class="card" style="position: sticky; top: 88px;">
+              <div class="card-header">
+                <h2 class="card-title">Notifications</h2>
+                <a href="#" style="font-size: 0.78rem; font-weight: 600; color: var(--text-tertiary);">Mark all read</a>
+              </div>
+              <div class="card-body" style="padding: 4px 20px 20px;">
+                <!-- Notification 1 - unread -->
+                <div class="notif-panel-item unread">
+                  <div class="notif-panel-icon" style="background: var(--color-warning-light); color: var(--color-warning);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Discount approval: Rs. 25,000 off on Bajaj Pulsar 150</p>
+                    <div class="time">10 minutes ago</div>
+                  </div>
+                </div>
+                <!-- Notification 2 - unread -->
+                <div class="notif-panel-item unread">
+                  <div class="notif-panel-icon" style="background: var(--color-warning-light); color: var(--color-warning);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Write-off request for Honda Dio (WP-KA-5521) - engine damage</p>
+                    <div class="time">45 minutes ago</div>
+                  </div>
+                </div>
+                <!-- Notification 3 - unread -->
+                <div class="notif-panel-item unread">
+                  <div class="notif-panel-icon" style="background: var(--color-danger-light); color: var(--color-danger);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Refund request: Rs. 50,000 advance from Lakshmi Jayawardena</p>
+                    <div class="time">2 hours ago</div>
+                  </div>
+                </div>
+                <!-- Notification 4 -->
+                <div class="notif-panel-item">
+                  <div class="notif-panel-icon" style="background: var(--color-success-light); color: var(--color-success);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Sale completed: TVS Apache RTR 160 to Suresh Kumar</p>
+                    <div class="time">3 hours ago</div>
+                  </div>
+                </div>
+                <!-- Notification 5 -->
+                <div class="notif-panel-item">
+                  <div class="notif-panel-icon" style="background: var(--color-info-light); color: var(--color-info);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Repair returned: Yamaha FZ-S V3 from Perera Motors</p>
+                    <div class="time">4 hours ago</div>
+                  </div>
+                </div>
+                <!-- Notification 6 -->
+                <div class="notif-panel-item">
+                  <div class="notif-panel-icon" style="background: var(--color-success-light); color: var(--color-success);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Sale completed: Hero Splendor+ to Nimal Fernando</p>
+                    <div class="time">6 hours ago</div>
+                  </div>
+                </div>
+                <!-- Notification 7 -->
+                <div class="notif-panel-item">
+                  <div class="notif-panel-icon" style="background: var(--color-danger-light); color: var(--color-danger);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Advance expired: Suzuki Gixxer - Dinesh Silva (30 days passed)</p>
+                    <div class="time">Yesterday</div>
+                  </div>
+                </div>
+                <!-- Notification 8 -->
+                <div class="notif-panel-item">
+                  <div class="notif-panel-icon" style="background: var(--color-info-light); color: var(--color-info);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  </div>
+                  <div class="notif-panel-text">
+                    <p>Repair sent: Bajaj Pulsar 150 to Silva Auto Works for chain replacement</p>
+                    <div class="time">2 days ago</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

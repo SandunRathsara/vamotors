@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .settings-grid {
+      max-width: 800px;
+    }
+    .settings-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .settings-card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .settings-card-desc {
+      font-size: 0.82rem;
+      color: var(--text-tertiary);
+      margin-bottom: 20px;
+    }
+    .settings-card-footer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+    }
+    .logo-preview {
+      width: 72px;
+      height: 72px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      object-fit: cover;
+      margin-bottom: 8px;
+    }
+    .logo-upload-area {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .tiers-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .tiers-table th {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-surface-hover);
+    }
+    .tiers-table td {
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .tiers-table tr:last-child td {
+      border-bottom: none;
+    }
+    .tiers-table input,
+    .tiers-table select {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+    .tiers-table input:focus,
+    .tiers-table select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+    }
+    .theme-switch {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      width: fit-content;
+    }
+    .theme-switch button {
+      padding: 8px 20px;
+      border: none;
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .theme-switch button:first-child {
+      border-right: 1px solid var(--border-color);
+    }
+    .theme-switch button.active {
+      background: var(--color-primary);
+      color: var(--text-inverse);
+    }
+    [data-theme="dark"] .theme-switch button.active {
+      background: var(--color-white);
+      color: var(--color-black);
+    }
+    .format-preview {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--bg-surface-hover);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="vehicles.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg>
+            <span class="nav-label">Vehicles</span>
+          </a>
+          <a href="purchases.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span class="nav-label">Purchases</span>
+          </a>
+          <a href="sales.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="nav-label">Sales</span>
+          </a>
+          <a href="repairs.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span class="nav-label">Repairs</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Customers</span>
+          </a>
+          <a href="third-parties.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            <span class="nav-label">Third Parties</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <span class="nav-label">Reports</span>
+          </a>
+          <a href="approvals.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span class="nav-label">Approvals</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span class="nav-label">Settings</span>
+          </a>
+          <a href="users.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Users &amp; Roles</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <h1 class="page-title">Settings</h1>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search vehicles, customers...">
+          </div>
+          <div style="position: relative;">
+            <button class="header-icon-btn" id="notificationBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+            <div class="notification-dropdown" id="notificationDropdown">
+              <div class="notification-dropdown-header">
+                <h3>Notifications</h3>
+                <a href="#" style="font-size: 0.78rem; font-weight: 600; color: var(--text-tertiary);">Mark all read</a>
+              </div>
+              <div class="notification-list">
+                <div class="notification-item unread">
+                  <div class="notification-icon approval">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                  </div>
+                  <div class="notification-text">
+                    <p><strong>Discount approval</strong> requested by Dinesh Silva for Bajaj Pulsar NS200</p>
+                    <div class="time">2 hours ago</div>
+                  </div>
+                </div>
+              </div>
+              <div class="notification-dropdown-footer">
+                <a href="approvals.html">View all notifications</a>
+              </div>
+            </div>
+          </div>
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
+          </button>
+          <div class="user-menu">
+            <div class="user-avatar">KP</div>
+            <span class="user-name">Kamal Perera</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="settings-grid">
+
+          <!-- Section 1: Company Profile -->
+          <div class="settings-section">
+            <div class="settings-card">
+              <div class="settings-card-title">Company Profile</div>
+              <div class="settings-card-desc">Manage your company information and branding.</div>
+
+              <div class="form-row mb-16">
+                <div class="form-group">
+                  <label class="form-label">Company Name <span class="required">*</span></label>
+                  <input type="text" class="form-input" value="VA Motors">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone</label>
+                  <input type="text" class="form-input" value="011-2345678">
+                </div>
+              </div>
+              <div class="form-group mb-16">
+                <label class="form-label">Address</label>
+                <input type="text" class="form-input" value="234, Galle Road, Colombo 03">
+              </div>
+              <div class="form-group mb-16">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" value="info@vamotors.lk">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Company Logo</label>
+                <div class="logo-upload-area">
+                  <img src="logo.jpeg" alt="VA Motors Logo" class="logo-preview">
+                  <div>
+                    <button class="btn btn-secondary btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload New Logo
+                    </button>
+                    <div class="form-hint" style="margin-top: 6px;">PNG, JPG up to 2MB. Recommended: 200x200px</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-card-footer">
+                <button class="btn btn-primary">Save Changes</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Currency Configuration -->
+          <div class="settings-section">
+            <div class="settings-card">
+              <div class="settings-card-title">Currency Configuration</div>
+              <div class="settings-card-desc">Set the currency format used across the system.</div>
+
+              <div class="form-row mb-16">
+                <div class="form-group">
+                  <label class="form-label">Currency Code</label>
+                  <input type="text" class="form-input" value="LKR" readonly style="background: var(--bg-surface-hover);">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Currency Symbol</label>
+                  <input type="text" class="form-input" value="Rs." readonly style="background: var(--bg-surface-hover);">
+                </div>
+              </div>
+              <div class="form-row mb-16">
+                <div class="form-group">
+                  <label class="form-label">Decimal Places</label>
+                  <select class="form-select">
+                    <option value="0" selected>0 (whole numbers only)</option>
+                    <option value="2">2</option>
+                  </select>
+                  <div class="form-hint">Smallest unit is stored as integer.</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Display Format Preview</label>
+                  <div class="format-preview">Rs. 1,000,000</div>
+                </div>
+              </div>
+
+              <div class="settings-card-footer">
+                <button class="btn btn-primary">Save</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Advance Payment Tiers -->
+          <div class="settings-section">
+            <div class="settings-card">
+              <div class="settings-card-title">Advance Payment Tiers</div>
+              <div class="settings-card-desc">Configure advance payment percentages and their validity periods.</div>
+
+              <div class="table-container">
+                <table class="tiers-table">
+                  <thead>
+                    <tr>
+                      <th>Advance %</th>
+                      <th>Validity Period</th>
+                      <th style="width: 60px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="text" value="Up to 5%"></td>
+                      <td>
+                        <select>
+                          <option selected>1 week</option>
+                          <option>2 weeks</option>
+                          <option>3 weeks</option>
+                          <option>1 month</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button class="btn btn-ghost btn-sm btn-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" value="Up to 10%"></td>
+                      <td>
+                        <select>
+                          <option>1 week</option>
+                          <option selected>2 weeks</option>
+                          <option>3 weeks</option>
+                          <option>1 month</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button class="btn btn-ghost btn-sm btn-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" value="Up to 15%"></td>
+                      <td>
+                        <select>
+                          <option>1 week</option>
+                          <option>2 weeks</option>
+                          <option selected>3 weeks</option>
+                          <option>1 month</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button class="btn btn-ghost btn-sm btn-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" value="20% and above"></td>
+                      <td>
+                        <select>
+                          <option>1 week</option>
+                          <option>2 weeks</option>
+                          <option>3 weeks</option>
+                          <option selected>1 month</option>
+                        </select>
+                      </td>
+                      <td>
+                        <button class="btn btn-ghost btn-sm btn-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="settings-card-footer">
+                <button class="btn btn-primary">Save Tiers</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: System Preferences -->
+          <div class="settings-section">
+            <div class="settings-card">
+              <div class="settings-card-title">System Preferences</div>
+              <div class="settings-card-desc">Configure default system behavior and display options.</div>
+
+              <div class="form-group mb-16">
+                <label class="form-label">Default Theme</label>
+                <div class="theme-switch">
+                  <button class="active">Light</button>
+                  <button>Dark</button>
+                </div>
+              </div>
+              <div class="form-row mb-16">
+                <div class="form-group">
+                  <label class="form-label">Items Per Page</label>
+                  <select class="form-select">
+                    <option>10</option>
+                    <option selected>25</option>
+                    <option>50</option>
+                    <option>100</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Date Format</label>
+                  <select class="form-select">
+                    <option selected>DD/MM/YYYY</option>
+                    <option>YYYY-MM-DD</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-card-footer">
+                <button class="btn btn-primary">Save Preferences</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

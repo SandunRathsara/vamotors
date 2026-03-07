@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchases - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="vehicles.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg>
+            <span class="nav-label">Vehicles</span>
+          </a>
+          <a href="purchases.html" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span class="nav-label">Purchases</span>
+          </a>
+          <a href="sales.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="nav-label">Sales</span>
+          </a>
+          <a href="repairs.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span class="nav-label">Repairs</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Customers</span>
+          </a>
+          <a href="third-parties.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            <span class="nav-label">Third Parties</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <span class="nav-label">Reports</span>
+          </a>
+          <a href="approvals.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span class="nav-label">Approvals</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span class="nav-label">Settings</span>
+          </a>
+          <a href="users.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Users &amp; Roles</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <h1 class="page-title">Purchases</h1>
+            <p class="page-subtitle">Manage vehicle purchase records</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search purchases...">
+          </div>
+          <div style="position: relative;">
+            <button class="header-icon-btn" id="notificationBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+          </div>
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
+          </button>
+          <div class="user-menu">
+            <div class="user-avatar">KP</div>
+            <span class="user-name">Kamal</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-input">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search by vehicle, supplier...">
+            </div>
+            <button class="filter-btn active">All</button>
+            <button class="filter-btn">Cash</button>
+            <button class="filter-btn">Lease Settlement</button>
+            <button class="filter-btn">Brand New</button>
+            <input type="date" class="form-input" style="width: 140px; padding: 7px 10px; font-size: 0.82rem;" value="2025-11-01">
+            <span style="color: var(--text-tertiary); font-size: 0.82rem;">to</span>
+            <input type="date" class="form-input" style="width: 140px; padding: 7px 10px; font-size: 0.82rem;" value="2026-03-07">
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-primary" onclick="openSlideOver('newPurchasePanel')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Purchase
+            </button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Vehicle</th>
+                  <th>Type</th>
+                  <th>Supplier</th>
+                  <th>Purchase Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>07 Mar 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2025</a></td>
+                  <td><span class="badge badge-info">Cash</span></td>
+                  <td>Ideal Motors Colombo</td>
+                  <td style="font-weight: 600;">Rs. 245,000</td>
+                  <td><span class="badge badge-in-stock">In Stock</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>02 Mar 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar 150 2024</a></td>
+                  <td><span class="badge badge-info">Cash</span></td>
+                  <td>United Motors Kandy</td>
+                  <td style="font-weight: 600;">Rs. 195,000</td>
+                  <td><span class="badge badge-in-stock">In Stock</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>25 Feb 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2024</a></td>
+                  <td><span class="badge badge-warning">Lease Settlement</span></td>
+                  <td>Stafford Motor Co.</td>
+                  <td style="font-weight: 600;">
+                    Rs. 320,000
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Settlement: Rs. 180,000 + Cash: Rs. 140,000</div>
+                  </td>
+                  <td><span class="badge badge-in-stock">In Stock</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>18 Feb 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Yamaha FZ-S V3 2025</a></td>
+                  <td><span class="badge badge-info">Cash</span></td>
+                  <td>David Pieris Motor Co.</td>
+                  <td style="font-weight: 600;">Rs. 380,000</td>
+                  <td><span class="badge badge-sold">Sold</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>10 Feb 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Suzuki Gixxer SF 2024</a></td>
+                  <td><span class="badge badge-success">Brand New</span></td>
+                  <td>Ideal Motors Colombo</td>
+                  <td style="font-weight: 600;">Rs. 520,000</td>
+                  <td><span class="badge badge-in-stock">In Stock</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>28 Jan 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Hero Splendor+ 2023</a></td>
+                  <td><span class="badge badge-info">Cash</span></td>
+                  <td>United Motors Kandy</td>
+                  <td style="font-weight: 600;">Rs. 180,000</td>
+                  <td><span class="badge badge-in-repair">In Repair</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>15 Jan 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Bajaj Pulsar NS200 2024</a></td>
+                  <td><span class="badge badge-warning">Lease Settlement</span></td>
+                  <td>Stafford Motor Co.</td>
+                  <td style="font-weight: 600;">
+                    Rs. 410,000
+                    <div style="font-size: 0.72rem; color: var(--text-tertiary); font-weight: 400;">Settlement: Rs. 250,000 + Cash: Rs. 160,000</div>
+                  </td>
+                  <td><span class="badge badge-advance-placed">Advance Placed</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>05 Jan 2026</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda CB Hornet 2025</a></td>
+                  <td><span class="badge badge-success">Brand New</span></td>
+                  <td>David Pieris Motor Co.</td>
+                  <td style="font-weight: 600;">Rs. 850,000</td>
+                  <td><span class="badge badge-finance-pending">Finance Pending</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>20 Dec 2025</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">Honda Dio 2024</a></td>
+                  <td><span class="badge badge-info">Cash</span></td>
+                  <td>Ideal Motors Colombo</td>
+                  <td style="font-weight: 600;">Rs. 215,000</td>
+                  <td><span class="badge badge-sold">Sold</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>08 Nov 2025</td>
+                  <td><a href="vehicle-detail.html" style="color: var(--color-info); font-weight: 600;">TVS Apache RTR 160 2023</a></td>
+                  <td><span class="badge badge-info">Cash</span></td>
+                  <td>United Motors Kandy</td>
+                  <td style="font-weight: 600;">Rs. 285,000</td>
+                  <td><span class="badge badge-sold">Sold</span></td>
+                  <td>
+                    <button class="btn btn-ghost btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="card-footer">
+            <div class="pagination">
+              <span class="pagination-info">Showing 1 - 10 of 24 purchases</span>
+              <div class="pagination-buttons">
+                <button class="pagination-btn">&laquo;</button>
+                <button class="pagination-btn active">1</button>
+                <button class="pagination-btn">2</button>
+                <button class="pagination-btn">3</button>
+                <button class="pagination-btn">&raquo;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /page-content -->
+    </div><!-- /main-content -->
+  </div><!-- /app-layout -->
+
+  <!-- Slide-over: Record New Purchase -->
+  <div class="slide-over-backdrop" id="newPurchasePanel-backdrop" onclick="closeSlideOver('newPurchasePanel')"></div>
+  <div class="slide-over" id="newPurchasePanel">
+    <div class="slide-over-header">
+      <h2 class="slide-over-title">Record New Purchase</h2>
+      <button class="slide-over-close" onclick="closeSlideOver('newPurchasePanel')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="slide-over-body">
+      <!-- Purchase Type -->
+      <div class="form-group">
+        <label class="form-label">Purchase Type <span class="required">*</span></label>
+        <select class="form-select">
+          <option value="">Select purchase type</option>
+          <option value="cash">Cash</option>
+          <option value="lease_settlement">Lease Settlement</option>
+          <option value="brand_new">Brand New</option>
+        </select>
+      </div>
+
+      <!-- Vehicle Section -->
+      <div style="border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+        <h3 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 12px; color: var(--text-secondary);">Vehicle Details</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Make <span class="required">*</span></label>
+            <input type="text" class="form-input" placeholder="e.g. Honda">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Model <span class="required">*</span></label>
+            <input type="text" class="form-input" placeholder="e.g. Dio">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Year <span class="required">*</span></label>
+            <input type="number" class="form-input" placeholder="e.g. 2025">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Colour</label>
+            <input type="text" class="form-input" placeholder="e.g. Matte Black">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Engine Number <span class="required">*</span></label>
+            <input type="text" class="form-input" placeholder="Engine number">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Chassis Number <span class="required">*</span></label>
+            <input type="text" class="form-input" placeholder="Chassis number">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">VIN</label>
+            <input type="text" class="form-input" placeholder="Optional">
+          </div>
+          <div class="form-group">
+            <label class="form-label">CR Number</label>
+            <input type="text" class="form-input" placeholder="Optional">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Fuel Type</label>
+            <select class="form-select">
+              <option value="petrol">Petrol</option>
+              <option value="electric">Electric</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Transmission</label>
+            <select class="form-select">
+              <option value="manual">Manual</option>
+              <option value="automatic">Automatic</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mileage (km)</label>
+          <input type="number" class="form-input" placeholder="e.g. 12500">
+        </div>
+      </div>
+
+      <!-- Supplier -->
+      <div class="form-group">
+        <label class="form-label">Supplier <span class="required">*</span></label>
+        <select class="form-select">
+          <option value="">Search or select supplier...</option>
+          <option value="1">Ideal Motors Colombo</option>
+          <option value="2">United Motors Kandy</option>
+          <option value="3">Stafford Motor Co.</option>
+          <option value="4">David Pieris Motor Co.</option>
+        </select>
+        <div class="form-hint"><a href="#" style="color: var(--color-info); font-weight: 600;">+ Add New Supplier</a></div>
+      </div>
+
+      <!-- Purchase Date -->
+      <div class="form-group">
+        <label class="form-label">Purchase Date <span class="required">*</span></label>
+        <input type="date" class="form-input" value="2026-03-07">
+      </div>
+
+      <!-- Purchase Price -->
+      <div class="form-group">
+        <label class="form-label">Purchase Price (LKR) <span class="required">*</span></label>
+        <input type="text" class="form-input" placeholder="e.g. 250,000">
+      </div>
+
+      <!-- Listed Price -->
+      <div class="form-group">
+        <label class="form-label">Listed Price (LKR)</label>
+        <input type="text" class="form-input" placeholder="e.g. 320,000">
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" placeholder="Any additional notes about this purchase..."></textarea>
+      </div>
+    </div>
+    <div class="slide-over-footer">
+      <button class="btn btn-secondary" onclick="closeSlideOver('newPurchasePanel')">Cancel</button>
+      <button class="btn btn-primary">Save Purchase</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

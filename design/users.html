@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users &amp; Roles - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .role-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.15s;
+    }
+    .role-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-color-strong);
+    }
+    .role-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .role-card-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .role-card-desc {
+      font-size: 0.82rem;
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+    }
+    .role-card-users {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .permission-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .permission-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      background: var(--bg-surface-hover);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+    }
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--color-primary);
+    }
+    .permission-matrix-section {
+      margin-bottom: 20px;
+    }
+    .permission-matrix-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .permission-matrix-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .permission-matrix-items label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .permission-matrix-items input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--color-primary);
+    }
+    .user-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .user-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .user-status .dot.active { background: var(--color-success); }
+    .user-status .dot.inactive { background: var(--color-gray-400); }
+    .role-badges {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="vehicles.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg>
+            <span class="nav-label">Vehicles</span>
+          </a>
+          <a href="purchases.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span class="nav-label">Purchases</span>
+          </a>
+          <a href="sales.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="nav-label">Sales</span>
+          </a>
+          <a href="repairs.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span class="nav-label">Repairs</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Customers</span>
+          </a>
+          <a href="third-parties.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            <span class="nav-label">Third Parties</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <span class="nav-label">Reports</span>
+          </a>
+          <a href="approvals.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span class="nav-label">Approvals</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span class="nav-label">Settings</span>
+          </a>
+          <a href="users.html" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Users &amp; Roles</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <h1 class="page-title">Users &amp; Roles</h1>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search vehicles, customers...">
+          </div>
+          <div style="position: relative;">
+            <button class="header-icon-btn" id="notificationBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+            <div class="notification-dropdown" id="notificationDropdown">
+              <div class="notification-dropdown-header">
+                <h3>Notifications</h3>
+                <a href="#" style="font-size: 0.78rem; font-weight: 600; color: var(--text-tertiary);">Mark all read</a>
+              </div>
+              <div class="notification-list">
+                <div class="notification-item unread">
+                  <div class="notification-icon approval">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                  </div>
+                  <div class="notification-text">
+                    <p><strong>Discount approval</strong> requested by Dinesh Silva for Bajaj Pulsar NS200</p>
+                    <div class="time">2 hours ago</div>
+                  </div>
+                </div>
+              </div>
+              <div class="notification-dropdown-footer">
+                <a href="approvals.html">View all notifications</a>
+              </div>
+            </div>
+          </div>
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
+          </button>
+          <div class="user-menu">
+            <div class="user-avatar">KP</div>
+            <span class="user-name">Kamal Perera</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="tab-users">Users</button>
+          <button class="tab" data-tab="tab-roles">Roles</button>
+        </div>
+
+        <!-- TAB 1: Users -->
+        <div class="tab-panel active" id="tab-users">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <span class="text-sm text-muted">6 users total</span>
+            </div>
+            <div class="toolbar-right">
+              <div class="search-input">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" placeholder="Search users...">
+              </div>
+              <button class="btn btn-primary" onclick="openSlideOver('addUserPanel')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add User
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-8">
+                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem;">KP</div>
+                        <span class="font-semibold">Kamal Perera</span>
+                      </div>
+                    </td>
+                    <td>kamal@vamotors.lk</td>
+                    <td>
+                      <div class="role-badges">
+                        <span class="badge badge-info">Manager</span>
+                        <span class="badge" style="background: var(--status-purchased-bg); color: var(--status-purchased);">Admin</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="user-status"><span class="dot active"></span> Active</div>
+                    </td>
+                    <td class="text-muted">Today</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-8">
+                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem;">NF</div>
+                        <span class="font-semibold">Nimal Fernando</span>
+                      </div>
+                    </td>
+                    <td>nimal@vamotors.lk</td>
+                    <td>
+                      <div class="role-badges">
+                        <span class="badge badge-warning">Cashier</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="user-status"><span class="dot active"></span> Active</div>
+                    </td>
+                    <td class="text-muted">Today</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-8">
+                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem;">SK</div>
+                        <span class="font-semibold">Suresh Kumar</span>
+                      </div>
+                    </td>
+                    <td>suresh@vamotors.lk</td>
+                    <td>
+                      <div class="role-badges">
+                        <span class="badge badge-success">Sales Person</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="user-status"><span class="dot active"></span> Active</div>
+                    </td>
+                    <td class="text-muted">Yesterday</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-8">
+                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem;">DS</div>
+                        <span class="font-semibold">Dinesh Silva</span>
+                      </div>
+                    </td>
+                    <td>dinesh@vamotors.lk</td>
+                    <td>
+                      <div class="role-badges">
+                        <span class="badge badge-success">Sales Person</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="user-status"><span class="dot active"></span> Active</div>
+                    </td>
+                    <td class="text-muted">2 days ago</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-8">
+                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem;">CR</div>
+                        <span class="font-semibold">Chaminda Rathnayake</span>
+                      </div>
+                    </td>
+                    <td>chaminda@vamotors.lk</td>
+                    <td>
+                      <div class="role-badges">
+                        <span class="badge badge-warning">Cashier</span>
+                        <span class="badge badge-success">Sales Person</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="user-status"><span class="dot active"></span> Active</div>
+                    </td>
+                    <td class="text-muted">Today</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-8">
+                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.7rem; background: var(--color-gray-400);">PM</div>
+                        <span class="font-semibold" style="color: var(--text-tertiary);">Priya Mendis</span>
+                      </div>
+                    </td>
+                    <td style="color: var(--text-tertiary);">priya@vamotors.lk</td>
+                    <td>
+                      <div class="role-badges">
+                        <span class="badge badge-success">Sales Person</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="user-status"><span class="dot inactive"></span> Inactive</div>
+                    </td>
+                    <td class="text-muted">2 weeks ago</td>
+                    <td>
+                      <div class="flex gap-8">
+                        <button class="btn btn-ghost btn-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Roles -->
+        <div class="tab-panel" id="tab-roles">
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <span class="text-sm text-muted">4 roles configured</span>
+            </div>
+            <div class="toolbar-right">
+              <button class="btn btn-primary" onclick="openSlideOver('createRolePanel')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Create Role
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin Role -->
+          <div class="role-card">
+            <div class="role-card-header">
+              <div>
+                <div class="role-card-title">Admin</div>
+                <div class="role-card-desc">Full system access</div>
+                <div class="role-card-users">1 user assigned</div>
+              </div>
+              <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+            </div>
+            <div class="permission-list">
+              <span class="permission-badge">* (all permissions)</span>
+            </div>
+          </div>
+
+          <!-- Manager Role -->
+          <div class="role-card">
+            <div class="role-card-header">
+              <div>
+                <div class="role-card-title">Manager</div>
+                <div class="role-card-desc">Approval authority, reports, all operations</div>
+                <div class="role-card-users">1 user assigned</div>
+              </div>
+              <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+            </div>
+            <div class="permission-list">
+              <span class="permission-badge">manage:vehicle</span>
+              <span class="permission-badge">manage:purchase</span>
+              <span class="permission-badge">manage:sale</span>
+              <span class="permission-badge">approve:discount</span>
+              <span class="permission-badge">approve:writeoff</span>
+              <span class="permission-badge">approve:refund</span>
+              <span class="permission-badge">approve:saleedit</span>
+              <span class="permission-badge">view:reports</span>
+              <span class="permission-badge">manage:user</span>
+            </div>
+          </div>
+
+          <!-- Cashier Role -->
+          <div class="role-card">
+            <div class="role-card-header">
+              <div>
+                <div class="role-card-title">Cashier</div>
+                <div class="role-card-desc">Day-to-day operations, financial records</div>
+                <div class="role-card-users">2 users assigned</div>
+              </div>
+              <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+            </div>
+            <div class="permission-list">
+              <span class="permission-badge">create:purchase</span>
+              <span class="permission-badge">create:sale</span>
+              <span class="permission-badge">create:repair</span>
+              <span class="permission-badge">view:vehicle</span>
+              <span class="permission-badge">edit:vehicle</span>
+              <span class="permission-badge">view:reports</span>
+            </div>
+          </div>
+
+          <!-- Sales Person Role -->
+          <div class="role-card">
+            <div class="role-card-header">
+              <div>
+                <div class="role-card-title">Sales Person</div>
+                <div class="role-card-desc">Vehicle sales and customer management</div>
+                <div class="role-card-users">3 users assigned</div>
+              </div>
+              <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
+              </button>
+            </div>
+            <div class="permission-list">
+              <span class="permission-badge">view:vehicle</span>
+              <span class="permission-badge">create:sale</span>
+              <span class="permission-badge">manage:customer</span>
+              <span class="permission-badge">request:discount</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Add User Slide-over -->
+  <div class="slide-over-backdrop" id="addUserPanel-backdrop" onclick="closeSlideOver('addUserPanel')"></div>
+  <div class="slide-over" id="addUserPanel">
+    <div class="slide-over-header">
+      <h2 class="slide-over-title">Add User</h2>
+      <button class="slide-over-close" onclick="closeSlideOver('addUserPanel')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="slide-over-body">
+      <div class="form-group">
+        <label class="form-label">Full Name <span class="required">*</span></label>
+        <input type="text" class="form-input" placeholder="Enter full name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email <span class="required">*</span></label>
+        <input type="email" class="form-input" placeholder="Enter email address">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Temporary Password <span class="required">*</span></label>
+        <input type="password" class="form-input" placeholder="Set a temporary password">
+        <div class="form-hint">User will be asked to change this on first login.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assign Roles <span class="required">*</span></label>
+        <div class="checkbox-group">
+          <label><input type="checkbox"> Admin</label>
+          <label><input type="checkbox"> Manager</label>
+          <label><input type="checkbox"> Cashier</label>
+          <label><input type="checkbox"> Sales Person</label>
+        </div>
+      </div>
+    </div>
+    <div class="slide-over-footer">
+      <button class="btn btn-secondary" onclick="closeSlideOver('addUserPanel')">Cancel</button>
+      <button class="btn btn-primary">Create User</button>
+    </div>
+  </div>
+
+  <!-- Create Role Slide-over -->
+  <div class="slide-over-backdrop" id="createRolePanel-backdrop" onclick="closeSlideOver('createRolePanel')"></div>
+  <div class="slide-over" id="createRolePanel">
+    <div class="slide-over-header">
+      <h2 class="slide-over-title">Create Role</h2>
+      <button class="slide-over-close" onclick="closeSlideOver('createRolePanel')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="slide-over-body">
+      <div class="form-group">
+        <label class="form-label">Role Name <span class="required">*</span></label>
+        <input type="text" class="form-input" placeholder="e.g., Accountant">
+      </div>
+      <div class="form-group mb-24">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" placeholder="Brief description of this role's purpose"></textarea>
+      </div>
+
+      <h3 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 16px;">Permission Matrix</h3>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Vehicles</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> View</label>
+          <label><input type="checkbox"> Create</label>
+          <label><input type="checkbox"> Edit</label>
+          <label><input type="checkbox"> Delete</label>
+        </div>
+      </div>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Purchases</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> View</label>
+          <label><input type="checkbox"> Create</label>
+          <label><input type="checkbox"> Edit</label>
+        </div>
+      </div>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Sales</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> View</label>
+          <label><input type="checkbox"> Create</label>
+          <label><input type="checkbox"> Edit</label>
+          <label><input type="checkbox"> Request Discount</label>
+        </div>
+      </div>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Repairs</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> View</label>
+          <label><input type="checkbox"> Create</label>
+          <label><input type="checkbox"> Complete</label>
+        </div>
+      </div>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Approvals</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> Approve Discount</label>
+          <label><input type="checkbox"> Approve Write-off</label>
+          <label><input type="checkbox"> Approve Refund</label>
+          <label><input type="checkbox"> Approve Sale Edit</label>
+        </div>
+      </div>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Reports</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> View</label>
+        </div>
+      </div>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Users</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> View</label>
+          <label><input type="checkbox"> Manage</label>
+        </div>
+      </div>
+
+      <div class="permission-matrix-section">
+        <div class="permission-matrix-title">Settings</div>
+        <div class="permission-matrix-items">
+          <label><input type="checkbox"> Manage</label>
+        </div>
+      </div>
+    </div>
+    <div class="slide-over-footer">
+      <button class="btn btn-secondary" onclick="closeSlideOver('createRolePanel')">Cancel</button>
+      <button class="btn btn-primary">Save Role</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

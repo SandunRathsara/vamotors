@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customers - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <!-- Main -->
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a href="vehicles.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg>
+            <span class="nav-label">Vehicles</span>
+          </a>
+          <a href="purchases.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span class="nav-label">Purchases</span>
+          </a>
+          <a href="sales.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span class="nav-label">Sales</span>
+          </a>
+          <a href="repairs.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span class="nav-label">Repairs</span>
+          </a>
+        </div>
+        <!-- Management -->
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Customers</span>
+          </a>
+          <a href="third-parties.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            <span class="nav-label">Third Parties</span>
+          </a>
+          <a href="reports.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            <span class="nav-label">Reports</span>
+          </a>
+          <a href="approvals.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            <span class="nav-label">Approvals</span>
+            <span class="nav-badge">3</span>
+          </a>
+        </div>
+        <!-- System -->
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            <span class="nav-label">Settings</span>
+          </a>
+          <a href="users.html" class="nav-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="nav-label">Users &amp; Roles</span>
+          </a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div>
+            <h1 class="page-title">Customers</h1>
+            <p class="page-subtitle">Manage your customer directory</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search anything...">
+          </div>
+          <div style="position: relative;">
+            <button class="header-icon-btn" id="notificationBtn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+          </div>
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
+          </button>
+          <div class="user-menu">
+            <div class="user-avatar">KP</div>
+            <span class="user-name">Kamal</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-input">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search customers...">
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button class="btn btn-primary" onclick="openSlideOver('addCustomerPanel')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Customer
+            </button>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>NIC</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Address</th>
+                  <th>Vehicles</th>
+                  <th>Last Purchase</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Kamal Perera</a></td>
+                  <td>199012345678</td>
+                  <td>077-1234567</td>
+                  <td>kamal.perera@gmail.com</td>
+                  <td class="truncate" style="max-width: 200px;">42/A, Galle Road, Dehiwala</td>
+                  <td><span class="badge badge-info">3</span></td>
+                  <td>2026-02-15</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Nimal Fernando</a></td>
+                  <td>198523456789</td>
+                  <td>071-9876543</td>
+                  <td>nimal.fernando@yahoo.com</td>
+                  <td class="truncate" style="max-width: 200px;">156, Kandy Road, Kadawatha</td>
+                  <td><span class="badge badge-info">2</span></td>
+                  <td>2026-01-22</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Suresh Kumar</a></td>
+                  <td>880345678V</td>
+                  <td>076-3456789</td>
+                  <td>&mdash;</td>
+                  <td class="truncate" style="max-width: 200px;">23, Main Street, Negombo</td>
+                  <td><span class="badge badge-info">1</span></td>
+                  <td>2025-12-10</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Lakshmi Jayawardena</a></td>
+                  <td>199245678901</td>
+                  <td>077-8765432</td>
+                  <td>lakshmi.j@outlook.com</td>
+                  <td class="truncate" style="max-width: 200px;">8/2, Temple Road, Mount Lavinia</td>
+                  <td><span class="badge badge-info">2</span></td>
+                  <td>2026-03-01</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Dinesh Silva</a></td>
+                  <td>910567890V</td>
+                  <td>070-1122334</td>
+                  <td>&mdash;</td>
+                  <td class="truncate" style="max-width: 200px;">67, High Level Road, Nugegoda</td>
+                  <td><span class="badge badge-info">1</span></td>
+                  <td>2025-11-18</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Tharushi De Silva</a></td>
+                  <td>199567890123</td>
+                  <td>075-5566778</td>
+                  <td>tharushi.ds@gmail.com</td>
+                  <td class="truncate" style="max-width: 200px;">15, Peradeniya Road, Kandy</td>
+                  <td><span class="badge badge-info">1</span></td>
+                  <td>2026-02-28</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Anura Kumara</a></td>
+                  <td>197834567890</td>
+                  <td>071-2233445</td>
+                  <td>&mdash;</td>
+                  <td class="truncate" style="max-width: 200px;">201, Colombo Road, Piliyandala</td>
+                  <td><span class="badge badge-info">3</span></td>
+                  <td>2026-01-05</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Priyantha Dissanayake</a></td>
+                  <td>198789012345</td>
+                  <td>077-4455667</td>
+                  <td>priyantha.d@hotmail.com</td>
+                  <td class="truncate" style="max-width: 200px;">34/B, Matara Road, Galle</td>
+                  <td><span class="badge badge-info">2</span></td>
+                  <td>2025-10-30</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Madhavi Wickramasinghe</a></td>
+                  <td>199301234567</td>
+                  <td>076-6677889</td>
+                  <td>madhavi.w@gmail.com</td>
+                  <td class="truncate" style="max-width: 200px;">90, Baseline Road, Borella</td>
+                  <td><span class="badge badge-info">1</span></td>
+                  <td>2026-03-05</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><a href="#" style="color: var(--color-info); font-weight: 600;">Rohan Gunaratne</a></td>
+                  <td>820678901V</td>
+                  <td>070-9988776</td>
+                  <td>&mdash;</td>
+                  <td class="truncate" style="max-width: 200px;">12, Dambulla Road, Kurunegala</td>
+                  <td><span class="badge badge-info">2</span></td>
+                  <td>2025-09-14</td>
+                  <td>
+                    <div class="flex gap-8">
+                      <button class="btn btn-ghost btn-sm">View</button>
+                      <button class="btn btn-ghost btn-sm">Edit</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            <div class="pagination">
+              <span class="pagination-info">Showing 1 to 10 of 10 customers</span>
+              <div class="pagination-buttons">
+                <button class="pagination-btn" disabled>&laquo; Prev</button>
+                <button class="pagination-btn active">1</button>
+                <button class="pagination-btn" disabled>Next &raquo;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /page-content -->
+    </div><!-- /main-content -->
+  </div><!-- /app-layout -->
+
+  <!-- Add Customer Slide-over -->
+  <div class="slide-over-backdrop" id="addCustomerPanel-backdrop" onclick="closeSlideOver('addCustomerPanel')"></div>
+  <div class="slide-over" id="addCustomerPanel">
+    <div class="slide-over-header">
+      <h2 class="slide-over-title">Add Customer</h2>
+      <button class="slide-over-close" onclick="closeSlideOver('addCustomerPanel')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="slide-over-body">
+      <div class="form-group">
+        <label class="form-label">Full Name <span class="required">*</span></label>
+        <input type="text" class="form-input" placeholder="e.g. Kamal Perera">
+      </div>
+      <div class="form-group">
+        <label class="form-label">NIC Number <span class="required">*</span></label>
+        <input type="text" class="form-input" placeholder="e.g. 199012345678 or 901234567V">
+        <p class="form-hint">12-digit new NIC or old format (9 digits + V/X)</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number (Primary) <span class="required">*</span></label>
+        <input type="text" class="form-input" placeholder="e.g. 077-1234567">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number (Secondary)</label>
+        <input type="text" class="form-input" placeholder="e.g. 011-2345678">
+        <p class="form-hint">Optional secondary or landline number</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" placeholder="e.g. customer@email.com">
+        <p class="form-hint">Optional</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Address <span class="required">*</span></label>
+        <textarea class="form-textarea" placeholder="e.g. 42/A, Galle Road, Dehiwala"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" placeholder="Any additional notes about this customer..." style="min-height: 60px;"></textarea>
+        <p class="form-hint">Optional</p>
+      </div>
+    </div>
+    <div class="slide-over-footer">
+      <button class="btn btn-secondary" onclick="closeSlideOver('addCustomerPanel')">Cancel</button>
+      <button class="btn btn-primary">Save Customer</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
