@@ -1,0 +1,134 @@
+# Vehicle Sale Business Management System — Project Plan
+> Infrastructure & Technology Stack
+
+---
+
+## 1. Project Overview
+
+A single-user web-based system to manage a secondhand and new vehicle sale business. The client can log in from anywhere. The architecture is designed for zero hosting cost using free-tier cloud services, with the entire application running on Vercel via Next.js App Router.
+
+---
+
+## 2. Hosting Architecture
+
+### Strategy
+
+Collapse the backend into **Next.js API Route Handlers** instead of running a separate NestJS server. This eliminates one hosting service entirely and keeps the monthly cost at **$0**.
+
+### Infrastructure Stack
+
+| Layer | Service | Cost | Notes |
+|---|---|---|---|
+| Frontend + Backend API | **Vercel** (Hobby Free Tier) | $0 | Next.js native. API Route Handlers replace a separate backend server. Custom domain supported free. |
+| Database | **Neon** (Free Tier) | $0 | Serverless PostgreSQL. 0.5 GB storage. Prisma compatible. |
+| Image Storage | **Cloudflare R2** (Free Tier) | $0 | S3-compatible. 10 GB storage, zero egress fees. Accessed via `@aws-sdk/client-s3`. |
+| PDF Invoices | **`@react-pdf/renderer`** (npm) | $0 | Generated inside a Next.js API Route. No extra server needed. |
+| Authentication | **Better Auth** | $0 | Credentials-based single-user login. Drop-in replacement with improved security model. |
+| ORM | **Prisma + Neon Serverless Driver** | $0 | Familiar Prisma workflow with the Neon adapter for serverless-optimised connection pooling. |
+
+**Total Monthly Hosting Cost: $0**
+
+### Architecture Diagram
+
+```
+Browser (Client)
+      │
+      ▼
+  Vercel CDN
+  ┌──────────────────────────────────┐
+  │  Next.js App (App Router)        │──── Neon PostgreSQL
+  │  ├── /app  (React UI)            │──── Cloudflare R2 (Images)
+  │  └── /api  (Route Handlers)      │──── @react-pdf (Invoices)
+  └──────────────────────────────────┘
+```
+
+### Free Tier Limits & Growth Safety
+
+| Service | Free Limit | Estimated Runway |
+|---|---|---|
+| Neon | 0.5 GB storage | Safe for ~50,000+ vehicle and transaction records |
+| Cloudflare R2 | 10 GB storage, 0 egress | ~2,000–3,000 vehicles with 5–6 photos each |
+| Vercel | 100 GB bandwidth, 10s function timeout | Sufficient for a single-user system |
+
+> **Note:** Vercel's 10-second serverless function timeout is not a concern — all operations (DB queries, image uploads, PDF generation) complete well within that limit.
+
+---
+
+## 3. Technology Stack
+
+### Core Framework & Language
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Framework | Next.js 15+ (App Router) | Full-stack React framework — UI and API in one project |
+| Language | TypeScript | End-to-end type safety across frontend and backend |
+| Runtime | Node.js (Vercel Serverless) | API routes run as serverless functions on Vercel |
+
+### UI & Styling
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Component Library | **shadcn/ui** | Unstyled, accessible components built on Radix UI primitives. Fully customisable, copy-paste into project — no external dependency lock-in. |
+| Styling | Tailwind CSS | Utility-first CSS framework, required by shadcn/ui |
+| Icons | Lucide React | Default icon set shipped with shadcn/ui |
+
+### Data Fetching & State Management
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Server State / Data Fetching | **TanStack Query** (React Query) | Caching, background refetching, loading and error states for all API calls |
+| Tables & Data Grids | **TanStack Table** | Headless table engine — sorting, filtering, pagination for vehicle and transaction lists |
+| Forms | **TanStack Form** | Type-safe form state management and validation, paired with shadcn/ui form components |
+| Routing | Next.js App Router | File-system routing; TanStack Router is not needed alongside Next.js |
+
+### Authentication
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Auth Library | **Better Auth** | Modern, framework-agnostic authentication library. More actively maintained than NextAuth v4, with a cleaner API and first-class TypeScript support. |
+| Strategy | Credentials Provider (single user) | Username + password login. Session stored via HTTP-only cookies. |
+| Session Management | Better Auth built-in sessions | Server-side session validation on every API route and protected page. |
+
+### Database & ORM
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Database | PostgreSQL via Neon | Serverless PostgreSQL with automatic scaling and branching |
+| ORM | Prisma ORM | Schema-first ORM with full TypeScript types generated from the database schema |
+| Driver | `@neondatabase/serverless` | HTTP-based connection pooling optimised for serverless — avoids cold-start TCP connection overhead |
+
+### Storage & File Handling
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Image / File Storage | Cloudflare R2 | S3-compatible object storage. Zero egress fees. Accessed via `@aws-sdk/client-s3`. |
+| Image Upload | Pre-signed PUT URLs | Client uploads directly to R2 via a signed URL generated by the API route — no file bytes pass through Vercel. |
+| PDF Generation | `@react-pdf/renderer` | React-based PDF rendering executed inside a Next.js API route for invoice generation. |
+
+### Development & Tooling
+
+| Concern | Choice | Notes |
+|---|---|---|
+| Package Manager | pnpm | Faster installs, strict dependency resolution, disk-efficient |
+| Linting | ESLint + Prettier | Code quality and consistent formatting |
+| Schema Validation | Zod | Runtime type validation for API inputs and form data; integrates with TanStack Form |
+| CI/CD & Hosting | Vercel (Git integration) | Automatic preview and production deployments on every push |
+
+---
+
+## 4. Full Stack at a Glance
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15+ (App Router, TypeScript) |
+| UI Components | shadcn/ui + Tailwind CSS |
+| Server State | TanStack Query |
+| Tables | TanStack Table |
+| Forms | TanStack Form + Zod |
+| Authentication | Better Auth (Credentials) |
+| ORM | Prisma + Neon Serverless Driver |
+| Database | Neon PostgreSQL (Free Tier) |
+| File Storage | Cloudflare R2 |
+| PDF | @react-pdf/renderer |
+| Deployment | Vercel (Hobby Free Tier) |
+| **Monthly Cost** | **$0** |
