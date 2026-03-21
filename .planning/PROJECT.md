@@ -37,6 +37,11 @@ Every vehicle's complete financial story — purchase cost, repairs, additional 
 - [ ] One-time historical data import from spreadsheets
 - [ ] PWA capabilities (installable, responsive 360px-1920px)
 - [ ] Vehicle listed price management (separate from cost basis)
+- [ ] Lease brokerage service (rate sheet comparison, application processing, document management, commission reconciliation)
+- [ ] Dashboard with key business metrics and quick actions
+- [ ] View Sale screen with full details based on sale type
+- [ ] View Customer screen with history
+- [ ] Third-party reference number per sale (e.g., finance company file number)
 
 ### Out of Scope
 
