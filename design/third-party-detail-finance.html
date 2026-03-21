@@ -75,6 +75,7 @@
         <div class="tabs">
           <button class="tab active" data-tab="tab-info">Information</button>
           <button class="tab" data-tab="tab-contacts">Contact Persons</button>
+          <button class="tab" data-tab="tab-leases">Related Leases</button>
           <button class="tab" data-tab="tab-docs">Document Requirements</button>
           <button class="tab" data-tab="tab-activity">Activity</button>
         </div>
@@ -125,6 +126,39 @@
                   <div class="info"><div class="name">Mr. Saman Perera</div><div class="meta">Document Verification &middot; 077-3456789</div></div>
                   <button class="btn btn-ghost btn-sm">Edit</button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Related Leases -->
+        <div class="tab-panel" id="tab-leases">
+          <div class="card mb-16">
+            <div class="card-header"><h3 class="card-title">All Leases with People's Leasing</h3>
+              <div class="flex gap-8">
+                <button class="filter-btn active">All</button>
+                <button class="filter-btn">Vehicle Sales</button>
+                <button class="filter-btn">Brokerage</button>
+              </div>
+            </div>
+            <div class="table-container">
+              <table>
+                <thead><tr><th>Date</th><th>Source</th><th>Customer</th><th>Vehicle</th><th>Finance Amount</th><th>Commission</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr><td>19 Mar 2026</td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Anura Kumara</td><td>Honda CB Hornet 2025</td><td style="font-weight:600;">Rs. 430,000</td><td>Rs. 10,750</td><td><span class="badge" style="background:var(--status-do-received-bg);color:var(--status-do-received);font-size:0.72rem;">Docs Collected</span></td><td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td></tr>
+                  <tr><td>15 Mar 2026</td><td><span class="badge badge-info" style="font-size:0.7rem;">Vehicle Sale</span></td><td>Priya Mendis</td><td>Suzuki Gixxer SF 2024</td><td style="font-weight:600;">Rs. 500,000</td><td>Rs. 12,500</td><td><span class="badge badge-finance-pending" style="font-size:0.72rem;">Finance Pending</span></td><td><a href="sale-detail.html" class="btn btn-ghost btn-sm">View</a></td></tr>
+                  <tr><td>10 Mar 2026</td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Dinesh Silva</td><td>Honda Dio 2025</td><td style="font-weight:600;">Rs. 200,000</td><td>Rs. 5,000</td><td><span class="badge" style="background:var(--status-sold-bg);color:var(--status-sold);font-size:0.72rem;">Completed</span></td><td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td></tr>
+                  <tr><td>01 Mar 2026</td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Lakshmi Jayawardena</td><td>Suzuki Gixxer SF 2024</td><td style="font-weight:600;">Rs. 480,000</td><td>Rs. 12,000</td><td><span class="badge" style="background:var(--status-sold-bg);color:var(--status-sold);font-size:0.72rem;">Completed</span></td><td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td></tr>
+                  <tr><td>22 Jan 2026</td><td><span class="badge badge-info" style="font-size:0.7rem;">Vehicle Sale</span></td><td>Priya Mendis</td><td>Suzuki Gixxer SF 2024</td><td style="font-weight:600;">Rs. 500,000</td><td>Rs. 12,500</td><td><span class="badge" style="background:var(--status-sold-bg);color:var(--status-sold);font-size:0.72rem;">Completed</span></td><td><a href="sale-detail.html" class="btn btn-ghost btn-sm">View</a></td></tr>
+                  <tr><td>10 Jan 2026</td><td><span class="badge badge-info" style="font-size:0.7rem;">Vehicle Sale</span></td><td>Lakshmi Jayawardena</td><td>Honda CB Hornet 2025</td><td style="font-weight:600;">Rs. 480,000</td><td>Rs. 12,000</td><td><span class="badge" style="background:var(--status-sold-bg);color:var(--status-sold);font-size:0.72rem;">Completed</span></td><td><a href="sale-detail.html" class="btn btn-ghost btn-sm">View</a></td></tr>
+                  <tr><td>15 Dec 2025</td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Priya Mendis</td><td>TVS Apache RTR 160 2025</td><td style="font-weight:600;">Rs. 290,000</td><td>Rs. 7,250</td><td><span class="badge" style="background:var(--status-sold-bg);color:var(--status-sold);font-size:0.72rem;">Completed</span></td><td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card-footer">
+              <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+                <div class="pagination"><span class="pagination-info">Showing 1 - 7 of 12 leases</span><div class="pagination-buttons"><button class="pagination-btn active">1</button><button class="pagination-btn">2</button></div></div>
+                <div style="font-size:0.82rem;color:var(--text-tertiary);">Total financed: <strong style="color:var(--text-primary);">Rs. 5,840,000</strong> &middot; Total commission: <strong style="color:var(--color-success);">Rs. 146,000</strong></div>
               </div>
             </div>
           </div>
