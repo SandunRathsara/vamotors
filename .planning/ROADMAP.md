@@ -47,7 +47,7 @@ Plans:
 ### Phase 2: Vehicle Lifecycle
 **Goal**: Staff can record every vehicle from first purchase through its full repair and cost history, with the status machine enforced at every step and cost basis always accurate
 **Depends on**: Phase 1
-**Requirements**: VPRC-01, VPRC-02, VPRC-03, VPRC-04, VPRC-05, VPRC-06, VPRC-07, VPRC-08, VPRC-09, SUPL-01, SUPL-02, SUPL-03, REPR-01, REPR-02, REPR-03, REPR-04, REPR-05, VSTS-01, VSTS-02, VSTS-03, VSTS-04, FINT-01, FINT-03
+**Requirements**: VPRC-01, VPRC-02, VPRC-03, VPRC-04, VPRC-05, VPRC-06, VPRC-07, VPRC-08, VPRC-09, TPRT-01, TPRT-02, TPRT-03, TPRT-04, TPRT-05, TPRT-06, TPRT-07, TPRT-08, REPR-01, REPR-02, REPR-03, REPR-04, REPR-05, VSTS-01, VSTS-02, VSTS-03, VSTS-04, FINT-01, FINT-03
 **Success Criteria** (what must be TRUE):
   1. Staff can record a vehicle purchase via cash, lease settlement, or brand-new supplier channel — each with correct cost capture and audit trail
   2. The vehicle detail page shows the full cost breakdown (purchase + repairs + additional costs = cost basis) in real time
@@ -57,10 +57,10 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Supplier directory (individuals and companies with contact persons), inline creation
+- [ ] 02-01: Third Parties page with tabs (Suppliers, Repair Vendors, Finance Companies), inline creation from purchase/sale forms
 - [ ] 02-02: Vehicle purchase recording (all 3 channels), vehicle identity matching, listed price
 - [ ] 02-03: Vehicle inventory list, vehicle detail page, status badge, mileage history, additional costs
-- [ ] 02-04: Repair vendor directory, send-for-repair flow, repair return with cost, repair history view
+- [ ] 02-04: Send-for-repair flow (vendor from Third Parties), repair return with cost, repair history view
 - [ ] 02-05: Cost basis auto-calculation (FINT-01, FINT-03), status machine enforcement, availability flag
 
 ### Phase 3: Vehicle Sales
@@ -143,17 +143,17 @@ Plans:
 
 ### Phase 8: Lease Brokerage — Setup and Comparison
 **Goal**: Staff can maintain finance company rate sheets and produce an instant side-by-side installment comparison for any vehicle and loan scenario
-**Depends on**: Phase 1
+**Depends on**: Phase 2 (finance companies must exist in Third Parties)
 **Requirements**: LBRK-01, LBRK-02, LBRK-03, LBRK-04, LBRK-05, LBRK-06
 **Success Criteria** (what must be TRUE):
-  1. Staff can create and update finance company rate sheets defining maximum loan amounts per vehicle model and year
+  1. Staff can manage rate sheets for finance companies (from Third Parties) defining maximum loan amounts per vehicle model and year
   2. Staff can enter a vehicle and loan scenario and see a side-by-side comparison of installment amounts and periods across all finance companies
   3. Entering a lease amount auto-calculates the installment or period from the rate card, and vice versa
   4. Staff can select a comparison result and add document fees and government fees to produce a total cost figure to proceed with
 **Plans**: TBD
 
 Plans:
-- [ ] 08-01: Finance company directory, rate sheet management (max loan amounts per model/year), rate cards (installment by amount and period)
+- [ ] 08-01: Rate sheet management for finance companies (entity from Phase 2 Third Parties), max loan amounts per model/year, rate cards (installment by amount and period)
 - [ ] 08-02: Lease comparison calculator (auto-calculate installment or period), side-by-side comparison view, proceed with additional charges
 
 ### Phase 9: Lease Brokerage — Deal Flow

@@ -22,7 +22,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Vehicle Purchase
 
 - [ ] **VPRC-01**: Staff can record a cash purchase with all vehicle details, supplier, purchase amount, and date
-- [ ] **VPRC-02**: Staff can record a lease settlement purchase with institution details, settlement reference, settlement amount, and cash-to-seller
+- [ ] **VPRC-02**: Staff can record a lease settlement purchase with institution details (if type is finance company, linked to Third Parties directory; banks and private parties remain free-text), settlement reference, settlement amount, and cash-to-seller
 - [ ] **VPRC-03**: Staff can record a brand-new vehicle purchase from a company supplier without requiring VIN or CR number
 - [ ] **VPRC-04**: All vehicle fields captured: make, model, year, colour, engine number, chassis number, VIN (optional), CR number (optional), fuel type, transmission
 - [ ] **VPRC-05**: Mileage history maintained with date, reading, and optional remark for each entry
@@ -31,11 +31,16 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **VPRC-08**: Vehicle identity matched by engine+chassis number -- re-purchased vehicles link to existing record, not duplicated
 - [ ] **VPRC-09**: Purchase records editable with mandatory reason recorded in audit trail
 
-### Supplier Management
+### Third Party Management (Suppliers, Repair Vendors, Finance Companies)
 
-- [ ] **SUPL-01**: Supplier directory supporting both individual sellers and company suppliers
-- [ ] **SUPL-02**: Company suppliers support multiple contact persons with name, phone, email, and role
-- [ ] **SUPL-03**: Staff can search and select existing suppliers during purchase, or create new inline
+- [ ] **TPRT-01**: Unified Third Parties page with three tabs: Suppliers, Repair Vendors, Finance Companies
+- [ ] **TPRT-02**: Supplier directory supporting both individual sellers and company suppliers
+- [ ] **TPRT-03**: Company suppliers and repair vendors support multiple contact persons with name, phone, email, and role
+- [ ] **TPRT-04**: Staff can search and select existing suppliers during purchase, or create new inline
+- [ ] **TPRT-05**: Repair vendor directory with contact details and specialisation maintained by authorised staff
+- [ ] **TPRT-06**: Finance company directory as a shared entity -- used by vehicle sale leases, lease brokerage, and commission reconciliation
+- [ ] **TPRT-07**: Each finance company record stores: name, contact persons, commission rate (%), processing path type (Application/Referral), and active status
+- [ ] **TPRT-08**: Finance companies selectable from vehicle sale lease forms (replaces free-text finance company name)
 
 ### Vehicle Repair
 
@@ -43,7 +48,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **REPR-02**: Staff can record repair return with actual invoice amount, invoice date, return date, and repair summary of what was done
 - [ ] **REPR-03**: Repair costs automatically included in vehicle's total cost basis
 - [ ] **REPR-04**: Full repair history per vehicle showing all past repairs chronologically
-- [ ] **REPR-05**: Repair vendor directory with contact details maintained by authorised staff
+- [ ] **REPR-05**: Repair vendor selectable from Third Parties directory when sending vehicle for repair
 
 ### Vehicle Status
 
@@ -74,7 +79,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Vehicle Sale -- Lease/Finance
 
-- [ ] **SLLS-01**: Staff can initiate lease sale with customer, agreed sale price, down payment, finance company name, and finance amount
+- [ ] **SLLS-01**: Staff can initiate lease sale with customer, agreed sale price, down payment, finance company (selected from Third Parties directory), and finance amount
 - [ ] **SLLS-02**: Down payment is mandatory for all lease sales
 - [ ] **SLLS-03**: Staff can record DO receipt with uploaded document and DO issue date
 - [ ] **SLLS-04**: DO document upload via presigned URL to Cloudflare R2
@@ -155,7 +160,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Lease Brokerage -- Rate Sheets and Comparison
 
-- [ ] **LBRK-01**: Finance company directory with rate sheets per vehicle model and manufacture year defining maximum loan amounts
+- [ ] **LBRK-01**: Rate sheets per finance company (from Third Parties directory) per vehicle model and manufacture year defining maximum loan amounts
 - [ ] **LBRK-02**: Finance company rate cards by loan amount and period (months) defining installment amounts
 - [ ] **LBRK-03**: Staff can enter vehicle details (not a purchase -- just for lease facilitation) and see maximum loan amounts per finance company
 - [ ] **LBRK-04**: Staff can enter requested lease amount and either installment amount or period; the other auto-calculates per rate card
@@ -288,9 +293,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VPRC-07 | Phase 2 | Pending |
 | VPRC-08 | Phase 2 | Pending |
 | VPRC-09 | Phase 2 | Pending |
-| SUPL-01 | Phase 2 | Pending |
-| SUPL-02 | Phase 2 | Pending |
-| SUPL-03 | Phase 2 | Pending |
+| TPRT-01 | Phase 2 | Pending |
+| TPRT-02 | Phase 2 | Pending |
+| TPRT-03 | Phase 2 | Pending |
+| TPRT-04 | Phase 2 | Pending |
+| TPRT-05 | Phase 2 | Pending |
+| TPRT-06 | Phase 2 | Pending |
+| TPRT-07 | Phase 2 | Pending |
+| TPRT-08 | Phase 2 | Pending |
 | REPR-01 | Phase 2 | Pending |
 | REPR-02 | Phase 2 | Pending |
 | REPR-03 | Phase 2 | Pending |
@@ -390,8 +400,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMPT-05 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 129 total
-- Mapped to phases: 129
+- v1 requirements: 134 total
+- Mapped to phases: 134
 - Unmapped: 0
 
 ---
