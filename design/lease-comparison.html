@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lease Comparison - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .comparison-inputs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    .comparison-inputs .form-group { margin-bottom:0; }
+    .comparison-table { width:100%; border-collapse:collapse; }
+    .comparison-table th, .comparison-table td { padding:10px 14px; text-align:center; border-bottom:1px solid var(--border-color); font-size:0.85rem; }
+    .comparison-table th { font-weight:600; color:var(--text-secondary); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em; background:var(--bg-surface-hover); }
+    .comparison-table td:first-child, .comparison-table th:first-child { text-align:left; font-weight:600; color:var(--text-secondary); }
+    .comparison-table .best-col { background:rgba(22,163,74,0.04); border-left:2px solid var(--color-success); border-right:2px solid var(--color-success); }
+    .comparison-table .best-col-top { border-top:2px solid var(--color-success); border-top-left-radius:8px; border-top-right-radius:8px; }
+    .comparison-table .best-col-bottom { border-bottom:2px solid var(--color-success); border-bottom-left-radius:8px; border-bottom-right-radius:8px; }
+    .best-label { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; font-weight:700; color:var(--color-success); background:var(--status-in-stock-bg); padding:2px 8px; border-radius:4px; }
+    .excluded-company { opacity:0.5; }
+    .charges-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .result-banner { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:8px; background:var(--color-primary-light); margin-bottom:16px; font-size:0.88rem; }
+    .result-banner strong { font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
+          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
+          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
+          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
+          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
+          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
+          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
+          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Finance</div>
+          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
+          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Brokerage</div>
+          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
+          <a href="lease-comparison.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
+          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
+          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
+          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+          <div><h1 class="page-title">Lease Comparison</h1><p class="page-subtitle">Compare finance options across companies</p></div>
+        </div>
+        <div class="header-right">
+          <button class="theme-toggle" onclick="toggleTheme()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</button>
+          <div style="position:relative;"><button class="header-icon-btn" id="notificationBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notification-dot"></span></button></div>
+          <div class="user-menu"><div class="user-avatar">KP</div><span class="user-name">Kamal</span></div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Input Section -->
+        <div class="card mb-16">
+          <div class="card-header"><h3 class="card-title">Vehicle &amp; Loan Details</h3></div>
+          <div class="card-body">
+            <div class="comparison-inputs">
+              <div class="form-group"><label class="form-label">Make</label><select class="form-select"><option>Honda</option><option>Yamaha</option><option>Bajaj</option><option>Suzuki</option><option>TVS</option></select></div>
+              <div class="form-group"><label class="form-label">Model</label><select class="form-select"><option>CB Hornet</option><option>Dio</option><option>Activa</option></select></div>
+              <div class="form-group"><label class="form-label">Year</label><select class="form-select"><option>2025</option><option>2024</option><option>2023</option><option>2022</option></select></div>
+              <div class="form-group"><label class="form-label">Requested Loan Amount (LKR)</label><input type="text" class="form-input" value="450,000"></div>
+              <div class="form-group"><label class="form-label">Period (Months)</label><input type="text" class="form-input" value="48" placeholder="Auto-calc if installment entered"></div>
+              <div class="form-group"><label class="form-label">Monthly Installment (LKR)</label><input type="text" class="form-input" placeholder="Auto-calc if period entered" value=""></div>
+            </div>
+            <div style="margin-top:16px;text-align:right;"><button class="btn btn-primary">Compare</button></div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="result-banner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          <span>Showing comparison for <strong>Honda CB Hornet 2025</strong> &mdash; Requested: <strong>Rs. 450,000</strong> for <strong>48 months</strong></span>
+        </div>
+
+        <!-- Max Loan Amounts -->
+        <div class="card mb-16">
+          <div class="card-header"><h3 class="card-title">Max Loan by Finance Company</h3></div>
+          <div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;">
+              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">People's Leasing</div>
+              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 480,000</div>
+              <span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);font-size:0.7rem;">Eligible</span>
+            </div>
+            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;">
+              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">LOLC Finance</div>
+              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 450,000</div>
+              <span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);font-size:0.7rem;">Eligible</span>
+            </div>
+            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;opacity:0.6;">
+              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">HNB Finance</div>
+              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 420,000</div>
+              <span class="badge" style="background:var(--color-warning-light);color:var(--color-warning);font-size:0.7rem;">Below Requested</span>
+            </div>
+            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;">
+              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">Commercial Leasing</div>
+              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 500,000</div>
+              <span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);font-size:0.7rem;">Eligible</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Side-by-side Comparison -->
+        <div class="card mb-16">
+          <div class="card-header"><h3 class="card-title">Side-by-Side Comparison</h3><span style="font-size:0.78rem;color:var(--text-tertiary);">HNB Finance excluded (max loan below requested)</span></div>
+          <div class="card-body" style="padding:0;">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>People's Leasing</th>
+                  <th>LOLC Finance</th>
+                  <th class="best-col best-col-top">Commercial Leasing <span class="best-label">Best</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Max Loan</td><td>Rs. 480,000</td><td>Rs. 450,000</td><td class="best-col">Rs. 500,000</td></tr>
+                <tr><td>Loan Amount</td><td>Rs. 450,000</td><td>Rs. 450,000</td><td class="best-col">Rs. 450,000</td></tr>
+                <tr><td>Period</td><td>48 months</td><td>48 months</td><td class="best-col">48 months</td></tr>
+                <tr><td>Monthly Installment</td><td style="font-weight:700;">Rs. 12,450</td><td style="font-weight:700;">Rs. 12,800</td><td class="best-col" style="font-weight:700;">Rs. 12,150</td></tr>
+                <tr><td>Total Interest</td><td>Rs. 147,600</td><td>Rs. 164,400</td><td class="best-col">Rs. 133,200</td></tr>
+                <tr><td>Document Fees</td><td>Rs. 3,500</td><td>Rs. 4,000</td><td class="best-col">Rs. 3,000</td></tr>
+                <tr><td>Government Fees</td><td>Rs. 2,500</td><td>Rs. 2,500</td><td class="best-col">Rs. 2,500</td></tr>
+                <tr style="font-weight:800;font-size:0.95rem;"><td>Total Cost</td><td>Rs. 603,600</td><td>Rs. 620,900</td><td class="best-col" style="color:var(--color-success);font-weight:800;">Rs. 588,700</td></tr>
+                <tr>
+                  <td></td>
+                  <td><button class="btn btn-ghost btn-sm">Select</button></td>
+                  <td><button class="btn btn-ghost btn-sm">Select</button></td>
+                  <td class="best-col best-col-bottom"><button class="btn btn-primary btn-sm">Select</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Additional Charges (after selection) -->
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Additional Charges &mdash; Commercial Leasing</h3></div>
+          <div class="card-body">
+            <div class="charges-grid">
+              <div class="form-group"><label class="form-label">Document Fees</label><input type="text" class="form-input" value="3,000"></div>
+              <div class="form-group"><label class="form-label">Government Fees</label><input type="text" class="form-input" value="2,500"></div>
+              <div class="form-group"><label class="form-label">Processing Fee</label><input type="text" class="form-input" value="5,000"></div>
+              <div class="form-group"><label class="form-label">Other Charges</label><input type="text" class="form-input" value="0" placeholder="0"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:2px solid var(--text-primary);">
+              <div><span style="font-size:0.85rem;color:var(--text-secondary);">Total including charges:</span><br><span style="font-size:1.3rem;font-weight:800;">Rs. 598,700</span></div>
+              <button class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Proceed to New Deal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

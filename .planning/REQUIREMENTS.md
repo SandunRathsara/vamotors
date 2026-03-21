@@ -193,12 +193,13 @@ Per finance company: used when the finance company handles the customer directly
 - [ ] **LBRK-23**: Referred leases can be marked as rejected if finance company informs of failure
 - [ ] **LBRK-24**: Customer can report non-remittance of lease amount; recordable with finance company feedback
 
-### Lease Brokerage -- Commission Reconciliation
+### Commission Reconciliation (Cross-Cutting -- Vehicle Sales + Brokerage)
 
-- [ ] **LBRK-26**: Per-finance-company reconciliation method configurable
-- [ ] **LBRK-27**: Staff can reconcile broker commissions against finance company remittances (bank transfer with reconciliation notice)
-- [ ] **LBRK-28**: After reconciliation, unreconciled leases that are overdue are surfaced (condition: pending reconciliation AND sent date is 2+ days before reconciliation date or before the sent date of the last reconciled lease)
-- [ ] **LBRK-29**: Referral lease commission reconciliation supported separately
+- [ ] **RCNL-01**: Per-finance-company reconciliation method configurable
+- [ ] **RCNL-02**: Staff can reconcile commissions against finance company remittances (bank transfer with reconciliation notice) -- applies to both vehicle sale leases and brokerage deals
+- [ ] **RCNL-03**: Unified reconciliation view showing all lease types with a "Source" indicator (Vehicle Sale / Brokerage) per deal
+- [ ] **RCNL-04**: After reconciliation, unreconciled leases that are overdue are surfaced (condition: pending reconciliation AND sent date is 2+ days before reconciliation date or before the sent date of the last reconciled lease)
+- [ ] **RCNL-05**: Reconciliation accessible from Finance section in navigation (not tied to Brokerage)
 
 ### Data Import
 
@@ -377,10 +378,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LBRK-22 | Phase 9 | Pending |
 | LBRK-23 | Phase 9 | Pending |
 | LBRK-24 | Phase 9 | Pending |
-| LBRK-26 | Phase 9 | Pending |
-| LBRK-27 | Phase 9 | Pending |
-| LBRK-28 | Phase 9 | Pending |
-| LBRK-29 | Phase 9 | Pending |
+| RCNL-01 | Phase 9 | Pending |
+| RCNL-02 | Phase 9 | Pending |
+| RCNL-03 | Phase 9 | Pending |
+| RCNL-04 | Phase 9 | Pending |
+| RCNL-05 | Phase 9 | Pending |
 | IMPT-01 | Phase 10 | Pending |
 | IMPT-02 | Phase 10 | Pending |
 | IMPT-03 | Phase 10 | Pending |
@@ -388,8 +390,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMPT-05 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 128 total
-- Mapped to phases: 128
+- v1 requirements: 129 total
+- Mapped to phases: 129
 - Unmapped: 0
 
 ---

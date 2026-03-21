@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lease Deals - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .badge-app-processing { background: var(--status-advance-placed-bg); color: var(--status-advance-placed); }
+    .badge-referral { background: var(--status-finance-pending-bg); color: var(--status-finance-pending); }
+    .badge-new { background: var(--color-info-light); color: var(--color-info); }
+    .badge-eligibility { background: var(--color-warning-light); color: var(--color-warning); }
+    .badge-inspected { background: var(--status-do-received-bg); color: var(--status-do-received); }
+    .badge-dispatched { background: var(--status-purchased-bg); color: var(--status-purchased); }
+    .badge-processing { background: var(--status-finance-pending-bg); color: var(--status-finance-pending); }
+    .badge-completed { background: var(--status-sold-bg); color: var(--status-sold); }
+    .badge-rejected { background: var(--color-danger-light); color: var(--color-danger); }
+    .cash-advance-indicator {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 0.68rem; font-weight: 600; color: var(--color-warning);
+      background: var(--color-warning-light); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
+          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
+          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
+          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
+          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
+          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
+          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
+          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Finance</div>
+          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
+          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Brokerage</div>
+          <a href="lease-deals.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
+          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
+          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
+          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
+          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+          <div>
+            <h1 class="page-title">Lease Deals</h1>
+            <p class="page-subtitle">Manage lease brokerage deals</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-search"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search deals..."></div>
+          <div style="position:relative;"><button class="header-icon-btn" id="notificationBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notification-dot"></span></button></div>
+          <button class="theme-toggle" onclick="toggleTheme()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</button>
+          <div class="user-menu"><div class="user-avatar">KP</div><span class="user-name">Kamal</span></div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-input"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Search by customer, vehicle, file #..."></div>
+            <button class="filter-btn active">All</button>
+            <button class="filter-btn">Application</button>
+            <button class="filter-btn">Referral</button>
+            <button class="filter-btn">Rejected</button>
+          </div>
+          <div class="toolbar-right">
+            <a href="lease-comparison.html" class="btn" style="border:1px solid var(--border-color);background:var(--bg-surface);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Compare
+            </a>
+            <button class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Lease Deal
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Vehicle</th>
+                  <th>Finance Company</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>19 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Anura Kumara</a></td>
+                  <td>Honda CB Hornet 2025</td>
+                  <td>People's Leasing</td>
+                  <td><span class="badge badge-app-processing">Application</span></td>
+                  <td style="font-weight:600;">Rs. 430,000<span class="cash-advance-indicator">CA</span></td>
+                  <td><span class="badge badge-inspected">Docs Collected</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>17 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Ruwan Bandara</a></td>
+                  <td>Yamaha FZ-S V3 2024</td>
+                  <td>LOLC Finance</td>
+                  <td><span class="badge badge-app-processing">Application</span></td>
+                  <td style="font-weight:600;">Rs. 350,000</td>
+                  <td><span class="badge badge-dispatched">Dispatched</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>15 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Tharushi De Silva</a></td>
+                  <td>Suzuki Gixxer SF 2025</td>
+                  <td>Commercial Leasing</td>
+                  <td><span class="badge badge-referral">Referral</span></td>
+                  <td style="font-weight:600;">Rs. 520,000<span class="cash-advance-indicator">CA</span></td>
+                  <td><span class="badge badge-processing">Processing</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>14 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Chaminda Rathnayake</a></td>
+                  <td>Bajaj Pulsar NS200 2024</td>
+                  <td>HNB Finance</td>
+                  <td><span class="badge badge-app-processing">Application</span></td>
+                  <td style="font-weight:600;">Rs. 380,000</td>
+                  <td><span class="badge badge-eligibility">Eligibility Check</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>12 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Priya Mendis</a></td>
+                  <td>TVS Apache RTR 160 2025</td>
+                  <td>People's Leasing</td>
+                  <td><span class="badge badge-referral">Referral</span></td>
+                  <td style="font-weight:600;">Rs. 290,000</td>
+                  <td><span class="badge badge-completed">Completed</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>10 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Dinesh Silva</a></td>
+                  <td>Honda Dio 2025</td>
+                  <td>LOLC Finance</td>
+                  <td><span class="badge badge-app-processing">Application</span></td>
+                  <td style="font-weight:600;">Rs. 200,000<span class="cash-advance-indicator">CA</span></td>
+                  <td><span class="badge badge-completed">Completed</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>08 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Nimal Fernando</a></td>
+                  <td>Bajaj Pulsar 150 2024</td>
+                  <td>Commercial Leasing</td>
+                  <td><span class="badge badge-app-processing">Application</span></td>
+                  <td style="font-weight:600;">Rs. 250,000</td>
+                  <td><span class="badge badge-rejected">Rejected</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>05 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Suresh Kumar</a></td>
+                  <td>Honda CB Hornet 2024</td>
+                  <td>HNB Finance</td>
+                  <td><span class="badge badge-referral">Referral</span></td>
+                  <td style="font-weight:600;">Rs. 400,000</td>
+                  <td><span class="badge badge-new">New</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+                <tr>
+                  <td>01 Mar 2026</td>
+                  <td><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Lakshmi Jayawardena</a></td>
+                  <td>Suzuki Gixxer SF 2024</td>
+                  <td>People's Leasing</td>
+                  <td><span class="badge badge-app-processing">Application</span></td>
+                  <td style="font-weight:600;">Rs. 480,000</td>
+                  <td><span class="badge badge-completed">Completed</span></td>
+                  <td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer">
+            <div class="pagination">
+              <span class="pagination-info">Showing 1 - 9 of 24 deals</span>
+              <div class="pagination-buttons">
+                <button class="pagination-btn">&laquo;</button>
+                <button class="pagination-btn active">1</button>
+                <button class="pagination-btn">2</button>
+                <button class="pagination-btn">3</button>
+                <button class="pagination-btn">&raquo;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

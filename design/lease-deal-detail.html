@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lease Deal Detail - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .status-timeline { display:flex; align-items:flex-start; gap:0; margin:20px 0; position:relative; }
+    .status-timeline::before { content:''; position:absolute; top:16px; left:32px; right:32px; height:2px; background:var(--border-color); z-index:0; }
+    .timeline-step { flex:1; display:flex; flex-direction:column; align-items:center; text-align:center; position:relative; z-index:1; }
+    .timeline-step-dot { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:var(--bg-surface); border:2px solid var(--border-color); color:var(--text-tertiary); margin-bottom:8px; }
+    .timeline-step.completed .timeline-step-dot { background:var(--color-success); border-color:var(--color-success); color:white; }
+    .timeline-step.current .timeline-step-dot { background:var(--color-info); border-color:var(--color-info); color:white; box-shadow:0 0 0 4px rgba(37,99,235,0.15); }
+    .timeline-step-label { font-size:0.73rem; font-weight:600; color:var(--text-tertiary); max-width:90px; }
+    .timeline-step.completed .timeline-step-label, .timeline-step.current .timeline-step-label { color:var(--text-primary); }
+    .timeline-step-date { font-size:0.68rem; color:var(--text-tertiary); margin-top:2px; }
+    .next-step-banner { display:flex; align-items:center; gap:16px; padding:16px 20px; border-radius:10px; background:var(--color-info-light); border:1px solid rgba(37,99,235,0.2); margin-bottom:16px; }
+    .next-step-banner .icon { width:40px; height:40px; border-radius:10px; background:var(--color-info); color:white; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .next-step-banner .content { flex:1; }
+    .next-step-banner .content h4 { font-size:0.88rem; font-weight:700; margin-bottom:2px; }
+    .next-step-banner .content p { font-size:0.8rem; color:var(--text-secondary); }
+    [data-theme="dark"] .next-step-banner { background:var(--status-advance-placed-bg); border-color:rgba(37,99,235,0.3); }
+    .checklist-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-color); font-size:0.85rem; }
+    .checklist-item:last-child { border-bottom:none; }
+    .checklist-check { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .checklist-check.done { background:var(--color-success); color:white; }
+    .checklist-check.pending { background:var(--border-color); color:var(--text-tertiary); }
+    .guarantor-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:700; background:var(--color-primary-light); color:var(--text-secondary); }
+    .badge-app-processing { background:var(--status-advance-placed-bg); color:var(--status-advance-placed); }
+    .badge-inspected { background:var(--status-do-received-bg); color:var(--status-do-received); }
+    .photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
+    .photo-grid img { width:100%; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border-color); }
+    .verification-box { padding:16px; border-radius:10px; background:var(--status-in-stock-bg); border:1px solid rgba(22,163,74,0.2); margin-top:16px; }
+    .verification-box p { font-size:0.85rem; }
+    .cash-advance-card .detail-grid { grid-template-columns:1fr 1fr; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
+          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
+          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
+          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
+          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
+          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
+          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
+          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Finance</div>
+          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
+          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Brokerage</div>
+          <a href="lease-deals.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
+          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
+          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
+          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
+          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button class="btn-sidebar-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+          <div><h1 class="page-title">Lease Deal Detail</h1><p class="page-subtitle">View and manage lease brokerage deal</p></div>
+        </div>
+        <div class="header-right">
+          <button class="theme-toggle" onclick="toggleTheme()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</button>
+          <div style="position:relative;"><button class="header-icon-btn" id="notificationBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notification-dot"></span></button></div>
+          <div class="user-menu"><div class="user-avatar">KP</div><span class="user-name">Kamal</span></div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <a href="lease-deals.html" class="btn btn-ghost btn-sm mb-16" style="margin-left:-4px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Back to Lease Deals</a>
+
+        <!-- Deal Header -->
+        <div class="flex items-center gap-16 mb-16" style="flex-wrap:wrap;">
+          <div>
+            <h2 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;">Honda CB Hornet 2025</h2>
+            <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:4px;">Customer: <a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Anura Kumara</a> &middot; People's Leasing &middot; File #: PL-2026-00583</div>
+          </div>
+          <div class="flex items-center gap-8">
+            <span class="badge badge-app-processing">Application Processing</span>
+            <span class="badge badge-inspected">Documents Collected</span>
+          </div>
+        </div>
+
+        <!-- Next Step Banner -->
+        <div class="next-step-banner">
+          <div class="icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <div class="content"><h4>Next Step: Dispatch Documents</h4><p>All documents collected. Verify the checklist and add to today's courier batch for dispatch.</p></div>
+          <a href="lease-dispatch.html" class="btn btn-primary btn-sm">Go to Dispatch</a>
+        </div>
+
+        <!-- Status Timeline -->
+        <div class="card mb-16">
+          <div class="card-header"><h3 class="card-title">Deal Progress</h3></div>
+          <div class="card-body">
+            <div class="status-timeline">
+              <div class="timeline-step completed">
+                <div class="timeline-step-dot"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="timeline-step-label">New</div><div class="timeline-step-date">10 Mar</div>
+              </div>
+              <div class="timeline-step completed">
+                <div class="timeline-step-dot"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="timeline-step-label">Eligibility Confirmed</div><div class="timeline-step-date">11 Mar</div>
+              </div>
+              <div class="timeline-step completed">
+                <div class="timeline-step-dot"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+                <div class="timeline-step-label">Vehicle Inspected</div><div class="timeline-step-date">13 Mar</div>
+              </div>
+              <div class="timeline-step current">
+                <div class="timeline-step-dot"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg></div>
+                <div class="timeline-step-label">Documents Collected</div><div class="timeline-step-date">19 Mar</div>
+              </div>
+              <div class="timeline-step">
+                <div class="timeline-step-dot"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div>
+                <div class="timeline-step-label">Dispatched</div><div class="timeline-step-date">&mdash;</div>
+              </div>
+              <div class="timeline-step">
+                <div class="timeline-step-dot"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div>
+                <div class="timeline-step-label">Processing</div><div class="timeline-step-date">&mdash;</div>
+              </div>
+              <div class="timeline-step">
+                <div class="timeline-step-dot"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div>
+                <div class="timeline-step-label">Completed</div><div class="timeline-step-date">&mdash;</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="tab-overview">Overview</button>
+          <button class="tab" data-tab="tab-people">Customer &amp; Guarantors</button>
+          <button class="tab" data-tab="tab-documents">Documents</button>
+          <button class="tab" data-tab="tab-advance">Cash Advance</button>
+          <button class="tab" data-tab="tab-activity">Activity Log</button>
+        </div>
+
+        <!-- TAB: Overview -->
+        <div class="tab-panel active" id="tab-overview">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Deal Information</h3><button class="btn btn-ghost btn-sm">Edit</button></div>
+              <div class="card-body">
+                <div class="detail-grid" style="grid-template-columns:1fr 1fr;">
+                  <div class="detail-item"><label>Deal Type</label><div class="value"><span class="badge badge-app-processing">Application Processing</span></div></div>
+                  <div class="detail-item"><label>Finance Company</label><div class="value">People's Leasing</div></div>
+                  <div class="detail-item"><label>File Number</label><div class="value" style="font-weight:700;font-variant-numeric:tabular-nums;">PL-2026-00583</div></div>
+                  <div class="detail-item"><label>Vehicle</label><div class="value">Honda CB Hornet 2025</div></div>
+                  <div class="detail-item"><label>Requested Amount</label><div class="value">Rs. 450,000</div></div>
+                  <div class="detail-item"><label>Adjusted Amount</label><div class="value" style="font-weight:800;">Rs. 430,000<div style="font-size:0.72rem;color:var(--text-tertiary);font-weight:400;">Adjusted after inspection</div></div></div>
+                  <div class="detail-item"><label>Installment</label><div class="value">Rs. 12,450/mo x 48 months</div></div>
+                  <div class="detail-item"><label>Processing Fee</label><div class="value">Rs. 5,000</div></div>
+                  <div class="detail-item"><label>Commission Rate</label><div class="value">2.5%</div></div>
+                  <div class="detail-item"><label>Commission Amount</label><div class="value" style="font-weight:700;color:var(--color-success);">Rs. 10,750</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Selected Comparison</h3></div>
+              <div class="card-body">
+                <div class="detail-grid" style="grid-template-columns:1fr 1fr;">
+                  <div class="detail-item"><label>Finance Company</label><div class="value">People's Leasing</div></div>
+                  <div class="detail-item"><label>Max Loan</label><div class="value">Rs. 480,000</div></div>
+                  <div class="detail-item"><label>Loan Amount</label><div class="value">Rs. 450,000</div></div>
+                  <div class="detail-item"><label>Period</label><div class="value">48 months</div></div>
+                  <div class="detail-item"><label>Monthly Installment</label><div class="value" style="font-weight:700;">Rs. 12,450</div></div>
+                  <div class="detail-item"><label>Total Interest</label><div class="value">Rs. 147,600</div></div>
+                  <div class="detail-item"><label>Document Fees</label><div class="value">Rs. 3,500</div></div>
+                  <div class="detail-item"><label>Government Fees</label><div class="value">Rs. 2,500</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Customer & Guarantors -->
+        <div class="tab-panel" id="tab-people">
+          <div class="card mb-16">
+            <div class="card-header"><h3 class="card-title">Customer</h3><span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);">Eligible</span></div>
+            <div class="card-body">
+              <div class="detail-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                <div class="detail-item"><label>Full Name</label><div class="value"><a href="customer-detail.html" style="color:var(--color-info);font-weight:600;">Anura Kumara</a></div></div>
+                <div class="detail-item"><label>NIC</label><div class="value">197834567890</div></div>
+                <div class="detail-item"><label>Phone</label><div class="value">071-2233445</div></div>
+                <div class="detail-item" style="grid-column:span 2;"><label>Address</label><div class="value">201, Colombo Road, Piliyandala</div></div>
+                <div class="detail-item"><label>Confirmed By</label><div class="value">Mr. Ranjan (People's Leasing)</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header"><h3 class="card-title"><span class="guarantor-badge">G1</span> Guarantor 1</h3><span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);">Eligible</span></div>
+            <div class="card-body">
+              <div class="detail-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                <div class="detail-item"><label>Full Name</label><div class="value">Samantha Kumara</div></div>
+                <div class="detail-item"><label>NIC</label><div class="value">197612345678</div></div>
+                <div class="detail-item"><label>Phone</label><div class="value">077-8899001</div></div>
+                <div class="detail-item" style="grid-column:span 2;"><label>Address</label><div class="value">45, Temple Road, Piliyandala</div></div>
+                <div class="detail-item"><label>Relationship</label><div class="value">Brother</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header"><h3 class="card-title"><span class="guarantor-badge">G2</span> Guarantor 2</h3><span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);">Eligible</span></div>
+            <div class="card-body">
+              <div class="detail-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                <div class="detail-item"><label>Full Name</label><div class="value">Prasad Wijesinghe</div></div>
+                <div class="detail-item"><label>NIC</label><div class="value">198078901234</div></div>
+                <div class="detail-item"><label>Phone</label><div class="value">076-5544332</div></div>
+                <div class="detail-item" style="grid-column:span 2;"><label>Address</label><div class="value">12/B, Horana Road, Bandaragama</div></div>
+                <div class="detail-item"><label>Relationship</label><div class="value">Colleague</div></div>
+              </div>
+            </div>
+          </div>
+          <button class="btn" style="border:1px solid var(--border-color);background:var(--bg-surface);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Guarantor</button>
+        </div>
+
+        <!-- TAB: Documents -->
+        <div class="tab-panel" id="tab-documents">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Customer Documents</h3><span style="font-size:0.78rem;color:var(--color-success);font-weight:600;">7/8 collected</span></div>
+              <div class="card-body">
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Customer NIC copy</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Guarantor 1 NIC copy</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Guarantor 2 NIC copy</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>4 passport size photos</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Bank passbook photo</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Address proof document</div>
+                <div class="checklist-item"><div class="checklist-check pending"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div><span style="color:var(--text-tertiary);">Relationship proof <span class="badge" style="font-size:0.68rem;background:var(--color-warning-light);color:var(--color-warning);">Not required</span></span></div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Affidavit (optional)</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Vehicle Documents</h3><span style="font-size:0.78rem;color:var(--color-success);font-weight:600;">5/6 collected</span></div>
+              <div class="card-body">
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Registration book</div>
+                <div class="checklist-item"><div class="checklist-check pending"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div><span style="color:var(--text-tertiary);">Deletion letter <span class="badge" style="font-size:0.68rem;background:var(--color-warning-light);color:var(--color-warning);">Not needed</span></span></div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Revenue license</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Extra key</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Transfer paper</div>
+                <div class="checklist-item"><div class="checklist-check done"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Previous owner ID</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Inspection Photos -->
+          <div class="card mb-16" style="margin-top:16px;">
+            <div class="card-header"><h3 class="card-title">Vehicle Inspection Photos</h3><span style="font-size:0.78rem;color:var(--color-success);font-weight:600;">9/9 uploaded</span></div>
+            <div class="card-body">
+              <div class="photo-grid">
+                <img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=200&h=150&fit=crop" alt="Front">
+                <img src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=200&h=150&fit=crop" alt="Back">
+                <img src="https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=200&h=150&fit=crop" alt="Left">
+                <img src="https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?w=200&h=150&fit=crop" alt="Right">
+                <img src="https://images.unsplash.com/photo-1558980664-769d59546b3d?w=200&h=150&fit=crop" alt="Chassis">
+                <img src="https://images.unsplash.com/photo-1558981852-426c6c22a060?w=200&h=150&fit=crop" alt="Engine">
+                <img src="https://images.unsplash.com/photo-1558981285-6f0c94958bb6?w=200&h=150&fit=crop" alt="Meter">
+                <img src="https://images.unsplash.com/photo-1558980664-1db506751c6c?w=200&h=150&fit=crop" alt="Dealer+Vehicle">
+                <img src="https://images.unsplash.com/photo-1558981359-219d6364c9c8?w=200&h=150&fit=crop" alt="Customer+Vehicle">
+              </div>
+            </div>
+          </div>
+
+          <!-- Verification -->
+          <div class="verification-box">
+            <p><strong>Document Verification Completed</strong></p>
+            <p style="margin-top:4px;color:var(--text-secondary);">Verified by Kamal Perera on 18 Mar 2026. Finance company contact: Mr. Ranjan (People's Leasing). No issues identified.</p>
+          </div>
+        </div>
+
+        <!-- TAB: Cash Advance -->
+        <div class="tab-panel" id="tab-advance">
+          <div class="card cash-advance-card">
+            <div class="card-header"><h3 class="card-title">Cash Advance Facility</h3><span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);">Disbursed</span></div>
+            <div class="card-body">
+              <div class="detail-grid" style="grid-template-columns:1fr 1fr;">
+                <div class="detail-item"><label>Loan Amount</label><div class="value">Rs. 430,000</div></div>
+                <div class="detail-item"><label>Deductibles</label><div class="value">Rs. 15,000<div style="font-size:0.72rem;color:var(--text-tertiary);">Processing fee + stamp duty</div></div></div>
+                <div class="detail-item"><label>Cash Advance Fee (2%)</label><div class="value">Rs. 8,600</div></div>
+                <div class="detail-item"><label>Net Amount Disbursed</label><div class="value" style="font-weight:800;font-size:1.1rem;">Rs. 406,400</div></div>
+                <div class="detail-item"><label>Disbursed Date</label><div class="value">14 Mar 2026</div></div>
+                <div class="detail-item"><label>Disbursed By</label><div class="value">Kamal Perera</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Activity Log -->
+        <div class="tab-panel" id="tab-activity">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Activity Log</h3></div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="timeline-item"><div class="font-semibold text-sm">All documents collected</div><div class="text-xs text-muted">19 Mar 2026, 04:30 PM by Kamal Perera</div></div>
+                <div class="timeline-item"><div class="font-semibold text-sm">Document verification completed</div><div class="text-xs text-muted">18 Mar 2026, 02:15 PM by Kamal Perera &mdash; Contact: Mr. Ranjan (People's Leasing). No issues.</div></div>
+                <div class="timeline-item"><div class="font-semibold text-sm">Cash advance disbursed: Rs. 406,400</div><div class="text-xs text-muted">14 Mar 2026, 11:30 AM by Kamal Perera &mdash; Loan Rs. 430,000 - Deductibles Rs. 15,000 - Fee Rs. 8,600</div></div>
+                <div class="timeline-item"><div class="font-semibold text-sm">Loan amount adjusted: Rs. 450,000 &rarr; Rs. 430,000</div><div class="text-xs text-muted">13 Mar 2026, 03:00 PM by Kamal Perera &mdash; Reason: Vehicle condition assessment by finance company</div></div>
+                <div class="timeline-item"><div class="font-semibold text-sm">Vehicle inspection completed</div><div class="text-xs text-muted">13 Mar 2026, 11:45 AM by Kamal Perera &mdash; 9 photos uploaded</div></div>
+                <div class="timeline-item"><div class="font-semibold text-sm">Cash advance facility requested</div><div class="text-xs text-muted">11 Mar 2026, 10:30 AM by Kamal Perera</div></div>
+                <div class="timeline-item"><div class="font-semibold text-sm">Eligibility confirmed for customer &amp; 2 guarantors</div><div class="text-xs text-muted">11 Mar 2026, 09:15 AM by Kamal Perera &mdash; Confirmed by Mr. Ranjan (People's Leasing) via phone</div></div>
+                <div class="timeline-item"><div class="font-semibold text-sm">Lease deal created</div><div class="text-xs text-muted">10 Mar 2026, 02:00 PM by Kamal Perera &mdash; Application Processing, People's Leasing, Rs. 450,000</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commission Reconciliation - VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .summary-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
+    .summary-card { padding:20px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:12px; }
+    .summary-card .value { font-size:1.5rem; font-weight:800; font-variant-numeric:tabular-nums; }
+    .summary-card .label { font-size:0.78rem; color:var(--text-tertiary); font-weight:500; margin-top:2px; }
+    .summary-card.earned .value { color:var(--text-primary); }
+    .summary-card.reconciled .value { color:var(--color-success); }
+    .summary-card.pending .value { color:var(--color-warning); }
+    .reconcile-form { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; align-items:end; }
+    .reconcile-form .form-group { margin-bottom:0; }
+    .overdue-row { background:rgba(217,119,6,0.04); }
+    .overdue-badge { font-size:0.72rem; font-weight:700; color:var(--color-danger); }
+    .reconcile-checkbox { width:18px; height:18px; accent-color:var(--color-primary); cursor:pointer; }
+    .reconcile-total { display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--color-primary-light); border-top:1px solid var(--border-color); font-size:0.88rem; }
+    .reconcile-total strong { font-weight:800; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.jpeg" alt="VA Motors" class="sidebar-logo">
+        <span class="sidebar-brand">VA Motors</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Main</div>
+          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
+          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
+          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
+          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
+          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
+          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
+          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
+          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Finance</div>
+          <a href="lease-reconciliation.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
+          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">Brokerage</div>
+          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
+          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
+          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
+          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
+          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left"><button class="btn-sidebar-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><div><h1 class="page-title">Commission Reconciliation</h1><p class="page-subtitle">Reconcile commissions across all lease types by finance company</p></div></div>
+        <div class="header-right">
+          <button class="theme-toggle" onclick="toggleTheme()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</button>
+          <div style="position:relative;"><button class="header-icon-btn" id="notificationBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notification-dot"></span></button></div>
+          <div class="user-menu"><div class="user-avatar">KP</div><span class="user-name">Kamal</span></div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Finance Company Tabs -->
+        <div class="toolbar" style="margin-bottom:16px;">
+          <div class="toolbar-left">
+            <button class="filter-btn active">People's Leasing</button>
+            <button class="filter-btn">LOLC Finance</button>
+            <button class="filter-btn">HNB Finance</button>
+            <button class="filter-btn">Commercial Leasing</button>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+          <div class="summary-card earned"><div class="value">Rs. 245,000</div><div class="label">Total Commission Earned</div></div>
+          <div class="summary-card reconciled"><div class="value">Rs. 195,000</div><div class="label">Reconciled</div></div>
+          <div class="summary-card pending"><div class="value">Rs. 50,000</div><div class="label">Pending Reconciliation</div></div>
+        </div>
+
+        <!-- New Reconciliation -->
+        <div class="card mb-16">
+          <div class="card-header"><h3 class="card-title">New Reconciliation</h3></div>
+          <div class="card-body">
+            <div class="reconcile-form">
+              <div class="form-group"><label class="form-label">Amount Received (LKR)</label><input type="text" class="form-input" placeholder="e.g. 50,000"></div>
+              <div class="form-group"><label class="form-label">Bank Reference</label><input type="text" class="form-input" placeholder="e.g. BOC-TRF-20260321"></div>
+              <div class="form-group"><label class="form-label">Date Received</label><input type="date" class="form-input" value="2026-03-21"></div>
+              <button class="btn btn-primary" style="height:40px;">Start Reconciliation</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Unreconciled Deals -->
+        <div class="card mb-16">
+          <div class="card-header"><h3 class="card-title">Unreconciled Deals</h3><span style="font-size:0.82rem;color:var(--text-tertiary);">5 deals (2 vehicle sales, 3 brokerage) &middot; Rs. 47,500 pending</span></div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th style="width:40px;"><input type="checkbox" class="reconcile-checkbox"></th><th>Source</th><th>Customer</th><th>Vehicle</th><th>Finance Amount</th><th>Commission (2.5%)</th><th>Date Sent</th><th>Days Outstanding</th></tr></thead>
+              <tbody>
+                <tr class="overdue-row"><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge badge-info" style="font-size:0.7rem;">Vehicle Sale</span></td><td>Dinesh Silva</td><td>Honda Dio 2025</td><td>Rs. 200,000</td><td style="font-weight:700;">Rs. 5,000</td><td>28 Feb 2026</td><td><span class="overdue-badge">21 days</span></td></tr>
+                <tr class="overdue-row"><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Priya Mendis</td><td>TVS Apache RTR 160 2025</td><td>Rs. 290,000</td><td style="font-weight:700;">Rs. 7,250</td><td>03 Mar 2026</td><td><span class="overdue-badge">18 days</span></td></tr>
+                <tr><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Lakshmi Jayawardena</td><td>Suzuki Gixxer SF 2024</td><td>Rs. 480,000</td><td style="font-weight:700;">Rs. 12,000</td><td>10 Mar 2026</td><td style="font-size:0.82rem;color:var(--text-tertiary);">11 days</td></tr>
+                <tr><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge badge-info" style="font-size:0.7rem;">Vehicle Sale</span></td><td>Priya Mendis</td><td>Suzuki Gixxer SF 2024</td><td>Rs. 500,000</td><td style="font-weight:700;">Rs. 12,500</td><td>15 Mar 2026</td><td style="font-size:0.82rem;color:var(--text-tertiary);">6 days</td></tr>
+                <tr><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Anura Kumara</td><td>Honda CB Hornet 2025</td><td>Rs. 430,000</td><td style="font-weight:700;">Rs. 10,750</td><td>19 Mar 2026</td><td style="font-size:0.82rem;color:var(--text-tertiary);">2 days</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="reconcile-total">
+            <span>Selected: 4 deals</span>
+            <span style="flex:1;"></span>
+            <span>Total: <strong>Rs. 35,000</strong></span>
+            <button class="btn btn-primary btn-sm">Reconcile Selected</button>
+          </div>
+        </div>
+
+        <!-- Recent Reconciliations -->
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Recent Reconciliations</h3></div>
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Date</th><th>Amount</th><th>Bank Reference</th><th>Deals Covered</th><th>Reconciled By</th></tr></thead>
+              <tbody>
+                <tr><td>15 Mar 2026</td><td style="font-weight:700;">Rs. 85,000</td><td>BOC-TRF-20260315</td><td>5 deals</td><td>Kamal Perera</td></tr>
+                <tr><td>28 Feb 2026</td><td style="font-weight:700;">Rs. 62,500</td><td>BOC-TRF-20260228</td><td>4 deals</td><td>Kamal Perera</td></tr>
+                <tr><td>15 Feb 2026</td><td style="font-weight:700;">Rs. 47,500</td><td>BOC-TRF-20260215</td><td>3 deals</td><td>Kamal Perera</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
