@@ -258,13 +258,140 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (Populated by roadmapper) | | |
+| FNDN-01 | Phase 1 | Pending |
+| FNDN-02 | Phase 1 | Pending |
+| FNDN-03 | Phase 1 | Pending |
+| FNDN-04 | Phase 1 | Pending |
+| FNDN-05 | Phase 1 | Pending |
+| FNDN-06 | Phase 1 | Pending |
+| FNDN-07 | Phase 1 | Pending |
+| FNDN-08 | Phase 1 | Pending |
+| FNDN-09 | Phase 1 | Pending |
+| USER-01 | Phase 1 | Pending |
+| USER-02 | Phase 1 | Pending |
+| USER-03 | Phase 1 | Pending |
+| USER-04 | Phase 1 | Pending |
+| USER-05 | Phase 1 | Pending |
+| DASH-01 | Phase 1 | Pending |
+| DASH-02 | Phase 1 | Pending |
+| NFNL-01 | Phase 1 | Pending |
+| NFNL-02 | Phase 1 | Pending |
+| NFNL-03 | Phase 1 | Pending |
+| NFNL-04 | Phase 1 | Pending |
+| VPRC-01 | Phase 2 | Pending |
+| VPRC-02 | Phase 2 | Pending |
+| VPRC-03 | Phase 2 | Pending |
+| VPRC-04 | Phase 2 | Pending |
+| VPRC-05 | Phase 2 | Pending |
+| VPRC-06 | Phase 2 | Pending |
+| VPRC-07 | Phase 2 | Pending |
+| VPRC-08 | Phase 2 | Pending |
+| VPRC-09 | Phase 2 | Pending |
+| SUPL-01 | Phase 2 | Pending |
+| SUPL-02 | Phase 2 | Pending |
+| SUPL-03 | Phase 2 | Pending |
+| REPR-01 | Phase 2 | Pending |
+| REPR-02 | Phase 2 | Pending |
+| REPR-03 | Phase 2 | Pending |
+| REPR-04 | Phase 2 | Pending |
+| REPR-05 | Phase 2 | Pending |
+| VSTS-01 | Phase 2 | Pending |
+| VSTS-02 | Phase 2 | Pending |
+| VSTS-03 | Phase 2 | Pending |
+| VSTS-04 | Phase 2 | Pending |
+| FINT-01 | Phase 2 | Pending |
+| FINT-03 | Phase 2 | Pending |
+| SLGN-01 | Phase 3 | Pending |
+| SLGN-02 | Phase 3 | Pending |
+| SLGN-03 | Phase 3 | Pending |
+| SLCS-01 | Phase 3 | Pending |
+| SLCS-02 | Phase 3 | Pending |
+| SLAD-01 | Phase 3 | Pending |
+| SLAD-02 | Phase 3 | Pending |
+| SLAD-03 | Phase 3 | Pending |
+| SLAD-04 | Phase 3 | Pending |
+| SLAD-05 | Phase 3 | Pending |
+| SLAD-06 | Phase 3 | Pending |
+| SLLS-01 | Phase 3 | Pending |
+| SLLS-02 | Phase 3 | Pending |
+| SLLS-03 | Phase 3 | Pending |
+| SLLS-04 | Phase 3 | Pending |
+| SLLS-05 | Phase 3 | Pending |
+| SLTI-01 | Phase 3 | Pending |
+| SLTI-02 | Phase 3 | Pending |
+| SLTI-03 | Phase 3 | Pending |
+| CUST-01 | Phase 3 | Pending |
+| CUST-02 | Phase 3 | Pending |
+| CUST-03 | Phase 3 | Pending |
+| CUST-04 | Phase 3 | Pending |
+| FINT-02 | Phase 3 | Pending |
+| APRV-01 | Phase 4 | Pending |
+| APRV-02 | Phase 4 | Pending |
+| APRV-03 | Phase 4 | Pending |
+| APRV-04 | Phase 4 | Pending |
+| APRV-05 | Phase 4 | Pending |
+| NOTF-01 | Phase 4 | Pending |
+| NOTF-02 | Phase 4 | Pending |
+| NOTF-03 | Phase 4 | Pending |
+| NOTF-04 | Phase 4 | Pending |
+| WROF-01 | Phase 4 | Pending |
+| WROF-02 | Phase 4 | Pending |
+| WROF-03 | Phase 4 | Pending |
+| INVC-01 | Phase 5 | Pending |
+| INVC-02 | Phase 5 | Pending |
+| INVC-03 | Phase 5 | Pending |
+| AUDT-01 | Phase 6 | Pending |
+| AUDT-02 | Phase 6 | Pending |
+| AUDT-03 | Phase 6 | Pending |
+| AUDT-04 | Phase 6 | Pending |
+| REPT-01 | Phase 7 | Pending |
+| REPT-02 | Phase 7 | Pending |
+| REPT-03 | Phase 7 | Pending |
+| REPT-04 | Phase 7 | Pending |
+| REPT-05 | Phase 7 | Pending |
+| REPT-06 | Phase 7 | Pending |
+| REPT-07 | Phase 7 | Pending |
+| REPT-08 | Phase 7 | Pending |
+| FINT-04 | Phase 7 | Pending |
+| LBRK-01 | Phase 8 | Pending |
+| LBRK-02 | Phase 8 | Pending |
+| LBRK-03 | Phase 8 | Pending |
+| LBRK-04 | Phase 8 | Pending |
+| LBRK-05 | Phase 8 | Pending |
+| LBRK-06 | Phase 8 | Pending |
+| LBRK-07 | Phase 9 | Pending |
+| LBRK-08 | Phase 9 | Pending |
+| LBRK-09 | Phase 9 | Pending |
+| LBRK-10 | Phase 9 | Pending |
+| LBRK-11 | Phase 9 | Pending |
+| LBRK-12 | Phase 9 | Pending |
+| LBRK-13 | Phase 9 | Pending |
+| LBRK-14 | Phase 9 | Pending |
+| LBRK-15 | Phase 9 | Pending |
+| LBRK-16 | Phase 9 | Pending |
+| LBRK-17 | Phase 9 | Pending |
+| LBRK-18 | Phase 9 | Pending |
+| LBRK-19 | Phase 9 | Pending |
+| LBRK-20 | Phase 9 | Pending |
+| LBRK-21 | Phase 9 | Pending |
+| LBRK-22 | Phase 9 | Pending |
+| LBRK-23 | Phase 9 | Pending |
+| LBRK-24 | Phase 9 | Pending |
+| LBRK-26 | Phase 9 | Pending |
+| LBRK-27 | Phase 9 | Pending |
+| LBRK-28 | Phase 9 | Pending |
+| LBRK-29 | Phase 9 | Pending |
+| IMPT-01 | Phase 10 | Pending |
+| IMPT-02 | Phase 10 | Pending |
+| IMPT-03 | Phase 10 | Pending |
+| IMPT-04 | Phase 10 | Pending |
+| IMPT-05 | Phase 10 | Pending |
 
 **Coverage:**
 - v1 requirements: 128 total
-- Mapped to phases: 0
-- Unmapped: 128
+- Mapped to phases: 128
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after customer feedback integration*
+*Last updated: 2026-03-21 after roadmap creation*
