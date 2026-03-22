@@ -1,602 +1,492 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vehicles - VA Motors VSMS</title>
-  <link rel="stylesheet" href="styles.css">
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vehicles - VA Motors VSMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+            line-height: 1;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d9e2ff; border-radius: 10px; }
+        .glass-header { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-dim": "#cdd9ff",
+                        "secondary-dim": "#44546a",
+                        "tertiary": "#006b62",
+                        "surface-container": "#eaedff",
+                        "background": "#faf8ff",
+                        "surface-container-high": "#e2e7ff",
+                        "on-primary-fixed": "#003798",
+                        "primary": "#0053db",
+                        "inverse-on-surface": "#959cb5",
+                        "surface-bright": "#faf8ff",
+                        "inverse-primary": "#618bff",
+                        "outline-variant": "#98b1f2",
+                        "secondary-fixed-dim": "#c5d6f0",
+                        "primary-dim": "#0048c1",
+                        "on-surface-variant": "#445d99",
+                        "surface-container-low": "#f2f3ff",
+                        "surface-container-highest": "#d9e2ff",
+                        "error-container": "#fe8983",
+                        "primary-fixed-dim": "#c7d3ff",
+                        "tertiary-fixed": "#91feef",
+                        "tertiary-dim": "#005e56",
+                        "error-dim": "#4e0309",
+                        "on-tertiary-fixed-variant": "#006d64",
+                        "error": "#9f403d",
+                        "on-secondary-container": "#435368",
+                        "on-tertiary-fixed": "#004e47",
+                        "on-error-container": "#752121",
+                        "primary-container": "#dbe1ff",
+                        "on-secondary-fixed": "#314055",
+                        "on-background": "#113069",
+                        "tertiary-fixed-dim": "#83efe1",
+                        "surface-tint": "#0053db",
+                        "on-tertiary-container": "#006259",
+                        "on-surface": "#113069",
+                        "on-primary-fixed-variant": "#0050d4",
+                        "on-primary": "#f8f7ff",
+                        "secondary": "#506076",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#dbe1ff",
+                        "inverse-surface": "#060e20",
+                        "on-primary-container": "#0048bf",
+                        "secondary-fixed": "#d3e4fe",
+                        "surface-variant": "#d9e2ff",
+                        "on-secondary-fixed-variant": "#4d5d73",
+                        "on-secondary": "#f7f9ff",
+                        "surface": "#faf8ff",
+                        "on-tertiary": "#e2fff9",
+                        "secondary-container": "#d3e4fe",
+                        "tertiary-container": "#91feef",
+                        "outline": "#6079b7",
+                        "on-error": "#fff7f6"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
 </head>
-<body>
-  <div class="app-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header"><img src="logo.jpeg" alt="VA Motors" class="sidebar-logo"><span class="sidebar-brand">VA Motors</span></div>
-      <nav class="sidebar-nav">
-        <div class="nav-section"><div class="nav-section-title">Main</div>
-          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
-          <a href="vehicles.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
-          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
-          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
-          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Management</div>
-          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
-          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
-          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
-          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Finance</div>
-          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
-          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Brokerage</div>
-          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
-          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
-          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
-          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">System</div>
-          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
-          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Header -->
-      <header class="header">
-        <div class="header-left">
-          <button class="btn-sidebar-toggle">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div>
-            <h1 class="page-title">Vehicles</h1>
-            <p class="page-subtitle">Manage your vehicle inventory</p>
-          </div>
-        </div>
-        <div class="header-right">
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
-          </button>
-          <div style="position: relative;">
-            <button class="header-icon-btn" id="notificationBtn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span class="notification-dot"></span>
-            </button>
-            <div class="notification-dropdown" id="notificationDropdown">
-              <div class="notification-dropdown-header">
-                <h3>Notifications</h3>
-                <button class="btn btn-ghost btn-sm">Mark all read</button>
-              </div>
-              <div class="notification-list">
-                <div class="notification-item unread">
-                  <div class="notification-icon approval">!</div>
-                  <div class="notification-text">
-                    <p><strong>Discount approval</strong> requested by Dinesh Silva for Bajaj Pulsar NS200</p>
-                    <span class="time">5 min ago</span>
-                  </div>
-                </div>
-                <div class="notification-item unread">
-                  <div class="notification-icon sale">$</div>
-                  <div class="notification-text">
-                    <p><strong>Sale completed</strong> - Honda Dio sold to Priya Mendis</p>
-                    <span class="time">1 hour ago</span>
-                  </div>
-                </div>
-                <div class="notification-item">
-                  <div class="notification-icon repair">R</div>
-                  <div class="notification-text">
-                    <p><strong>Repair complete</strong> - TVS Apache RTR 160 4V returned from garage</p>
-                    <span class="time">3 hours ago</span>
-                  </div>
-                </div>
-              </div>
-              <div class="notification-dropdown-footer">
-                <a href="approvals.html">View all notifications</a>
-              </div>
-            </div>
-          </div>
-          <div class="user-menu">
-            <div class="user-avatar">KP</div>
-            <span class="user-name">Kamal Perera</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Page Content -->
-      <div class="page-content">
-        <!-- Toolbar -->
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="search-input">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder="Search vehicles...">
-            </div>
-            <button class="filter-btn active">All</button>
-            <button class="filter-btn">In Stock</button>
-            <button class="filter-btn">In Repair</button>
-            <button class="filter-btn">Sold</button>
-          </div>
-          <div class="toolbar-right">
-            <div class="view-toggle">
-              <button id="tableViewBtn" class="active">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-              </button>
-              <button id="cardViewBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-              </button>
-            </div>
-            <a href="purchases.html" class="btn btn-primary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              New Purchase
-            </a>
-          </div>
-        </div>
-
-        <!-- Table View -->
-        <div id="tableView" class="card table-view-container">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Vehicle</th>
-                  <th>Status</th>
-                  <th>Listed Price</th>
-                  <th>Availability</th>
-                  <th>Fuel / Trans</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Bajaj Pulsar NS200 - 2024</div>
-                    <div class="text-xs text-muted">NS200E-24-78432</div>
-                  </td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>Rs. 485,000</td>
-                  <td><span class="availability-dot available"></span> Available</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Honda Dio - 2025</div>
-                    <div class="text-xs text-muted">DIO110-25-11287</div>
-                  </td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>Rs. 375,000</td>
-                  <td><span class="availability-dot available"></span> Available</td>
-                  <td>Petrol / Auto</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">TVS Apache RTR 160 4V - 2024</div>
-                    <div class="text-xs text-muted">RTR160-24-55910</div>
-                  </td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>Rs. 520,000</td>
-                  <td><span class="availability-dot unavailable"></span> Reserved</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Yamaha FZ-S V3 - 2023</div>
-                    <div class="text-xs text-muted">FZS150-23-67201</div>
-                  </td>
-                  <td><span class="badge badge-in-stock">In Stock</span></td>
-                  <td>Rs. 460,000</td>
-                  <td><span class="availability-dot unavailable"></span> Held</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Honda CB Hornet 160R - 2024</div>
-                    <div class="text-xs text-muted">CBH160-24-33891</div>
-                  </td>
-                  <td><span class="badge badge-in-repair">In Repair</span></td>
-                  <td>Rs. 435,000</td>
-                  <td><span class="availability-dot unavailable"></span> At Garage</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Suzuki Gixxer SF - 2023</div>
-                    <div class="text-xs text-muted">GSF155-23-90124</div>
-                  </td>
-                  <td><span class="badge badge-in-repair">In Repair</span></td>
-                  <td>Rs. 545,000</td>
-                  <td><span class="availability-dot unavailable"></span> At Garage</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Bajaj Pulsar 150 - 2024</div>
-                    <div class="text-xs text-muted">PLS150-24-44512</div>
-                  </td>
-                  <td><span class="badge badge-advance-placed">Advance Placed</span></td>
-                  <td>Rs. 340,000</td>
-                  <td><span class="availability-dot unavailable"></span> Booked</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Hero Splendor+ - 2025</div>
-                    <div class="text-xs text-muted">SPL100-25-21098</div>
-                  </td>
-                  <td><span class="badge badge-advance-placed">Advance Placed</span></td>
-                  <td>Rs. 265,000</td>
-                  <td><span class="availability-dot unavailable"></span> Booked</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Honda Dio - 2024</div>
-                    <div class="text-xs text-muted">DIO110-24-87654</div>
-                  </td>
-                  <td><span class="badge badge-finance-pending">Finance Pending</span></td>
-                  <td>Rs. 365,000</td>
-                  <td><span class="availability-dot unavailable"></span> Pending</td>
-                  <td>Petrol / Auto</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">TVS Apache RTR 160 4V - 2023</div>
-                    <div class="text-xs text-muted">RTR160-23-10293</div>
-                  </td>
-                  <td><span class="badge badge-sold">Sold</span></td>
-                  <td>Rs. 490,000</td>
-                  <td><span class="availability-dot unavailable"></span> Sold</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Yamaha FZ-S V3 - 2024</div>
-                    <div class="text-xs text-muted">FZS150-24-78503</div>
-                  </td>
-                  <td><span class="badge badge-sold">Sold</span></td>
-                  <td>Rs. 475,000</td>
-                  <td><span class="availability-dot unavailable"></span> Sold</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="font-semibold">Bajaj Pulsar 150 - 2022</div>
-                    <div class="text-xs text-muted">PLS150-22-30982</div>
-                  </td>
-                  <td><span class="badge badge-written-off">Written Off</span></td>
-                  <td>Rs. 280,000</td>
-                  <td><span class="availability-dot unavailable"></span> N/A</td>
-                  <td>Petrol / Manual</td>
-                  <td><a href="vehicle-detail.html" class="btn btn-ghost btn-sm">View</a></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="card-footer">
-            <div class="pagination">
-              <div class="pagination-info">Showing 1-12 of 47 vehicles</div>
-              <div class="pagination-buttons">
-                <button class="pagination-btn">&laquo; Prev</button>
-                <button class="pagination-btn active">1</button>
-                <button class="pagination-btn">2</button>
-                <button class="pagination-btn">3</button>
-                <button class="pagination-btn">4</button>
-                <button class="pagination-btn">Next &raquo;</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card View -->
-        <div id="cardView" class="vehicle-grid card-view-container" style="display:none;">
-          <!-- Card 1 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=300&fit=crop" alt="Bajaj Pulsar NS200" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Bajaj Pulsar NS200</div>
-              <div class="vehicle-card-subtitle">2024 &middot; NS200E-24-78432</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 485,000</span>
-                <span class="badge badge-in-stock">In Stock</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot available"></span> Available</div>
-            </div>
-          </a>
-          <!-- Card 2 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=400&h=300&fit=crop" alt="Honda Dio" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Honda Dio</div>
-              <div class="vehicle-card-subtitle">2025 &middot; DIO110-25-11287</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 375,000</span>
-                <span class="badge badge-in-stock">In Stock</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot available"></span> Available</div>
-            </div>
-          </a>
-          <!-- Card 3 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&h=300&fit=crop" alt="TVS Apache RTR 160 4V" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">TVS Apache RTR 160 4V</div>
-              <div class="vehicle-card-subtitle">2024 &middot; RTR160-24-55910</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 520,000</span>
-                <span class="badge badge-in-stock">In Stock</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> Reserved</div>
-            </div>
-          </a>
-          <!-- Card 4 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=400&h=300&fit=crop" alt="Yamaha FZ-S V3" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Yamaha FZ-S V3</div>
-              <div class="vehicle-card-subtitle">2023 &middot; FZS150-23-67201</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 460,000</span>
-                <span class="badge badge-in-stock">In Stock</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> Held</div>
-            </div>
-          </a>
-          <!-- Card 5 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?w=400&h=300&fit=crop" alt="Honda CB Hornet 160R" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Honda CB Hornet 160R</div>
-              <div class="vehicle-card-subtitle">2024 &middot; CBH160-24-33891</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 435,000</span>
-                <span class="badge badge-in-repair">In Repair</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> At Garage</div>
-            </div>
-          </a>
-          <!-- Card 6 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1580310614729-ccd69652491d?w=400&h=300&fit=crop" alt="Suzuki Gixxer SF" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Suzuki Gixxer SF</div>
-              <div class="vehicle-card-subtitle">2023 &middot; GSF155-23-90124</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 545,000</span>
-                <span class="badge badge-in-repair">In Repair</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> At Garage</div>
-            </div>
-          </a>
-          <!-- Card 7 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=400&h=300&fit=crop" alt="Bajaj Pulsar 150" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Bajaj Pulsar 150</div>
-              <div class="vehicle-card-subtitle">2024 &middot; PLS150-24-44512</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 340,000</span>
-                <span class="badge badge-advance-placed">Advance Placed</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> Booked</div>
-            </div>
-          </a>
-          <!-- Card 8 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1609630875171-b1321377ee65?w=400&h=300&fit=crop" alt="Hero Splendor+" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Hero Splendor+</div>
-              <div class="vehicle-card-subtitle">2025 &middot; SPL100-25-21098</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 265,000</span>
-                <span class="badge badge-advance-placed">Advance Placed</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> Booked</div>
-            </div>
-          </a>
-          <!-- Card 9 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&h=300&fit=crop" alt="Honda Dio" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Honda Dio</div>
-              <div class="vehicle-card-subtitle">2024 &middot; DIO110-24-87654</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 365,000</span>
-                <span class="badge badge-finance-pending">Finance Pending</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> Pending</div>
-            </div>
-          </a>
-          <!-- Card 10 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=400&h=300&fit=crop" alt="TVS Apache RTR 160 4V" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">TVS Apache RTR 160 4V</div>
-              <div class="vehicle-card-subtitle">2023 &middot; RTR160-23-10293</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 490,000</span>
-                <span class="badge badge-sold">Sold</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> Sold</div>
-            </div>
-          </a>
-          <!-- Card 11 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?w=400&h=300&fit=crop" alt="Yamaha FZ-S V3" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Yamaha FZ-S V3</div>
-              <div class="vehicle-card-subtitle">2024 &middot; FZS150-24-78503</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 475,000</span>
-                <span class="badge badge-sold">Sold</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> Sold</div>
-            </div>
-          </a>
-          <!-- Card 12 -->
-          <a href="vehicle-detail.html" class="vehicle-card">
-            <img src="https://images.unsplash.com/photo-1580310614729-ccd69652491d?w=400&h=300&fit=crop" alt="Bajaj Pulsar 150" class="vehicle-card-img">
-            <div class="vehicle-card-body">
-              <div class="vehicle-card-title">Bajaj Pulsar 150</div>
-              <div class="vehicle-card-subtitle">2022 &middot; PLS150-22-30982</div>
-              <div class="vehicle-card-meta">
-                <span class="vehicle-card-price">Rs. 280,000</span>
-                <span class="badge badge-written-off">Written Off</span>
-              </div>
-              <div style="margin-top:8px;font-size:0.8rem;color:var(--text-tertiary);"><span class="availability-dot unavailable"></span> N/A</div>
-            </div>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Vehicle purchase form is on purchases.html — "New Purchase" button links there -->
-  <!-- Removed duplicate slide-over form; vehicles only enter through purchases -->
-  <!--
-  <div class="slide-over" id="addVehiclePanel">
-    <div class="slide-over-header">
-      <h2 class="slide-over-title">Record New Purchase</h2>
-      <button class="slide-over-close" onclick="closeSlideOver('addVehiclePanel')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="slide-over-body">
-      <!-- Purchase Type -->
-      <div class="form-group">
-        <label class="form-label">Purchase Type <span class="required">*</span></label>
-        <select class="form-select">
-          <option value="">Select purchase type</option>
-          <option value="cash">Cash</option>
-          <option value="lease">Lease Settlement</option>
-          <option value="brand-new">Brand New</option>
-        </select>
-      </div>
-
-      <!-- Vehicle Details Section -->
-      <h3 style="font-size:0.85rem;font-weight:700;margin-bottom:12px;margin-top:8px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Vehicle Details</h3>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Make <span class="required">*</span></label>
-          <select class="form-select">
-            <option value="">Select make</option>
-            <option>Honda</option>
-            <option>Bajaj</option>
-            <option>TVS</option>
-            <option>Yamaha</option>
-            <option>Hero</option>
-            <option>Suzuki</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Model <span class="required">*</span></label>
-          <input type="text" class="form-input" placeholder="e.g. Pulsar NS200">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Year <span class="required">*</span></label>
-          <input type="number" class="form-input" placeholder="e.g. 2024">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Colour</label>
-          <input type="text" class="form-input" placeholder="e.g. Candy Red">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Engine Number <span class="required">*</span></label>
-          <input type="text" class="form-input" placeholder="Engine #">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Chassis Number <span class="required">*</span></label>
-          <input type="text" class="form-input" placeholder="Chassis #">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">VIN</label>
-          <input type="text" class="form-input" placeholder="Optional">
-        </div>
-        <div class="form-group">
-          <label class="form-label">CR Number</label>
-          <input type="text" class="form-input" placeholder="e.g. WP-KA-4521">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Fuel Type <span class="required">*</span></label>
-          <select class="form-select">
-            <option value="">Select fuel</option>
-            <option>Petrol</option>
-            <option>Diesel</option>
-            <option>Electric</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Transmission <span class="required">*</span></label>
-          <select class="form-select">
-            <option value="">Select transmission</option>
-            <option>Manual</option>
-            <option>Auto</option>
-            <option>Semi-Auto</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Mileage (km)</label>
-        <input type="number" class="form-input" placeholder="e.g. 2340">
-      </div>
-
-      <!-- Supplier Section -->
-      <h3 style="font-size:0.85rem;font-weight:700;margin-bottom:12px;margin-top:8px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Supplier</h3>
-
-      <div class="form-group">
-        <label class="form-label">Supplier <span class="required">*</span></label>
-        <input type="text" class="form-input" placeholder="Search supplier...">
-        <div class="form-hint">Type to search existing suppliers or add new</div>
-      </div>
-
-      <!-- Purchase Details Section -->
-      <h3 style="font-size:0.85rem;font-weight:700;margin-bottom:12px;margin-top:8px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;">Purchase Details</h3>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Purchase Date <span class="required">*</span></label>
-          <input type="date" class="form-input">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Purchase Price <span class="required">*</span></label>
-          <input type="text" class="form-input" placeholder="Rs.">
-        </div>
-      </div>
-
-      <!-- Listed Price -->
-      <div class="form-group">
-        <label class="form-label">Listed Price <span class="required">*</span></label>
-        <input type="text" class="form-input" placeholder="Rs.">
-        <div class="form-hint">The price displayed to customers</div>
-      </div>
-    </div>
-  -->
-
-  <script src="app.js"></script>
-</body>
-</html>
+<body class="bg-surface text-on-surface antialiased overflow-x-hidden">
+<!-- SideNavBar (Authority: JSON) -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col py-4 px-3 bg-slate-50 dark:bg-slate-900 w-64 border-r border-slate-200/50 dark:border-slate-800/50 font-inter text-sm antialiased z-50">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary font-bold">V</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">VSMS</h1>
+<p class="text-[10px] uppercase tracking-tighter text-on-surface-variant">VA Motors</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto pr-2">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm rounded-md translate-x-1 transition-transform duration-200" href="vehicles.html">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Vehicles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="purchases.html">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="sales.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span>Sales</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="repairs.html">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Repairs</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Management</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="customers.html">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="third-parties.html">
+<span class="material-symbols-outlined" data-icon="handshake">handshake</span>
+<span>Third Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="reports.html">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="approvals.html">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Approvals</span>
+<span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Finance</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-reconciliation.html">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+<span>Reconciliation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="cash-flow.html">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Cash Flow</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Brokerage</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-deals.html">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Lease Deals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-comparison.html">
+<span class="material-symbols-outlined" data-icon="compare">compare</span>
+<span>Comparison Tool</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-rate-sheets.html">
+<span class="material-symbols-outlined" data-icon="grid_on">grid_on</span>
+<span>Rate Sheets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-dispatch.html">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Dispatch</span>
+</a>
+<div class="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">System</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="settings.html">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="users.html">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span>Users & Roles</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Shell -->
+<main class="ml-64 min-h-screen flex flex-col">
+<!-- TopNavBar (Authority: JSON) -->
+<header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md h-16 px-8 flex justify-between items-center border-b border-slate-200/30">
+<div class="flex items-center gap-6 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100/50 border-none rounded-md text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search Inventory (VIN, Make, Model)..." type="text"/>
+</div>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-slate-600 hover:text-blue-600 text-sm font-medium transition-all" href="dashboard.html">Dashboard</a>
+<a class="text-blue-700 font-bold border-b-2 border-blue-700 text-sm py-5" href="vehicles.html">Inventory</a>
+<a class="text-slate-600 hover:text-blue-600 text-sm font-medium transition-all" href="sales.html">Sales</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-[1px] bg-slate-200 mx-2"></div>
+<span class="text-xs font-bold text-primary px-2 py-1 bg-primary/10 rounded">VSMS Pro</span>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-8 flex-1 space-y-6 bg-surface">
+<!-- Header Section -->
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-2xl font-bold text-on-background tracking-tight">VSMS Inventory</h2>
+<p class="text-on-surface-variant text-sm mt-1">Manage and track your vehicle fleet performance and status.</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm px-4 py-2 rounded-md font-medium hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">download</span> Export
+                    </button>
+<button class="bg-primary text-on-primary text-sm px-4 py-2 rounded-md font-semibold hover:bg-primary-dim transition-all flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-lg">add</span> Add Vehicle
+                    </button>
+</div>
+</div>
+<!-- Filter Bar -->
+<div class="bg-surface-container-lowest p-4 rounded-lg shadow-sm flex flex-wrap gap-4 items-center">
+<div class="flex flex-col gap-1.5 min-w-[140px]">
+<label class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant px-1">Status</label>
+<select class="text-xs border-outline-variant/20 rounded-md bg-surface py-1.5 focus:ring-primary focus:border-primary">
+<option>All Statuses</option>
+<option>Purchased</option>
+<option>In Stock</option>
+<option>In Repair</option>
+<option>Advance Placed</option>
+<option>Advance Expired</option>
+<option>Finance Pending</option>
+<option>DO Received</option>
+<option>Delivered</option>
+<option>Sold</option>
+<option>Written Off</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5 min-w-[140px]">
+<label class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant px-1">Availability</label>
+<select class="text-xs border-outline-variant/20 rounded-md bg-surface py-1.5 focus:ring-primary focus:border-primary">
+<option>Any Availability</option>
+<option>Available</option>
+<option>Reserved</option>
+<option>Out of Stock</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5 min-w-[180px]">
+<label class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant px-1">Make/Model</label>
+<input class="text-xs border-outline-variant/20 rounded-md bg-surface py-1.5 focus:ring-primary focus:border-primary" placeholder="Search Make..." type="text"/>
+</div>
+<div class="flex flex-col gap-1.5">
+<label class="text-[10px] uppercase font-bold tracking-wider text-on-surface-variant px-1">Price Range</label>
+<div class="flex items-center gap-2">
+<input class="w-20 text-xs border-outline-variant/20 rounded-md bg-surface py-1.5 focus:ring-primary" placeholder="Min" type="text"/>
+<span class="text-outline-variant text-xs">-</span>
+<input class="w-20 text-xs border-outline-variant/20 rounded-md bg-surface py-1.5 focus:ring-primary" placeholder="Max" type="text"/>
+</div>
+</div>
+<button class="self-end mb-0.5 p-2 text-primary hover:bg-primary/5 rounded-md transition-colors" title="Clear Filters">
+<span class="material-symbols-outlined">filter_alt_off</span>
+</button>
+</div>
+<!-- Table Container -->
+<div class="bg-surface-container-lowest rounded-lg overflow-hidden shadow-sm border border-outline-variant/10">
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left border-collapse table-auto">
+<thead class="bg-surface-container-low sticky top-0 z-10 glass-header border-b border-outline-variant/20">
+<tr>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
+<div class="flex items-center gap-1 cursor-pointer hover:text-primary">ID <span class="material-symbols-outlined text-xs">unfold_more</span></div>
+</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
+<div class="flex items-center gap-1 cursor-pointer hover:text-primary">Vehicle <span class="material-symbols-outlined text-xs">arrow_drop_down</span></div>
+</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Availability</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-right">Price (USD)</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-right">Cost Basis</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Pur. Date</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">Source</th>
+<th class="p-3 text-[11px] font-bold uppercase tracking-widest text-on-surface-variant text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-high transition-colors group">
+<td class="p-3 text-xs font-mono text-on-surface-variant">#INV-9021</td>
+<td class="p-3">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Tesla Model S Plaid</span>
+<span class="text-[10px] text-on-surface-variant">2023 • Midnight Silver Metallic</span>
+</div>
+</td>
+<td class="p-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container text-on-tertiary-container uppercase tracking-tighter">In Stock</span>
+</td>
+<td class="p-3">
+<div class="flex items-center gap-1.5 text-xs text-tertiary">
+<span class="material-symbols-outlined text-base" data-weight="fill">check_circle</span> Available
+                                    </div>
+</td>
+<td class="p-3 text-right text-sm font-semibold text-on-surface">$102,400</td>
+<td class="p-3 text-right text-xs text-on-surface-variant">$88,500</td>
+<td class="p-3 text-xs text-on-surface-variant">Oct 12, 2023</td>
+<td class="p-3 text-xs text-on-surface-variant">Direct Fleet</td>
+<td class="p-3 text-right">
+<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:bg-primary/10 text-primary rounded" title="View Detail"><span class="material-symbols-outlined text-lg">visibility</span></button>
+<button class="p-1.5 hover:bg-secondary/10 text-secondary rounded" title="Edit"><span class="material-symbols-outlined text-lg">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-high transition-colors group">
+<td class="p-3 text-xs font-mono text-on-surface-variant">#INV-8842</td>
+<td class="p-3">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Porsche 911 Carrera S</span>
+<span class="text-[10px] text-on-surface-variant">2022 • Chalk</span>
+</div>
+</td>
+<td class="p-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase tracking-tighter">Sold</span>
+</td>
+<td class="p-3">
+<div class="flex items-center gap-1.5 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-base">block</span> Reserved
+                                    </div>
+</td>
+<td class="p-3 text-right text-sm font-semibold text-on-surface">$145,000</td>
+<td class="p-3 text-right text-xs text-on-surface-variant">$122,000</td>
+<td class="p-3 text-xs text-on-surface-variant">Nov 02, 2023</td>
+<td class="p-3 text-xs text-on-surface-variant">Auctions East</td>
+<td class="p-3 text-right">
+<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:bg-primary/10 text-primary rounded"><span class="material-symbols-outlined text-lg">visibility</span></button>
+<button class="p-1.5 hover:bg-secondary/10 text-secondary rounded"><span class="material-symbols-outlined text-lg">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-high transition-colors group">
+<td class="p-3 text-xs font-mono text-on-surface-variant">#INV-7712</td>
+<td class="p-3">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">BMW X5 xDrive40i</span>
+<span class="text-[10px] text-on-surface-variant">2024 • Alpine White</span>
+</div>
+</td>
+<td class="p-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary-container text-on-secondary-container uppercase tracking-tighter">In Repair</span>
+</td>
+<td class="p-3">
+<div class="flex items-center gap-1.5 text-xs text-error">
+<span class="material-symbols-outlined text-base">build</span> Maintenance
+                                    </div>
+</td>
+<td class="p-3 text-right text-sm font-semibold text-on-surface">$72,800</td>
+<td class="p-3 text-right text-xs text-on-surface-variant">$61,000</td>
+<td class="p-3 text-xs text-on-surface-variant">Jan 15, 2024</td>
+<td class="p-3 text-xs text-on-surface-variant">Trade-In</td>
+<td class="p-3 text-right">
+<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:bg-primary/10 text-primary rounded"><span class="material-symbols-outlined text-lg">visibility</span></button>
+<button class="p-1.5 hover:bg-secondary/10 text-secondary rounded"><span class="material-symbols-outlined text-lg">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-high transition-colors group">
+<td class="p-3 text-xs font-mono text-on-surface-variant">#INV-4429</td>
+<td class="p-3">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Audi RS6 Avant</span>
+<span class="text-[10px] text-on-surface-variant">2023 • Nardo Gray</span>
+</div>
+</td>
+<td class="p-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-on-surface-variant uppercase tracking-tighter">Finance Pending</span>
+</td>
+<td class="p-3">
+<div class="flex items-center gap-1.5 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-base">lock</span> Pending
+                                    </div>
+</td>
+<td class="p-3 text-right text-sm font-semibold text-on-surface">$132,500</td>
+<td class="p-3 text-right text-xs text-on-surface-variant">$114,200</td>
+<td class="p-3 text-xs text-on-surface-variant">Feb 10, 2024</td>
+<td class="p-3 text-xs text-on-surface-variant">Broker Network</td>
+<td class="p-3 text-right">
+<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:bg-primary/10 text-primary rounded"><span class="material-symbols-outlined text-lg">visibility</span></button>
+<button class="p-1.5 hover:bg-secondary/10 text-secondary rounded"><span class="material-symbols-outlined text-lg">edit</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-high transition-colors group">
+<td class="p-3 text-xs font-mono text-on-surface-variant">#INV-1102</td>
+<td class="p-3">
+<div class="flex flex-col">
+<span class="text-sm font-bold text-on-surface">Mercedes-AMG G 63</span>
+<span class="text-[10px] text-on-surface-variant">2024 • Obsidian Black</span>
+</div>
+</td>
+<td class="p-3">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error-container text-on-error-container uppercase tracking-tighter">Written Off</span>
+</td>
+<td class="p-3">
+<div class="flex items-center gap-1.5 text-xs text-error">
+<span class="material-symbols-outlined text-base">cancel</span> Unavailable
+                                    </div>
+</td>
+<td class="p-3 text-right text-sm font-semibold text-on-surface">$189,000</td>
+<td class="p-3 text-right text-xs text-on-surface-variant">$165,000</td>
+<td class="p-3 text-xs text-on-surface-variant">Mar 05, 2024</td>
+<td class="p-3 text-xs text-on-surface-variant">Direct Supplier</td>
+<td class="p-3 text-right">
+<div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 hover:bg-primary/10 text-primary rounded"><span class="material-symbols-outlined text-lg">visibility</span></button>
+<button class="p-1.5 hover:bg-secondary/10 text-secondary rounded"><span class="material-symbols-outlined text-lg">edit</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Control -->
+<div class="flex items-center justify-between px-6 py-3 bg-surface-container-low border-t border-outline-variant/20">
+<span class="text-xs text-on-surface-variant">Showing 1 to 5 of 124 entries</span>
+<div class="flex items-center gap-1">
+<button class="p-1.5 border border-outline-variant/30 rounded text-on-surface-variant hover:bg-surface-container-high transition-colors disabled:opacity-40" disabled="">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<button class="px-3 py-1.5 border border-primary bg-primary text-on-primary text-xs font-bold rounded">1</button>
+<button class="px-3 py-1.5 border border-outline-variant/30 text-on-surface-variant text-xs hover:bg-surface-container-high rounded transition-colors">2</button>
+<button class="px-3 py-1.5 border border-outline-variant/30 text-on-surface-variant text-xs hover:bg-surface-container-high rounded transition-colors">3</button>
+<span class="px-2 text-outline-variant">...</span>
+<button class="px-3 py-1.5 border border-outline-variant/30 text-on-surface-variant text-xs hover:bg-surface-container-high rounded transition-colors">25</button>
+<button class="p-1.5 border border-outline-variant/30 rounded text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Dashboard/Inventory Stats (Bento Grid Style) -->
+<div class="grid grid-cols-4 gap-6 pt-4">
+<div class="bg-primary/5 p-4 rounded-lg border-l-4 border-primary shadow-sm">
+<p class="text-[10px] font-bold uppercase text-primary tracking-widest">Total Valuation</p>
+<h3 class="text-xl font-extrabold text-on-background mt-1">$14.2M</h3>
+<div class="mt-2 text-[10px] text-tertiary flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-sm">trending_up</span> +4.2% from last month
+                    </div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg shadow-sm">
+<p class="text-[10px] font-bold uppercase text-on-surface-variant tracking-widest">Active Stock</p>
+<h3 class="text-xl font-extrabold text-on-background mt-1">84 Units</h3>
+<p class="text-[10px] text-on-surface-variant mt-2">Occupancy: 82%</p>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg shadow-sm">
+<p class="text-[10px] font-bold uppercase text-on-surface-variant tracking-widest">Pending Repairs</p>
+<h3 class="text-xl font-extrabold text-on-background mt-1">12 Units</h3>
+<p class="text-[10px] text-error mt-2 font-medium">Avg delay: 4.2 days</p>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg shadow-sm">
+<p class="text-[10px] font-bold uppercase text-on-surface-variant tracking-widest">Sold (MTD)</p>
+<h3 class="text-xl font-extrabold text-on-background mt-1">28 Units</h3>
+<p class="text-[10px] text-tertiary mt-2 font-medium">Target: 35 Units</p>
+</div>
+</div>
+</div>
+<!-- Footer (Authority: JSON) -->
+<footer class="mt-auto border-t border-slate-200/20 bg-slate-50 flex justify-between items-center py-4 px-8">
+<p class="font-inter text-xs uppercase tracking-widest text-slate-400">© 2024 Vehicle Sale Management System v2.4.1</p>
+<div class="flex gap-6">
+<a class="font-inter text-xs uppercase tracking-widest text-slate-400 hover:underline" href="#">Privacy Policy</a>
+<a class="font-inter text-xs uppercase tracking-widest text-slate-400 hover:underline" href="#">System Status</a>
+</div>
+</footer>
+</main>
+<!-- FAB for Quick Actions (JSON requirement but contextual suppression check) -->
+<!-- Context: We are on a Dashboard/Inventory list, so FAB is allowed -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50 group">
+<span class="material-symbols-outlined text-3xl" data-weight="fill">add_box</span>
+<span class="absolute right-full mr-4 bg-inverse-surface text-surface text-[10px] px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-widest font-bold">New Inventory Entry</span>
+</button>
+</body></html>

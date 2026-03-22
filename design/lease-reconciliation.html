@@ -1,163 +1,415 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Commission Reconciliation - VA Motors VSMS</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    .summary-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
-    .summary-card { padding:20px; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:12px; }
-    .summary-card .value { font-size:1.5rem; font-weight:800; font-variant-numeric:tabular-nums; }
-    .summary-card .label { font-size:0.78rem; color:var(--text-tertiary); font-weight:500; margin-top:2px; }
-    .summary-card.earned .value { color:var(--text-primary); }
-    .summary-card.reconciled .value { color:var(--color-success); }
-    .summary-card.pending .value { color:var(--color-warning); }
-    .reconcile-form { display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:12px; align-items:end; }
-    .reconcile-form .form-group { margin-bottom:0; }
-    .overdue-row { background:rgba(217,119,6,0.04); }
-    .overdue-badge { font-size:0.72rem; font-weight:700; color:var(--color-danger); }
-    .reconcile-checkbox { width:18px; height:18px; accent-color:var(--color-primary); cursor:pointer; }
-    .reconcile-total { display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--color-primary-light); border-top:1px solid var(--border-color); font-size:0.88rem; }
-    .reconcile-total strong { font-weight:800; }
-  </style>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Commission Reconciliation - VA Motors VSMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-primary-container": "#0048bf",
+                        "on-tertiary": "#e2fff9",
+                        "surface": "#faf8ff",
+                        "primary-fixed-dim": "#c7d3ff",
+                        "tertiary": "#006b62",
+                        "primary": "#0053db",
+                        "on-tertiary-fixed": "#004e47",
+                        "surface-container": "#eaedff",
+                        "outline": "#6079b7",
+                        "on-secondary-fixed": "#314055",
+                        "on-secondary": "#f7f9ff",
+                        "on-primary": "#f8f7ff",
+                        "tertiary-fixed-dim": "#83efe1",
+                        "tertiary-container": "#91feef",
+                        "secondary-dim": "#44546a",
+                        "error-container": "#fe8983",
+                        "primary-dim": "#0048c1",
+                        "surface-variant": "#d9e2ff",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-bright": "#faf8ff",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-tertiary-fixed-variant": "#006d64",
+                        "tertiary-fixed": "#91feef",
+                        "background": "#faf8ff",
+                        "surface-container-low": "#f2f3ff",
+                        "on-surface-variant": "#445d99",
+                        "inverse-surface": "#060e20",
+                        "surface-container-highest": "#d9e2ff",
+                        "surface-container-high": "#e2e7ff",
+                        "on-error-container": "#752121",
+                        "on-background": "#113069",
+                        "outline-variant": "#98b1f2",
+                        "secondary": "#506076",
+                        "secondary-fixed-dim": "#c5d6f0",
+                        "tertiary-dim": "#005e56",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface": "#113069",
+                        "on-error": "#fff7f6",
+                        "secondary-container": "#d3e4fe",
+                        "inverse-on-surface": "#959cb5",
+                        "on-primary-fixed": "#003798",
+                        "inverse-primary": "#618bff",
+                        "on-secondary-fixed-variant": "#4d5d73",
+                        "error": "#9f403d",
+                        "surface-dim": "#cdd9ff",
+                        "on-secondary-container": "#435368",
+                        "surface-tint": "#0053db",
+                        "on-primary-fixed-variant": "#0050d4",
+                        "primary-container": "#dbe1ff",
+                        "error-dim": "#4e0309",
+                        "on-tertiary-container": "#006259"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body>
-  <div class="app-layout">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header"><img src="logo.jpeg" alt="VA Motors" class="sidebar-logo"><span class="sidebar-brand">VA Motors</span></div>
-      <nav class="sidebar-nav">
-        <div class="nav-section"><div class="nav-section-title">Main</div>
-          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
-          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
-          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
-          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
-          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Management</div>
-          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
-          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
-          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
-          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Finance</div>
-          <a href="lease-reconciliation.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
-          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Brokerage</div>
-          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
-          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
-          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
-          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">System</div>
-          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
-          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
-        </div>
-      </nav>
-    </aside>
-
-    <div class="main-content">
-      <header class="header">
-        <div class="header-left"><button class="btn-sidebar-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><div><h1 class="page-title">Commission Reconciliation</h1><p class="page-subtitle">Reconcile commissions across all lease types by finance company</p></div></div>
-        <div class="header-right">
-          <button class="theme-toggle" onclick="toggleTheme()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</button>
-          <div style="position:relative;"><button class="header-icon-btn" id="notificationBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notification-dot"></span></button></div>
-          <div class="user-menu"><div class="user-avatar">KP</div><span class="user-name">Kamal</span></div>
-        </div>
-      </header>
-
-      <div class="page-content">
-        <!-- Finance Company Tabs -->
-        <div class="toolbar" style="margin-bottom:16px;">
-          <div class="toolbar-left">
-            <button class="filter-btn active">People's Leasing</button>
-            <button class="filter-btn">LOLC Finance</button>
-            <button class="filter-btn">HNB Finance</button>
-            <button class="filter-btn">Commercial Leasing</button>
-          </div>
-        </div>
-
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-          <div class="summary-card earned"><div class="value">Rs. 245,000</div><div class="label">Total Commission Earned</div></div>
-          <div class="summary-card reconciled"><div class="value">Rs. 195,000</div><div class="label">Reconciled</div></div>
-          <div class="summary-card pending"><div class="value">Rs. 50,000</div><div class="label">Pending Reconciliation</div></div>
-        </div>
-
-        <!-- New Reconciliation -->
-        <div class="card mb-16">
-          <div class="card-header"><h3 class="card-title">New Reconciliation</h3></div>
-          <div class="card-body">
-            <div class="reconcile-form">
-              <div class="form-group"><label class="form-label">Amount Received (LKR)</label><input type="text" class="form-input" placeholder="e.g. 50,000"></div>
-              <div class="form-group"><label class="form-label">Bank Reference</label><input type="text" class="form-input" placeholder="e.g. BOC-TRF-20260321"></div>
-              <div class="form-group"><label class="form-label">Date Received</label><input type="date" class="form-input" value="2026-03-21"></div>
-              <button class="btn btn-primary" style="height:40px;">Start Reconciliation</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Matching Mode Banner (shown after Start Reconciliation is clicked) -->
-        <div class="card mb-16" style="border-color:var(--color-info);border-width:2px;">
-          <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--color-info-light);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-info)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            <div style="flex:1;">
-              <div style="font-size:0.88rem;font-weight:700;">Matching Mode Active</div>
-              <div style="font-size:0.78rem;color:var(--text-secondary);">Reconciling Rs. 50,000 from BOC-TRF-20260321 (21 Mar 2026). Select deals below to match against this payment.</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:0.78rem;color:var(--text-tertiary);">Selected</div>
-              <div style="font-size:1.2rem;font-weight:800;"><span style="color:var(--color-success);">Rs. 24,250</span> <span style="font-size:0.78rem;color:var(--text-tertiary);font-weight:500;">/ Rs. 50,000</span></div>
-              <div style="font-size:0.72rem;color:var(--text-tertiary);">Remaining: Rs. 25,750</div>
-            </div>
-            <div style="display:flex;gap:8px;">
-              <button class="btn btn-primary btn-sm">Confirm Reconciliation</button>
-              <button class="btn btn-sm" style="border:1px solid var(--border-color);background:var(--bg-surface);">Cancel</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Unreconciled Deals -->
-        <div class="card mb-16">
-          <div class="card-header"><h3 class="card-title">Unreconciled Deals</h3><span style="font-size:0.82rem;color:var(--text-tertiary);">5 deals (2 vehicle sales, 3 brokerage) &middot; Rs. 47,500 pending</span></div>
-          <div class="table-container">
-            <table>
-              <thead><tr><th style="width:40px;"><input type="checkbox" class="reconcile-checkbox"></th><th>Source</th><th>Customer</th><th>Vehicle</th><th>Finance Amount</th><th>Commission (2.5%)</th><th>Date Sent</th><th>Days Outstanding</th></tr></thead>
-              <tbody>
-                <tr class="overdue-row"><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge badge-info" style="font-size:0.7rem;">Vehicle Sale</span></td><td>Dinesh Silva</td><td>Honda Dio 2025</td><td>Rs. 200,000</td><td style="font-weight:700;">Rs. 5,000</td><td>28 Feb 2026</td><td><span class="overdue-badge">21 days</span></td></tr>
-                <tr class="overdue-row"><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Priya Mendis</td><td>TVS Apache RTR 160 2025</td><td>Rs. 290,000</td><td style="font-weight:700;">Rs. 7,250</td><td>03 Mar 2026</td><td><span class="overdue-badge">18 days</span></td></tr>
-                <tr><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Lakshmi Jayawardena</td><td>Suzuki Gixxer SF 2024</td><td>Rs. 480,000</td><td style="font-weight:700;">Rs. 12,000</td><td>10 Mar 2026</td><td style="font-size:0.82rem;color:var(--text-tertiary);">11 days</td></tr>
-                <tr><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge badge-info" style="font-size:0.7rem;">Vehicle Sale</span></td><td>Priya Mendis</td><td>Suzuki Gixxer SF 2024</td><td>Rs. 500,000</td><td style="font-weight:700;">Rs. 12,500</td><td>15 Mar 2026</td><td style="font-size:0.82rem;color:var(--text-tertiary);">6 days</td></tr>
-                <tr><td><input type="checkbox" class="reconcile-checkbox" checked></td><td><span class="badge" style="font-size:0.7rem;background:var(--status-finance-pending-bg);color:var(--status-finance-pending);">Brokerage</span></td><td>Anura Kumara</td><td>Honda CB Hornet 2025</td><td>Rs. 430,000</td><td style="font-weight:700;">Rs. 10,750</td><td>19 Mar 2026</td><td style="font-size:0.82rem;color:var(--text-tertiary);">2 days</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="reconcile-total">
-            <span>Selected: 4 deals</span>
-            <span style="flex:1;"></span>
-            <span>Total: <strong>Rs. 35,000</strong></span>
-            <button class="btn btn-primary btn-sm">Reconcile Selected</button>
-          </div>
-        </div>
-
-        <!-- Recent Reconciliations -->
-        <div class="card">
-          <div class="card-header"><h3 class="card-title">Recent Reconciliations</h3></div>
-          <div class="table-container">
-            <table>
-              <thead><tr><th>Date</th><th>Amount</th><th>Bank Reference</th><th>Deals Covered</th><th>Reconciled By</th></tr></thead>
-              <tbody>
-                <tr><td>15 Mar 2026</td><td style="font-weight:700;">Rs. 85,000</td><td>BOC-TRF-20260315</td><td>5 deals</td><td>Kamal Perera</td></tr>
-                <tr><td>28 Feb 2026</td><td style="font-weight:700;">Rs. 62,500</td><td>BOC-TRF-20260228</td><td>4 deals</td><td>Kamal Perera</td></tr>
-                <tr><td>15 Feb 2026</td><td style="font-weight:700;">Rs. 47,500</td><td>BOC-TRF-20260215</td><td>3 deals</td><td>Kamal Perera</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <script src="app.js"></script>
-</body>
-</html>
+<body class="bg-surface text-on-background antialiased">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm flex justify-between items-center px-6 h-16 w-full font-inter antialiased text-sm font-medium">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-slate-900">VSMS</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-500 hover:text-slate-900 transition-colors" href="vehicles.html">Inventory</a>
+<a class="text-slate-500 hover:text-slate-900 transition-colors" href="sales.html">Sales</a>
+<a class="text-blue-700 border-b-2 border-blue-700 pb-4" href="#">Reconciliation</a>
+<a class="text-slate-500 hover:text-slate-900 transition-colors" href="reports.html">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:bg-primary-dim transition-all duration-200 active:scale-[0.98]">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                Export CSV
+            </button>
+<div class="flex items-center gap-2 border-l border-slate-200 ml-2 pl-4">
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="User profile" class="w-8 h-8 rounded-full ml-2 border border-slate-200" data-alt="User profile avatar circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7k3EfdnUGL32bIVmYp16WaefGiDa2cOmHtfSbCiZgKG1zpFKXtZ_WgwGn8CJwXABgqYfYg52yF0xdVOnpQKCxVQjux0k6XpnDqLrmlgBwlE_IRnCm8-6dRBFRobJuvrTPIy_XNUeLiWpN8xvQX1_OGww2HGJIBXdlPtWvlmoe7rfScsWaBaq410xdwt_GrM1FiDa4ztKOVTZOOPxEl9chbvtE4ZniKJEGItKocRVv3LQGlPcwcXQEUBeiQ1FDVHpgQPsr0z88Ung"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar (Contextual Layout) -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col py-4 px-3 bg-slate-50 dark:bg-slate-900 w-64 border-r border-slate-200/50 dark:border-slate-800/50 font-inter text-sm antialiased z-50">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary font-bold">V</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">VSMS</h1>
+<p class="text-[10px] uppercase tracking-tighter text-on-surface-variant">VA Motors</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto pr-2">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="vehicles.html">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Vehicles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="purchases.html">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="sales.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span>Sales</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="repairs.html">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Repairs</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Management</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="customers.html">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="third-parties.html">
+<span class="material-symbols-outlined" data-icon="handshake">handshake</span>
+<span>Third Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="reports.html">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="approvals.html">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Approvals</span>
+<span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Finance</p>
+<a class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm rounded-md translate-x-1 transition-transform duration-200" href="lease-reconciliation.html">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+<span>Reconciliation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="cash-flow.html">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Cash Flow</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Brokerage</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-deals.html">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Lease Deals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-comparison.html">
+<span class="material-symbols-outlined" data-icon="compare">compare</span>
+<span>Comparison Tool</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-rate-sheets.html">
+<span class="material-symbols-outlined" data-icon="grid_on">grid_on</span>
+<span>Rate Sheets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-dispatch.html">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Dispatch</span>
+</a>
+<div class="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">System</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="settings.html">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="users.html">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span>Users & Roles</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="lg:ml-64 pt-24 px-8 pb-12">
+<!-- Header & Metrics -->
+<div class="mb-8">
+<h1 class="text-2xl font-bold text-on-background mb-6 headline-sm">Commission Reconciliation</h1>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 shadow-sm transition-all hover:shadow-md">
+<div class="flex justify-between items-start mb-2">
+<p class="label-sm uppercase tracking-wider text-on-surface-variant font-semibold">Total Outstanding Commissions</p>
+<span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+</div>
+<p class="text-2xl font-bold text-on-background">$142,550.00</p>
+<p class="text-xs text-on-surface-variant mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-error">trending_up</span>
+<span class="text-error font-medium">+12%</span> vs last month
+                    </p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 shadow-sm transition-all hover:shadow-md">
+<div class="flex justify-between items-start mb-2">
+<p class="label-sm uppercase tracking-wider text-on-surface-variant font-semibold">Reconciled This Month</p>
+<span class="material-symbols-outlined text-tertiary">check_circle</span>
+</div>
+<p class="text-2xl font-bold text-on-background">$89,420.00</p>
+<p class="text-xs text-tertiary mt-2 font-medium">84% of target reached</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-lg border border-outline-variant/10 shadow-sm transition-all hover:shadow-md">
+<div class="flex justify-between items-start mb-2">
+<p class="label-sm uppercase tracking-wider text-on-surface-variant font-semibold">Flagged Discrepancies</p>
+<span class="material-symbols-outlined text-error">warning</span>
+</div>
+<p class="text-2xl font-bold text-error">12 Items</p>
+<p class="text-xs text-on-surface-variant mt-2 font-medium">Requires immediate attention</p>
+</div>
+</div>
+</div>
+<!-- Filters -->
+<div class="bg-surface-container-low p-4 rounded-lg flex flex-wrap items-center gap-4 mb-6">
+<div class="flex flex-col gap-1.5 min-w-[200px]">
+<label class="text-[10px] uppercase font-bold text-on-surface-variant px-1">Date Range</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none text-sm rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-primary/20 text-on-surface font-medium" type="text" value="Oct 01, 2023 - Oct 31, 2023"/>
+<span class="material-symbols-outlined absolute right-2 top-2 text-[18px] text-slate-400">calendar_month</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5 min-w-[140px]">
+<label class="text-[10px] uppercase font-bold text-on-surface-variant px-1">Source</label>
+<select class="bg-surface-container-lowest border-none text-sm rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-primary/20 text-on-surface font-medium">
+<option>All Sources</option>
+<option>Vehicle Sale</option>
+<option>Brokerage</option>
+</select>
+</div>
+<div class="flex flex-col gap-1.5 min-w-[140px]">
+<label class="text-[10px] uppercase font-bold text-on-surface-variant px-1">Status</label>
+<select class="bg-surface-container-lowest border-none text-sm rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-primary/20 text-on-surface font-medium">
+<option>All Status</option>
+<option>Reconciled</option>
+<option>Pending</option>
+<option>Overdue</option>
+</select>
+</div>
+<div class="flex-1"></div>
+<button class="bg-surface-container-lowest text-on-surface px-4 py-2 rounded-md text-sm font-semibold border border-outline-variant/20 hover:bg-white transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                More Filters
+            </button>
+</div>
+<!-- Data Grid -->
+<div class="bg-surface-container-lowest rounded-lg shadow-sm border border-outline-variant/10 overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50 border-b border-outline-variant/10">
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold">Date</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold">Source</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold">Entity</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold">Deal Ref</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold text-right">Expected Comm.</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold text-right">Received Comm.</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold text-right">Discrepancy</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold">Status</th>
+<th class="label-sm uppercase tracking-wider p-4 text-on-surface-variant font-bold text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Overdue Row -->
+<tr class="hover:bg-surface-container-high transition-colors bg-error-container/5">
+<td class="p-4 text-sm text-on-surface font-medium">Oct 24, 2023</td>
+<td class="p-4">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-tight">Vehicle Sale</span>
+</td>
+<td class="p-4 text-sm text-on-surface font-medium">People's Leasing</td>
+<td class="p-4 text-sm font-mono text-on-surface-variant">CAM-2021-005</td>
+<td class="p-4 text-sm text-on-surface font-bold text-right">$4,250.00</td>
+<td class="p-4 text-sm text-on-surface text-right">$0.00</td>
+<td class="p-4 text-sm text-error font-bold text-right">-$4,250.00</td>
+<td class="p-4">
+<span class="flex items-center gap-1.5 text-[11px] font-bold text-error uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                Overdue
+                            </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-primary hover:underline text-xs font-bold uppercase tracking-wider">Reconcile</button>
+</td>
+</tr>
+<!-- Reconciled Row -->
+<tr class="hover:bg-surface-container-high transition-colors">
+<td class="p-4 text-sm text-on-surface font-medium">Oct 25, 2023</td>
+<td class="p-4">
+<span class="px-2 py-1 rounded bg-tertiary-container text-on-tertiary-container text-[10px] font-bold uppercase tracking-tight">Brokerage</span>
+</td>
+<td class="p-4 text-sm text-on-surface font-medium">LOLC Finance</td>
+<td class="p-4 text-sm font-mono text-on-surface-variant">CAM-2021-012</td>
+<td class="p-4 text-sm text-on-surface font-bold text-right">$1,100.00</td>
+<td class="p-4 text-sm text-on-surface text-right">$1,100.00</td>
+<td class="p-4 text-sm text-tertiary font-bold text-right">$0.00</td>
+<td class="p-4">
+<span class="flex items-center gap-1.5 text-[11px] font-bold text-tertiary uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                                Reconciled
+                            </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Discrepancy Row -->
+<tr class="hover:bg-surface-container-high transition-colors">
+<td class="p-4 text-sm text-on-surface font-medium">Oct 26, 2023</td>
+<td class="p-4">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-tight">Vehicle Sale</span>
+</td>
+<td class="p-4 text-sm text-on-surface font-medium">Commercial Bank</td>
+<td class="p-4 text-sm font-mono text-on-surface-variant">CAM-2021-018</td>
+<td class="p-4 text-sm text-on-surface font-bold text-right">$3,800.00</td>
+<td class="p-4 text-sm text-on-surface text-right">$3,600.00</td>
+<td class="p-4 text-sm text-error font-bold text-right">-$200.00</td>
+<td class="p-4">
+<span class="flex items-center gap-1.5 text-[11px] font-bold text-on-secondary-fixed-variant uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                Pending
+                            </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-primary hover:underline text-xs font-bold uppercase tracking-wider">Reconcile</button>
+</td>
+</tr>
+<!-- Another Row -->
+<tr class="hover:bg-surface-container-high transition-colors">
+<td class="p-4 text-sm text-on-surface font-medium">Oct 27, 2023</td>
+<td class="p-4">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-tight">Vehicle Sale</span>
+</td>
+<td class="p-4 text-sm text-on-surface font-medium">NDB Bank</td>
+<td class="p-4 text-sm font-mono text-on-surface-variant">CAM-2021-022</td>
+<td class="p-4 text-sm text-on-surface font-bold text-right">$2,450.00</td>
+<td class="p-4 text-sm text-on-surface text-right">$2,450.00</td>
+<td class="p-4 text-sm text-tertiary font-bold text-right">$0.00</td>
+<td class="p-4">
+<span class="flex items-center gap-1.5 text-[11px] font-bold text-tertiary uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                                Reconciled
+                            </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Partial Row -->
+<tr class="hover:bg-surface-container-high transition-colors bg-error-container/5">
+<td class="p-4 text-sm text-on-surface font-medium">Oct 28, 2023</td>
+<td class="p-4">
+<span class="px-2 py-1 rounded bg-tertiary-container text-on-tertiary-container text-[10px] font-bold uppercase tracking-tight">Brokerage</span>
+</td>
+<td class="p-4 text-sm text-on-surface font-medium">HNB Assurance</td>
+<td class="p-4 text-sm font-mono text-on-surface-variant">CAM-2021-025</td>
+<td class="p-4 text-sm text-on-surface font-bold text-right">$850.00</td>
+<td class="p-4 text-sm text-on-surface text-right">$0.00</td>
+<td class="p-4 text-sm text-error font-bold text-right">-$850.00</td>
+<td class="p-4">
+<span class="flex items-center gap-1.5 text-[11px] font-bold text-error uppercase">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                Overdue
+                            </span>
+</td>
+<td class="p-4 text-right">
+<button class="text-primary hover:underline text-xs font-bold uppercase tracking-wider">Reconcile</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination / Footer -->
+<div class="p-4 bg-surface-container-low/30 border-t border-outline-variant/10 flex justify-between items-center">
+<p class="text-xs font-medium text-on-surface-variant">Showing 1-10 of 42 transactions</p>
+<div class="flex gap-2">
+<button class="p-1.5 rounded border border-outline-variant/20 hover:bg-white text-on-surface disabled:opacity-50">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="px-3 py-1 rounded bg-primary text-white text-xs font-bold">1</button>
+<button class="px-3 py-1 rounded hover:bg-white text-xs font-bold text-on-surface">2</button>
+<button class="px-3 py-1 rounded hover:bg-white text-xs font-bold text-on-surface">3</button>
+<button class="p-1.5 rounded border border-outline-variant/20 hover:bg-white text-on-surface">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,688 +1,533 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Third Parties - VA Motors VSMS</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    .badge-finance { background: var(--status-finance-pending-bg); color: var(--status-finance-pending); }
-    .entity-radio-group { display: flex; gap: 16px; margin-top: 4px; }
-    .entity-radio-group label { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 500; color: var(--text-primary); cursor: pointer; }
-    .entity-radio-group input[type="radio"] { accent-color: var(--color-primary); }
-    .add-contact-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; font-weight: 600; color: var(--color-info); cursor: pointer; margin-top: 8px; }
-    .add-contact-link:hover { text-decoration: underline; }
-  </style>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Third Parties - VA Motors VSMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary": "#006b62",
+              "surface-container-high": "#e2e7ff",
+              "error-dim": "#4e0309",
+              "secondary-dim": "#44546a",
+              "on-background": "#113069",
+              "on-tertiary-fixed-variant": "#006d64",
+              "surface-container": "#eaedff",
+              "secondary-fixed-dim": "#c5d6f0",
+              "on-tertiary-container": "#006259",
+              "on-secondary-fixed-variant": "#4d5d73",
+              "outline": "#6079b7",
+              "on-primary-fixed-variant": "#0050d4",
+              "inverse-on-surface": "#959cb5",
+              "on-error-container": "#752121",
+              "secondary-container": "#d3e4fe",
+              "primary-fixed": "#dbe1ff",
+              "surface-bright": "#faf8ff",
+              "primary": "#0053db",
+              "on-primary": "#f8f7ff",
+              "background": "#faf8ff",
+              "on-error": "#fff7f6",
+              "surface-container-lowest": "#ffffff",
+              "primary-container": "#dbe1ff",
+              "on-secondary-container": "#435368",
+              "on-surface": "#113069",
+              "primary-dim": "#0048c1",
+              "on-secondary": "#f7f9ff",
+              "on-tertiary": "#e2fff9",
+              "on-surface-variant": "#445d99",
+              "surface-container-highest": "#d9e2ff",
+              "surface-dim": "#cdd9ff",
+              "error": "#9f403d",
+              "error-container": "#fe8983",
+              "surface-variant": "#d9e2ff",
+              "secondary-fixed": "#d3e4fe",
+              "inverse-surface": "#060e20",
+              "surface": "#faf8ff",
+              "primary-fixed-dim": "#c7d3ff",
+              "inverse-primary": "#618bff",
+              "tertiary-container": "#91feef",
+              "outline-variant": "#98b1f2",
+              "secondary": "#506076",
+              "on-primary-container": "#0048bf",
+              "tertiary-dim": "#005e56",
+              "on-secondary-fixed": "#314055",
+              "tertiary-fixed-dim": "#83efe1",
+              "surface-container-low": "#f2f3ff",
+              "tertiary-fixed": "#91feef",
+              "on-primary-fixed": "#003798",
+              "surface-tint": "#0053db",
+              "on-tertiary-fixed": "#004e47"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body>
-  <div class="app-layout">
-
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header"><img src="logo.jpeg" alt="VA Motors" class="sidebar-logo"><span class="sidebar-brand">VA Motors</span></div>
-      <nav class="sidebar-nav">
-        <div class="nav-section"><div class="nav-section-title">Main</div>
-          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
-          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
-          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
-          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
-          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Management</div>
-          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
-          <a href="third-parties.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
-          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
-          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Finance</div>
-          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
-          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Brokerage</div>
-          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
-          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
-          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
-          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">System</div>
-          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
-          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <div class="main-content">
-
-      <!-- Header -->
-      <header class="header">
-        <div class="header-left">
-          <button class="btn-sidebar-toggle">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div>
-            <h1 class="page-title">Third Parties</h1>
-            <p class="page-subtitle">Suppliers, repair vendors &amp; finance companies</p>
-          </div>
-        </div>
-        <div class="header-right">
-          <div class="header-search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Search anything...">
-          </div>
-          <div style="position: relative;">
-            <button class="header-icon-btn" id="notificationBtn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span class="notification-dot"></span>
-            </button>
-          </div>
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
-          </button>
-          <div class="user-menu">
-            <div class="user-avatar">KP</div>
-            <span class="user-name">Kamal</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Page Content -->
-      <div class="page-content">
-
-        <!-- Toolbar -->
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <div class="search-input">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder="Search third parties...">
-            </div>
-            <button class="filter-btn active">All</button>
-            <button class="filter-btn">Supplier</button>
-            <button class="filter-btn">Garage</button>
-            <button class="filter-btn">Finance Company</button>
-          </div>
-          <div class="toolbar-right">
-            <div class="view-toggle" data-toggle-group="main">
-              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
-              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
-            </div>
-            <button class="btn btn-primary" onclick="openSlideOver('addThirdPartyPanel')">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Third Party
-            </button>
-          </div>
-        </div>
-
-        <!-- Table Card -->
-        <div class="card">
-          <div class="table-view-container" data-toggle-group="main">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Contact Person</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>Address</th>
-                  <th>Vehicles Linked</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Suppliers -->
-                <tr>
-                  <td style="font-weight: 600;">Ideal Motors Colombo</td>
-                  <td><span class="badge badge-info">Supplier</span></td>
-                  <td>Ravi Mendis</td>
-                  <td>011-2567890</td>
-                  <td>sales@idealmotors.lk</td>
-                  <td class="truncate" style="max-width: 180px;">148, Duplication Road, Colombo 03</td>
-                  <td><span class="badge badge-info">12</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-supplier.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">United Motors Kandy</td>
-                  <td><span class="badge badge-info">Supplier</span></td>
-                  <td>Prasanna Wijesinghe</td>
-                  <td>081-2234567</td>
-                  <td>kandy@unitedmotors.lk</td>
-                  <td class="truncate" style="max-width: 180px;">56, Peradeniya Road, Kandy</td>
-                  <td><span class="badge badge-info">8</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-supplier.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">Stafford Motor Co.</td>
-                  <td><span class="badge badge-info">Supplier</span></td>
-                  <td>Ajith Ratnayake</td>
-                  <td>011-2445566</td>
-                  <td>info@staffordmotor.lk</td>
-                  <td class="truncate" style="max-width: 180px;">300, Galle Road, Colombo 04</td>
-                  <td><span class="badge badge-info">5</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-supplier.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">David Pieris Motor Co.</td>
-                  <td><span class="badge badge-info">Supplier</span></td>
-                  <td>Harsha Fernando</td>
-                  <td>011-2789012</td>
-                  <td>harsha@dpmc.lk</td>
-                  <td class="truncate" style="max-width: 180px;">61, Jethawana Road, Colombo 14</td>
-                  <td><span class="badge badge-info">15</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-supplier.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">Diesel &amp; Motor Engineering (DIMO)</td>
-                  <td><span class="badge badge-info">Supplier</span></td>
-                  <td>Sampath Jayasuriya</td>
-                  <td>011-2449797</td>
-                  <td>sampath@dimo.lk</td>
-                  <td class="truncate" style="max-width: 180px;">65, Jetawana Road, Colombo 14</td>
-                  <td><span class="badge badge-info">20</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-supplier.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <!-- Garages -->
-                <tr>
-                  <td style="font-weight: 600;">Chaminda Motors - Colombo</td>
-                  <td><span class="badge badge-warning">Garage</span></td>
-                  <td>Chaminda Herath</td>
-                  <td>077-3344556</td>
-                  <td>&mdash;</td>
-                  <td class="truncate" style="max-width: 180px;">22/B, Dematagoda Road, Colombo 09</td>
-                  <td><span class="badge badge-warning">7</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-garage.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">LK Auto Garage - Kandy</td>
-                  <td><span class="badge badge-warning">Garage</span></td>
-                  <td>Lalith Kumara</td>
-                  <td>071-5567890</td>
-                  <td>lkauto@gmail.com</td>
-                  <td class="truncate" style="max-width: 180px;">89, William Gopallawa Mawatha, Kandy</td>
-                  <td><span class="badge badge-warning">4</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-garage.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">Ranjan's Workshop - Galle</td>
-                  <td><span class="badge badge-warning">Garage</span></td>
-                  <td>Ranjan Pathirana</td>
-                  <td>076-2233445</td>
-                  <td>&mdash;</td>
-                  <td class="truncate" style="max-width: 180px;">17, Matara Road, Galle</td>
-                  <td><span class="badge badge-warning">3</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-garage.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">AutoFix Lanka - Matara</td>
-                  <td><span class="badge badge-warning">Garage</span></td>
-                  <td>Nuwan Bandara</td>
-                  <td>070-8899001</td>
-                  <td>autofix.matara@gmail.com</td>
-                  <td class="truncate" style="max-width: 180px;">45, Anagarika Dharmapala Mawatha, Matara</td>
-                  <td><span class="badge badge-warning">2</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-garage.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <!-- Finance Companies -->
-                <tr>
-                  <td style="font-weight: 600;">People's Leasing</td>
-                  <td><span class="badge badge-finance">Finance Company</span></td>
-                  <td>Saman Priyankara</td>
-                  <td>011-2481481</td>
-                  <td>saman@plc.lk</td>
-                  <td class="truncate" style="max-width: 180px;">1161, Baseline Road, Colombo 09</td>
-                  <td><span class="badge badge-finance">9</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-finance.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">LOLC Finance</td>
-                  <td><span class="badge badge-finance">Finance Company</span></td>
-                  <td>Dilshan Amarasinghe</td>
-                  <td>011-5880880</td>
-                  <td>dilshan@lolcfinance.com</td>
-                  <td class="truncate" style="max-width: 180px;">100/1, Sri Jayewardenepura Mawatha, Rajagiriya</td>
-                  <td><span class="badge badge-finance">6</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-finance.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 600;">Central Finance</td>
-                  <td><span class="badge badge-finance">Finance Company</span></td>
-                  <td>Kumari Perera</td>
-                  <td>011-2300500</td>
-                  <td>kumari@cf.lk</td>
-                  <td class="truncate" style="max-width: 180px;">270, Vauxhall Street, Colombo 02</td>
-                  <td><span class="badge badge-finance">4</span></td>
-                  <td>
-                    <div class="flex gap-8">
-                      <a href="third-party-detail-finance.html" class="btn btn-ghost btn-sm">View</a>
-                      <button class="btn btn-ghost btn-sm">Edit</button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          </div><!-- /table-view-container -->
-
-          <div class="data-card-grid card-view-container" data-toggle-group="main" style="display:none">
-            <!-- Ideal Motors Colombo -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">Ideal Motors Colombo</div>
-                  <div class="data-card-subtitle">Ravi Mendis</div>
-                </div>
-                <span class="badge badge-info">Supplier</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>011-2567890</span></div>
-              <div class="data-card-row"><span>Email</span><span>sales@idealmotors.lk</span></div>
-              <div class="data-card-row"><span>Address</span><span>148, Duplication Road, Colombo 03</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-info">12 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- United Motors Kandy -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">United Motors Kandy</div>
-                  <div class="data-card-subtitle">Prasanna Wijesinghe</div>
-                </div>
-                <span class="badge badge-info">Supplier</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>081-2234567</span></div>
-              <div class="data-card-row"><span>Email</span><span>kandy@unitedmotors.lk</span></div>
-              <div class="data-card-row"><span>Address</span><span>56, Peradeniya Road, Kandy</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-info">8 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- Stafford Motor Co. -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">Stafford Motor Co.</div>
-                  <div class="data-card-subtitle">Ajith Ratnayake</div>
-                </div>
-                <span class="badge badge-info">Supplier</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>011-2445566</span></div>
-              <div class="data-card-row"><span>Email</span><span>info@staffordmotor.lk</span></div>
-              <div class="data-card-row"><span>Address</span><span>300, Galle Road, Colombo 04</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-info">5 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- David Pieris Motor Co. -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">David Pieris Motor Co.</div>
-                  <div class="data-card-subtitle">Harsha Fernando</div>
-                </div>
-                <span class="badge badge-info">Supplier</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>011-2789012</span></div>
-              <div class="data-card-row"><span>Email</span><span>harsha@dpmc.lk</span></div>
-              <div class="data-card-row"><span>Address</span><span>61, Jethawana Road, Colombo 14</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-info">15 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- Diesel & Motor Engineering (DIMO) -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">Diesel &amp; Motor Engineering (DIMO)</div>
-                  <div class="data-card-subtitle">Sampath Jayasuriya</div>
-                </div>
-                <span class="badge badge-info">Supplier</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>011-2449797</span></div>
-              <div class="data-card-row"><span>Email</span><span>sampath@dimo.lk</span></div>
-              <div class="data-card-row"><span>Address</span><span>65, Jetawana Road, Colombo 14</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-info">20 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- Chaminda Motors - Colombo -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">Chaminda Motors - Colombo</div>
-                  <div class="data-card-subtitle">Chaminda Herath</div>
-                </div>
-                <span class="badge badge-warning">Garage</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>077-3344556</span></div>
-              <div class="data-card-row"><span>Email</span><span>&mdash;</span></div>
-              <div class="data-card-row"><span>Address</span><span>22/B, Dematagoda Road, Colombo 09</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-warning">7 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- LK Auto Garage - Kandy -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">LK Auto Garage - Kandy</div>
-                  <div class="data-card-subtitle">Lalith Kumara</div>
-                </div>
-                <span class="badge badge-warning">Garage</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>071-5567890</span></div>
-              <div class="data-card-row"><span>Email</span><span>lkauto@gmail.com</span></div>
-              <div class="data-card-row"><span>Address</span><span>89, William Gopallawa Mawatha, Kandy</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-warning">4 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- Ranjan's Workshop - Galle -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">Ranjan's Workshop - Galle</div>
-                  <div class="data-card-subtitle">Ranjan Pathirana</div>
-                </div>
-                <span class="badge badge-warning">Garage</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>076-2233445</span></div>
-              <div class="data-card-row"><span>Email</span><span>&mdash;</span></div>
-              <div class="data-card-row"><span>Address</span><span>17, Matara Road, Galle</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-warning">3 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- AutoFix Lanka - Matara -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">AutoFix Lanka - Matara</div>
-                  <div class="data-card-subtitle">Nuwan Bandara</div>
-                </div>
-                <span class="badge badge-warning">Garage</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>070-8899001</span></div>
-              <div class="data-card-row"><span>Email</span><span>autofix.matara@gmail.com</span></div>
-              <div class="data-card-row"><span>Address</span><span>45, Anagarika Dharmapala Mawatha, Matara</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-warning">2 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- People's Leasing -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">People's Leasing</div>
-                  <div class="data-card-subtitle">Saman Priyankara</div>
-                </div>
-                <span class="badge badge-finance">Finance Company</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>011-2481481</span></div>
-              <div class="data-card-row"><span>Email</span><span>saman@plc.lk</span></div>
-              <div class="data-card-row"><span>Address</span><span>1161, Baseline Road, Colombo 09</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-finance">9 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- LOLC Finance -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">LOLC Finance</div>
-                  <div class="data-card-subtitle">Dilshan Amarasinghe</div>
-                </div>
-                <span class="badge badge-finance">Finance Company</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>011-5880880</span></div>
-              <div class="data-card-row"><span>Email</span><span>dilshan@lolcfinance.com</span></div>
-              <div class="data-card-row"><span>Address</span><span>100/1, Sri Jayewardenepura Mawatha, Rajagiriya</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-finance">6 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-            <!-- Central Finance -->
-            <div class="data-card">
-              <div class="data-card-header">
-                <div>
-                  <div class="data-card-title">Central Finance</div>
-                  <div class="data-card-subtitle">Kumari Perera</div>
-                </div>
-                <span class="badge badge-finance">Finance Company</span>
-              </div>
-              <div class="data-card-row"><span>Phone</span><span>011-2300500</span></div>
-              <div class="data-card-row"><span>Email</span><span>kumari@cf.lk</span></div>
-              <div class="data-card-row"><span>Address</span><span>270, Vauxhall Street, Colombo 02</span></div>
-              <div class="data-card-footer">
-                <span class="badge badge-finance">4 vehicles</span>
-                <div class="data-card-actions">
-                  <button class="btn btn-ghost btn-sm">Edit</button>
-                </div>
-              </div>
-            </div>
-          </div><!-- /card-view-container -->
-
-          <div class="card-footer">
-            <div class="pagination">
-              <span class="pagination-info">Showing 1 to 12 of 12 third parties</span>
-              <div class="pagination-buttons">
-                <button class="pagination-btn" disabled>&laquo; Prev</button>
-                <button class="pagination-btn active">1</button>
-                <button class="pagination-btn" disabled>Next &raquo;</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div><!-- /page-content -->
-    </div><!-- /main-content -->
-  </div><!-- /app-layout -->
-
-  <!-- Add Third Party Slide-over -->
-  <div class="slide-over-backdrop" id="addThirdPartyPanel-backdrop" onclick="closeSlideOver('addThirdPartyPanel')"></div>
-  <div class="slide-over" id="addThirdPartyPanel">
-    <div class="slide-over-header">
-      <h2 class="slide-over-title">Add Third Party</h2>
-      <button class="slide-over-close" onclick="closeSlideOver('addThirdPartyPanel')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="slide-over-body">
-      <div class="form-group">
-        <label class="form-label">Type <span class="required">*</span></label>
-        <select class="form-select" id="thirdPartyType">
-          <option value="">Select type...</option>
-          <option value="supplier">Supplier</option>
-          <option value="repair_vendor">Garage</option>
-          <option value="finance_company">Finance Company</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Entity Type <span class="required">*</span></label>
-        <div class="entity-radio-group">
-          <label>
-            <input type="radio" name="entityType" value="individual" checked onchange="toggleCompanyName()"> Individual
-          </label>
-          <label>
-            <input type="radio" name="entityType" value="company" onchange="toggleCompanyName()"> Company
-          </label>
-        </div>
-      </div>
-      <div class="form-group" id="companyNameGroup" style="display: none;">
-        <label class="form-label">Company Name <span class="required">*</span></label>
-        <input type="text" class="form-input" placeholder="e.g. Ideal Motors (Pvt) Ltd">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Contact Person Name <span class="required">*</span></label>
-        <input type="text" class="form-input" placeholder="e.g. Ravi Mendis">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Phone <span class="required">*</span></label>
-        <input type="text" class="form-input" placeholder="e.g. 011-2567890">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" class="form-input" placeholder="e.g. contact@company.lk">
-        <p class="form-hint">Optional</p>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Address <span class="required">*</span></label>
-        <textarea class="form-textarea" placeholder="e.g. 148, Duplication Road, Colombo 03"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Notes</label>
-        <textarea class="form-textarea" placeholder="Any additional notes..." style="min-height: 60px;"></textarea>
-        <p class="form-hint">Optional</p>
-      </div>
-      <div id="additionalContacts">
-        <!-- Additional contact fields will appear here -->
-      </div>
-      <a class="add-contact-link" id="addContactLink" style="display: none;" onclick="addContactField()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Another Contact
-      </a>
-    </div>
-    <div class="slide-over-footer">
-      <button class="btn btn-secondary" onclick="closeSlideOver('addThirdPartyPanel')">Cancel</button>
-      <button class="btn btn-primary">Save Third Party</button>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-  <script>
-    // Toggle company name field based on entity type
-    function toggleCompanyName() {
-      const isCompany = document.querySelector('input[name="entityType"][value="company"]').checked;
-      document.getElementById('companyNameGroup').style.display = isCompany ? 'block' : 'none';
-      document.getElementById('addContactLink').style.display = isCompany ? 'inline-flex' : 'none';
-    }
-
-    // Add additional contact person fields
-    let contactCount = 0;
-    function addContactField() {
-      contactCount++;
-      const container = document.getElementById('additionalContacts');
-      const div = document.createElement('div');
-      div.className = 'form-group';
-      div.style.borderTop = '1px solid var(--border-color)';
-      div.style.paddingTop = '16px';
-      div.style.marginTop = '16px';
-      div.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <span class="form-label" style="margin-bottom: 0;">Additional Contact #${contactCount}</span>
-          <button class="btn btn-ghost btn-sm" onclick="this.closest('.form-group').remove()" style="color: var(--color-danger);">Remove</button>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Name</label>
-          <input type="text" class="form-input" placeholder="Contact person name">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Phone</label>
-          <input type="text" class="form-input" placeholder="e.g. 077-1234567">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-input" placeholder="e.g. name@company.lk">
-        </div>
-      `;
-      container.appendChild(div);
-    }
-
-    // Filter buttons toggling
-    document.querySelectorAll('.toolbar-left .filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.toolbar-left .filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
-  </script>
-</body>
-</html>
+<body class="bg-surface font-body text-on-surface selection:bg-primary-container selection:text-on-primary-container overflow-hidden">
+<div class="flex h-screen overflow-hidden">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col py-4 px-3 bg-slate-50 dark:bg-slate-900 w-64 border-r border-slate-200/50 dark:border-slate-800/50 font-inter text-sm antialiased z-50">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary font-bold">V</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">VSMS</h1>
+<p class="text-[10px] uppercase tracking-tighter text-on-surface-variant">VA Motors</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto pr-2">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="vehicles.html">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Vehicles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="purchases.html">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="sales.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span>Sales</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="repairs.html">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Repairs</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Management</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="customers.html">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm rounded-md translate-x-1 transition-transform duration-200" href="third-parties.html">
+<span class="material-symbols-outlined" data-icon="handshake">handshake</span>
+<span>Third Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="reports.html">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="approvals.html">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Approvals</span>
+<span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Finance</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-reconciliation.html">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+<span>Reconciliation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="cash-flow.html">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Cash Flow</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Brokerage</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-deals.html">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Lease Deals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-comparison.html">
+<span class="material-symbols-outlined" data-icon="compare">compare</span>
+<span>Comparison Tool</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-rate-sheets.html">
+<span class="material-symbols-outlined" data-icon="grid_on">grid_on</span>
+<span>Rate Sheets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-dispatch.html">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Dispatch</span>
+</a>
+<div class="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">System</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="settings.html">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="users.html">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span>Users & Roles</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Workspace -->
+<main class="flex-1 flex flex-col h-full bg-surface relative overflow-hidden">
+<!-- Top App Bar -->
+<header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 w-full z-50 flex justify-between items-center px-6 h-16 shrink-0 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="Search third party entities..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary text-on-primary px-4 py-2 rounded-md font-semibold text-sm active:opacity-80 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                        Add Entity
+                    </button>
+<div class="flex items-center gap-1">
+<button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+<div class="h-8 w-px bg-slate-200 mx-1"></div>
+<img alt="User Profile" class="h-8 w-8 rounded-full border border-slate-200" data-alt="Professional user portrait in a circle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbwTp6wCeRboGQN2CiPpfSIxBgjkmFWiM1OCQRXUvBx7-a2yICWARMwA9IaQkYCv_6ICwQYUbJukTp--YeeaFd6xxkJvAONKLZVbYcwuDP6rwJKW0z9vJwQ_re8cvBZMXImIIyBAazlLkiXT7XJwFYxXZD757U0I9UAFa0wAw18BMUoRWo980txZiyEoD55ZnmR2gHpuPvtK30gS9phVB3iMKsuewdzoww2tL0VIhWT-L8xuOnXsbN7Rx8ToFT-KNiFiwhEBs1xQ4"/>
+</div>
+</header>
+<!-- Page Content -->
+<div class="flex-1 overflow-y-auto p-6 bg-surface-container-low/30 scroll-smooth">
+<div class="max-w-7xl mx-auto space-y-6">
+<!-- Header & Statistics (Bento Grid Style) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="md:col-span-2 bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/10 shadow-sm flex flex-col justify-between">
+<div>
+<h2 class="text-2xl font-bold tracking-tight text-on-surface">Third Parties Management</h2>
+<p class="text-on-surface-variant text-sm mt-1">Manage vendor relations, maintenance providers, and financial partners.</p>
+</div>
+<div class="flex gap-4 mt-6">
+<div class="bg-primary/5 px-3 py-1 rounded-full flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-xs font-bold text-primary uppercase tracking-tight">Active: 124 Entities</span>
+</div>
+<div class="bg-tertiary/5 px-3 py-1 rounded-full flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-xs font-bold text-tertiary uppercase tracking-tight">Volume: $4.2M YTD</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/10 shadow-sm flex flex-col items-center justify-center text-center">
+<span class="text-slate-400 material-symbols-outlined text-3xl mb-2" data-icon="pending_actions">pending_actions</span>
+<span class="text-2xl font-bold">18</span>
+<span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">Pending Contracts</span>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/10 shadow-sm flex flex-col items-center justify-center text-center">
+<span class="text-error material-symbols-outlined text-3xl mb-2" data-icon="report_problem">report_problem</span>
+<span class="text-2xl font-bold text-error">3</span>
+<span class="text-xs font-medium text-on-surface-variant uppercase tracking-wider">Compliance Alerts</span>
+</div>
+</div>
+<!-- Main Container with Tabs -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 overflow-hidden">
+<!-- Navigation Tabs -->
+<div class="flex border-b border-outline-variant/10 px-6">
+<button class="px-6 py-4 text-sm font-bold border-b-2 border-primary text-primary transition-all">Suppliers</button>
+<button class="px-6 py-4 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all">Repair Vendors</button>
+<button class="px-6 py-4 text-sm font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all">Finance Companies</button>
+</div>
+<!-- Filters Bar -->
+<div class="p-4 bg-surface-container-low/20 flex flex-wrap gap-3 items-center border-b border-outline-variant/10">
+<div class="relative text-sm">
+<select class="appearance-none pl-3 pr-10 py-2 bg-white border border-outline-variant/20 rounded-lg focus:ring-1 focus:ring-primary outline-none">
+<option>Category: All</option>
+<option>OEM Parts</option>
+<option>Auction Houses</option>
+<option>Import Agents</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-lg">expand_more</span>
+</div>
+<div class="relative text-sm">
+<select class="appearance-none pl-3 pr-10 py-2 bg-white border border-outline-variant/20 rounded-lg focus:ring-1 focus:ring-primary outline-none">
+<option>Status: Active</option>
+<option>Suspended</option>
+<option>Archived</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-lg">expand_more</span>
+</div>
+<div class="ml-auto flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container rounded-lg text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+<button class="p-2 hover:bg-surface-container rounded-lg text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" data-icon="download">download</span>
+</button>
+</div>
+</div>
+<!-- Data Grid / Table -->
+<div class="overflow-x-auto">
+<table class="w-full border-collapse">
+<thead>
+<tr class="bg-surface-container-low/10">
+<th class="px-6 py-3 text-left text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Name</th>
+<th class="px-6 py-3 text-left text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Type</th>
+<th class="px-6 py-3 text-left text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Category</th>
+<th class="px-6 py-3 text-left text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Active Deals</th>
+<th class="px-6 py-3 text-left text-[10px] uppercase font-bold text-on-surface-variant tracking-wider text-right">Total Volume</th>
+<th class="px-6 py-3 text-left text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Last Purchase</th>
+<th class="px-6 py-3 text-right"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-high/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="business">business</span>
+</div>
+<div class="font-bold text-sm text-on-surface">Global Motors Co.</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Company</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary-container text-on-secondary-container uppercase">Main Inventory</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium">24</td>
+<td class="px-6 py-4 text-sm font-semibold text-right">$1,240,500.00</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Oct 12, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1 hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="expand_more">expand_more</span>
+</button>
+</td>
+</tr>
+<!-- Nested Row for Row 1 -->
+<tr class="bg-surface-container-low/40">
+<td class="px-10 py-0 overflow-hidden" colspan="7">
+<div class="py-4 border-l-2 border-primary/20 pl-6">
+<div class="text-[10px] font-bold text-primary uppercase mb-3 tracking-widest">Authorized Contact Persons</div>
+<table class="w-full max-w-2xl">
+<thead>
+<tr class="text-[10px] font-bold text-on-surface-variant border-b border-outline-variant/10">
+<th class="text-left pb-2 font-semibold">NAME</th>
+<th class="text-left pb-2 font-semibold">ROLE</th>
+<th class="text-left pb-2 font-semibold">PHONE</th>
+<th class="text-right pb-2 font-semibold">EMAIL</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<tr class="text-xs">
+<td class="py-2 text-on-surface font-medium">Marcus Chen</td>
+<td class="py-2 text-on-surface-variant">Key Account Manager</td>
+<td class="py-2 text-on-surface-variant">+1-202-555-0144</td>
+<td class="py-2 text-right text-on-surface-variant">m.chen@globalmotors.com</td>
+</tr>
+<tr class="text-xs">
+<td class="py-2 text-on-surface font-medium">Sarah Jenkins</td>
+<td class="py-2 text-on-surface-variant">Logistics Coordinator</td>
+<td class="py-2 text-on-surface-variant">+1-202-555-0189</td>
+<td class="py-2 text-right text-on-surface-variant">s.jenkins@globalmotors.com</td>
+</tr>
+</tbody>
+</table>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-high/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-[20px]" data-icon="person">person</span>
+</div>
+<div class="font-bold text-sm text-on-surface">Elena Rodriguez</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Individual</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-surface-container-highest text-on-surface-variant uppercase">Consultant</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium">2</td>
+<td class="px-6 py-4 text-sm font-semibold text-right">$12,400.00</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Nov 02, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1 hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-high/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="factory">factory</span>
+</div>
+<div class="font-bold text-sm text-on-surface">AutoParts Direct</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Company</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary-container text-on-secondary-container uppercase">Spare Parts</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium">108</td>
+<td class="px-6 py-4 text-sm font-semibold text-right">$458,920.00</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Yesterday</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1 hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-high/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="directions_boat">directions_boat</span>
+</div>
+<div class="font-bold text-sm text-on-surface">Horizon Import Solutions</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Company</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-secondary-container text-on-secondary-container uppercase">Logistics</span>
+</td>
+<td class="px-6 py-4 text-sm font-medium">6</td>
+<td class="px-6 py-4 text-sm font-semibold text-right">$88,400.00</td>
+<td class="px-6 py-4 text-sm text-on-surface-variant">Oct 28, 2023</td>
+<td class="px-6 py-4 text-right">
+<button class="p-1 hover:bg-surface-container rounded transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Area -->
+<div class="px-6 py-4 bg-surface-container-low/10 flex items-center justify-between border-t border-outline-variant/10">
+<span class="text-xs font-medium text-on-surface-variant">Showing 1 to 4 of 124 Suppliers</span>
+<div class="flex gap-1">
+<button class="p-1.5 border border-outline-variant/20 rounded hover:bg-white text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="px-3 py-1 bg-primary text-on-primary rounded text-xs font-bold">1</button>
+<button class="px-3 py-1 hover:bg-white border border-transparent hover:border-outline-variant/20 rounded text-xs font-medium">2</button>
+<button class="px-3 py-1 hover:bg-white border border-transparent hover:border-outline-variant/20 rounded text-xs font-medium">3</button>
+<span class="px-2 py-1 text-xs">...</span>
+<button class="px-3 py-1 hover:bg-white border border-transparent hover:border-outline-variant/20 rounded text-xs font-medium">12</button>
+<button class="p-1.5 border border-outline-variant/20 rounded hover:bg-white text-on-surface-variant transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right-Side Summary Panels (Asymmetric Layout element) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-sm relative overflow-hidden">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-bold text-lg tracking-tight">Recent Financial Activity</h3>
+<button class="text-primary text-xs font-bold uppercase tracking-widest hover:underline">View All Ledger</button>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-surface-container-low/30 rounded-lg">
+<div class="flex items-center gap-4">
+<div class="bg-tertiary/10 p-2 rounded">
+<span class="material-symbols-outlined text-tertiary" data-icon="receipt_long">receipt_long</span>
+</div>
+<div>
+<div class="text-sm font-bold">INV-99021 - Parts Fulfillment</div>
+<div class="text-[10px] text-on-surface-variant font-medium">AutoParts Direct • 2 hours ago</div>
+</div>
+</div>
+<div class="text-sm font-bold text-tertiary">+$4,200.00</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-container-low/30 rounded-lg">
+<div class="flex items-center gap-4">
+<div class="bg-error/10 p-2 rounded">
+<span class="material-symbols-outlined text-error" data-icon="payments">payments</span>
+</div>
+<div>
+<div class="text-sm font-bold">PAY-44102 - Import Duties</div>
+<div class="text-[10px] text-on-surface-variant font-medium">Customs Authority • 5 hours ago</div>
+</div>
+</div>
+<div class="text-sm font-bold text-error">-$12,450.00</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-container-low/30 rounded-lg">
+<div class="flex items-center gap-4">
+<div class="bg-primary/10 p-2 rounded">
+<span class="material-symbols-outlined text-primary" data-icon="sync">sync</span>
+</div>
+<div>
+<div class="text-sm font-bold">R-7721 - Floorplan Update</div>
+<div class="text-[10px] text-on-surface-variant font-medium">Capital Trust Finance • Yesterday</div>
+</div>
+</div>
+<div class="text-sm font-bold text-on-surface">$0.00</div>
+</div>
+</div>
+</div>
+<!-- Compliance/Alert Card -->
+<div class="bg-slate-900 p-6 rounded-xl shadow-xl text-white flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-error-container" data-icon="verified_user">verified_user</span>
+<h3 class="font-bold text-sm uppercase tracking-widest text-slate-300">Compliance Health</h3>
+</div>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between text-xs mb-1">
+<span>Document Verification</span>
+<span>92%</span>
+</div>
+<div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full" style="width: 92%"></div>
+</div>
+</div>
+<div class="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+<div class="text-xs font-bold text-error-container flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="warning">warning</span>
+                                            Expired Insurance
+                                        </div>
+<p class="text-[10px] text-slate-400 mt-1 leading-relaxed">Top-Notch Auto Repair (Vendor #042) has an expired liability policy as of Nov 01.</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-2 bg-slate-100 text-slate-900 rounded-md font-bold text-xs uppercase hover:bg-white transition-colors">
+                                Generate Audit Report
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation for Mobile -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around items-center h-16 px-4 z-50">
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span class="text-[10px] font-medium">Inv.</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-blue-600">
+<span class="material-symbols-outlined" data-icon="handshake" style="font-variation-settings: 'FILL' 1;">handshake</span>
+<span class="text-[10px] font-bold">Third Parties</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-500">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-[10px] font-medium">Reports</span>
+</button>
+</nav>
+</main>
+</div>
+</body></html>

@@ -1,601 +1,418 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Approvals - VA Motors VSMS</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    .approval-item {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 20px;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      background: var(--bg-surface);
-      margin-bottom: 12px;
-      transition: all 0.15s;
-    }
-    .approval-item:hover {
-      box-shadow: var(--shadow-md);
-      border-color: var(--border-color-strong);
-    }
-    .approval-item-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .approval-item-header-left {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      flex: 1;
-      min-width: 0;
-    }
-    .approval-type-badge {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .approval-type-badge.discount {
-      background: var(--color-info-light);
-      color: var(--color-info);
-    }
-    .approval-type-badge.write-off {
-      background: var(--color-danger-light);
-      color: var(--color-danger);
-    }
-    .approval-type-badge.refund {
-      background: var(--color-warning-light);
-      color: var(--color-warning);
-    }
-    .approval-type-badge.edit {
-      background: var(--color-gray-100);
-      color: var(--color-gray-600);
-    }
-    [data-theme="dark"] .approval-type-badge.edit {
-      background: var(--color-gray-800);
-      color: var(--color-gray-400);
-    }
-    .approval-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-    .approval-title a {
-      color: var(--color-info);
-      font-weight: 600;
-    }
-    .approval-title a:hover {
-      text-decoration: underline;
-    }
-    .approval-meta {
-      font-size: 0.8rem;
-      color: var(--text-tertiary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .approval-meta .separator {
-      color: var(--border-color-strong);
-    }
-    .approval-details {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      padding: 12px 16px;
-      background: var(--bg-surface-hover);
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-    }
-    .approval-actions {
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .approval-comment-area {
-      flex: 1;
-      min-width: 200px;
-    }
-    .approval-comment-area textarea {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: var(--bg-input);
-      color: var(--text-primary);
-      font-size: 0.82rem;
-      font-family: inherit;
-      resize: vertical;
-      min-height: 40px;
-    }
-    .approval-comment-area textarea:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
-    }
-    .approval-action-btns {
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-    .btn-approve {
-      background: var(--color-success);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s;
-    }
-    .btn-approve:hover { opacity: 0.9; }
-    .btn-reject {
-      background: var(--color-danger);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s;
-    }
-    .btn-reject:hover { opacity: 0.9; }
-    .approval-outcome {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-    }
-    .approval-outcome .reviewer {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .manager-comment {
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-      padding: 10px 14px;
-      background: var(--bg-surface-hover);
-      border-radius: 8px;
-      border-left: 3px solid var(--border-color-strong);
-      font-style: italic;
-    }
-  </style>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Approvals - VA Motors VSMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary-fixed-variant": "#0050d4",
+              "primary": "#0053db",
+              "on-tertiary-fixed-variant": "#006d64",
+              "outline": "#6079b7",
+              "on-tertiary": "#e2fff9",
+              "tertiary-fixed-dim": "#83efe1",
+              "tertiary-container": "#91feef",
+              "on-surface": "#113069",
+              "on-secondary-fixed": "#314055",
+              "error": "#9f403d",
+              "secondary-fixed-dim": "#c5d6f0",
+              "secondary-fixed": "#d3e4fe",
+              "on-error": "#fff7f6",
+              "primary-fixed-dim": "#c7d3ff",
+              "on-tertiary-fixed": "#004e47",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#f2f3ff",
+              "surface-variant": "#d9e2ff",
+              "surface-tint": "#0053db",
+              "surface-dim": "#cdd9ff",
+              "on-secondary": "#f7f9ff",
+              "surface-bright": "#faf8ff",
+              "tertiary-dim": "#005e56",
+              "inverse-primary": "#618bff",
+              "on-background": "#113069",
+              "primary-dim": "#0048c1",
+              "tertiary": "#006b62",
+              "surface-container": "#eaedff",
+              "primary-fixed": "#dbe1ff",
+              "surface": "#faf8ff",
+              "on-surface-variant": "#445d99",
+              "outline-variant": "#98b1f2",
+              "secondary": "#506076",
+              "primary-container": "#dbe1ff",
+              "surface-container-highest": "#d9e2ff",
+              "on-secondary-fixed-variant": "#4d5d73",
+              "on-error-container": "#752121",
+              "on-tertiary-container": "#006259",
+              "on-primary": "#f8f7ff",
+              "background": "#faf8ff",
+              "on-secondary-container": "#435368",
+              "secondary-container": "#d3e4fe",
+              "on-primary-container": "#0048bf",
+              "on-primary-fixed": "#003798",
+              "inverse-surface": "#060e20",
+              "inverse-on-surface": "#959cb5",
+              "error-dim": "#4e0309",
+              "secondary-dim": "#44546a",
+              "surface-container-high": "#e2e7ff",
+              "tertiary-fixed": "#91feef",
+              "error-container": "#fe8983"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .tonal-layering { background-color: #f2f3ff; }
+        .ghost-border { border: 1px solid rgba(152, 177, 242, 0.15); }
+    </style>
 </head>
-<body>
-  <div class="app-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header"><img src="logo.jpeg" alt="VA Motors" class="sidebar-logo"><span class="sidebar-brand">VA Motors</span></div>
-      <nav class="sidebar-nav">
-        <div class="nav-section"><div class="nav-section-title">Main</div>
-          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
-          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
-          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
-          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
-          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Management</div>
-          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
-          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
-          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
-          <a href="approvals.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Finance</div>
-          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
-          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Brokerage</div>
-          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
-          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
-          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
-          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">System</div>
-          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
-          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <div class="main-content">
-      <!-- Header -->
-      <header class="header">
-        <div class="header-left">
-          <button class="btn-sidebar-toggle">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div>
-            <h1 class="page-title">Approvals</h1>
-          </div>
-        </div>
-        <div class="header-right">
-          <div class="header-search">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Search vehicles, customers...">
-          </div>
-          <div style="position: relative;">
-            <button class="header-icon-btn" id="notificationBtn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span class="notification-dot"></span>
-            </button>
-            <div class="notification-dropdown" id="notificationDropdown">
-              <div class="notification-dropdown-header">
-                <h3>Notifications</h3>
-                <a href="#" style="font-size: 0.78rem; font-weight: 600; color: var(--text-tertiary);">Mark all read</a>
-              </div>
-              <div class="notification-list">
-                <div class="notification-item unread">
-                  <div class="notification-icon approval">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                  </div>
-                  <div class="notification-text">
-                    <p><strong>Discount approval</strong> requested by Dinesh Silva for Bajaj Pulsar NS200</p>
-                    <div class="time">2 hours ago</div>
-                  </div>
-                </div>
-                <div class="notification-item unread">
-                  <div class="notification-icon approval">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                  </div>
-                  <div class="notification-text">
-                    <p><strong>Write-off request</strong> for Hero Splendor+ 2022 - Flood damage</p>
-                    <div class="time">5 hours ago</div>
-                  </div>
-                </div>
-                <div class="notification-item unread">
-                  <div class="notification-icon alert">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                  </div>
-                  <div class="notification-text">
-                    <p><strong>Refund request</strong> Rs. 35,000 advance from Lakshmi Jayawardena</p>
-                    <div class="time">1 day ago</div>
-                  </div>
-                </div>
-              </div>
-              <div class="notification-dropdown-footer">
-                <a href="approvals.html">View all notifications</a>
-              </div>
-            </div>
-          </div>
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
-          </button>
-          <div class="user-menu">
-            <div class="user-avatar">KP</div>
-            <span class="user-name">Kamal Perera</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Page Content -->
-      <div class="page-content">
-
-        <!-- Toolbar -->
-        <div class="toolbar">
-          <div class="toolbar-left">
-            <button class="filter-btn active">All (6)</button>
-            <button class="filter-btn">Pending (3)</button>
-            <button class="filter-btn">Approved (2)</button>
-            <button class="filter-btn">Rejected (1)</button>
-          </div>
-          <div class="toolbar-right">
-            <div class="search-input">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" placeholder="Search approvals...">
-            </div>
-            <div class="view-toggle" data-toggle-group="main">
-              <button data-view="table" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
-              <button data-view="card"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Table View -->
-        <div class="table-view-container card">
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Requested By</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><span class="approval-type-badge discount">Discount</span></td>
-                  <td>
-                    <div class="font-semibold">Discount Request — Bajaj Pulsar NS200 2024</div>
-                    <div class="text-xs text-muted">15% discount (Rs. 67,500) on listed price Rs. 450,000</div>
-                  </td>
-                  <td>Dinesh Silva</td>
-                  <td>2 hours ago</td>
-                  <td><span class="badge badge-warning">Pending</span></td>
-                  <td>
-                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-success);font-weight:600;">Approve</a>
-                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-danger);font-weight:600;">Reject</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td><span class="approval-type-badge write-off">Write-off</span></td>
-                  <td>
-                    <div class="font-semibold">Write-off Request — Hero Splendor+ 2022</div>
-                    <div class="text-xs text-muted">Frame damage beyond economical repair. Disposal value: Rs. 25,000</div>
-                  </td>
-                  <td>Ruwan Bandara</td>
-                  <td>5 hours ago</td>
-                  <td><span class="badge badge-warning">Pending</span></td>
-                  <td>
-                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-success);font-weight:600;">Approve</a>
-                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-danger);font-weight:600;">Reject</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td><span class="approval-type-badge refund">Refund</span></td>
-                  <td>
-                    <div class="font-semibold">Advance Refund — TVS Apache RTR 160 2024</div>
-                    <div class="text-xs text-muted">Refund of Rs. 35,000 advance. Customer found alternative vehicle.</div>
-                  </td>
-                  <td>Nimal Fernando</td>
-                  <td>1 day ago</td>
-                  <td><span class="badge badge-warning">Pending</span></td>
-                  <td>
-                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-success);font-weight:600;">Approve</a>
-                    <a href="#" class="btn btn-ghost btn-sm" style="color:var(--color-danger);font-weight:600;">Reject</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td><span class="approval-type-badge edit">Edit</span></td>
-                  <td>
-                    <div class="font-semibold">Sale Record Edit — Honda Dio 2023</div>
-                    <div class="text-xs text-muted">Correction to sale price: Rs. 245,000 to Rs. 240,000</div>
-                  </td>
-                  <td>Suresh Kumar</td>
-                  <td>2 days ago</td>
-                  <td><span class="badge badge-success">Approved</span></td>
-                  <td><span class="badge badge-success">Approved</span></td>
-                </tr>
-                <tr>
-                  <td><span class="approval-type-badge discount">Discount</span></td>
-                  <td>
-                    <div class="font-semibold">Discount Request — Yamaha FZ-S V3 2023</div>
-                    <div class="text-xs text-muted">Discount too high for vehicle margin</div>
-                  </td>
-                  <td>Dinesh Silva</td>
-                  <td>3 days ago</td>
-                  <td><span class="badge badge-danger">Rejected</span></td>
-                  <td><span class="badge badge-danger">Rejected</span></td>
-                </tr>
-                <tr>
-                  <td><span class="approval-type-badge write-off">Write-off</span></td>
-                  <td>
-                    <div class="font-semibold">Write-off — Bajaj CT100 2020</div>
-                    <div class="text-xs text-muted">Disposal proceeds: Rs. 15,000</div>
-                  </td>
-                  <td>Chaminda Rathnayake</td>
-                  <td>1 week ago</td>
-                  <td><span class="badge badge-success">Approved</span></td>
-                  <td><span class="badge badge-success">Approved</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Card View (Approval Items) -->
-        <div class="card-view-container" style="display:none;">
-
-        <!-- 1. APPLY_DISCOUNT - Pending -->
-        <div class="approval-item">
-          <div class="approval-item-header">
-            <div class="approval-item-header-left">
-              <span class="approval-type-badge discount">Discount</span>
-              <div>
-                <div class="approval-title">Discount Request — <a href="vehicle-detail.html">Bajaj Pulsar NS200 2024</a></div>
-                <div class="approval-meta">
-                  <span>Requested by <strong>Dinesh Silva</strong></span>
-                  <span class="separator">|</span>
-                  <span>2 hours ago</span>
-                </div>
-              </div>
-            </div>
-            <span class="badge badge-warning">Pending</span>
-          </div>
-          <div class="approval-details">
-            15% discount (Rs. 67,500) on listed price Rs. 450,000. Reason: Customer is a returning buyer.
-          </div>
-          <div class="approval-actions">
-            <div class="approval-comment-area">
-              <textarea placeholder="Add a comment (optional)..."></textarea>
-            </div>
-            <div class="approval-action-btns">
-              <button class="btn-approve">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Approve
-              </button>
-              <button class="btn-reject">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. WRITE_OFF - Pending -->
-        <div class="approval-item">
-          <div class="approval-item-header">
-            <div class="approval-item-header-left">
-              <span class="approval-type-badge write-off">Write-off</span>
-              <div>
-                <div class="approval-title">Write-off Request — Hero Splendor+ 2022</div>
-                <div class="approval-meta">
-                  <span>Requested by <strong>Ruwan Bandara</strong></span>
-                  <span class="separator">|</span>
-                  <span>5 hours ago</span>
-                </div>
-              </div>
-            </div>
-            <span class="badge badge-warning">Pending</span>
-          </div>
-          <div class="approval-details">
-            Vehicle severely damaged in flood. Estimated disposal value: Rs. 25,000. Write-off reason: Frame damage beyond economical repair.
-          </div>
-          <div class="approval-actions">
-            <div class="approval-comment-area">
-              <textarea placeholder="Add a comment (optional)..."></textarea>
-            </div>
-            <div class="approval-action-btns">
-              <button class="btn-approve">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Approve
-              </button>
-              <button class="btn-reject">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. REFUND_ADVANCE - Pending -->
-        <div class="approval-item">
-          <div class="approval-item-header">
-            <div class="approval-item-header-left">
-              <span class="approval-type-badge refund">Refund</span>
-              <div>
-                <div class="approval-title">Advance Refund — TVS Apache RTR 160 2024</div>
-                <div class="approval-meta">
-                  <span>Requested by <strong>Nimal Fernando</strong></span>
-                  <span class="separator">|</span>
-                  <span>1 day ago</span>
-                </div>
-              </div>
-            </div>
-            <span class="badge badge-warning">Pending</span>
-          </div>
-          <div class="approval-details">
-            Customer Lakshmi Jayawardena requesting refund of Rs. 35,000 advance. Reason: Customer found alternative vehicle.
-          </div>
-          <div class="approval-actions">
-            <div class="approval-comment-area">
-              <textarea placeholder="Add a comment (optional)..."></textarea>
-            </div>
-            <div class="approval-action-btns">
-              <button class="btn-approve">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                Approve
-              </button>
-              <button class="btn-reject">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 4. EDIT_SALE - Approved -->
-        <div class="approval-item">
-          <div class="approval-item-header">
-            <div class="approval-item-header-left">
-              <span class="approval-type-badge edit">Edit</span>
-              <div>
-                <div class="approval-title">Sale Record Edit — Honda Dio 2023</div>
-                <div class="approval-meta">
-                  <span>Requested by <strong>Suresh Kumar</strong></span>
-                  <span class="separator">|</span>
-                  <span>2 days ago</span>
-                </div>
-              </div>
-            </div>
-            <span class="badge badge-success">Approved</span>
-          </div>
-          <div class="approval-details">
-            Correction to sale price: Rs. 245,000 &rarr; Rs. 240,000. Reason: Data entry error.
-          </div>
-          <div class="approval-outcome">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Approved by <span class="reviewer">Kamal Perera</span> &middot; 1 day ago
-          </div>
-        </div>
-
-        <!-- 5. APPLY_DISCOUNT - Rejected -->
-        <div class="approval-item">
-          <div class="approval-item-header">
-            <div class="approval-item-header-left">
-              <span class="approval-type-badge discount">Discount</span>
-              <div>
-                <div class="approval-title">Discount Request — Yamaha FZ-S V3 2023</div>
-                <div class="approval-meta">
-                  <span>Requested by <strong>Dinesh Silva</strong></span>
-                  <span class="separator">|</span>
-                  <span>3 days ago</span>
-                </div>
-              </div>
-            </div>
-            <span class="badge badge-danger">Rejected</span>
-          </div>
-          <div class="approval-outcome">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Rejected by <span class="reviewer">Kamal Perera</span> &middot; 2 days ago
-          </div>
-          <div class="manager-comment">
-            "Discount too high for this vehicle's margin. Maximum 5% approved."
-          </div>
-        </div>
-
-        <!-- 6. WRITE_OFF - Approved -->
-        <div class="approval-item">
-          <div class="approval-item-header">
-            <div class="approval-item-header-left">
-              <span class="approval-type-badge write-off">Write-off</span>
-              <div>
-                <div class="approval-title">Write-off — Bajaj CT100 2020</div>
-                <div class="approval-meta">
-                  <span>Requested by <strong>Chaminda Rathnayake</strong></span>
-                  <span class="separator">|</span>
-                  <span>1 week ago</span>
-                </div>
-              </div>
-            </div>
-            <span class="badge badge-success">Approved</span>
-          </div>
-          <div class="approval-details">
-            Disposal proceeds: Rs. 15,000
-          </div>
-          <div class="approval-outcome">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Approved by <span class="reviewer">Kamal Perera</span> &middot; 6 days ago
-          </div>
-        </div>
-
-        </div><!-- /.card-view-container -->
-
-      </div>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+<body class="bg-surface text-on-surface antialiased">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#ffffff]/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm dark:shadow-none flex items-center justify-between px-6 h-14 w-full font-['Inter'] antialiased text-sm tracking-tight">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-[#113069] dark:text-blue-200">Iron Ledger</span>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-[#445d99] dark:text-slate-400 hover:text-blue-600 transition-colors" href="dashboard.html">Dashboard</a>
+<a class="text-[#445d99] dark:text-slate-400 hover:text-blue-600 transition-colors" href="vehicles.html">Inventory</a>
+<a class="text-[#445d99] dark:text-slate-400 hover:text-blue-600 transition-colors" href="sales.html">Sales</a>
+<a class="text-blue-700 dark:text-blue-400 font-semibold border-b-2 border-blue-700 dark:border-blue-400 pb-1" href="#">Approvals</a>
+<a class="text-[#445d99] dark:text-slate-400 hover:text-blue-600 transition-colors" href="#">Reporting</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] duration-200 rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] duration-200 rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant/20">
+<img alt="Manager Profile" data-alt="Manager Profile Picture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6ZNdLIIjT5fEQ1G2Ea8YqOq7jBVNz5CbyNCGqKVkJ2BbkY_yEHsoXsOjN1A5In0IrOuynTv0hO2qN_K7nGhrW3FtwDdgH9sY-t4hUFH9SCl8QIM13NMX8PjMsxXCzZ3kF_78RYVS7EKhT2B7jlYVqMaE44dfWn5MpDGPeymqoXJ9sVE_sgKpQP4juDU3UMRm5rcx7fzN-ZDovEwjsQtyVVT_UYQGTNj86VoMl7qyg8Cee6nP7AGtn3vojeY4T4xHeRafuYD1X6LI"/>
+</div>
+</div>
+</nav>
+<div class="flex pt-14">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col py-4 px-3 bg-slate-50 dark:bg-slate-900 w-64 border-r border-slate-200/50 dark:border-slate-800/50 font-inter text-sm antialiased z-50">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary font-bold">V</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">VSMS</h1>
+<p class="text-[10px] uppercase tracking-tighter text-on-surface-variant">VA Motors</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto pr-2">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="vehicles.html">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Vehicles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="purchases.html">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="sales.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span>Sales</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="repairs.html">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Repairs</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Management</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="customers.html">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="third-parties.html">
+<span class="material-symbols-outlined" data-icon="handshake">handshake</span>
+<span>Third Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="reports.html">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm rounded-md translate-x-1 transition-transform duration-200" href="approvals.html">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Approvals</span>
+<span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Finance</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-reconciliation.html">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+<span>Reconciliation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="cash-flow.html">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Cash Flow</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Brokerage</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-deals.html">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Lease Deals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-comparison.html">
+<span class="material-symbols-outlined" data-icon="compare">compare</span>
+<span>Comparison Tool</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-rate-sheets.html">
+<span class="material-symbols-outlined" data-icon="grid_on">grid_on</span>
+<span>Rate Sheets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-dispatch.html">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Dispatch</span>
+</a>
+<div class="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">System</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="settings.html">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="users.html">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span>Users & Roles</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content -->
+<main class="ml-64 flex-1 p-8 bg-surface min-h-screen">
+<!-- Header Section -->
+<div class="mb-8">
+<h1 class="text-2xl font-bold tracking-tight text-on-surface font-headline">Manager Approval Queue</h1>
+<p class="text-on-surface-variant font-body mt-1">Review and authorize sensitive operations.</p>
+</div>
+<!-- Tab Navigation -->
+<div class="flex gap-4 mb-6 overflow-x-auto pb-2">
+<button class="px-4 py-2 bg-surface-container-lowest shadow-sm rounded-lg text-primary font-semibold text-sm whitespace-nowrap border border-primary/10">
+                    All Requests (12)
+                </button>
+<button class="px-4 py-2 bg-surface-container-low hover:bg-surface-container text-on-surface-variant text-sm whitespace-nowrap rounded-lg transition-colors">
+                    Price Discounts (5)
+                </button>
+<button class="px-4 py-2 bg-surface-container-low hover:bg-surface-container text-on-surface-variant text-sm whitespace-nowrap rounded-lg transition-colors">
+                    Write-offs (3)
+                </button>
+<button class="px-4 py-2 bg-surface-container-low hover:bg-surface-container text-on-surface-variant text-sm whitespace-nowrap rounded-lg transition-colors">
+                    Advance Refunds (4)
+                </button>
+</div>
+<!-- Approvals Table Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden ghost-border">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80">Date</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80">Requested By</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80">Category</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80">Item/Deal</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80">Value Change</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80">Reason</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80">Status</th>
+<th class="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-on-surface-variant/80 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface">Oct 24, 09:12</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center text-[10px] font-bold">JD</div>
+<span class="text-xs font-semibold text-on-surface">Jane Doe</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">Discount</span>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface">2023 BMW M3 Sedan</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant line-through">$72,000</span>
+<span class="text-xs font-bold text-tertiary">$68,500</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface-variant truncate max-w-[150px]">Customer trade-in value dispute...</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1.5">
+<div class="h-1.5 w-1.5 rounded-full bg-amber-500"></div>
+<span class="text-xs font-medium text-amber-700">Pending</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right space-x-2">
+<button class="px-3 py-1 bg-tertiary text-on-tertiary rounded text-[10px] font-bold uppercase hover:brightness-110 active:scale-95 transition-all">Approve</button>
+<button class="px-3 py-1 bg-error text-on-error rounded text-[10px] font-bold uppercase hover:brightness-110 active:scale-95 transition-all">Reject</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface">Oct 24, 10:45</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center text-[10px] font-bold">MS</div>
+<span class="text-xs font-semibold text-on-surface">Mike Smith</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700">Write-off</span>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface">2019 Toyota Rav4</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant line-through">$850</span>
+<span class="text-xs font-bold text-error">$0.00</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface-variant truncate max-w-[150px]">Unrepairable structural damage.</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1.5">
+<div class="h-1.5 w-1.5 rounded-full bg-amber-500"></div>
+<span class="text-xs font-medium text-amber-700">Pending</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right space-x-2">
+<button class="px-3 py-1 bg-tertiary text-on-tertiary rounded text-[10px] font-bold uppercase hover:brightness-110 active:scale-95 transition-all">Approve</button>
+<button class="px-3 py-1 bg-error text-on-error rounded text-[10px] font-bold uppercase hover:brightness-110 active:scale-95 transition-all">Reject</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors cursor-pointer group">
+<td class="px-6 py-4 text-xs font-medium text-on-surface">Oct 23, 16:30</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center text-[10px] font-bold">AW</div>
+<span class="text-xs font-semibold text-on-surface">Alex Wong</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-700">Refund</span>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface">Deal #INV-9902</td>
+<td class="px-6 py-4">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant line-through">$0.00</span>
+<span class="text-xs font-bold text-on-surface">$2,500</span>
+</div>
+</td>
+<td class="px-6 py-4 text-xs text-on-surface-variant truncate max-w-[150px]">Overpayment on closing docs.</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-1.5">
+<div class="h-1.5 w-1.5 rounded-full bg-amber-500"></div>
+<span class="text-xs font-medium text-amber-700">Pending</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right space-x-2">
+<button class="px-3 py-1 bg-tertiary text-on-tertiary rounded text-[10px] font-bold uppercase hover:brightness-110 active:scale-95 transition-all">Approve</button>
+<button class="px-3 py-1 bg-error text-on-error rounded text-[10px] font-bold uppercase hover:brightness-110 active:scale-95 transition-all">Reject</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Bento Insights Grid (Optional context) -->
+<div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<h3 class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-4">Avg. Response Time</h3>
+<p class="text-3xl font-headline font-extrabold text-primary">14.2m</p>
+<p class="text-xs text-tertiary mt-2">↓ 3% from last week</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+<h3 class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-4">Approval Success Rate</h3>
+<p class="text-3xl font-headline font-extrabold text-on-surface">92.4%</p>
+<p class="text-xs text-on-surface-variant mt-2">1,240 approved YTD</p>
+</div>
+<div class="bg-primary/5 p-6 rounded-xl border border-primary/10">
+<h3 class="text-[10px] uppercase tracking-widest font-bold text-primary mb-4">High Priority Flag</h3>
+<p class="text-3xl font-headline font-extrabold text-primary">2</p>
+<p class="text-xs text-on-surface-variant mt-2">Requires immediate attention</p>
+</div>
+</div>
+</main>
+</div>
+<!-- Detail Drawer (Conceptual) -->
+<div class="fixed inset-y-0 right-0 w-[400px] bg-surface-container-highest shadow-2xl z-[60] transform translate-x-full transition-transform duration-300 pointer-events-none group-hover:pointer-events-auto">
+<!-- Background Blur Overlay -->
+<div class="absolute inset-0 bg-white/40 backdrop-blur-xl"></div>
+<div class="relative h-full flex flex-col p-8 overflow-y-auto">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h2 class="text-xl font-bold font-headline text-on-surface">Request Details</h2>
+<p class="text-xs text-on-surface-variant font-medium">Case ID: APP-90214-X</p>
+</div>
+<button class="p-1 hover:bg-on-surface/5 rounded transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="space-y-8">
+<!-- Requester Section -->
+<div>
+<h4 class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-3">Requester Insights</h4>
+<div class="flex items-center gap-4 p-4 rounded-lg bg-surface-container-lowest border border-outline-variant/20">
+<div class="h-10 w-10 rounded-full bg-primary-fixed text-primary font-bold flex items-center justify-center">JD</div>
+<div>
+<p class="text-sm font-bold">Jane Doe</p>
+<p class="text-[10px] text-tertiary font-bold">98% APPROVAL RATE</p>
+</div>
+</div>
+</div>
+<!-- Vehicle Audit History -->
+<div>
+<h4 class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-3">Audit History</h4>
+<div class="space-y-4 relative before:content-[''] before:absolute before:left-2.5 before:top-1 before:bottom-1 before:w-px before:bg-outline-variant/30">
+<div class="relative pl-8">
+<div class="absolute left-1 top-1.5 h-3 w-3 rounded-full bg-primary border-4 border-surface-container-highest"></div>
+<p class="text-xs font-bold">Price Revised</p>
+<p class="text-[10px] text-on-surface-variant">Oct 22 • By Admin</p>
+</div>
+<div class="relative pl-8">
+<div class="absolute left-1 top-1.5 h-3 w-3 rounded-full bg-outline-variant border-4 border-surface-container-highest"></div>
+<p class="text-xs font-medium">Reconditioned</p>
+<p class="text-[10px] text-on-surface-variant">Oct 18 • Service Dept</p>
+</div>
+<div class="relative pl-8">
+<div class="absolute left-1 top-1.5 h-3 w-3 rounded-full bg-outline-variant border-4 border-surface-container-highest"></div>
+<p class="text-xs font-medium">Vehicle Acquired</p>
+<p class="text-[10px] text-on-surface-variant">Oct 15 • Auction</p>
+</div>
+</div>
+</div>
+<!-- Visual Detail -->
+<div class="rounded-xl overflow-hidden border border-outline-variant/20 bg-surface-container-lowest">
+<img alt="Vehicle Image" class="w-full h-40 object-cover" data-alt="High quality image of a BMW luxury car" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0KSlc6260kTqzvYfnBzWKzVbMCMaTe5gxzDbdASQBHwqzue4ymK92FZy_3mEluKiky7XESkw2n6z_PZeCLXoHoKsCZpwpsle-6QUla_fTTos21SkqGDXOY8-U1v7latt5ZsdJg_Zg7QcZL0G-RSI-Ytg3MwwdSDeqRYVohHsFY3AE6dgEFn8t-bcjD-mnZj3Bu5UwBA4eItthkYTQnDAZXj4KpLe1mtKCxnlvnbb7EJ_WNpL-DNRWPgXM8Pxwzt7RJucWJYmHruA"/>
+<div class="p-4">
+<p class="text-xs font-bold text-on-surface">2023 BMW M3 Sedan</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-tighter">VIN: WBS53AY0XP5921</p>
+</div>
+</div>
+</div>
+<div class="mt-auto pt-8 flex gap-3">
+<button class="flex-1 py-3 bg-tertiary text-on-tertiary font-bold text-xs uppercase tracking-widest rounded-lg shadow-sm hover:brightness-110 active:scale-[0.98] transition-all">Authorize Request</button>
+<button class="px-4 py-3 bg-error/10 text-error font-bold text-xs uppercase rounded-lg border border-error/20 hover:bg-error/20 active:scale-[0.98] transition-all">Reject</button>
+</div>
+</div>
+</div>
+</body></html>

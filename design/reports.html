@@ -1,240 +1,396 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reports - VA Motors VSMS</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    .reports-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 16px;
-    }
-    .report-card a {
-      display: block;
-      color: inherit;
-      text-decoration: none;
-    }
-  </style>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reports - VA Motors VSMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary": "#006b62",
+              "error": "#9f403d",
+              "on-tertiary": "#e2fff9",
+              "surface-bright": "#faf8ff",
+              "primary-fixed-dim": "#c7d3ff",
+              "primary-fixed": "#dbe1ff",
+              "on-primary-fixed": "#003798",
+              "secondary-dim": "#44546a",
+              "on-primary-container": "#0048bf",
+              "inverse-on-surface": "#959cb5",
+              "surface-container-highest": "#d9e2ff",
+              "on-tertiary-fixed-variant": "#006d64",
+              "on-primary-fixed-variant": "#0050d4",
+              "secondary-fixed": "#d3e4fe",
+              "secondary-container": "#d3e4fe",
+              "on-error-container": "#752121",
+              "surface": "#faf8ff",
+              "surface-variant": "#d9e2ff",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-low": "#f2f3ff",
+              "surface-dim": "#cdd9ff",
+              "tertiary-dim": "#005e56",
+              "primary": "#0053db",
+              "primary-container": "#dbe1ff",
+              "background": "#faf8ff",
+              "surface-tint": "#0053db",
+              "on-secondary-fixed-variant": "#4d5d73",
+              "secondary": "#506076",
+              "on-secondary": "#f7f9ff",
+              "on-surface-variant": "#445d99",
+              "inverse-surface": "#060e20",
+              "on-secondary-fixed": "#314055",
+              "on-error": "#fff7f6",
+              "error-dim": "#4e0309",
+              "tertiary-container": "#91feef",
+              "secondary-fixed-dim": "#c5d6f0",
+              "tertiary-fixed": "#91feef",
+              "surface-container-high": "#e2e7ff",
+              "on-primary": "#f8f7ff",
+              "primary-dim": "#0048c1",
+              "on-surface": "#113069",
+              "outline-variant": "#98b1f2",
+              "on-secondary-container": "#435368",
+              "tertiary-fixed-dim": "#83efe1",
+              "on-background": "#113069",
+              "outline": "#6079b7",
+              "on-tertiary-fixed": "#004e47",
+              "surface-container": "#eaedff",
+              "error-container": "#fe8983",
+              "inverse-primary": "#618bff",
+              "on-tertiary-container": "#006259"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body>
-  <div class="app-layout">
-
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header"><img src="logo.jpeg" alt="VA Motors" class="sidebar-logo"><span class="sidebar-brand">VA Motors</span></div>
-      <nav class="sidebar-nav">
-        <div class="nav-section"><div class="nav-section-title">Main</div>
-          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
-          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
-          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
-          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
-          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Management</div>
-          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
-          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
-          <a href="reports.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
-          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Finance</div>
-          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
-          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Brokerage</div>
-          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
-          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
-          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
-          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">System</div>
-          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
-          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <div class="main-content">
-
-      <!-- Header -->
-      <header class="header">
-        <div class="header-left">
-          <button class="btn-sidebar-toggle">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-          </button>
-          <div>
-            <h1 class="page-title">Reports</h1>
-            <p class="page-subtitle">Generate and view business reports</p>
-          </div>
-        </div>
-        <div class="header-search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" placeholder="Search reports...">
-        </div>
-        <div class="header-right">
-          <div style="position: relative;">
-            <button class="header-icon-btn" id="notificationBtn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span class="notification-dot"></span>
-            </button>
-          </div>
-          <button class="theme-toggle" onclick="toggleTheme()">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark
-          </button>
-          <div class="user-menu">
-            <div class="user-avatar">KP</div>
-            <span class="user-name">Kamal P.</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Page Content -->
-      <div class="page-content">
-
-        <div class="reports-grid">
-
-          <!-- 1. Profit Per Vehicle Report -->
-          <a href="report-profit.html" class="report-card">
-            <div class="report-card-icon" style="background: var(--color-success-light); color: var(--color-success);">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            </div>
-            <div class="report-card-title">Profit Per Vehicle Report</div>
-            <div class="report-card-desc">View profit/loss breakdown for each vehicle including purchase price, additional costs, repair costs, and sale price.</div>
-            <div class="report-card-stats">
-              <div class="report-stat">
-                <div class="report-stat-label">Total Profit This Month</div>
-                <div class="report-stat-value">Rs. 2,450,000</div>
-              </div>
-              <div class="report-stat">
-                <div class="report-stat-label">Avg Margin</div>
-                <div class="report-stat-value">18.5%</div>
-              </div>
-            </div>
-          </a>
-
-          <!-- 2. Stock Summary Report -->
-          <a href="report-stock.html" class="report-card">
-            <div class="report-card-icon" style="background: var(--color-info-light); color: var(--color-info);">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            </div>
-            <div class="report-card-title">Stock Summary Report</div>
-            <div class="report-card-desc">Current inventory snapshot showing all vehicles by status, age in stock, and listed value.</div>
-            <div class="report-card-stats">
-              <div class="report-stat">
-                <div class="report-stat-label">Total In Stock</div>
-                <div class="report-stat-value">23</div>
-              </div>
-              <div class="report-stat">
-                <div class="report-stat-label">Total Value</div>
-                <div class="report-stat-value">Rs. 14,200,000</div>
-              </div>
-            </div>
-          </a>
-
-          <!-- 3. Sales Summary Report -->
-          <a href="report-sales.html" class="report-card">
-            <div class="report-card-icon" style="background: var(--color-success-light); color: var(--color-success);">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-            </div>
-            <div class="report-card-title">Sales Summary Report</div>
-            <div class="report-card-desc">Sales performance over a selected period including volume, revenue, and profit trends.</div>
-            <div class="report-card-stats">
-              <div class="report-stat">
-                <div class="report-stat-label">Sales This Month</div>
-                <div class="report-stat-value">8</div>
-              </div>
-              <div class="report-stat">
-                <div class="report-stat-label">Revenue</div>
-                <div class="report-stat-value">Rs. 5,800,000</div>
-              </div>
-            </div>
-          </a>
-
-          <!-- 4. Purchase Summary Report -->
-          <a href="report-purchases.html" class="report-card">
-            <div class="report-card-icon" style="background: var(--status-finance-pending-bg); color: var(--status-finance-pending);">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-            </div>
-            <div class="report-card-title">Purchase Summary Report</div>
-            <div class="report-card-desc">Purchase activity over a selected period by type, supplier, and total investment.</div>
-            <div class="report-card-stats">
-              <div class="report-stat">
-                <div class="report-stat-label">Purchases This Month</div>
-                <div class="report-stat-value">6</div>
-              </div>
-              <div class="report-stat">
-                <div class="report-stat-label">Investment</div>
-                <div class="report-stat-value">Rs. 3,200,000</div>
-              </div>
-            </div>
-          </a>
-
-          <!-- 5. Repair Cost Report -->
-          <a href="report-repairs.html" class="report-card">
-            <div class="report-card-icon" style="background: var(--color-warning-light); color: var(--color-warning);">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-            </div>
-            <div class="report-card-title">Repair Cost Report</div>
-            <div class="report-card-desc">Repair expenditure analysis by vendor, vehicle, and time period.</div>
-            <div class="report-card-stats">
-              <div class="report-stat">
-                <div class="report-stat-label">Repair Costs This Month</div>
-                <div class="report-stat-value">Rs. 185,000</div>
-              </div>
-              <div class="report-stat">
-                <div class="report-stat-label">Avg Per Vehicle</div>
-                <div class="report-stat-value">Rs. 12,500</div>
-              </div>
-            </div>
-          </a>
-
-          <!-- 6. Advance & Reservation Report -->
-          <a href="report-advances.html" class="report-card">
-            <div class="report-card-icon" style="background: var(--color-info-light); color: var(--color-info);">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            </div>
-            <div class="report-card-title">Advance &amp; Reservation Report</div>
-            <div class="report-card-desc">Track active advances, expired reservations, and advance-to-sale conversion rates.</div>
-            <div class="report-card-stats">
-              <div class="report-stat">
-                <div class="report-stat-label">Active Advances</div>
-                <div class="report-stat-value">4</div>
-              </div>
-              <div class="report-stat">
-                <div class="report-stat-label">Conversion Rate</div>
-                <div class="report-stat-value">72%</div>
-              </div>
-            </div>
-          </a>
-
-          <!-- 7. Audit Trail Report -->
-          <a href="report-audit.html" class="report-card">
-            <div class="report-card-icon" style="background: #f3f4f6; color: #6b7280;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <div class="report-card-title">Audit Trail Report</div>
-            <div class="report-card-desc">Complete audit log of all system actions with user, timestamp, and field-level changes.</div>
-            <div class="report-card-stats">
-              <div class="report-stat">
-                <div class="report-stat-label">Actions Today</div>
-                <div class="report-stat-value">47</div>
-              </div>
-              <div class="report-stat">
-                <div class="report-stat-label">Users Active</div>
-                <div class="report-stat-value">5</div>
-              </div>
-            </div>
-          </a>
-
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+<body class="bg-surface text-on-surface antialiased">
+<!-- SideNavBar (Authority Source: JSON & Design System) -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col py-4 px-3 bg-slate-50 dark:bg-slate-900 w-64 border-r border-slate-200/50 dark:border-slate-800/50 font-inter text-sm antialiased z-50">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary font-bold">V</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">VSMS</h1>
+<p class="text-[10px] uppercase tracking-tighter text-on-surface-variant">VA Motors</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto pr-2">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="vehicles.html">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Vehicles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="purchases.html">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="sales.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span>Sales</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="repairs.html">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Repairs</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Management</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="customers.html">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="third-parties.html">
+<span class="material-symbols-outlined" data-icon="handshake">handshake</span>
+<span>Third Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm rounded-md translate-x-1 transition-transform duration-200" href="reports.html">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="approvals.html">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Approvals</span>
+<span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Finance</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-reconciliation.html">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+<span>Reconciliation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="cash-flow.html">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Cash Flow</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Brokerage</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-deals.html">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Lease Deals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-comparison.html">
+<span class="material-symbols-outlined" data-icon="compare">compare</span>
+<span>Comparison Tool</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-rate-sheets.html">
+<span class="material-symbols-outlined" data-icon="grid_on">grid_on</span>
+<span>Rate Sheets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-dispatch.html">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Dispatch</span>
+</a>
+<div class="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">System</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="settings.html">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="users.html">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span>Users & Roles</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Shell -->
+<main class="md:ml-64 min-h-screen flex flex-col">
+<!-- TopAppBar (Authority Source: JSON & Design System) -->
+<header class="fixed top-0 right-0 left-0 md:left-64 z-30 bg-[#ffffff]/80 backdrop-blur-xl border-b border-[#98b1f2]/10 shadow-sm flex items-center justify-between px-6 h-14 w-auto">
+<div class="flex items-center gap-8">
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-[#0053db] font-semibold border-b-2 border-[#0053db] h-14 flex items-center px-1" href="#">Performance</a>
+<a class="text-[#445d99] hover:text-[#113069] transition-colors duration-200 h-14 flex items-center" href="vehicles.html">Inventory</a>
+<a class="text-[#445d99] hover:text-[#113069] transition-colors duration-200 h-14 flex items-center" href="#">Financial</a>
+<a class="text-[#445d99] hover:text-[#113069] transition-colors duration-200 h-14 flex items-center" href="#">Lease</a>
+</nav>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-[#445d99] hover:bg-slate-100 p-2 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-[#445d99] hover:bg-slate-100 p-2 rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden ml-2 border border-outline-variant/20">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Corporate headshot of a male user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5vZEm6kdCTD-4UFMF07nEDf6nsqBeW1oO-1lU63Ifk0RpDtLf-lTRAM1mbOnNcGR0TqNT4QFVWvFAXiX6eVP0WRTzaDYqIAZGYp91QxR7_RIqEqrIVIfooPunubr2FZl3-aJt6lQqZPO_SmKcMb4eHTl1B3GWyQuCvhs6tKtzJvQFI4L479PDjvGMBL-SlgPB7lDxNZhYvAuriM-c7EsUZslRvDA2Rc1RwEpTCJE6UQntXsGsSNOraTmlsa0493taiApVwA061dA"/>
+</div>
+</div>
+</header>
+<!-- Canvas Body -->
+<div class="pt-20 px-6 pb-12 max-w-7xl mx-auto w-full">
+<!-- Contextual Header & Actions -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+<div>
+<h2 class="text-2xl font-bold tracking-tight text-on-surface">Reports Hub</h2>
+<p class="text-on-surface-variant font-medium">Analyze and optimize your fleet operations with precision data.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 border border-outline-variant text-on-surface-variant rounded font-semibold text-sm hover:bg-surface-container-low transition-colors active:scale-95">
+<span class="material-symbols-outlined text-sm">download</span>
+                        Export All Data
+                    </button>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded font-semibold text-sm shadow-sm hover:brightness-110 transition-all active:scale-95">
+<span class="material-symbols-outlined text-sm">schedule_send</span>
+                        Schedule Report
+                    </button>
+</div>
+</div>
+<!-- Filters Section -->
+<div class="bg-surface-container-low rounded-lg p-4 mb-8 flex flex-wrap items-center gap-6">
+<div class="flex items-center gap-3">
+<span class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Filter By:</span>
+<div class="flex bg-surface-container-lowest border border-outline-variant/20 rounded p-1">
+<button class="px-3 py-1 text-xs font-semibold bg-primary text-on-primary rounded shadow-sm">All Categories</button>
+<button class="px-3 py-1 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors">Sales</button>
+<button class="px-3 py-1 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors">Financial</button>
+<button class="px-3 py-1 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors">Lease</button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Period:</span>
+<select class="bg-surface-container-lowest border border-outline-variant/20 rounded px-3 py-1.5 text-xs font-medium focus:ring-1 focus:ring-primary outline-none">
+<option>Last 30 Days</option>
+<option>Current Quarter</option>
+<option>Year to Date</option>
+<option>Custom Range</option>
+</select>
+</div>
+</div>
+<!-- Report Grid (Thematic Grouping) -->
+<div class="space-y-12">
+<!-- Section: Sales Performance -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Sales Performance</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors">Unit Sales</h4>
+<span class="text-[10px] bg-primary-container text-on-primary-container px-2 py-0.5 rounded font-bold uppercase">Critical</span>
+</div>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Complete volume analysis across all branches including dealership performance metrics.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant">
+<span class="block uppercase font-bold text-[8px] tracking-tighter opacity-60">Last Run</span>
+                                    Today, 09:12 AM
+                                </div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-1 transition-transform">
+                                    Open Report
+                                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors">Profit Margin Analysis</h4>
+<span class="text-[10px] bg-tertiary-container text-on-tertiary-container px-2 py-0.5 rounded font-bold uppercase">Optimal</span>
+</div>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Drill down into net vs gross margins per vehicle class and acquisition source.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant">
+<span class="block uppercase font-bold text-[8px] tracking-tighter opacity-60">Last Run</span>
+                                    Yesterday
+                                </div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-1 transition-transform">
+                                    Open Report
+                                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors">Commission Reconciliation</h4>
+<span class="text-[10px] bg-surface-container-highest text-on-surface-variant px-2 py-0.5 rounded font-bold uppercase">Monthly</span>
+</div>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Validate sales executive payouts against finalized contracts and bank approvals.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant">
+<span class="block uppercase font-bold text-[8px] tracking-tighter opacity-60">Last Run</span>
+                                    3 days ago
+                                </div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-1 transition-transform">
+                                    Open Report
+                                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Inventory Management -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Inventory Management</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Aging Stock</h4>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Identify vehicles exceeding the 90-day floorplan limit to prioritize turnover.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant"><span class="block uppercase font-bold text-[8px] opacity-60">Last Run</span>Just now</div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary">Open Report <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Vehicle Lifecycle Report</h4>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Track time from acquisition to prep, marketing, and final delivery.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant"><span class="block uppercase font-bold text-[8px] opacity-60">Last Run</span>12 Oct 2023</div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary">Open Report <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Repair Cost Analysis</h4>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Monitor PDI and reconditioning expenses against initial estimates.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant"><span class="block uppercase font-bold text-[8px] opacity-60">Last Run</span>Yesterday</div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary">Open Report <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Financial Reporting -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">payments</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Financial Reporting</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Purchase Ledger</h4>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Consolidated view of all vehicle acquisitions and supplier invoices.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant"><span class="block uppercase font-bold text-[8px] opacity-60">Last Run</span>Weekly</div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary">Open Report <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Cash Flow</h4>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Real-time liquidity monitoring based on pending sales and fleet purchases.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant"><span class="block uppercase font-bold text-[8px] opacity-60">Last Run</span>Today</div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary">Open Report <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Brokerage & Lease -->
+<section>
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">handshake</span>
+<h3 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Brokerage &amp; Lease</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Finance Company Performance</h4>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Benchmark lender response times and commission structures.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant"><span class="block uppercase font-bold text-[8px] opacity-60">Last Run</span>Monthly</div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary">Open Report <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded border-b-2 border-primary/20 p-5 hover:shadow-md transition-shadow group flex flex-col h-full">
+<h4 class="font-bold text-on-surface group-hover:text-primary transition-colors mb-2">Approval Rate Calculator</h4>
+<p class="text-sm text-on-surface-variant mb-6 line-clamp-2">Aggregated statistics on credit approvals versus applications by tier.</p>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex items-center justify-between">
+<div class="text-[10px] text-on-surface-variant"><span class="block uppercase font-bold text-[8px] opacity-60">Last Run</span>2 hours ago</div>
+<button class="flex items-center gap-1 text-xs font-bold text-primary">Open Report <span class="material-symbols-outlined text-sm">arrow_forward</span></button>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<!-- Footer / Credits -->
+<footer class="mt-auto border-t border-outline-variant/10 py-6 px-8 text-center text-on-surface-variant/60 text-[10px] font-medium uppercase tracking-[0.2em]">
+            VSMS Operational Reporting Suite • Built for Enterprise Precision
+        </footer>
+</main>
+<!-- Contextual FAB (Suppressing as per guidelines on Detail-heavy Hub screens, but adding for interaction showcase if necessary - suppressing as requested by logic) -->
+</body></html>

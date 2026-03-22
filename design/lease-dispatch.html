@@ -1,182 +1,506 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document Dispatch - VA Motors VSMS</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    .date-nav { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
-    .date-nav button { background:none; border:1px solid var(--border-color); border-radius:8px; padding:6px 10px; color:var(--text-secondary); display:flex; align-items:center; }
-    .date-nav button:hover { background:var(--color-primary-light); }
-    .date-nav .current-date { font-size:1.1rem; font-weight:700; }
-    .summary-bar { display:flex; gap:16px; margin-bottom:16px; }
-    .summary-bar .stat { flex:1; padding:14px 18px; border-radius:10px; background:var(--bg-surface); border:1px solid var(--border-color); }
-    .summary-bar .stat .number { font-size:1.3rem; font-weight:800; }
-    .summary-bar .stat .label { font-size:0.78rem; color:var(--text-tertiary); font-weight:500; margin-top:2px; }
-    .summary-bar .stat.ready .number { color:var(--color-info); }
-    .summary-bar .stat.done .number { color:var(--color-success); }
-    .summary-bar .stat.pending .number { color:var(--color-warning); }
-    .dispatch-checkbox { width:18px; height:18px; accent-color:var(--color-primary); cursor:pointer; }
-    .doc-status { font-size:0.78rem; font-weight:600; }
-    .doc-status.complete { color:var(--color-success); }
-    .doc-status.incomplete { color:var(--color-warning); }
-  </style>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lease Dispatch - VA Motors VSMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-dim": "#4e0309",
+                        "surface-tint": "#0053db",
+                        "outline": "#6079b7",
+                        "surface-bright": "#faf8ff",
+                        "surface": "#faf8ff",
+                        "surface-container-highest": "#d9e2ff",
+                        "background": "#faf8ff",
+                        "surface-variant": "#d9e2ff",
+                        "secondary-fixed-dim": "#c5d6f0",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#e2fff9",
+                        "on-error": "#fff7f6",
+                        "error-container": "#fe8983",
+                        "secondary-dim": "#44546a",
+                        "on-tertiary-fixed": "#004e47",
+                        "on-surface-variant": "#445d99",
+                        "on-primary-container": "#0048bf",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-primary-fixed": "#003798",
+                        "on-background": "#113069",
+                        "inverse-primary": "#618bff",
+                        "error": "#9f403d",
+                        "secondary": "#506076",
+                        "surface-container-low": "#f2f3ff",
+                        "inverse-on-surface": "#959cb5",
+                        "on-secondary-container": "#435368",
+                        "on-secondary-fixed-variant": "#4d5d73",
+                        "on-primary-fixed-variant": "#0050d4",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-container-high": "#e2e7ff",
+                        "inverse-surface": "#060e20",
+                        "on-surface": "#113069",
+                        "tertiary-container": "#91feef",
+                        "tertiary": "#006b62",
+                        "primary-container": "#dbe1ff",
+                        "primary-dim": "#0048c1",
+                        "on-error-container": "#752121",
+                        "outline-variant": "#98b1f2",
+                        "tertiary-fixed-dim": "#83efe1",
+                        "surface-container": "#eaedff",
+                        "primary-fixed-dim": "#c7d3ff",
+                        "tertiary-fixed": "#91feef",
+                        "on-primary": "#f8f7ff",
+                        "surface-dim": "#cdd9ff",
+                        "primary": "#0053db",
+                        "on-secondary-fixed": "#314055",
+                        "on-tertiary-fixed-variant": "#006d64",
+                        "on-secondary": "#f7f9ff",
+                        "on-tertiary-container": "#006259",
+                        "tertiary-dim": "#005e56",
+                        "secondary-container": "#d3e4fe"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
 </head>
-<body>
-  <div class="app-layout">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header"><img src="logo.jpeg" alt="VA Motors" class="sidebar-logo"><span class="sidebar-brand">VA Motors</span></div>
-      <nav class="sidebar-nav">
-        <div class="nav-section"><div class="nav-section-title">Main</div>
-          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
-          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
-          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
-          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
-          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Management</div>
-          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
-          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
-          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
-          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Finance</div>
-          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
-          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Brokerage</div>
-          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
-          <a href="lease-comparison.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
-          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
-          <a href="lease-dispatch.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">System</div>
-          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
-          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
-        </div>
-      </nav>
-    </aside>
-
-    <div class="main-content">
-      <header class="header">
-        <div class="header-left"><button class="btn-sidebar-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><div><h1 class="page-title">Document Dispatch</h1><p class="page-subtitle">Daily courier batch management</p></div></div>
-        <div class="header-right">
-          <button class="theme-toggle" onclick="toggleTheme()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</button>
-          <div style="position:relative;"><button class="header-icon-btn" id="notificationBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notification-dot"></span></button></div>
-          <div class="user-menu"><div class="user-avatar">KP</div><span class="user-name">Kamal</span></div>
-        </div>
-      </header>
-
-      <div class="page-content">
-        <!-- Date Navigation -->
-        <div class="date-nav">
-          <button><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
-          <span class="current-date">21 March 2026</span>
-          <button><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
-          <span style="font-size:0.82rem;color:var(--text-tertiary);margin-left:8px;">Today</span>
-        </div>
-
-        <!-- Summary -->
-        <div class="summary-bar">
-          <div class="stat ready"><div class="number">3</div><div class="label">Ready for dispatch</div></div>
-          <div class="stat done"><div class="number">2</div><div class="label">Dispatched today</div></div>
-          <div class="stat pending"><div class="number">1</div><div class="label">Pending verification</div></div>
-        </div>
-
-        <!-- Ready for Dispatch -->
-        <div class="card mb-16">
-          <div class="card-header"><h3 class="card-title">Ready for Dispatch</h3><button class="btn btn-primary btn-sm">Dispatch Selected</button></div>
-          <div class="table-container">
-            <table>
-              <thead><tr><th style="width:40px;"><input type="checkbox" class="dispatch-checkbox"></th><th>Deal</th><th>Customer</th><th>Finance Company</th><th>File #</th><th>Documents</th><th>Actions</th></tr></thead>
-              <tbody>
-                <tr><td><input type="checkbox" class="dispatch-checkbox" checked></td><td><a href="lease-deal-detail.html" style="color:var(--color-info);font-weight:600;">Honda CB Hornet 2025</a></td><td>Anura Kumara</td><td>People's Leasing</td><td>PL-2026-00583</td><td><span class="doc-status complete">14/14 complete</span></td><td><button class="btn btn-ghost btn-sm" onclick="openSlideOver('checklistPanel')">Checklist</button></td></tr>
-                <tr><td><input type="checkbox" class="dispatch-checkbox" checked></td><td><a href="lease-deal-detail.html" style="color:var(--color-info);font-weight:600;">Suzuki Gixxer SF 2024</a></td><td>Lakshmi Jayawardena</td><td>People's Leasing</td><td>PL-2026-00579</td><td><span class="doc-status complete">14/14 complete</span></td><td><button class="btn btn-ghost btn-sm" onclick="openSlideOver('checklistPanel')">Checklist</button></td></tr>
-                <tr><td><input type="checkbox" class="dispatch-checkbox"></td><td><a href="lease-deal-detail.html" style="color:var(--color-info);font-weight:600;">Bajaj Pulsar NS200 2024</a></td><td>Ruwan Bandara</td><td>LOLC Finance</td><td>LOLC-2026-00312</td><td><span class="doc-status complete">13/13 complete</span></td><td><button class="btn btn-ghost btn-sm" onclick="openSlideOver('checklistPanel')">Checklist</button></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Dispatched Today -->
-        <div class="card mb-16">
-          <div class="card-header"><h3 class="card-title">Dispatched Today</h3></div>
-          <div class="table-container">
-            <table>
-              <thead><tr><th>Deal</th><th>Customer</th><th>Finance Company</th><th>File #</th><th>Dispatched At</th><th>By</th></tr></thead>
-              <tbody>
-                <tr><td><a href="lease-deal-detail.html" style="color:var(--color-info);font-weight:600;">Yamaha FZ-S V3 2024</a></td><td>Ruwan Bandara</td><td>LOLC Finance</td><td>LOLC-2026-00298</td><td>09:45 AM</td><td>Kamal Perera</td></tr>
-                <tr><td><a href="lease-deal-detail.html" style="color:var(--color-info);font-weight:600;">TVS Apache RTR 160 2024</a></td><td>Dinesh Silva</td><td>People's Leasing</td><td>PL-2026-00575</td><td>09:45 AM</td><td>Kamal Perera</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Pending Verification -->
-        <div class="card">
-          <div class="card-header"><h3 class="card-title">Pending Verification</h3><span class="badge" style="background:var(--color-warning-light);color:var(--color-warning);">1 pending</span></div>
-          <div class="table-container">
-            <table>
-              <thead><tr><th>Deal</th><th>Customer</th><th>Finance Company</th><th>Documents</th><th>Issue</th><th>Actions</th></tr></thead>
-              <tbody>
-                <tr><td><a href="lease-deal-detail.html" style="color:var(--color-info);font-weight:600;">Honda Dio 2025</a></td><td>Chaminda Rathnayake</td><td>HNB Finance</td><td><span class="doc-status incomplete">11/14 - missing 3</span></td><td style="font-size:0.82rem;color:var(--color-warning);">Missing: Address proof, Revenue license, Extra key</td><td><a href="lease-deal-detail.html" class="btn btn-ghost btn-sm">View Deal</a></td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Slide-over: Pre-Dispatch Checklist -->
-  <div class="slide-over-backdrop" id="checklistPanel-backdrop" onclick="closeSlideOver('checklistPanel')"></div>
-  <div class="slide-over" id="checklistPanel">
-    <div class="slide-over-header">
-      <h2 class="slide-over-title">Pre-Dispatch Checklist</h2>
-      <button class="slide-over-close" onclick="closeSlideOver('checklistPanel')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="slide-over-body">
-      <div style="padding:12px 16px;background:var(--color-primary-light);border-radius:8px;margin-bottom:16px;">
-        <div style="font-weight:700;font-size:0.88rem;">Honda CB Hornet 2025</div>
-        <div style="font-size:0.78rem;color:var(--text-secondary);">Customer: Anura Kumara &middot; People's Leasing &middot; File #: PL-2026-00583</div>
-      </div>
-
-      <h4 style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Customer Documents</h4>
-      <div style="margin-bottom:16px;">
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Customer NIC copy</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Guarantor 1 NIC copy</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Guarantor 2 NIC copy</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">4 passport size photos</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Bank passbook photo</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Address proof document</span></div>
-        <div class="checklist-config-item"><input type="checkbox" class="dispatch-checkbox"><span class="label-text" style="color:var(--text-tertiary);">Relationship proof</span><span style="font-size:0.7rem;padding:2px 6px;border-radius:4px;background:var(--color-warning-light);color:var(--color-warning);font-weight:600;">Not required</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Affidavit</span></div>
-      </div>
-
-      <h4 style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Vehicle Documents</h4>
-      <div style="margin-bottom:16px;">
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Registration book</span></div>
-        <div class="checklist-config-item"><input type="checkbox" class="dispatch-checkbox"><span class="label-text" style="color:var(--text-tertiary);">Deletion letter</span><span style="font-size:0.7rem;padding:2px 6px;border-radius:4px;background:var(--color-warning-light);color:var(--color-warning);font-weight:600;">Not needed</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Revenue license</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Extra key</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Transfer paper</span></div>
-        <div class="checklist-config-item"><input type="checkbox" checked class="dispatch-checkbox"><span class="label-text">Previous owner ID</span></div>
-      </div>
-
-      <div style="padding:12px 16px;background:var(--status-in-stock-bg);border-radius:8px;border:1px solid rgba(22,163,74,0.2);margin-bottom:16px;">
-        <div style="font-size:0.85rem;font-weight:700;color:var(--color-success);">All required documents verified</div>
-        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">12/12 required items present. 2 optional items skipped (not applicable).</div>
-      </div>
-    </div>
-    <div class="slide-over-footer">
-      <button class="btn" style="border:1px solid var(--border-color);background:var(--bg-surface);" onclick="closeSlideOver('checklistPanel')">Close</button>
-      <button class="btn btn-primary">Mark Ready for Dispatch</button>
-    </div>
-  </div>
-
-  <script src="app.js"></script>
-</body>
-</html>
+<body class="bg-surface text-on-surface antialiased">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm flex items-center justify-between px-6 h-16 w-full font-inter antialiased">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Iron Ledger</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors" href="vehicles.html">Inventory</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors" href="sales.html">Sales</a>
+<a class="text-blue-700 dark:text-blue-400 font-semibold border-b-2 border-blue-700 dark:border-blue-500 pb-4 mt-4" href="#">Lease Dispatch</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors" href="#">Reporting</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-all duration-200 ease-in-out active:scale-95">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-all duration-200 ease-in-out active:scale-95">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="User profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4OOCNEMRiRKPrmU59eWPmOmD87QG7c5w4wYx_V_6EfKsIhNanBV_oV2OOWEbX0VpJRo69rNu9hIAkr4x4tzrk53z5vUSKx2UucBcUX7_qMj-BWtX2uEz4hYgBFTYR6Xi0CRNbu_qvMGPEh2OiFVQMYuZ42Wgcga4OuiBeaXdxpzD-uAhKuYnGDeXa2R-MseLR2_1W8ABPHLOAFzusBxFhMdlIZ1_KWia1jXzaUl_d_w3DPuA8u47-8iD3SNBH7ZCDYxPEMecmgTw"/>
+</div>
+</div>
+</header>
+<!-- Side Navigation Bar -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col py-4 px-3 bg-slate-50 dark:bg-slate-900 w-64 border-r border-slate-200/50 dark:border-slate-800/50 font-inter text-sm antialiased z-50">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary font-bold">V</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">VSMS</h1>
+<p class="text-[10px] uppercase tracking-tighter text-on-surface-variant">VA Motors</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto pr-2">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="vehicles.html">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Vehicles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="purchases.html">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="sales.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span>Sales</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="repairs.html">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Repairs</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Management</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="customers.html">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="third-parties.html">
+<span class="material-symbols-outlined" data-icon="handshake">handshake</span>
+<span>Third Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="reports.html">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="approvals.html">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Approvals</span>
+<span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Finance</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-reconciliation.html">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+<span>Reconciliation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="cash-flow.html">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Cash Flow</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Brokerage</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-deals.html">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Lease Deals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-comparison.html">
+<span class="material-symbols-outlined" data-icon="compare">compare</span>
+<span>Comparison Tool</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-rate-sheets.html">
+<span class="material-symbols-outlined" data-icon="grid_on">grid_on</span>
+<span>Rate Sheets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm rounded-md translate-x-1 transition-transform duration-200" href="lease-dispatch.html">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Dispatch</span>
+</a>
+<div class="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">System</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="settings.html">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="users.html">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span>Users & Roles</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pl-64 pt-16 min-h-screen">
+<div class="p-8 max-w-[1600px] mx-auto">
+<!-- Page Header -->
+<div class="flex items-end justify-between mb-8">
+<div>
+<h1 class="text-2xl font-extrabold text-on-background tracking-tight">Lease Dispatch Management</h1>
+<p class="text-on-surface-variant text-sm mt-1">Review, verify, and finalize lease dispatch operations.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 text-sm font-semibold border border-outline-variant/30 text-on-surface hover:bg-surface-container transition-colors rounded-md">Export Manifest</button>
+<button class="px-4 py-2 text-sm font-semibold bg-primary text-white hover:bg-primary-dim transition-colors rounded-md">Sync Terminal</button>
+</div>
+</div>
+<!-- Summary Metrics Bento -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-[0_4px_20px_-2px_rgba(17,48,105,0.04)] flex items-center justify-between">
+<div>
+<p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Ready for Dispatch</p>
+<h3 class="text-4xl font-black text-primary leading-none">4</h3>
+</div>
+<div class="bg-primary-container p-3 rounded-lg text-primary">
+<span class="material-symbols-outlined text-3xl">local_shipping</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-[0_4px_20px_-2px_rgba(17,48,105,0.04)] flex items-center justify-between">
+<div>
+<p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Dispatched Today</p>
+<h3 class="text-4xl font-black text-tertiary leading-none">3</h3>
+</div>
+<div class="bg-tertiary-container p-3 rounded-lg text-tertiary">
+<span class="material-symbols-outlined text-3xl">task_alt</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-[0_4px_20px_-2px_rgba(17,48,105,0.04)] flex items-center justify-between">
+<div>
+<p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Pending Verification</p>
+<h3 class="text-4xl font-black text-error leading-none">1</h3>
+</div>
+<div class="bg-error-container/20 p-3 rounded-lg text-error">
+<span class="material-symbols-outlined text-3xl">pending_actions</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+<!-- Main Table Section -->
+<div class="xl:col-span-8 space-y-8">
+<!-- Ready for Dispatch -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">outbox</span>
+                                Ready for Dispatch
+                            </h2>
+<span class="text-xs font-medium text-on-surface-variant bg-surface-container px-2 py-1 rounded">Update 2 mins ago</span>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 shadow-[0_4px_20px_-2px_rgba(17,48,105,0.04)] overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant/10">
+<tr>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Source</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Deal</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Customer</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Finance Co.</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">File #</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Status</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<tr class="hover:bg-surface-container-high transition-colors">
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary-container text-on-secondary-container">BROKERAGE</span>
+</td>
+<td class="px-4 py-4">
+<p class="text-sm font-semibold text-on-surface">Toyota Hilux 2023</p>
+<p class="text-[11px] text-on-surface-variant">CAS-8821</p>
+</td>
+<td class="px-4 py-4">
+<p class="text-sm text-on-surface">Arjuna Perera</p>
+</td>
+<td class="px-4 py-4 text-sm">Alliance Finance</td>
+<td class="px-4 py-4 text-sm font-mono text-on-surface-variant">FL-29930</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-1.5 text-tertiary font-bold text-[11px]">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+                                                14/14 complete
+                                            </div>
+</td>
+<td class="px-4 py-4 text-right">
+<button class="text-xs font-bold text-primary hover:underline flex items-center gap-1 justify-end ml-auto">
+                                                Checklist
+                                                <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-high transition-colors bg-surface-container-low/30">
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container">VEHICLE SALE</span>
+</td>
+<td class="px-4 py-4">
+<p class="text-sm font-semibold text-on-surface">Suzuki Wagon R</p>
+<p class="text-[11px] text-on-surface-variant">WP CBA-1102</p>
+</td>
+<td class="px-4 py-4">
+<p class="text-sm text-on-surface">Nuwan Wijesinghe</p>
+</td>
+<td class="px-4 py-4 text-sm">LB Finance</td>
+<td class="px-4 py-4 text-sm font-mono text-on-surface-variant">FL-29945</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-1.5 text-tertiary font-bold text-[11px]">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+                                                14/14 complete
+                                            </div>
+</td>
+<td class="px-4 py-4 text-right">
+<button class="text-xs font-bold text-primary hover:underline flex items-center gap-1 justify-end ml-auto">
+                                                Checklist
+                                                <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-high transition-colors">
+<td class="px-4 py-4">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary-container text-on-secondary-container">BROKERAGE</span>
+</td>
+<td class="px-4 py-4">
+<p class="text-sm font-semibold text-on-surface">Mitsubishi Montero</p>
+<p class="text-[11px] text-on-surface-variant">65-9921</p>
+</td>
+<td class="px-4 py-4">
+<p class="text-sm text-on-surface">Chaminda Silva</p>
+</td>
+<td class="px-4 py-4 text-sm">Commercial Leasing</td>
+<td class="px-4 py-4 text-sm font-mono text-on-surface-variant">FL-30012</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-1.5 text-tertiary font-bold text-[11px]">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+                                                14/14 complete
+                                            </div>
+</td>
+<td class="px-4 py-4 text-right">
+<button class="text-xs font-bold text-primary hover:underline flex items-center gap-1 justify-end ml-auto">
+                                                Checklist
+                                                <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Dispatched Today Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-lg font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary">history</span>
+                                Dispatched Today
+                            </h2>
+</div>
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 shadow-[0_4px_20px_-2px_rgba(17,48,105,0.04)] overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant/10">
+<tr>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Deal</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Finance Co.</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Dispatched At</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">By</th>
+<th class="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant text-right">Tracking</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<tr class="hover:bg-surface-container-high transition-colors">
+<td class="px-4 py-4">
+<p class="text-sm font-semibold text-on-surface">Honda Vezel RS</p>
+</td>
+<td class="px-4 py-4 text-sm">HNB Finance</td>
+<td class="px-4 py-4">
+<p class="text-sm text-on-surface">11:45 AM</p>
+<p class="text-[10px] text-on-surface-variant">24 May 2024</p>
+</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-slate-200"></div>
+<span class="text-sm">Samantha L.</span>
+</div>
+</td>
+<td class="px-4 py-4 text-right">
+<span class="text-xs font-mono bg-surface-container px-2 py-1 rounded">TRK-8821992</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-high transition-colors">
+<td class="px-4 py-4">
+<p class="text-sm font-semibold text-on-surface">Toyota Axio WxB</p>
+</td>
+<td class="px-4 py-4 text-sm">People's Leasing</td>
+<td class="px-4 py-4">
+<p class="text-sm text-on-surface">09:15 AM</p>
+<p class="text-[10px] text-on-surface-variant">24 May 2024</p>
+</td>
+<td class="px-4 py-4">
+<div class="flex items-center gap-2">
+<div class="h-6 w-6 rounded-full bg-slate-200"></div>
+<span class="text-sm">Kasun D.</span>
+</div>
+</td>
+<td class="px-4 py-4 text-right">
+<span class="text-xs font-mono bg-surface-container px-2 py-1 rounded">TRK-8821445</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Side Panel Checklist -->
+<div class="xl:col-span-4 sticky top-24">
+<div class="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10 shadow-lg">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-black text-on-surface text-lg">Pre-Dispatch Checklist</h3>
+<button class="text-on-surface-variant">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="mb-6 p-4 bg-white rounded-lg border border-outline-variant/20">
+<div class="flex items-start gap-4">
+<div class="bg-primary/10 p-2 rounded text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-tighter">Current Selection</p>
+<p class="text-sm font-bold text-on-surface">Toyota Hilux 2023</p>
+<p class="text-xs text-on-surface-variant">Arjuna Perera | Alliance Finance</p>
+</div>
+</div>
+</div>
+<!-- Customer Documents -->
+<div class="mb-6">
+<p class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3 border-b border-outline-variant/20 pb-1">Customer Documents</p>
+<div class="space-y-2">
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">National Identity Card (NIC) Copy</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">Passport Size Photos (x2)</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">Proof of Residence (Utility Bill)</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">Income Verification Docs</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+</div>
+</div>
+<!-- Vehicle Documents -->
+<div class="mb-8">
+<p class="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3 border-b border-outline-variant/20 pb-1">Vehicle Documents</p>
+<div class="space-y-2">
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">Registration Book (Original)</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">Revenue License (Valid)</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">Insurance Certificate (MTA-6)</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+<label class="flex items-center gap-3 p-2 hover:bg-white/50 rounded transition-colors cursor-pointer group">
+<input checked="" class="h-4 w-4 rounded border-outline text-primary focus:ring-primary" type="checkbox"/>
+<span class="text-sm text-on-surface flex-1">MTA Forms (1, 6, 8) Signed</span>
+<span class="material-symbols-outlined text-tertiary opacity-0 group-hover:opacity-100 transition-opacity">verified</span>
+</label>
+</div>
+</div>
+<div class="space-y-3">
+<button class="w-full bg-primary text-white py-3 rounded-lg font-bold shadow-md hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">send</span>
+                                Finalize &amp; Dispatch
+                            </button>
+<button class="w-full bg-surface-container-highest text-on-surface-variant py-3 rounded-lg font-bold hover:bg-surface-container-high transition-all active:scale-95">
+                                Print Checksheet
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB for quick action (Suppressed on details, but keeping for dashboard feel) -->
+<button class="fixed bottom-8 right-8 h-14 w-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all z-[60]">
+<span class="material-symbols-outlined text-2xl">barcode_scanner</span>
+</button>
+</body></html>

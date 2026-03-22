@@ -1,177 +1,442 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lease Comparison - VA Motors VSMS</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    .comparison-inputs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
-    .comparison-inputs .form-group { margin-bottom:0; }
-    .comparison-table { width:100%; border-collapse:collapse; }
-    .comparison-table th, .comparison-table td { padding:10px 14px; text-align:center; border-bottom:1px solid var(--border-color); font-size:0.85rem; }
-    .comparison-table th { font-weight:600; color:var(--text-secondary); font-size:0.78rem; text-transform:uppercase; letter-spacing:0.04em; background:var(--bg-surface-hover); }
-    .comparison-table td:first-child, .comparison-table th:first-child { text-align:left; font-weight:600; color:var(--text-secondary); }
-    .comparison-table .best-col { background:rgba(22,163,74,0.04); border-left:2px solid var(--color-success); border-right:2px solid var(--color-success); }
-    .comparison-table .best-col-top { border-top:2px solid var(--color-success); border-top-left-radius:8px; border-top-right-radius:8px; }
-    .comparison-table .best-col-bottom { border-bottom:2px solid var(--color-success); border-bottom-left-radius:8px; border-bottom-right-radius:8px; }
-    .best-label { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; font-weight:700; color:var(--color-success); background:var(--status-in-stock-bg); padding:2px 8px; border-radius:4px; }
-    .excluded-company { opacity:0.5; }
-    .charges-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .result-banner { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:8px; background:var(--color-primary-light); margin-bottom:16px; font-size:0.88rem; }
-    .result-banner strong { font-weight:700; }
-  </style>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lease Comparison - VA Motors VSMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary-fixed": "#003798",
+              "on-tertiary-fixed": "#004e47",
+              "on-primary": "#f8f7ff",
+              "secondary-fixed": "#d3e4fe",
+              "inverse-surface": "#060e20",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary": "#f7f9ff",
+              "surface-variant": "#d9e2ff",
+              "outline-variant": "#98b1f2",
+              "on-error": "#fff7f6",
+              "on-primary-container": "#0048bf",
+              "secondary-container": "#d3e4fe",
+              "on-secondary-fixed": "#314055",
+              "surface-bright": "#faf8ff",
+              "primary-fixed": "#dbe1ff",
+              "error-container": "#fe8983",
+              "secondary-fixed-dim": "#c5d6f0",
+              "on-surface": "#113069",
+              "background": "#faf8ff",
+              "surface-container": "#eaedff",
+              "outline": "#6079b7",
+              "primary": "#0053db",
+              "primary-container": "#dbe1ff",
+              "error": "#9f403d",
+              "tertiary-fixed": "#91feef",
+              "error-dim": "#4e0309",
+              "on-primary-fixed-variant": "#0050d4",
+              "on-secondary-fixed-variant": "#4d5d73",
+              "surface": "#faf8ff",
+              "secondary": "#506076",
+              "surface-container-highest": "#d9e2ff",
+              "on-tertiary": "#e2fff9",
+              "on-secondary-container": "#435368",
+              "tertiary-dim": "#005e56",
+              "surface-container-low": "#f2f3ff",
+              "on-tertiary-container": "#006259",
+              "primary-dim": "#0048c1",
+              "secondary-dim": "#44546a",
+              "on-error-container": "#752121",
+              "on-surface-variant": "#445d99",
+              "tertiary": "#006b62",
+              "surface-container-high": "#e2e7ff",
+              "tertiary-container": "#91feef",
+              "surface-tint": "#0053db",
+              "on-background": "#113069",
+              "inverse-primary": "#618bff",
+              "tertiary-fixed-dim": "#83efe1",
+              "inverse-on-surface": "#959cb5",
+              "primary-fixed-dim": "#c7d3ff",
+              "surface-dim": "#cdd9ff",
+              "on-tertiary-fixed-variant": "#006d64"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
 </head>
-<body>
-  <div class="app-layout">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header"><img src="logo.jpeg" alt="VA Motors" class="sidebar-logo"><span class="sidebar-brand">VA Motors</span></div>
-      <nav class="sidebar-nav">
-        <div class="nav-section"><div class="nav-section-title">Main</div>
-          <a href="dashboard.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="nav-label">Dashboard</span></a>
-          <a href="vehicles.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="16" r="5"/><circle cx="12" cy="16" r="2"/><path d="M12 11V6"/><path d="M7 6h10l2 5"/><path d="M5 11l2-5"/></svg><span class="nav-label">Vehicles</span></a>
-          <a href="purchases.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="nav-label">Purchases</span></a>
-          <a href="sales.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Sales</span></a>
-          <a href="repairs.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg><span class="nav-label">Repairs</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Management</div>
-          <a href="customers.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Customers</span></a>
-          <a href="third-parties.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg><span class="nav-label">Third Parties</span></a>
-          <a href="reports.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span class="nav-label">Reports</span></a>
-          <a href="approvals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span class="nav-label">Approvals</span><span class="nav-badge">3</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Finance</div>
-          <a href="lease-reconciliation.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span class="nav-label">Reconciliation</span></a>
-          <a href="cash-flow.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span class="nav-label">Cash Flow</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">Brokerage</div>
-          <a href="lease-deals.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span class="nav-label">Lease Deals</span></a>
-          <a href="lease-comparison.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span class="nav-label">Comparison Tool</span></a>
-          <a href="lease-rate-sheets.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg><span class="nav-label">Rate Sheets</span></a>
-          <a href="lease-dispatch.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span class="nav-label">Dispatch</span></a>
-        </div>
-        <div class="nav-section"><div class="nav-section-title">System</div>
-          <a href="settings.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="nav-label">Settings</span></a>
-          <a href="users.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="nav-label">Users &amp; Roles</span></a>
-        </div>
-      </nav>
-    </aside>
-
-    <div class="main-content">
-      <header class="header">
-        <div class="header-left">
-          <button class="btn-sidebar-toggle"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-          <div><h1 class="page-title">Lease Comparison</h1><p class="page-subtitle">Compare finance options across companies</p></div>
-        </div>
-        <div class="header-right">
-          <button class="theme-toggle" onclick="toggleTheme()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Dark</button>
-          <div style="position:relative;"><button class="header-icon-btn" id="notificationBtn"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notification-dot"></span></button></div>
-          <div class="user-menu"><div class="user-avatar">KP</div><span class="user-name">Kamal</span></div>
-        </div>
-      </header>
-
-      <div class="page-content">
-        <!-- Input Section -->
-        <div class="card mb-16">
-          <div class="card-header"><h3 class="card-title">Vehicle &amp; Loan Details</h3></div>
-          <div class="card-body">
-            <div class="comparison-inputs">
-              <div class="form-group"><label class="form-label">Make</label><select class="form-select"><option>Honda</option><option>Yamaha</option><option>Bajaj</option><option>Suzuki</option><option>TVS</option></select></div>
-              <div class="form-group"><label class="form-label">Model</label><select class="form-select"><option>CB Hornet</option><option>Dio</option><option>Activa</option></select></div>
-              <div class="form-group"><label class="form-label">Year</label><select class="form-select"><option>2025</option><option>2024</option><option>2023</option><option>2022</option></select></div>
-              <div class="form-group"><label class="form-label">Requested Loan Amount (LKR)</label><input type="text" class="form-input" value="450,000"></div>
-              <div class="form-group"><label class="form-label">Period (Months)</label><input type="text" class="form-input" value="48" placeholder="Auto-calc if installment entered"></div>
-              <div class="form-group"><label class="form-label">Monthly Installment (LKR)</label><input type="text" class="form-input" placeholder="Auto-calc if period entered" value=""></div>
-            </div>
-            <div style="margin-top:16px;text-align:right;"><button class="btn btn-primary">Compare</button></div>
-          </div>
-        </div>
-
-        <!-- Results -->
-        <div class="result-banner">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          <span>Showing comparison for <strong>Honda CB Hornet 2025</strong> &mdash; Requested: <strong>Rs. 450,000</strong> for <strong>48 months</strong></span>
-        </div>
-
-        <!-- Max Loan Amounts -->
-        <div class="card mb-16">
-          <div class="card-header"><h3 class="card-title">Max Loan by Finance Company</h3></div>
-          <div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap;">
-            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;">
-              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">People's Leasing</div>
-              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 480,000</div>
-              <span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);font-size:0.7rem;">Eligible</span>
-            </div>
-            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;">
-              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">LOLC Finance</div>
-              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 450,000</div>
-              <span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);font-size:0.7rem;">Eligible</span>
-            </div>
-            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;opacity:0.6;">
-              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">HNB Finance</div>
-              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 420,000</div>
-              <span class="badge" style="background:var(--color-warning-light);color:var(--color-warning);font-size:0.7rem;">Below Requested</span>
-            </div>
-            <div style="flex:1;min-width:180px;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;">
-              <div style="font-size:0.78rem;color:var(--text-tertiary);font-weight:600;">Commercial Leasing</div>
-              <div style="font-size:1.1rem;font-weight:800;margin:4px 0;">Rs. 500,000</div>
-              <span class="badge" style="background:var(--status-in-stock-bg);color:var(--status-in-stock);font-size:0.7rem;">Eligible</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Side-by-side Comparison -->
-        <div class="card mb-16">
-          <div class="card-header"><h3 class="card-title">Side-by-Side Comparison</h3><span style="font-size:0.78rem;color:var(--text-tertiary);">HNB Finance excluded (max loan below requested)</span></div>
-          <div class="card-body" style="padding:0;">
-            <table class="comparison-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>People's Leasing</th>
-                  <th>LOLC Finance</th>
-                  <th class="best-col best-col-top">Commercial Leasing <span class="best-label">Best</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Max Loan</td><td>Rs. 480,000</td><td>Rs. 450,000</td><td class="best-col">Rs. 500,000</td></tr>
-                <tr><td>Loan Amount</td><td>Rs. 450,000</td><td>Rs. 450,000</td><td class="best-col">Rs. 450,000</td></tr>
-                <tr><td>Period</td><td>48 months</td><td>48 months</td><td class="best-col">48 months</td></tr>
-                <tr><td>Monthly Installment</td><td style="font-weight:700;">Rs. 12,450</td><td style="font-weight:700;">Rs. 12,800</td><td class="best-col" style="font-weight:700;">Rs. 12,150</td></tr>
-                <tr><td>Total Interest</td><td>Rs. 147,600</td><td>Rs. 164,400</td><td class="best-col">Rs. 133,200</td></tr>
-                <tr><td>Document Fees</td><td>Rs. 3,500</td><td>Rs. 4,000</td><td class="best-col">Rs. 3,000</td></tr>
-                <tr><td>Government Fees</td><td>Rs. 2,500</td><td>Rs. 2,500</td><td class="best-col">Rs. 2,500</td></tr>
-                <tr style="font-weight:800;font-size:0.95rem;"><td>Total Cost</td><td>Rs. 603,600</td><td>Rs. 620,900</td><td class="best-col" style="color:var(--color-success);font-weight:800;">Rs. 588,700</td></tr>
-                <tr>
-                  <td></td>
-                  <td><button class="btn btn-ghost btn-sm">Select</button></td>
-                  <td><button class="btn btn-ghost btn-sm">Select</button></td>
-                  <td class="best-col best-col-bottom"><button class="btn btn-primary btn-sm">Select</button></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Additional Charges (after selection) -->
-        <div class="card">
-          <div class="card-header"><h3 class="card-title">Additional Charges &mdash; Commercial Leasing</h3></div>
-          <div class="card-body">
-            <div class="charges-grid">
-              <div class="form-group"><label class="form-label">Document Fees</label><input type="text" class="form-input" value="3,000"></div>
-              <div class="form-group"><label class="form-label">Government Fees</label><input type="text" class="form-input" value="2,500"></div>
-              <div class="form-group"><label class="form-label">Processing Fee</label><input type="text" class="form-input" value="5,000"></div>
-              <div class="form-group"><label class="form-label">Other Charges</label><input type="text" class="form-input" value="0" placeholder="0"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:2px solid var(--text-primary);">
-              <div><span style="font-size:0.85rem;color:var(--text-secondary);">Total including charges:</span><br><span style="font-size:1.3rem;font-weight:800;">Rs. 598,700</span></div>
-              <button class="btn btn-primary"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Proceed to New Deal</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <script src="app.js"></script>
-</body>
-</html>
+<body class="bg-surface text-on-surface">
+<!-- Sidebar Navigation -->
+<aside class="fixed left-0 top-0 h-screen flex flex-col py-4 px-3 bg-slate-50 dark:bg-slate-900 w-64 border-r border-slate-200/50 dark:border-slate-800/50 font-inter text-sm antialiased z-50">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary font-bold">V</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">VSMS</h1>
+<p class="text-[10px] uppercase tracking-tighter text-on-surface-variant">VA Motors</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 overflow-y-auto pr-2">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Main</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="dashboard.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="vehicles.html">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Vehicles</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="purchases.html">
+<span class="material-symbols-outlined" data-icon="shopping_cart">shopping_cart</span>
+<span>Purchases</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="sales.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span>Sales</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="repairs.html">
+<span class="material-symbols-outlined" data-icon="build">build</span>
+<span>Repairs</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Management</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="customers.html">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="third-parties.html">
+<span class="material-symbols-outlined" data-icon="handshake">handshake</span>
+<span>Third Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="reports.html">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="approvals.html">
+<span class="material-symbols-outlined" data-icon="task_alt">task_alt</span>
+<span>Approvals</span>
+<span class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">3</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Finance</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-reconciliation.html">
+<span class="material-symbols-outlined" data-icon="account_balance">account_balance</span>
+<span>Reconciliation</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="cash-flow.html">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span>Cash Flow</span>
+</a>
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">Brokerage</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-deals.html">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span>Lease Deals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm rounded-md translate-x-1 transition-transform duration-200" href="lease-comparison.html">
+<span class="material-symbols-outlined" data-icon="compare">compare</span>
+<span>Comparison Tool</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-rate-sheets.html">
+<span class="material-symbols-outlined" data-icon="grid_on">grid_on</span>
+<span>Rate Sheets</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="lease-dispatch.html">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+<span>Dispatch</span>
+</a>
+<div class="pt-4 mt-4 border-t border-slate-200/50 dark:border-slate-800/50">
+<p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mt-4 mb-1">System</p>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="settings.html">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors" href="users.html">
+<span class="material-symbols-outlined" data-icon="manage_accounts">manage_accounts</span>
+<span>Users & Roles</span>
+</a>
+</div>
+</nav>
+</aside>
+<!-- Main Content Shell -->
+<main class="ml-64 min-h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="w-full h-16 sticky top-0 z-40 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md flex justify-between items-center px-8">
+<div class="flex items-center gap-4">
+<h2 class="text-lg font-black text-blue-900 dark:text-blue-200">Lease Comparison</h2>
+<div class="h-6 w-px bg-outline-variant/20"></div>
+<div class="relative">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">search</span>
+</span>
+<input class="bg-surface-container-low border-none rounded-md pl-10 pr-4 py-1.5 text-sm focus:ring-2 focus:ring-primary w-64" placeholder="Search comparisons..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">history</span>
+</button>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 transition-opacity">
+                    Export Table
+                </button>
+<img class="w-8 h-8 rounded-full border border-outline-variant/30" data-alt="Broker professional portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4nACD9CEfQAqAFas8W5-Dbm9kZ2cskmnfodB-oCCGND_D3EpPUIs_XaqBqCqcD081C6M5TWPZl3Sh8p7dLW0BjbRrU2OaL4RxlxypmHTAyQq1rnUE_lDZLXHnBUK8XwjlWjC1rJ_Lx0Y-or1T4EfCGJdHJaZ5LPCz0QiaequM_QCh5l5qTUeRwveqNOhRQ0aUkX9bcQ-myMX_6DCkDZ3IJeDofBCruwlFAuIOmC7YUOzTtpxtC9wik6eq1d-Sa8Xzku2vteXJ8Yo"/>
+</div>
+</header>
+<!-- Comparison Content -->
+<div class="p-8 flex-1 pb-32">
+<!-- Input Parameters Section (Bento Style) -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+<div class="md:col-span-1 bg-surface-container-low p-5 rounded-xl">
+<label class="block text-[0.6875rem] uppercase tracking-wider font-bold text-on-surface-variant mb-2">Vehicle Price</label>
+<div class="relative">
+<span class="absolute inset-y-0 left-3 flex items-center text-on-surface font-semibold">$</span>
+<input class="w-full bg-surface-container-lowest border-none rounded-lg pl-8 py-3 text-lg font-bold text-on-surface focus:ring-2 focus:ring-primary" type="text" value="45,000"/>
+</div>
+</div>
+<div class="md:col-span-1 bg-surface-container-low p-5 rounded-xl">
+<label class="block text-[0.6875rem] uppercase tracking-wider font-bold text-on-surface-variant mb-2">Down Payment (%)</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-lg font-bold text-on-surface focus:ring-2 focus:ring-primary text-center" type="text" value="20"/>
+<span class="absolute inset-y-0 right-3 flex items-center text-on-surface-variant font-medium">%</span>
+</div>
+</div>
+<div class="md:col-span-1 bg-surface-container-low p-5 rounded-xl">
+<label class="block text-[0.6875rem] uppercase tracking-wider font-bold text-on-surface-variant mb-2">Lease Term (Months)</label>
+<select class="w-full bg-surface-container-lowest border-none rounded-lg px-4 py-3 text-lg font-bold text-on-surface focus:ring-2 focus:ring-primary appearance-none">
+<option>36 Months</option>
+<option selected="">48 Months</option>
+<option>60 Months</option>
+</select>
+</div>
+<div class="md:col-span-1 bg-primary/5 p-5 border border-primary/20 rounded-xl flex flex-col justify-center">
+<p class="text-[0.6875rem] uppercase tracking-wider font-bold text-primary mb-1">Calculated Principal</p>
+<p class="text-2xl font-black text-primary">$36,000.00</p>
+</div>
+</section>
+<!-- Main Comparison Grid -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Card 1: People's Leasing -->
+<article class="bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden relative flex flex-col transition-all hover:translate-y-[-4px]">
+<div class="p-6 bg-surface-container-lowest border-b border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center font-black text-slate-800 text-xl border border-slate-200">
+                                PL
+                            </div>
+<span class="px-2 py-1 bg-tertiary-container text-on-tertiary-container text-[0.65rem] font-bold uppercase rounded-sm">Recommended</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-1">People's Leasing</h3>
+<p class="text-xs text-on-surface-variant">Tier 1 Financial Partner</p>
+</div>
+<div class="p-6 space-y-6 flex-1">
+<!-- Key Metrics -->
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-1">Base Rate</label>
+<p class="text-xl font-bold text-tertiary">11.25%</p>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-1">Processing Fee</label>
+<p class="text-xl font-bold text-on-surface">$250</p>
+</div>
+</div>
+<div class="bg-primary/5 p-4 rounded-lg border border-primary/10">
+<label class="block text-[0.65rem] uppercase text-primary font-black mb-1">Monthly Installment</label>
+<p class="text-3xl font-black text-primary">$895.42</p>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-2">Early Settlement</label>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-error">warning</span>
+<p class="text-sm font-medium text-on-surface">3% on remaining principal</p>
+</div>
+</div>
+<!-- Checklist -->
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-3">Document Requirements</label>
+<ul class="space-y-2">
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Identity Verification (KYC)
+                                </li>
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    3 Months Bank Statements
+                                </li>
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Guarantor Notarization
+                                </li>
+</ul>
+</div>
+</div>
+<div class="p-6 bg-surface-container-lowest">
+<button class="w-full bg-on-surface text-surface py-3 rounded-lg font-bold text-sm hover:opacity-90 active:scale-95 transition-all">
+                            Select Plan
+                        </button>
+</div>
+</article>
+<!-- Card 2: LOLC Finance -->
+<article class="bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden relative flex flex-col transition-all hover:translate-y-[-4px]">
+<div class="p-6 bg-surface-container-lowest border-b border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center font-black text-blue-900 text-xl border border-blue-100">
+                                LC
+                            </div>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-1">LOLC Finance</h3>
+<p class="text-xs text-on-surface-variant">High Flexibility Provider</p>
+</div>
+<div class="p-6 space-y-6 flex-1">
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-1">Base Rate</label>
+<p class="text-xl font-bold text-on-surface">12.50%</p>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-1">Processing Fee</label>
+<p class="text-xl font-bold text-on-surface">$150</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/20">
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-black mb-1">Monthly Installment</label>
+<p class="text-3xl font-black text-on-surface">$918.75</p>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-2">Early Settlement</label>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-tertiary">check_circle</span>
+<p class="text-sm font-medium text-on-surface">1% Penalty Only</p>
+</div>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-3">Document Requirements</label>
+<ul class="space-y-2">
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Identity Verification (KYC)
+                                </li>
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Last Salary Slip
+                                </li>
+<li class="flex items-center gap-2 text-xs font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-xs">close</span>
+                                    No Guarantor Required
+                                </li>
+</ul>
+</div>
+</div>
+<div class="p-6 bg-surface-container-lowest">
+<button class="w-full bg-surface-container-high text-on-surface py-3 rounded-lg font-bold text-sm hover:bg-surface-variant active:scale-95 transition-all">
+                            Select Plan
+                        </button>
+</div>
+</article>
+<!-- Card 3: HNB Finance -->
+<article class="bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden relative flex flex-col transition-all hover:translate-y-[-4px]">
+<div class="p-6 bg-surface-container-lowest border-b border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<div class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center font-black text-amber-800 text-xl border border-amber-100">
+                                HB
+                            </div>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-1">HNB Finance</h3>
+<p class="text-xs text-on-surface-variant">Institutional Partner</p>
+</div>
+<div class="p-6 space-y-6 flex-1">
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-1">Base Rate</label>
+<p class="text-xl font-bold text-on-surface">11.85%</p>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-1">Processing Fee</label>
+<p class="text-xl font-bold text-on-surface">$300</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-4 rounded-lg border border-outline-variant/20">
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-black mb-1">Monthly Installment</label>
+<p class="text-3xl font-black text-on-surface">$904.20</p>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-2">Early Settlement</label>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-error">warning</span>
+<p class="text-sm font-medium text-on-surface">No Early Settlement Allowed</p>
+</div>
+</div>
+<div>
+<label class="block text-[0.65rem] uppercase text-on-surface-variant font-bold mb-3">Document Requirements</label>
+<ul class="space-y-2">
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Full Tax Records
+                                </li>
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Business License (If applicable)
+                                </li>
+<li class="flex items-center gap-2 text-xs font-medium">
+<span class="material-symbols-outlined text-xs text-tertiary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Asset Valuation Report
+                                </li>
+</ul>
+</div>
+</div>
+<div class="p-6 bg-surface-container-lowest">
+<button class="w-full bg-surface-container-high text-on-surface py-3 rounded-lg font-bold text-sm hover:bg-surface-variant active:scale-95 transition-all">
+                            Select Plan
+                        </button>
+</div>
+</article>
+</section>
+</div>
+<!-- Sticky Bottom Strip -->
+<footer class="fixed bottom-0 left-64 right-0 h-20 bg-on-surface text-surface z-50 flex items-center justify-between px-12 border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+<div class="flex items-center gap-12">
+<div class="flex flex-col">
+<span class="text-[0.6rem] uppercase tracking-widest font-black opacity-60">Brokerage Commission</span>
+<span class="text-xl font-black text-tertiary-fixed-dim">$1,200.00</span>
+</div>
+<div class="flex flex-col border-l border-white/10 pl-12">
+<span class="text-[0.6rem] uppercase tracking-widest font-black opacity-60">Admin &amp; Service Fees</span>
+<span class="text-xl font-black">$450.00</span>
+</div>
+<div class="flex flex-col border-l border-white/10 pl-12">
+<span class="text-[0.6rem] uppercase tracking-widest font-black opacity-60">Total Deal Revenue</span>
+<span class="text-2xl font-black text-primary-fixed-dim">$1,650.00</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="px-6 py-3 border border-white/20 rounded-lg text-sm font-bold hover:bg-white/5 transition-colors uppercase tracking-tight">
+                    Save Draft
+                </button>
+<button class="px-8 py-3 bg-primary text-white rounded-lg text-sm font-black hover:opacity-90 active:scale-95 transition-all uppercase tracking-tight shadow-lg shadow-primary/20">
+                    Finalize Application
+                </button>
+</div>
+</footer>
+</main>
+<!-- Visual Polish: Soft Backdrop Tints -->
+<div class="fixed top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 blur-[120px] pointer-events-none rounded-full"></div>
+<div class="fixed bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-tertiary/5 blur-[100px] pointer-events-none rounded-full"></div>
+</body></html>
