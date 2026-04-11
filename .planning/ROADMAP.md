@@ -43,7 +43,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 00.1-01-PLAN.md — Project scaffold, dependencies, root layout, providers, error pages
 - [x] 00.1-02-PLAN.md — Mock data Zod schemas, fixture files, in-memory store, utilities
-- [ ] 00.1-03-PLAN.md — App shell (sidebar + topbar + command palette), login, dashboard
+- [x] 00.1-03-PLAN.md — App shell (sidebar + topbar + command palette), login, dashboard
 - [ ] 00.1-04-PLAN.md — Shared components (data-table-shell, status-badge, empty-state, file-dropzone)
 - [ ] 00.1-05-PLAN.md — Vehicles list/detail + Purchases form (3 tabs)
 - [ ] 00.1-06-PLAN.md — Sales list/detail + Repairs list
