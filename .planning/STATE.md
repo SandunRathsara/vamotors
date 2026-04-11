@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: "Completed quick-260322-tpo: Review and update UI designs from Stitch"
-last_updated: "2026-03-22T16:01:50.164Z"
-last_activity: 2026-03-21 — Roadmap created, ready for Phase 1 planning
+stopped_at: Phase 0.1 context gathered
+last_updated: "2026-04-11T09:40:25.070Z"
+last_activity: "2026-03-22 - Completed quick task 260322-tpo: Review and update UI designs from Stitch mockups"
 progress:
   total_phases: 11
   completed_phases: 0
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Every vehicle's complete financial story — purchase cost, repairs, additional costs, sale price, and profit — must be accurate, traceable, and instantly available.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 0.1 — Frontend Shell Migration (runs before Phase 1)
 
 ## Current Position
 
-Phase: 1 of 11 (Foundation)
+Phase: 0.1 of 11 (Frontend Shell Migration)
 Plan: 0 of 5 in current phase
 Status: Ready to plan
 Last activity: 2026-03-22 - Completed quick task 260322-tpo: Review and update UI designs from Stitch mockups
@@ -68,7 +68,9 @@ None yet.
 
 ### Roadmap Evolution
 
-- Phase 11 added: Review and update UI designs from Stitch mockups
+- Quick task 260322-tpo completed: Review and update UI designs from Stitch mockups (was mislabeled as "Phase 11 added")
+- Phase 11 added then removed: Frontend Shell Migration was initially appended as Phase 11 before being moved to its intended placement
+- Phase 0.1 inserted before Phase 1: Frontend Shell Migration — HTML/CSS wireframes to Next.js + shadcn/ui. Runs before Foundation so the client can approve UI before any backend work. Decimal numbering used (0.1) to avoid renumbering Phases 1-10. NOTE: /gsd-insert-phase CLI does not support "after 0", so this was placed manually — directory, ROADMAP.md entry, and STATE.md all hand-edited
 
 ### Quick Tasks Completed
 
@@ -86,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-22T16:01:50.161Z
-Stopped at: Completed quick-260322-tpo: Review and update UI designs from Stitch
-Resume file: None
+Last session: 2026-04-11T09:40:25.067Z
+Stopped at: Phase 0.1 context gathered
+Resume file: .planning/phases/00.1-frontend-shell-migration-html-css-wireframes-to-next-js-shadcn-ui/00.1-CONTEXT.md
