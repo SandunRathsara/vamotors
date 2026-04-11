@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 00.1-03-PLAN.md
-last_updated: "2026-04-11T15:35:20.207Z"
+stopped_at: Completed 00.1-04-PLAN.md
+last_updated: "2026-04-11T15:39:48.041Z"
 last_activity: 2026-04-11
 progress:
   total_phases: 11
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 00.1 (frontend-shell-migration-html-css-wireframes-to-next-js-shadcn-ui) — EXECUTING
-Plan: 3 of 11
+Plan: 4 of 11
 Status: Ready to execute
 Last activity: 2026-04-11
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 00.1 P02 | 40 | 2 tasks | 19 files |
 | Phase 00.1 P03 | 252 | 3 tasks | 20 files |
+| Phase 00.1 P04 | 25 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,7 @@ Recent decisions affecting current work:
 - [Phase 00.1]: Sale status enum does not include Delivered — Vehicle.status=Delivered is a vehicle lifecycle state; Sale.status ends at DOReceived for lease finance sales
 - [Phase 00.1]: CommandMenu accepts controlled open/onOpenChange props so Header can trigger it from search input click as well as Cmd+K
 - [Phase 00.1]: Dashboard client components share queryKey ['dashboard'] so TanStack Query deduplicates the single fetch
+- [Phase 00.1]: DataTableShell uses toolbarChildren slot; StatusBadge uses flat status→style lookup map
 
 ### Pending Todos
 
@@ -93,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T15:35:20.205Z
-Stopped at: Completed 00.1-03-PLAN.md
+Last session: 2026-04-11T15:39:43.409Z
+Stopped at: Completed 00.1-04-PLAN.md
 Resume file: None
