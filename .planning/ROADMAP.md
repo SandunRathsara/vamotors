@@ -12,6 +12,7 @@ VSMS delivers VA Motors a complete digital operations platform across ten phases
 
 Decimal phases appear between their surrounding integers in numeric order.
 
+- [ ] **Phase 0.1: Frontend Shell Migration** - Migrate reviewed HTML/CSS wireframes (quick-260322-tpo) into Next.js 15 + shadcn/ui + Tailwind v4 as a clickable static frontend with mock data — client sign-off on UI before feature work begins
 - [ ] **Phase 1: Foundation** - Project scaffold, auth, CASL permissions, audit infrastructure, layout shell, dashboard, user management, PWA
 - [ ] **Phase 2: Vehicle Lifecycle** - Vehicle purchase (3 channels), 10-state status machine, repairs, suppliers, mileage, additional costs, cost basis
 - [ ] **Phase 3: Vehicle Sales** - All four sale types (cash, advance, lease/finance, trade-in), customer management, R2 file upload, advance expiry cron, profit calculation
@@ -24,6 +25,23 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 10: Historical Data Import** - One-time CSV/Excel import for all entity types, validation-first, atomic per batch
 
 ## Phase Details
+
+### Phase 0.1: Frontend Shell Migration — HTML/CSS wireframes to Next.js + shadcn/ui
+
+**Goal**: A clickable, production-stack frontend shell derived from the reviewed Stitch wireframes that the client can sign off on before any backend feature work begins. Pure UI layer with mock data — no auth, no DB, no business logic.
+**Depends on**: Nothing (runs before Phase 1)
+**Requirements**: TBD (derive during planning from wireframe inventory)
+**Success Criteria** (what must be TRUE):
+  1. Pre-migration audit confirms every reviewed wireframe is present, consistent, and free of broken references (output: wireframe inventory list with pass/fail per screen)
+  2. Next.js 15 App Router project scaffolds cleanly on pnpm with TypeScript, Tailwind v4, and shadcn/ui initialized — `pnpm dev` serves the home route
+  3. Every reviewed wireframe in `design/*.html` has a corresponding route in the Next.js app and renders with the radix-vega preset tokens (`--background`, `--foreground`, `--primary`, `--sidebar-*`, `--chart-*`). Wireframes serve as information-architecture references (screen inventory, sections, columns, form fields, link targets) — not visual references
+  4. Shared layout shell (sidebar, topbar, theme provider) is reused across all authenticated routes and matches the wireframe specification
+  5. Navigation flows between screens are clickable end-to-end using mock data fixtures — no dead links, no 404s on the reviewed screen list
+  6. Client can run the app locally (or on a preview deploy) and approve/reject UI without seeing backend errors
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 0.1 to break down)
 
 ### Phase 1: Foundation
 **Goal**: A working, deployable application skeleton that every subsequent phase builds on — with authentication, permission enforcement, audit infrastructure, currency utilities, and a navigable UI shell
