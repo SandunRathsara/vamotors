@@ -1,7 +1,7 @@
 import type {
   Vehicle, Customer, Sale, Repair, Approval, ThirdParty,
   LeaseDeal, Notification, User, CashFlowEntry,
-  LeaseDispatch, LeaseReconciliation, Settings, PaginatedResponse,
+  LeaseDispatch, LeaseReconciliation, LeaseRateSheet, Settings, PaginatedResponse,
 } from "./mock-data/schemas"
 import { vehicleFixtures } from "./mock-data/vehicles"
 import { customerFixtures } from "./mock-data/customers"
@@ -16,6 +16,7 @@ import { settingsFixture } from "./mock-data/settings"
 import { cashFlowFixtures } from "./mock-data/cash-flow"
 import { leaseDispatchFixtures } from "./mock-data/lease-dispatch"
 import { leaseReconciliationFixtures } from "./mock-data/lease-reconciliation"
+import { leaseRateSheetsFixtures } from "./mock-data/lease-rate-sheets"
 
 // ── Generic CRUD store ────────────────────────────────────────────────────────
 
@@ -143,4 +144,5 @@ export const usersStore = new MockStore<User>(usersFixtures)
 export const cashFlowStore = new MockStore<CashFlowEntry>(cashFlowFixtures)
 export const leaseDispatchStore = new MockStore<LeaseDispatch>(leaseDispatchFixtures)
 export const leaseReconciliationStore = new MockStore<LeaseReconciliation>(leaseReconciliationFixtures)
+export const leaseRateSheetsStore = new MockStore<LeaseRateSheet>(leaseRateSheetsFixtures)
 export const settingsStore = new SettingsStore(settingsFixture)
