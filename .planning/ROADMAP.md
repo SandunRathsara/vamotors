@@ -45,7 +45,7 @@ Plans:
 - [x] 00.1-02-PLAN.md — Mock data Zod schemas, fixture files, in-memory store, utilities
 - [x] 00.1-03-PLAN.md — App shell (sidebar + topbar + command palette), login, dashboard
 - [x] 00.1-04-PLAN.md — Shared components (data-table-shell, status-badge, empty-state, file-dropzone)
-- [ ] 00.1-05-PLAN.md — Vehicles list/detail + Purchases form (3 tabs)
+- [x] 00.1-05-PLAN.md — Vehicles list/detail + Purchases form (3 tabs)
 - [ ] 00.1-06-PLAN.md — Sales list/detail + Repairs list
 - [ ] 00.1-07-PLAN.md — Customers list/detail + Third-parties list/detail (3 type variants)
 - [ ] 00.1-08-PLAN.md — Approvals + Users + Settings

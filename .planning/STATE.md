@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 00.1-04-PLAN.md
-last_updated: "2026-04-11T15:39:48.041Z"
-last_activity: 2026-04-11
+stopped_at: Completed 00.1-05-PLAN.md
+last_updated: "2026-04-12T02:51:55.386Z"
+last_activity: 2026-04-12
 progress:
   total_phases: 11
   completed_phases: 0
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 00.1 (frontend-shell-migration-html-css-wireframes-to-next-js-shadcn-ui) — EXECUTING
-Plan: 4 of 11
+Plan: 5 of 11
 Status: Ready to execute
-Last activity: 2026-04-11
+Last activity: 2026-04-12
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 00.1 P02 | 40 | 2 tasks | 19 files |
 | Phase 00.1 P03 | 252 | 3 tasks | 20 files |
 | Phase 00.1 P04 | 25 | 2 tasks | 10 files |
+| Phase 00.1 P05 | 45 | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 00.1]: CommandMenu accepts controlled open/onOpenChange props so Header can trigger it from search input click as well as Cmd+K
 - [Phase 00.1]: Dashboard client components share queryKey ['dashboard'] so TanStack Query deduplicates the single fetch
 - [Phase 00.1]: DataTableShell uses toolbarChildren slot; StatusBadge uses flat status→style lookup map
+- [Phase 00.1]: TanStack Form v1 useForm type inference: omit explicit generic, use typed EMPTY_VALUES constant
+- [Phase 00.1]: PurchaseBody extends Partial<Vehicle> with mileageAtPurchase for route handler
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-11T15:39:43.409Z
-Stopped at: Completed 00.1-04-PLAN.md
+Last session: 2026-04-12T02:51:55.383Z
+Stopped at: Completed 00.1-05-PLAN.md
 Resume file: None
