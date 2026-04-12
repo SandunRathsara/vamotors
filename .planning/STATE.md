@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 00.1-06-PLAN.md
-last_updated: "2026-04-12T02:58:52.302Z"
+stopped_at: Completed 00.1-07-PLAN.md
+last_updated: "2026-04-12T03:06:50.593Z"
 last_activity: 2026-04-12
 progress:
   total_phases: 11
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 00.1 (frontend-shell-migration-html-css-wireframes-to-next-js-shadcn-ui) — EXECUTING
-Plan: 6 of 11
+Plan: 7 of 11
 Status: Ready to execute
 Last activity: 2026-04-12
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 00.1 P04 | 25 | 2 tasks | 10 files |
 | Phase 00.1 P05 | 45 | 3 tasks | 14 files |
 | Phase 00.1 P06 | 25 | 3 tasks | 17 files |
+| Phase 00.1 P07 | 30 | 2 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Recent decisions affecting current work:
 - [Phase 00.1]: PurchaseBody extends Partial<Vehicle> with mileageAtPurchase for route handler
 - [Phase 00.1]: Sales and Repairs pages use 'use client' because RecordSaleDialog and SendRepairDialog state must coexist with PageHeader CTA in the same component
 - [Phase 00.1]: Date range filtering in /api/sales implemented as post-query filter on full dataset before re-pagination to support cross-field date comparisons
+- [Phase 00.1]: Column factory pattern for third-parties-columns — createThirdPartiesColumns(onArchive) injects archive callback so Dialog state lives in ThirdPartiesTable not ColumnDef
+- [Phase 00.1]: Type-based dynamic detail rendering (D-14) implemented in ThirdPartyDetailView — single route, 3 layout branches by tp.type field
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T02:58:52.300Z
-Stopped at: Completed 00.1-06-PLAN.md
+Last session: 2026-04-12T03:06:50.589Z
+Stopped at: Completed 00.1-07-PLAN.md
 Resume file: None
