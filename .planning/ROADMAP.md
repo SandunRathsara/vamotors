@@ -49,7 +49,7 @@ Plans:
 - [x] 00.1-06-PLAN.md — Sales list/detail + Repairs list
 - [x] 00.1-07-PLAN.md — Customers list/detail + Third-parties list/detail (3 type variants)
 - [x] 00.1-08-PLAN.md — Approvals + Users + Settings
-- [ ] 00.1-09-PLAN.md — Reports hub + 7 report screens + Cash flow
+- [x] 00.1-09-PLAN.md — Reports hub + 7 report screens + Cash flow
 - [ ] 00.1-10-PLAN.md — Lease screens (deals, comparison, rate-sheets, dispatch, reconciliation)
 - [ ] 00.1-11-PLAN.md — README + notifications API + end-to-end verification checkpoint
 
