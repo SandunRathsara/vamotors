@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 00.1-07-PLAN.md
-last_updated: "2026-04-12T03:06:50.593Z"
+stopped_at: Completed 00.1-08-PLAN.md
+last_updated: "2026-04-12T03:13:43.211Z"
 last_activity: 2026-04-12
 progress:
   total_phases: 11
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 00.1 (frontend-shell-migration-html-css-wireframes-to-next-js-shadcn-ui) — EXECUTING
-Plan: 7 of 11
+Plan: 8 of 11
 Status: Ready to execute
 Last activity: 2026-04-12
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 00.1 P05 | 45 | 3 tasks | 14 files |
 | Phase 00.1 P06 | 25 | 3 tasks | 17 files |
 | Phase 00.1 P07 | 30 | 2 tasks | 20 files |
+| Phase 00.1 P08 | 20 | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase 00.1]: Date range filtering in /api/sales implemented as post-query filter on full dataset before re-pagination to support cross-field date comparisons
 - [Phase 00.1]: Column factory pattern for third-parties-columns — createThirdPartiesColumns(onArchive) injects archive callback so Dialog state lives in ThirdPartiesTable not ColumnDef
 - [Phase 00.1]: Type-based dynamic detail rendering (D-14) implemented in ThirdPartyDetailView — single route, 3 layout branches by tp.type field
+- [Phase 00.1]: Columns factory function used for approvals to thread action callback from page through table to columns without prop drilling
+- [Phase 00.1]: Settings fetched via useEntityQuery (flat GET) not useEntityDetail, since /api/settings has no [id] segment
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-12T03:06:50.589Z
-Stopped at: Completed 00.1-07-PLAN.md
+Last session: 2026-04-12T03:13:43.208Z
+Stopped at: Completed 00.1-08-PLAN.md
 Resume file: None
