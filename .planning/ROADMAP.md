@@ -51,7 +51,7 @@ Plans:
 - [x] 00.1-08-PLAN.md — Approvals + Users + Settings
 - [x] 00.1-09-PLAN.md — Reports hub + 7 report screens + Cash flow
 - [x] 00.1-10-PLAN.md — Lease screens (deals, comparison, rate-sheets, dispatch, reconciliation)
-- [ ] 00.1-11-PLAN.md — README + notifications API + end-to-end verification checkpoint
+- [x] 00.1-11-PLAN.md — README + notifications API + end-to-end verification checkpoint
 
 ### Phase 1: Foundation
 **Goal**: A working, deployable application skeleton that every subsequent phase builds on — with authentication, permission enforcement, audit infrastructure, currency utilities, and a navigable UI shell
