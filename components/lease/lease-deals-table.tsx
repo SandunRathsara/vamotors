@@ -73,7 +73,7 @@ export function LeaseDealsTable() {
     setIsSubmitting(true)
     const fd = new FormData(e.currentTarget)
     const payload = {
-      customerId: "c-001",
+      customerId: fd.get("customerId") as string,
       vehicleDescription: fd.get("vehicleDescription") as string,
       financeCompanyId: fd.get("financeCompanyId") as string,
       dealType: fd.get("dealType") as string,
@@ -137,6 +137,15 @@ export function LeaseDealsTable() {
           </SheetHeader>
           <div className="px-1 pb-4">
             <form id="new-lease-deal-form" onSubmit={(e) => void handleCreateDeal(e)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="customerId">Customer ID</Label>
+                <Input
+                  id="customerId"
+                  name="customerId"
+                  placeholder="e.g. c-001"
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="vehicleDescription">Vehicle Description</Label>
                 <Input
