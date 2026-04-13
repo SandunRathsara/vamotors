@@ -5,12 +5,9 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "@/components/layout/providers"
 import { Toaster } from "@/components/ui/sonner"
+import { cn } from "@/lib/utils";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-})
+const inter = Inter({subsets:['latin'],variable:'--font-sans'})
 
 export const metadata: Metadata = {
   title: "VSMS — VA Motors",
@@ -23,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
       <body className={inter.variable}>
         <ThemeProvider>
           <Providers>
