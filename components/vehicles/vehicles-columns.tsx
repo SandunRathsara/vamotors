@@ -33,6 +33,7 @@ export const vehicleColumns: ColumnDef<Vehicle>[] = [
     id: "makeModel",
     header: "Make / Model",
     accessorFn: (row) => `${row.make} ${row.model}`,
+    meta: { label: "Make / Model" },
     cell: ({ row }) => (
       <Link
         href={`/vehicles/${row.original.id}`}
@@ -47,6 +48,7 @@ export const vehicleColumns: ColumnDef<Vehicle>[] = [
     id: "year",
     accessorKey: "year",
     header: "Year",
+    meta: { label: "Year" },
     cell: ({ row }) => (
       <span className="text-sm tabular-nums">{row.original.year}</span>
     ),
@@ -82,6 +84,7 @@ export const vehicleColumns: ColumnDef<Vehicle>[] = [
     id: "listedPrice",
     accessorKey: "listedPrice",
     header: "Listed Price",
+    meta: { label: "Listed Price" },
     cell: ({ row }) => <CurrencyDisplay amount={row.original.listedPrice} />,
     enableSorting: true,
   },
@@ -89,6 +92,7 @@ export const vehicleColumns: ColumnDef<Vehicle>[] = [
     id: "costBasis",
     accessorKey: "costBasis",
     header: "Cost Basis",
+    meta: { label: "Cost Basis" },
     cell: ({ row }) => <CurrencyDisplay amount={row.original.costBasis} />,
     enableSorting: true,
   },
@@ -96,6 +100,7 @@ export const vehicleColumns: ColumnDef<Vehicle>[] = [
     id: "purchaseDate",
     accessorKey: "purchaseDate",
     header: "Purchase Date",
+    meta: { label: "Purchase Date" },
     cell: ({ row }) => {
       try {
         return (

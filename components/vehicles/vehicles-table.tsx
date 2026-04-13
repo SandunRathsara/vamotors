@@ -1,47 +1,34 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 
 import type { PaginatedResponse, Vehicle } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
-import { DataTableShell } from "@/components/shared/data-table-shell"
+import { DataTableShell, type DataTableState } from "@/components/shared/data-table-shell"
 import { vehicleColumns } from "./vehicles-columns"
 
 export function VehiclesTable() {
-  const router = useRouter()
-
-  const [params, setParams] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    pageSize: parseAsInteger.withDefault(20),
-    q: parseAsString.withDefault(""),
-    status: parseAsString.withDefault(""),
-    sortBy: parseAsString.withDefault(""),
-    sortDir: parseAsString.withDefault("asc"),
+  const [tableState, setTableState] = React.useState<DataTableState>({
+    page: 1,
+    perPage: 20,
+    sortBy: "",
+    sortDir: "asc",
   })
 
   const { data, isLoading } = useEntityQuery<PaginatedResponse<Vehicle>>(
     "vehicles",
     "/api/vehicles",
     {
-      page: params.page,
-      pageSize: params.pageSize,
-      q: params.q || undefined,
-      status: params.status || undefined,
-      sortBy: params.sortBy || undefined,
-      sortDir: params.sortDir || undefined,
+      page: tableState.page,
+      pageSize: tableState.perPage,
+      sortBy: tableState.sortBy || undefined,
+      sortDir: tableState.sortDir || undefined,
     },
   )
 
   const vehicles = data?.data ?? []
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / params.pageSize))
-  const isFiltered = Boolean(params.q || params.status)
-
-  function handleClearFilters() {
-    void setParams({ q: "", status: "", page: 1 })
-  }
+  const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
   if (isLoading && vehicles.length === 0) {
     return (
@@ -56,13 +43,11 @@ export function VehiclesTable() {
       columns={vehicleColumns}
       data={vehicles}
       pageCount={pageCount}
-      searchPlaceholder="Search vehicles..."
       emptyState={{
         heading: "No vehicles in inventory",
         body: "Record a purchase to add the first vehicle.",
       }}
-      isFiltered={isFiltered}
-      onClearFilters={handleClearFilters}
+      onStateChange={setTableState}
     />
   )
 }
