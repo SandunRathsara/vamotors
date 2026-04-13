@@ -9,12 +9,12 @@ import { useEntityQuery } from "@/hooks/use-entity-query"
 import { DataTableShell } from "@/components/shared/data-table-shell"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -143,66 +143,69 @@ export function LeaseDealsTable() {
         }
       />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New Lease Deal</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => void handleCreateDeal(e)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="vehicleDescription">Vehicle Description</Label>
-              <Input
-                id="vehicleDescription"
-                name="vehicleDescription"
-                placeholder="e.g. Toyota Axio 2020 White"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="financeCompanyId">Finance Company ID</Label>
-              <Input
-                id="financeCompanyId"
-                name="financeCompanyId"
-                placeholder="e.g. tp-023"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dealType">Deal Type</Label>
-              <Select name="dealType" defaultValue="ApplicationProcessing">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DEAL_TYPE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="loanAmount">Loan Amount (LKR cents)</Label>
-              <Input
-                id="loanAmount"
-                name="loanAmount"
-                type="number"
-                placeholder="e.g. 30000000"
-                required
-              />
-            </div>
-            <DialogFooter>
+      <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+        <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>New Lease Deal</SheetTitle>
+            <SheetDescription>Create a new lease or finance deal</SheetDescription>
+          </SheetHeader>
+          <div className="px-1 pb-4">
+            <form id="new-lease-deal-form" onSubmit={(e) => void handleCreateDeal(e)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="vehicleDescription">Vehicle Description</Label>
+                <Input
+                  id="vehicleDescription"
+                  name="vehicleDescription"
+                  placeholder="e.g. Toyota Axio 2020 White"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="financeCompanyId">Finance Company ID</Label>
+                <Input
+                  id="financeCompanyId"
+                  name="financeCompanyId"
+                  placeholder="e.g. tp-023"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dealType">Deal Type</Label>
+                <Select name="dealType" defaultValue="ApplicationProcessing">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEAL_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="loanAmount">Loan Amount (LKR cents)</Label>
+                <Input
+                  id="loanAmount"
+                  name="loanAmount"
+                  type="number"
+                  placeholder="e.g. 30000000"
+                  required
+                />
+              </div>
+            </form>
+            <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" form="new-lease-deal-form" disabled={isSubmitting}>
                 {isSubmitting ? "Creating..." : "Create Lease Deal"}
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   )
 }

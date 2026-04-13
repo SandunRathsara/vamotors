@@ -11,12 +11,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -208,37 +208,40 @@ export function DispatchTables() {
         </Card>
       </div>
 
-      {/* Mark Dispatched dialog */}
-      <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => { if (!open) setSelectedItem(null) }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Mark as Dispatched</DialogTitle>
-          </DialogHeader>
-          {selectedItem && (
-            <div className="space-y-4">
-              <div className="rounded-md bg-muted/50 p-3 space-y-1">
-                <p className="text-sm font-semibold">{selectedItem.customerName}</p>
-                <p className="text-xs text-muted-foreground">{selectedItem.fileNumber} · {selectedItem.financeCompanyName}</p>
+      {/* Mark Dispatched sheet */}
+      <Sheet open={Boolean(selectedItem)} onOpenChange={(open) => { if (!open) setSelectedItem(null) }}>
+        <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Mark as Dispatched</SheetTitle>
+            <SheetDescription>Confirm document dispatch and add a tracking number</SheetDescription>
+          </SheetHeader>
+          <div className="px-1 pb-4">
+            {selectedItem && (
+              <div className="space-y-4">
+                <div className="rounded-md bg-muted/50 p-3 space-y-1">
+                  <p className="text-sm font-semibold">{selectedItem.customerName}</p>
+                  <p className="text-xs text-muted-foreground">{selectedItem.fileNumber} · {selectedItem.financeCompanyName}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="trackingNumber">Tracking Number (optional)</Label>
+                  <Input
+                    id="trackingNumber"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value)}
+                    placeholder="e.g. SPL-DISP-1234"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="trackingNumber">Tracking Number (optional)</Label>
-                <Input
-                  id="trackingNumber"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="e.g. SPL-DISP-1234"
-                />
-              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setSelectedItem(null)}>Cancel</Button>
+              <Button onClick={handleConfirmDispatch} disabled={isPending}>
+                {isPending ? "Dispatching..." : "Confirm Dispatch"}
+              </Button>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedItem(null)}>Cancel</Button>
-            <Button onClick={handleConfirmDispatch} disabled={isPending}>
-              {isPending ? "Dispatching..." : "Confirm Dispatch"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   )
 }

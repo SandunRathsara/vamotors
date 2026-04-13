@@ -6,12 +6,12 @@ import { vehicleFixtures } from "@/lib/mock-data/vehicles"
 import { thirdPartiesFixtures } from "@/lib/mock-data/third-parties"
 import { useEntityMutation } from "@/hooks/use-entity-mutation"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -79,82 +79,83 @@ export function SendRepairDialog({ open, onOpenChange }: SendRepairDialogProps) 
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Send for Repair</DialogTitle>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Send for Repair</SheetTitle>
+          <SheetDescription>Send a vehicle to a repair vendor</SheetDescription>
+        </SheetHeader>
+        <div className="px-1 pb-4">
+          <form id="send-repair-form" onSubmit={handleSubmit} className="space-y-4">
+            {/* Vehicle */}
+            <div className="space-y-1.5">
+              <Label htmlFor="repair-vehicle" className="text-xs font-normal">Vehicle</Label>
+              <Select value={vehicleId} onValueChange={setVehicleId} required>
+                <SelectTrigger id="repair-vehicle">
+                  <SelectValue placeholder="Select vehicle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {repairableVehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.make} {v.model} {v.year} — {v.colour}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Vehicle */}
-          <div className="space-y-1.5">
-            <Label htmlFor="repair-vehicle" className="text-xs font-normal">Vehicle</Label>
-            <Select value={vehicleId} onValueChange={setVehicleId} required>
-              <SelectTrigger id="repair-vehicle">
-                <SelectValue placeholder="Select vehicle" />
-              </SelectTrigger>
-              <SelectContent>
-                {repairableVehicles.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.make} {v.model} {v.year} — {v.colour}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Vendor */}
+            <div className="space-y-1.5">
+              <Label htmlFor="repair-vendor" className="text-xs font-normal">Repair Vendor</Label>
+              <Select value={vendorId} onValueChange={setVendorId} required>
+                <SelectTrigger id="repair-vendor">
+                  <SelectValue placeholder="Select vendor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {repairVendors.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Vendor */}
-          <div className="space-y-1.5">
-            <Label htmlFor="repair-vendor" className="text-xs font-normal">Repair Vendor</Label>
-            <Select value={vendorId} onValueChange={setVendorId} required>
-              <SelectTrigger id="repair-vendor">
-                <SelectValue placeholder="Select vendor" />
-              </SelectTrigger>
-              <SelectContent>
-                {repairVendors.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Repair Request */}
+            <div className="space-y-1.5">
+              <Label htmlFor="repair-request" className="text-xs font-normal">Repair Request</Label>
+              <Textarea
+                id="repair-request"
+                placeholder="Describe the repair work required..."
+                value={repairRequest}
+                onChange={(e) => setRepairRequest(e.target.value)}
+                rows={3}
+                required
+              />
+            </div>
 
-          {/* Repair Request */}
-          <div className="space-y-1.5">
-            <Label htmlFor="repair-request" className="text-xs font-normal">Repair Request</Label>
-            <Textarea
-              id="repair-request"
-              placeholder="Describe the repair work required..."
-              value={repairRequest}
-              onChange={(e) => setRepairRequest(e.target.value)}
-              rows={3}
-              required
-            />
-          </div>
-
-          {/* Date Sent */}
-          <div className="space-y-1.5">
-            <Label htmlFor="repair-date" className="text-xs font-normal">Date Sent</Label>
-            <Input
-              id="repair-date"
-              type="date"
-              value={dateSent}
-              onChange={(e) => setDateSent(e.target.value)}
-              required
-            />
-          </div>
-
-          <DialogFooter>
+            {/* Date Sent */}
+            <div className="space-y-1.5">
+              <Label htmlFor="repair-date" className="text-xs font-normal">Date Sent</Label>
+              <Input
+                id="repair-date"
+                type="date"
+                value={dateSent}
+                onChange={(e) => setDateSent(e.target.value)}
+                required
+              />
+            </div>
+          </form>
+          <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending || !vehicleId || !vendorId || !repairRequest}>
+            <Button type="submit" form="send-repair-form" disabled={isPending || !vehicleId || !vendorId || !repairRequest}>
               {isPending ? "Sending..." : "Send for Repair"}
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

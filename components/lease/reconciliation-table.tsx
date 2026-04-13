@@ -12,12 +12,12 @@ import { DataTableShell } from "@/components/shared/data-table-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -257,43 +257,46 @@ export function ReconciliationTable() {
         onClearFilters={handleClearFilters}
       />
 
-      {/* Reconcile dialog */}
-      <Dialog open={Boolean(selectedItem)} onOpenChange={(open) => { if (!open) setSelectedItem(null) }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reconcile Commission</DialogTitle>
-          </DialogHeader>
-          {selectedItem && (
-            <div className="space-y-4">
-              <div className="rounded-md bg-muted/50 p-3 space-y-1">
-                <p className="text-sm font-semibold">{selectedItem.entity}</p>
-                <p className="text-xs text-muted-foreground">{selectedItem.dealRef}</p>
-                <div className="flex gap-4 pt-1">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Expected</p>
-                    <CurrencyDisplay amount={selectedItem.expectedCommission} className="text-sm font-semibold" />
+      {/* Reconcile sheet */}
+      <Sheet open={Boolean(selectedItem)} onOpenChange={(open) => { if (!open) setSelectedItem(null) }}>
+        <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Reconcile Commission</SheetTitle>
+            <SheetDescription>Enter the received commission amount to reconcile</SheetDescription>
+          </SheetHeader>
+          <div className="px-1 pb-4">
+            {selectedItem && (
+              <div className="space-y-4">
+                <div className="rounded-md bg-muted/50 p-3 space-y-1">
+                  <p className="text-sm font-semibold">{selectedItem.entity}</p>
+                  <p className="text-xs text-muted-foreground">{selectedItem.dealRef}</p>
+                  <div className="flex gap-4 pt-1">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Expected</p>
+                      <CurrencyDisplay amount={selectedItem.expectedCommission} className="text-sm font-semibold" />
+                    </div>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="receivedAmount">Received Commission (LKR cents)</Label>
+                  <Input
+                    id="receivedAmount"
+                    value={receivedAmount}
+                    onChange={(e) => setReceivedAmount(e.target.value)}
+                    placeholder="Enter received amount"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="receivedAmount">Received Commission (LKR cents)</Label>
-                <Input
-                  id="receivedAmount"
-                  value={receivedAmount}
-                  onChange={(e) => setReceivedAmount(e.target.value)}
-                  placeholder="Enter received amount"
-                />
-              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setSelectedItem(null)}>Cancel</Button>
+              <Button onClick={handleConfirmReconcile} disabled={isPending}>
+                {isPending ? "Reconciling..." : "Reconcile"}
+              </Button>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedItem(null)}>Cancel</Button>
-            <Button onClick={handleConfirmReconcile} disabled={isPending}>
-              {isPending ? "Reconciling..." : "Reconcile"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   )
 }
