@@ -65,6 +65,7 @@ export const salesColumns: ColumnDef<Sale>[] = [
       }
     },
     enableSorting: true,
+    meta: { label: "Date" },
   },
   {
     id: "vehicle",
@@ -86,6 +87,7 @@ export const salesColumns: ColumnDef<Sale>[] = [
       )
     },
     enableSorting: true,
+    meta: { label: "Vehicle" },
   },
   {
     id: "saleType",
@@ -122,6 +124,7 @@ export const salesColumns: ColumnDef<Sale>[] = [
       )
     },
     enableSorting: true,
+    meta: { label: "Customer" },
   },
   {
     id: "salePrice",
@@ -129,6 +132,7 @@ export const salesColumns: ColumnDef<Sale>[] = [
     header: "Sale Price",
     cell: ({ row }) => <CurrencyDisplay amount={row.original.salePrice} />,
     enableSorting: true,
+    meta: { label: "Sale Price" },
   },
   {
     id: "profitLoss",
@@ -146,6 +150,7 @@ export const salesColumns: ColumnDef<Sale>[] = [
       )
     },
     enableSorting: true,
+    meta: { label: "Profit / Loss" },
   },
   {
     id: "status",

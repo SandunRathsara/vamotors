@@ -62,6 +62,7 @@ export function getApprovalsColumns(
         </span>
       ),
       enableSorting: true,
+      meta: { label: "Date" },
     },
     {
       id: "requestedBy",
@@ -86,6 +87,7 @@ export function getApprovalsColumns(
         )
       },
       enableSorting: true,
+      meta: { label: "Category" },
     },
     {
       id: "entity",
@@ -140,6 +142,7 @@ export function getApprovalsColumns(
         <StatusBadge status={row.original.status} variant="approval" />
       ),
       enableSorting: true,
+      meta: { label: "Status" },
     },
     {
       id: "actions",

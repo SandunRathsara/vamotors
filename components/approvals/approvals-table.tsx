@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
+import { parseAsString, useQueryState } from "nuqs"
 
 import type { PaginatedResponse, Approval } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
-import { DataTableShell } from "@/components/shared/data-table-shell"
+import { DataTableShell, type DataTableState } from "@/components/shared/data-table-shell"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -25,40 +25,36 @@ interface ApprovalsTableProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ApprovalsTable({ onAction }: ApprovalsTableProps) {
-  const [params, setParams] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    pageSize: parseAsInteger.withDefault(20),
-    q: parseAsString.withDefault(""),
-    status: parseAsString.withDefault(""),
-    category: parseAsString.withDefault(""),
-    sortBy: parseAsString.withDefault("requestDate"),
-    sortDir: parseAsString.withDefault("desc"),
+  const [tableState, setTableState] = React.useState<DataTableState>({
+    page: 1,
+    perPage: 20,
+    sortBy: "requestDate",
+    sortDir: "desc",
   })
+
+  const [q, setQ] = useQueryState("q", parseAsString.withDefault(""))
+  const [status, setStatus] = useQueryState("status", parseAsString.withDefault(""))
+  const [category, setCategory] = useQueryState("category", parseAsString.withDefault(""))
 
   const { data, isLoading } = useEntityQuery<PaginatedResponse<Approval>>(
     "approvals",
     "/api/approvals",
     {
-      page: params.page,
-      pageSize: params.pageSize,
-      q: params.q || undefined,
-      status: params.status || undefined,
-      category: params.category || undefined,
-      sortBy: params.sortBy || undefined,
-      sortDir: params.sortDir || undefined,
+      page: tableState.page,
+      pageSize: tableState.perPage,
+      q: q || undefined,
+      status: status || undefined,
+      category: category || undefined,
+      sortBy: tableState.sortBy || undefined,
+      sortDir: tableState.sortDir || undefined,
     },
   )
 
   const approvals = data?.data ?? []
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / params.pageSize))
-  const isFiltered = Boolean(params.q || params.status || params.category)
+  const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
   const columns = React.useMemo(() => getApprovalsColumns(onAction), [onAction])
-
-  function handleClearFilters() {
-    void setParams({ q: "", status: "", category: "", page: 1 })
-  }
 
   if (isLoading && approvals.length === 0) {
     return (
@@ -77,19 +73,18 @@ export function ApprovalsTable({ onAction }: ApprovalsTableProps) {
         heading: "No pending approvals",
         body: "Approved and rejected requests will appear here.",
       }}
-      isFiltered={isFiltered}
-      onClearFilters={handleClearFilters}
+      onStateChange={setTableState}
       toolbarChildren={
         <div className="flex items-center gap-2">
           <Input
             placeholder="Search approvals..."
-            value={params.q}
-            onChange={(e) => void setParams({ q: e.target.value, page: 1 })}
+            value={q}
+            onChange={(e) => void setQ(e.target.value || null)}
             className="h-8 w-56"
           />
           <Select
-            value={params.status || "all"}
-            onValueChange={(v) => void setParams({ status: v === "all" ? "" : v, page: 1 })}
+            value={status || "all"}
+            onValueChange={(v) => void setStatus(v === "all" ? null : v)}
           >
             <SelectTrigger className="h-8 w-36">
               <SelectValue placeholder="Status" />
@@ -102,8 +97,8 @@ export function ApprovalsTable({ onAction }: ApprovalsTableProps) {
             </SelectContent>
           </Select>
           <Select
-            value={params.category || "all"}
-            onValueChange={(v) => void setParams({ category: v === "all" ? "" : v, page: 1 })}
+            value={category || "all"}
+            onValueChange={(v) => void setCategory(v === "all" ? null : v)}
           >
             <SelectTrigger className="h-8 w-36">
               <SelectValue placeholder="Category" />

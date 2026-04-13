@@ -1,12 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
+import { parseAsString, useQueryState } from "nuqs"
 
 import type { PaginatedResponse, ThirdParty } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
 import { useEntityMutation } from "@/hooks/use-entity-mutation"
-import { DataTableShell } from "@/components/shared/data-table-shell"
+import { DataTableShell, type DataTableState } from "@/components/shared/data-table-shell"
 import { createThirdPartiesColumns } from "./third-parties-columns"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
@@ -27,14 +27,15 @@ const TYPE_TABS = [
 ] as const
 
 export function ThirdPartiesTable() {
-  const [params, setParams] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    pageSize: parseAsInteger.withDefault(20),
-    q: parseAsString.withDefault(""),
-    type: parseAsString.withDefault(""),
-    sortBy: parseAsString.withDefault(""),
-    sortDir: parseAsString.withDefault("asc"),
+  const [tableState, setTableState] = React.useState<DataTableState>({
+    page: 1,
+    perPage: 20,
+    sortBy: "",
+    sortDir: "asc",
   })
+
+  const [type, setType] = useQueryState("type", parseAsString.withDefault(""))
+  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""))
 
   // Archive dialog state
   const [archiveTarget, setArchiveTarget] = React.useState<ThirdParty | null>(null)
@@ -43,12 +44,12 @@ export function ThirdPartiesTable() {
     "third-parties",
     "/api/third-parties",
     {
-      page: params.page,
-      pageSize: params.pageSize,
-      q: params.q || undefined,
-      type: params.type || undefined,
-      sortBy: params.sortBy || undefined,
-      sortDir: params.sortDir || undefined,
+      page: tableState.page,
+      pageSize: tableState.perPage,
+      q: searchQuery || undefined,
+      type: type || undefined,
+      sortBy: tableState.sortBy || undefined,
+      sortDir: tableState.sortDir || undefined,
     },
   )
 
@@ -61,12 +62,7 @@ export function ThirdPartiesTable() {
 
   const thirdParties = data?.data ?? []
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / params.pageSize))
-  const isFiltered = Boolean(params.q || params.type)
-
-  function handleClearFilters() {
-    void setParams({ q: "", type: "", page: 1 })
-  }
+  const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
   function handleArchive(tp: ThirdParty) {
     setArchiveTarget(tp)
@@ -100,8 +96,8 @@ export function ThirdPartiesTable() {
     <>
       <div className="space-y-4">
         <Tabs
-          value={params.type}
-          onValueChange={(value) => void setParams({ type: value, page: 1 })}
+          value={type ?? ""}
+          onValueChange={(value) => void setType(value)}
         >
           <TabsList>
             {TYPE_TABS.map((tab) => (
@@ -116,18 +112,16 @@ export function ThirdPartiesTable() {
           columns={columns}
           data={thirdParties}
           pageCount={pageCount}
-          searchPlaceholder="Search third parties..."
           emptyState={{
             heading: "No third parties added",
             body: "Add a supplier, repair vendor, or finance company.",
           }}
-          isFiltered={isFiltered}
-          onClearFilters={handleClearFilters}
+          onStateChange={setTableState}
           toolbarChildren={
             <Input
               placeholder="Search third parties..."
-              value={params.q}
-              onChange={(e) => void setParams({ q: e.target.value, page: 1 })}
+              value={searchQuery ?? ""}
+              onChange={(e) => void setSearchQuery(e.target.value || null)}
               className="h-8 w-64"
             />
           }
