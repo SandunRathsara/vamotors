@@ -2,12 +2,12 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
+import { parseAsString, useQueryState } from "nuqs"
 import { ArrowDownLeft, ArrowUpRight, TrendingUp } from "lucide-react"
 
 import type { CashFlowEntry } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
-import { DataTableShell } from "@/components/shared/data-table-shell"
+import { DataTableShell, type DataTableState } from "@/components/shared/data-table-shell"
 import { PageHeader } from "@/components/shared/page-header"
 import { CurrencyDisplay } from "@/components/shared/currency-display"
 import { StatusBadge } from "@/components/shared/status-badge"
@@ -88,38 +88,41 @@ const columns: ColumnDef<CashFlowEntry>[] = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CashFlowPage() {
-  const [params, setParams] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    pageSize: parseAsInteger.withDefault(20),
-    sortBy: parseAsString.withDefault(""),
-    sortDir: parseAsString.withDefault("desc"),
-    type: parseAsString.withDefault(""),
-    dateFrom: parseAsString.withDefault(""),
-    dateTo: parseAsString.withDefault(""),
+  const [tableState, setTableState] = React.useState<DataTableState>({
+    page: 1,
+    perPage: 20,
+    sortBy: "",
+    sortDir: "desc",
   })
+
+  const [type, setType] = useQueryState("type", parseAsString.withDefault(""))
+  const [dateFrom, setDateFrom] = useQueryState("dateFrom", parseAsString.withDefault(""))
+  const [dateTo, setDateTo] = useQueryState("dateTo", parseAsString.withDefault(""))
 
   const { data, isLoading } = useEntityQuery<CashFlowResponse>(
     "cash-flow",
     "/api/cash-flow",
     {
-      page: params.page,
-      pageSize: params.pageSize,
-      sortBy: params.sortBy || undefined,
-      sortDir: params.sortDir || undefined,
-      type: params.type || undefined,
-      dateFrom: params.dateFrom || undefined,
-      dateTo: params.dateTo || undefined,
+      page: tableState.page,
+      pageSize: tableState.perPage,
+      sortBy: tableState.sortBy || undefined,
+      sortDir: tableState.sortDir || undefined,
+      type: type || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
     },
   )
 
   const entries = data?.data ?? []
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / params.pageSize))
+  const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
   const summary = data?.summary ?? { totalInflow: 0, totalOutflow: 0, netPosition: 0 }
-  const isFiltered = Boolean(params.dateFrom || params.dateTo || params.type)
+  const isFiltered = Boolean(dateFrom || dateTo || type)
 
   function handleClearFilters() {
-    void setParams({ dateFrom: "", dateTo: "", type: "", page: 1 })
+    void setDateFrom(null)
+    void setDateTo(null)
+    void setType(null)
   }
 
   const netIsPositive = summary.netPosition >= 0
@@ -196,8 +199,8 @@ export default function CashFlowPage() {
             id="cf-dateFrom"
             type="date"
             className="h-8 w-40 text-xs"
-            value={params.dateFrom}
-            onChange={(e) => void setParams({ dateFrom: e.target.value, page: 1 })}
+            value={dateFrom ?? ""}
+            onChange={(e) => void setDateFrom(e.target.value || null)}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -206,8 +209,8 @@ export default function CashFlowPage() {
             id="cf-dateTo"
             type="date"
             className="h-8 w-40 text-xs"
-            value={params.dateTo}
-            onChange={(e) => void setParams({ dateTo: e.target.value, page: 1 })}
+            value={dateTo ?? ""}
+            onChange={(e) => void setDateTo(e.target.value || null)}
           />
         </div>
         {isFiltered && (
@@ -231,8 +234,7 @@ export default function CashFlowPage() {
             heading: "No transactions recorded",
             body: "Transactions appear here after purchases and sales are recorded.",
           }}
-          isFiltered={isFiltered}
-          onClearFilters={handleClearFilters}
+          onStateChange={setTableState}
         />
       )}
     </div>
