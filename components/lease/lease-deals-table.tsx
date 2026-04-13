@@ -1,12 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 import { PlusCircle } from "lucide-react"
 
 import type { LeaseDeal, PaginatedResponse } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
-import { DataTableShell } from "@/components/shared/data-table-shell"
+import { DataTableShell, type DataTableState } from "@/components/shared/data-table-shell"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -47,38 +46,27 @@ export function LeaseDealsTable() {
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
-  const [params, setParams] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    pageSize: parseAsInteger.withDefault(20),
-    q: parseAsString.withDefault(""),
-    status: parseAsString.withDefault(""),
-    dealType: parseAsString.withDefault(""),
-    sortBy: parseAsString.withDefault(""),
-    sortDir: parseAsString.withDefault("asc"),
+  const [tableState, setTableState] = React.useState<DataTableState>({
+    page: 1,
+    perPage: 20,
+    sortBy: "",
+    sortDir: "asc",
   })
 
   const { data, isLoading, refetch } = useEntityQuery<PaginatedResponse<LeaseDeal>>(
     "lease-deals",
     "/api/lease-deals",
     {
-      page: params.page,
-      pageSize: params.pageSize,
-      q: params.q || undefined,
-      status: params.status || undefined,
-      dealType: params.dealType || undefined,
-      sortBy: params.sortBy || undefined,
-      sortDir: params.sortDir || undefined,
+      page: tableState.page,
+      pageSize: tableState.perPage,
+      sortBy: tableState.sortBy || undefined,
+      sortDir: tableState.sortDir || undefined,
     },
   )
 
   const deals = data?.data ?? []
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / params.pageSize))
-  const isFiltered = Boolean(params.q || params.status || params.dealType)
-
-  function handleClearFilters() {
-    void setParams({ q: "", status: "", dealType: "", page: 1 })
-  }
+  const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
   async function handleCreateDeal(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -128,13 +116,11 @@ export function LeaseDealsTable() {
         columns={leaseDealsColumns}
         data={deals}
         pageCount={pageCount}
-        searchPlaceholder="Search lease deals..."
         emptyState={{
           heading: "No lease deals yet",
           body: "Create a new lease deal to get started.",
         }}
-        isFiltered={isFiltered}
-        onClearFilters={handleClearFilters}
+        onStateChange={setTableState}
         toolbarChildren={
           <Button size="sm" onClick={() => setDialogOpen(true)}>
             <PlusCircle className="h-4 w-4 mr-1" aria-hidden="true" />
