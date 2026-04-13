@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 Phase: 1
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-13
+Last activity: 2026-04-13 - Completed quick task 260413-eeq: Restructure purchases page to list all purchases with Record Purchase button
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -104,6 +104,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260322-tpo | Review and update UI designs from Stitch mockups | 2026-03-22 | e6101ae | [260322-tpo-review-and-update-ui-designs-from-stitch](./quick/260322-tpo-review-and-update-ui-designs-from-stitch/) |
+| 260413-eeq | Restructure purchases page to list all purchases with Record Purchase button | 2026-04-13 | 433359c | [260413-eeq-restructure-purchases-page-to-list-all-p](./quick/260413-eeq-restructure-purchases-page-to-list-all-p/) |
 
 ### Blockers/Concerns
 
