@@ -259,6 +259,9 @@ export function ReconciliationTable() {
           body: "Reconciliation entries appear after deals are dispatched.",
         }}
         onStateChange={setTableState}
+        onRowClick={(item) => {
+          if (item.status !== "Reconciled") handleReconcile(item)
+        }}
       />
 
       {/* Reconcile sheet */}

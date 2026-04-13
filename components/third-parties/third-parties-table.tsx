@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { parseAsString, useQueryState } from "nuqs"
 
 import type { PaginatedResponse, ThirdParty } from "@/lib/mock-data/schemas"
@@ -27,6 +28,7 @@ const TYPE_TABS = [
 ] as const
 
 export function ThirdPartiesTable() {
+  const router = useRouter()
   const [tableState, setTableState] = React.useState<DataTableState>({
     page: 1,
     perPage: 20,
@@ -116,6 +118,7 @@ export function ThirdPartiesTable() {
             body: "Add a supplier, repair vendor, or finance company.",
           }}
           onStateChange={setTableState}
+          onRowClick={(tp) => router.push(`/third-parties/${tp.id}`)}
           toolbarChildren={
             <Input
               placeholder="Search third parties..."

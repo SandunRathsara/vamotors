@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { PlusCircle } from "lucide-react"
 
 import type { LeaseDeal, PaginatedResponse } from "@/lib/mock-data/schemas"
@@ -43,6 +44,7 @@ const STATUS_OPTIONS = [
 ]
 
 export function LeaseDealsTable() {
+  const router = useRouter()
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
@@ -121,6 +123,7 @@ export function LeaseDealsTable() {
           body: "Create a new lease deal to get started.",
         }}
         onStateChange={setTableState}
+        onRowClick={(deal) => router.push(`/lease-deals/${deal.id}`)}
         toolbarChildren={
           <Button size="sm" onClick={() => setDialogOpen(true)}>
             <PlusCircle className="h-4 w-4 mr-1" aria-hidden="true" />

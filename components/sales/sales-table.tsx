@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 
 import type { PaginatedResponse, Sale } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
@@ -8,6 +9,7 @@ import { DataTableShell, type DataTableState } from "@/components/shared/data-ta
 import { salesColumns } from "./sales-columns"
 
 export function SalesTable() {
+  const router = useRouter()
   const [tableState, setTableState] = React.useState<DataTableState>({
     page: 1,
     perPage: 20,
@@ -48,6 +50,7 @@ export function SalesTable() {
         body: "Record a sale from the Vehicles or Purchases screen.",
       }}
       onStateChange={setTableState}
+      onRowClick={(sale) => router.push(`/sales/${sale.id}`)}
     />
   )
 }

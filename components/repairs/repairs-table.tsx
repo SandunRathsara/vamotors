@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 
 import type { PaginatedResponse, Repair } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
@@ -8,6 +9,7 @@ import { DataTableShell, type DataTableState } from "@/components/shared/data-ta
 import { repairsColumns } from "./repairs-columns"
 
 export function RepairsTable() {
+  const router = useRouter()
   const [tableState, setTableState] = React.useState<DataTableState>({
     page: 1,
     perPage: 20,
@@ -48,6 +50,7 @@ export function RepairsTable() {
         body: "Send a vehicle for repair from the Vehicles screen.",
       }}
       onStateChange={setTableState}
+      onRowClick={(repair) => router.push(`/vehicles/${repair.vehicleId}`)}
     />
   )
 }

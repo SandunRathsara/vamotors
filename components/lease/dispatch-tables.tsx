@@ -143,7 +143,16 @@ export function DispatchTables() {
                 </TableHeader>
                 <TableBody>
                   {pending.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow
+                      key={item.id}
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement
+                        if (target.closest('button, a, input, select, textarea, [role="menuitem"]')) return
+                        setSelectedItem(item)
+                        setTrackingNumber("")
+                      }}
+                    >
                       <TableCell><SourceBadge source={item.source} /></TableCell>
                       <TableCell className="text-sm tabular-nums">{item.dealId}</TableCell>
                       <TableCell className="text-sm">{item.customerName}</TableCell>

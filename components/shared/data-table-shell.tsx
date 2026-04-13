@@ -39,6 +39,8 @@ interface DataTableShellProps<TData> {
   onClearFilters?: () => void
   /** Callback fired when useDataTable URL state changes. Consumer reads this to drive API calls. */
   onStateChange?: (state: DataTableState) => void
+  /** Optional row click handler. Receives the row data. Not fired when clicking buttons/links inside the row. */
+  onRowClick?: (row: TData) => void
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -52,6 +54,7 @@ export function DataTableShell<TData>({
   isFiltered = false,
   onClearFilters,
   onStateChange,
+  onRowClick,
 }: DataTableShellProps<TData>) {
   const { table } = useDataTable({
     data,
@@ -79,7 +82,7 @@ export function DataTableShell<TData>({
   const isEmpty = data.length === 0
 
   return (
-    <DataTable table={table}>
+    <DataTable table={table} onRowClick={onRowClick}>
       <DataTableAdvancedToolbar table={table}>
         {toolbarChildren}
         <DataTableFilterList table={table} shallow={false} />

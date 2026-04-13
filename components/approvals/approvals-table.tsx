@@ -74,6 +74,9 @@ export function ApprovalsTable({ onAction }: ApprovalsTableProps) {
         body: "Approved and rejected requests will appear here.",
       }}
       onStateChange={setTableState}
+      onRowClick={(approval) =>
+        onAction({ approval, action: approval.status === "Pending" ? "approve" : "view" })
+      }
       toolbarChildren={
         <div className="flex items-center gap-2">
           <Input
