@@ -53,6 +53,7 @@ export const customersColumns: ColumnDef<Customer>[] = [
     id: "fullName",
     accessorKey: "fullName",
     header: "Name",
+    meta: { label: "Name" },
     cell: ({ row }) => (
       <Link
         href={`/customers/${row.original.id}`}

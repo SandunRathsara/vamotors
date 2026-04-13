@@ -1,43 +1,34 @@
 "use client"
 
 import * as React from "react"
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 
 import type { PaginatedResponse, Customer } from "@/lib/mock-data/schemas"
 import { useEntityQuery } from "@/hooks/use-entity-query"
-import { DataTableShell } from "@/components/shared/data-table-shell"
+import { DataTableShell, type DataTableState } from "@/components/shared/data-table-shell"
 import { customersColumns } from "./customers-columns"
-import { Input } from "@/components/ui/input"
 
 export function CustomersTable() {
-  const [params, setParams] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    pageSize: parseAsInteger.withDefault(20),
-    q: parseAsString.withDefault(""),
-    sortBy: parseAsString.withDefault(""),
-    sortDir: parseAsString.withDefault("asc"),
+  const [tableState, setTableState] = React.useState<DataTableState>({
+    page: 1,
+    perPage: 20,
+    sortBy: "",
+    sortDir: "asc",
   })
 
   const { data, isLoading } = useEntityQuery<PaginatedResponse<Customer>>(
     "customers",
     "/api/customers",
     {
-      page: params.page,
-      pageSize: params.pageSize,
-      q: params.q || undefined,
-      sortBy: params.sortBy || undefined,
-      sortDir: params.sortDir || undefined,
+      page: tableState.page,
+      pageSize: tableState.perPage,
+      sortBy: tableState.sortBy || undefined,
+      sortDir: tableState.sortDir || undefined,
     },
   )
 
   const customers = data?.data ?? []
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / params.pageSize))
-  const isFiltered = Boolean(params.q)
-
-  function handleClearFilters() {
-    void setParams({ q: "", page: 1 })
-  }
+  const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
   if (isLoading && customers.length === 0) {
     return (
@@ -52,21 +43,11 @@ export function CustomersTable() {
       columns={customersColumns}
       data={customers}
       pageCount={pageCount}
-      searchPlaceholder="Search by name, NIC, phone..."
       emptyState={{
         heading: "No customers yet",
         body: "Add a customer when recording your first sale.",
       }}
-      isFiltered={isFiltered}
-      onClearFilters={handleClearFilters}
-      toolbarChildren={
-        <Input
-          placeholder="Search by name, NIC, phone..."
-          value={params.q}
-          onChange={(e) => void setParams({ q: e.target.value, page: 1 })}
-          className="h-8 w-64"
-        />
-      }
+      onStateChange={setTableState}
     />
   )
 }
