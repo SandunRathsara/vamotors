@@ -1,14 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
+import { parseAsString, useQueryState } from "nuqs"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { format } from "date-fns"
 
 import type { LeaseReconciliation, PaginatedResponse } from "@/lib/mock-data/schemas"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { CurrencyDisplay } from "@/components/shared/currency-display"
-import { DataTableShell } from "@/components/shared/data-table-shell"
+import { DataTableShell, type DataTableState } from "@/components/shared/data-table-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -129,23 +129,28 @@ export function ReconciliationTable() {
   const [receivedAmount, setReceivedAmount] = React.useState("")
   const queryClient = useQueryClient()
 
-  const [params, setParams] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    pageSize: parseAsInteger.withDefault(20),
-    status: parseAsString.withDefault(""),
-    source: parseAsString.withDefault(""),
+  const [tableState, setTableState] = React.useState<DataTableState>({
+    page: 1,
+    perPage: 20,
+    sortBy: "",
+    sortDir: "desc",
   })
 
-  const queryKey = ["lease-reconciliation", params]
+  const [status, setStatus] = useQueryState("status", parseAsString.withDefault(""))
+  const [source, setSource] = useQueryState("source", parseAsString.withDefault(""))
+
+  const queryKey = ["lease-reconciliation", tableState, status, source]
 
   const { data, isLoading } = useQuery<PaginatedResponse<LeaseReconciliation>>({
     queryKey,
     queryFn: async () => {
       const sp = new URLSearchParams()
-      sp.set("page", String(params.page))
-      sp.set("pageSize", String(params.pageSize))
-      if (params.status) sp.set("status", params.status)
-      if (params.source) sp.set("source", params.source)
+      sp.set("page", String(tableState.page))
+      sp.set("pageSize", String(tableState.perPage))
+      if (tableState.sortBy) sp.set("sortBy", tableState.sortBy)
+      if (tableState.sortDir) sp.set("sortDir", tableState.sortDir)
+      if (status) sp.set("status", status)
+      if (source) sp.set("source", source)
       const res = await fetch(`/api/lease-reconciliation?${sp.toString()}`)
       if (!res.ok) throw new Error("Failed to fetch reconciliation data")
       return res.json() as Promise<PaginatedResponse<LeaseReconciliation>>
@@ -186,12 +191,7 @@ export function ReconciliationTable() {
 
   const items = data?.data ?? []
   const total = data?.total ?? 0
-  const pageCount = Math.max(1, Math.ceil(total / params.pageSize))
-  const isFiltered = Boolean(params.status || params.source)
-
-  function handleClearFilters() {
-    void setParams({ status: "", source: "", page: 1 })
-  }
+  const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
   const columns = buildColumns((item) => {
     setSelectedItem(item)
@@ -213,8 +213,8 @@ export function ReconciliationTable() {
         <div className="flex items-center gap-2">
           <Label htmlFor="statusFilter" className="text-sm font-normal shrink-0">Status</Label>
           <Select
-            value={params.status || "all"}
-            onValueChange={(v) => void setParams({ status: v === "all" ? "" : v, page: 1 })}
+            value={status || "all"}
+            onValueChange={(v) => void setStatus(v === "all" ? null : v)}
           >
             <SelectTrigger id="statusFilter" className="w-40">
               <SelectValue placeholder="All statuses" />
@@ -230,8 +230,8 @@ export function ReconciliationTable() {
         <div className="flex items-center gap-2">
           <Label htmlFor="sourceFilter" className="text-sm font-normal shrink-0">Source</Label>
           <Select
-            value={params.source || "all"}
-            onValueChange={(v) => void setParams({ source: v === "all" ? "" : v, page: 1 })}
+            value={source || "all"}
+            onValueChange={(v) => void setSource(v === "all" ? null : v)}
           >
             <SelectTrigger id="sourceFilter" className="w-40">
               <SelectValue placeholder="All sources" />
@@ -253,8 +253,7 @@ export function ReconciliationTable() {
           heading: "No commission records",
           body: "Reconciliation entries appear after deals are dispatched.",
         }}
-        isFiltered={isFiltered}
-        onClearFilters={handleClearFilters}
+        onStateChange={setTableState}
       />
 
       {/* Reconcile sheet */}
