@@ -13,7 +13,7 @@ VSMS delivers VA Motors a complete digital operations platform across ten phases
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 0.1: Frontend Shell Migration** - Migrate reviewed HTML/CSS wireframes (quick-260322-tpo) into Next.js 16 + shadcn/ui + Tailwind v4 as a clickable static frontend with mock data — client sign-off on UI before feature work begins
-- [ ] **Phase 0.2: Migrate Data Table to DiceUI** - Replace shadcn data-table components with diceui data-table across all entity tables (vehicles, purchases, sales, repairs, customers, third-parties, users, approvals, lease deals)
+- [x] **Phase 0.2: Migrate Data Table to DiceUI** - Replace shadcn data-table components with diceui data-table across all entity tables (vehicles, purchases, sales, repairs, customers, third-parties, users, approvals, lease deals) (completed 2026-04-13)
 - [ ] **Phase 1: Foundation** - Project scaffold, auth, CASL permissions, audit infrastructure, layout shell, dashboard, user management, PWA
 - [ ] **Phase 2: Vehicle Lifecycle** - Vehicle purchase (3 channels), 10-state status machine, repairs, suppliers, mileage, additional costs, cost basis
 - [ ] **Phase 3: Vehicle Sales** - All four sale types (cash, advance, lease/finance, trade-in), customer management, R2 file upload, advance expiry cron, profit calculation
@@ -65,12 +65,12 @@ Plans:
   3. All sortable columns have meta.label set for DataTableSortList display
   4. All existing functionality preserved: pagination, sorting, action callbacks, Sheet dialogs, tab filters, date range filters, summary cards
   5. pnpm build succeeds with zero TypeScript errors
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 00.2-01-PLAN.md — Update DataTableShell + migrate vehicles, purchases, customers, users
-- [ ] 00.2-02-PLAN.md — Migrate repairs, approvals, third-parties, sales, lease-deals
-- [ ] 00.2-03-PLAN.md — Migrate reconciliation, report-table, cash-flow + full build verification
+- [x] 00.2-01-PLAN.md — Update DataTableShell + migrate vehicles, purchases, customers, users
+- [x] 00.2-02-PLAN.md — Migrate repairs, approvals, third-parties, sales, lease-deals
+- [x] 00.2-03-PLAN.md — Migrate reconciliation, report-table, cash-flow + full build verification
 
 ### Phase 1: Foundation
 **Goal**: A working, deployable application skeleton that every subsequent phase builds on — with authentication, permission enforcement, audit infrastructure, currency utilities, and a navigable UI shell
@@ -247,7 +247,7 @@ Note: Phase 5 (Invoice) and Phase 6 (Audit Viewer) both depend on Phase 3/4 and 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0.1. Frontend Shell Migration | 0/11 | Planning complete | - |
-| 0.2. Migrate Data Table to DiceUI | 0/3 | Planning complete | - |
+| 0.2. Migrate Data Table to DiceUI | 3/3 | Complete    | 2026-04-13 |
 | 1. Foundation | 0/5 | Not started | - |
 | 2. Vehicle Lifecycle | 0/5 | Not started | - |
 | 3. Vehicle Sales | 0/5 | Not started | - |
