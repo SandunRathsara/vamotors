@@ -59,7 +59,7 @@ Every vehicle's complete financial story — purchase cost, repairs, additional 
 
 ## Context
 
-- **Current state:** All operations run on physical documents. Historical data needs one-time import.
+- **Current state:** Phase 0.1 complete — clickable Next.js frontend shell with 30 routes, mock data, radix-vega shadcn preset. Client sign-off pending on UI before backend work begins. Historical data needs one-time import.
 - **Primary user:** Cashier (daily use). Managers and sales persons log in occasionally.
 - **Currency:** Single currency, configurable via `APP_CURRENCY` env var. All monetary values stored as integers (smallest unit).
 - **Vehicle identity:** A vehicle is uniquely identified by engine number + chassis number. Same vehicle can be re-purchased — linked to existing record, not duplicated.
@@ -111,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after initialization*
+*Last updated: 2026-04-13 after Phase 0.1 completion*
