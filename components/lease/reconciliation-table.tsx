@@ -193,10 +193,15 @@ export function ReconciliationTable() {
   const total = data?.total ?? 0
   const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
-  const columns = buildColumns((item) => {
+  const handleReconcile = React.useCallback((item: LeaseReconciliation) => {
     setSelectedItem(item)
     setReceivedAmount(String(item.expectedCommission))
-  })
+  }, [])
+
+  const columns = React.useMemo(
+    () => buildColumns(handleReconcile),
+    [handleReconcile],
+  )
 
   if (isLoading && items.length === 0) {
     return (
