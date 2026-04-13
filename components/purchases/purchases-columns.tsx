@@ -44,6 +44,7 @@ export const purchasesColumns: ColumnDef<Vehicle>[] = [
     id: "purchaseDate",
     accessorKey: "purchaseDate",
     header: "Purchase Date",
+    meta: { label: "Purchase Date" },
     cell: ({ row }) => {
       try {
         return (
@@ -61,6 +62,7 @@ export const purchasesColumns: ColumnDef<Vehicle>[] = [
     id: "vehicle",
     header: "Vehicle",
     accessorFn: (row) => `${row.make} ${row.model}`,
+    meta: { label: "Vehicle" },
     cell: ({ row }) => {
       const v = row.original
       return (
@@ -92,6 +94,7 @@ export const purchasesColumns: ColumnDef<Vehicle>[] = [
     id: "purchasePrice",
     accessorKey: "purchasePrice",
     header: "Purchase Price",
+    meta: { label: "Purchase Price" },
     cell: ({ row }) => <CurrencyDisplay amount={row.original.purchasePrice} />,
     enableSorting: true,
   },
@@ -99,6 +102,7 @@ export const purchasesColumns: ColumnDef<Vehicle>[] = [
     id: "costBasis",
     accessorKey: "costBasis",
     header: "Cost Basis",
+    meta: { label: "Cost Basis" },
     cell: ({ row }) => <CurrencyDisplay amount={row.original.costBasis} />,
     enableSorting: true,
   },
