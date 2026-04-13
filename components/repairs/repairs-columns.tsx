@@ -62,6 +62,7 @@ export const repairsColumns: ColumnDef<Repair>[] = [
       )
     },
     enableSorting: true,
+    meta: { label: "Vehicle" },
   },
   {
     id: "vendor",
@@ -75,6 +76,7 @@ export const repairsColumns: ColumnDef<Repair>[] = [
       return <span className="text-sm">{v ? v.name : row.original.vendorId}</span>
     },
     enableSorting: true,
+    meta: { label: "Vendor" },
   },
   {
     id: "repairRequest",
@@ -95,6 +97,7 @@ export const repairsColumns: ColumnDef<Repair>[] = [
       <span className="text-sm tabular-nums">{formatDate(row.original.dateSent)}</span>
     ),
     enableSorting: true,
+    meta: { label: "Date Sent" },
   },
   {
     id: "dateReturned",
@@ -104,6 +107,7 @@ export const repairsColumns: ColumnDef<Repair>[] = [
       <span className="text-sm tabular-nums">{formatDate(row.original.dateReturned)}</span>
     ),
     enableSorting: true,
+    meta: { label: "Date Returned" },
   },
   {
     id: "invoiceAmount",
@@ -115,6 +119,7 @@ export const repairsColumns: ColumnDef<Repair>[] = [
       return <CurrencyDisplay amount={amount} />
     },
     enableSorting: true,
+    meta: { label: "Cost" },
   },
   {
     id: "status",
