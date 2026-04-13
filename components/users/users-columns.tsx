@@ -102,6 +102,7 @@ export const usersColumns: ColumnDef<User>[] = [
     id: "name",
     accessorKey: "name",
     header: "Name",
+    meta: { label: "Name" },
     cell: ({ row }) => {
       const user = row.original
       return (
@@ -122,6 +123,7 @@ export const usersColumns: ColumnDef<User>[] = [
     id: "role",
     accessorKey: "role",
     header: "Role",
+    meta: { label: "Role" },
     cell: ({ row }) => (
       <Badge variant="secondary">{roleLabels[row.original.role] ?? row.original.role}</Badge>
     ),
@@ -131,6 +133,7 @@ export const usersColumns: ColumnDef<User>[] = [
     id: "status",
     accessorKey: "status",
     header: "Status",
+    meta: { label: "Status" },
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
     enableSorting: true,
   },
@@ -138,6 +141,7 @@ export const usersColumns: ColumnDef<User>[] = [
     id: "lastLogin",
     accessorKey: "lastLogin",
     header: "Last Login",
+    meta: { label: "Last Login" },
     cell: ({ row }) => (
       <span className="text-sm tabular-nums text-muted-foreground">
         {formatLastLogin(row.original.lastLogin)}
