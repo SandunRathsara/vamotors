@@ -64,9 +64,9 @@ export function ThirdPartiesTable() {
   const total = data?.total ?? 0
   const pageCount = Math.max(1, Math.ceil(total / tableState.perPage))
 
-  function handleArchive(tp: ThirdParty) {
+  const handleArchive = React.useCallback((tp: ThirdParty) => {
     setArchiveTarget(tp)
-  }
+  }, [])
 
   function confirmArchive() {
     if (!archiveTarget) return
@@ -80,8 +80,7 @@ export function ThirdPartiesTable() {
 
   const columns = React.useMemo(
     () => createThirdPartiesColumns(handleArchive),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [handleArchive],
   )
 
   if (isLoading && thirdParties.length === 0) {
