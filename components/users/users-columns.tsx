@@ -47,14 +47,14 @@ function DeleteUserCell({ user }: { user: User }) {
 
   const { mutate, isPending } = useEntityMutation({
     entityKey: "users",
-    endpoint: "/api/users",
+    endpoint: `/api/users/${user.id}`,
     method: "PATCH",
     successMessage: "User deleted.",
   })
 
   function handleDelete() {
     mutate(
-      { id: user.id, status: "Inactive" } as Parameters<typeof mutate>[0],
+      { status: "Inactive" } as Parameters<typeof mutate>[0],
       { onSuccess: () => setOpen(false) },
     )
   }
