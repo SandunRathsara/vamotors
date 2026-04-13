@@ -106,6 +106,7 @@ export function createThirdPartiesColumns(
         </Link>
       ),
       enableSorting: true,
+      meta: { label: "Name" },
     },
     {
       id: "type",
@@ -143,6 +144,7 @@ export function createThirdPartiesColumns(
         return <CurrencyDisplay amount={vol} />
       },
       enableSorting: true,
+      meta: { label: "Total Volume" },
     },
     {
       id: "contactPersons",
