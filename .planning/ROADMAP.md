@@ -13,6 +13,7 @@ VSMS delivers VA Motors a complete digital operations platform across ten phases
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 0.1: Frontend Shell Migration** - Migrate reviewed HTML/CSS wireframes (quick-260322-tpo) into Next.js 16 + shadcn/ui + Tailwind v4 as a clickable static frontend with mock data — client sign-off on UI before feature work begins
+- [ ] **Phase 0.2: Migrate Data Table to DiceUI** - Replace shadcn data-table components with diceui data-table across all entity tables (vehicles, purchases, sales, repairs, customers, third-parties, users, approvals, lease deals)
 - [ ] **Phase 1: Foundation** - Project scaffold, auth, CASL permissions, audit infrastructure, layout shell, dashboard, user management, PWA
 - [ ] **Phase 2: Vehicle Lifecycle** - Vehicle purchase (3 channels), 10-state status machine, repairs, suppliers, mileage, additional costs, cost basis
 - [ ] **Phase 3: Vehicle Sales** - All four sale types (cash, advance, lease/finance, trade-in), customer management, R2 file upload, advance expiry cron, profit calculation
@@ -52,6 +53,24 @@ Plans:
 - [x] 00.1-09-PLAN.md — Reports hub + 7 report screens + Cash flow
 - [x] 00.1-10-PLAN.md — Lease screens (deals, comparison, rate-sheets, dispatch, reconciliation)
 - [x] 00.1-11-PLAN.md — README + notifications API + end-to-end verification checkpoint
+
+### Phase 0.2: Migrate Data Table to DiceUI
+
+**Goal:** Wire all 12 consumer tables to the existing diceui data-table infrastructure (useDataTable hook, DataTableFilterList, DataTableSortList) by removing ad-hoc useQueryStates duplication, enriching column definitions with meta.label, and updating DataTableShell to expose URL state via callback — preserving all existing functionality
+**Depends on:** Phase 0.1 (data tables must exist to migrate)
+**Requirements**: DTBL-01, DTBL-02, DTBL-03, DTBL-04, DTBL-05
+**Success Criteria** (what must be TRUE):
+  1. DataTableShell exposes URL state (page, perPage, sortBy, sortDir) to consumers via onStateChange callback
+  2. All 12 consumer tables use the DataTableShell callback pattern — zero useQueryStates calls in consumer table files
+  3. All sortable columns have meta.label set for DataTableSortList display
+  4. All existing functionality preserved: pagination, sorting, action callbacks, Sheet dialogs, tab filters, date range filters, summary cards
+  5. pnpm build succeeds with zero TypeScript errors
+**Plans:** 3 plans
+
+Plans:
+- [ ] 00.2-01-PLAN.md — Update DataTableShell + migrate vehicles, purchases, customers, users
+- [ ] 00.2-02-PLAN.md — Migrate repairs, approvals, third-parties, sales, lease-deals
+- [ ] 00.2-03-PLAN.md — Migrate reconciliation, report-table, cash-flow + full build verification
 
 ### Phase 1: Foundation
 **Goal**: A working, deployable application skeleton that every subsequent phase builds on — with authentication, permission enforcement, audit infrastructure, currency utilities, and a navigable UI shell
@@ -221,13 +240,14 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 0.1 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 0.1 → 0.2 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
 Note: Phase 5 (Invoice) and Phase 6 (Audit Viewer) both depend on Phase 3/4 and can be sequenced flexibly. Phase 8 depends only on Phase 1 and can begin in parallel with Phase 4-7 if desired.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0.1. Frontend Shell Migration | 0/11 | Planning complete | - |
+| 0.2. Migrate Data Table to DiceUI | 0/3 | Planning complete | - |
 | 1. Foundation | 0/5 | Not started | - |
 | 2. Vehicle Lifecycle | 0/5 | Not started | - |
 | 3. Vehicle Sales | 0/5 | Not started | - |
@@ -238,3 +258,4 @@ Note: Phase 5 (Invoice) and Phase 6 (Audit Viewer) both depend on Phase 3/4 and 
 | 8. Lease Brokerage — Setup and Comparison | 0/2 | Not started | - |
 | 9. Lease Brokerage — Deal Flow | 0/5 | Not started | - |
 | 10. Historical Data Import | 0/2 | Not started | - |
+
