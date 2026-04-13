@@ -3,20 +3,25 @@ import { vehiclesStore } from "@/lib/mock-store"
 import { injectLatency } from "@/lib/utils"
 import type { Vehicle } from "@/lib/mock-data/schemas"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   await injectLatency()
 
-  const all = vehiclesStore.getAll()
-  const sorted = [...all].sort(
-    (a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime()
-  )
+  const { searchParams } = request.nextUrl
+  const page = parseInt(searchParams.get("page") ?? "1", 10)
+  const pageSize = parseInt(searchParams.get("pageSize") ?? "20", 10)
+  const sortBy = searchParams.get("sortBy") ?? "purchaseDate"
+  const sortDir = (searchParams.get("sortDir") ?? "desc") as "asc" | "desc"
+  const q = searchParams.get("q") ?? undefined
+  const purchaseType = searchParams.get("purchaseType") ?? undefined
+  const status = searchParams.get("status") ?? undefined
 
-  return NextResponse.json({
-    data: sorted,
-    total: sorted.length,
-    page: 1,
-    pageSize: sorted.length,
-  })
+  const filters: Record<string, string> = {}
+  if (purchaseType) filters.purchaseType = purchaseType
+  if (status) filters.status = status
+
+  const result = vehiclesStore.query({ page, pageSize, sortBy, sortDir, q, filters })
+
+  return NextResponse.json(result)
 }
 
 type PurchaseBody = Partial<Vehicle> & { mileageAtPurchase?: number }
