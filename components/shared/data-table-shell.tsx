@@ -12,6 +12,13 @@ import { useDataTable } from "@/hooks/use-data-table"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+export interface DataTableState {
+  page: number
+  perPage: number
+  sortBy: string
+  sortDir: "asc" | "desc"
+}
+
 interface DataTableShellEmptyState {
   heading: string
   body: string
@@ -30,6 +37,8 @@ interface DataTableShellProps<TData> {
   isFiltered?: boolean
   /** Called when user clicks "Clear filters" on filter empty state */
   onClearFilters?: () => void
+  /** Callback fired when useDataTable URL state changes. Consumer reads this to drive API calls. */
+  onStateChange?: (state: DataTableState) => void
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -42,15 +51,30 @@ export function DataTableShell<TData>({
   toolbarChildren,
   isFiltered = false,
   onClearFilters,
+  onStateChange,
 }: DataTableShellProps<TData>) {
   const { table } = useDataTable({
     data,
     columns,
     pageCount,
+    enableAdvancedFilter: false,
     initialState: {
       pagination: { pageIndex: 0, pageSize: 20 },
     },
   })
+
+  const { pagination, sorting } = table.getState()
+
+  React.useEffect(() => {
+    if (!onStateChange) return
+    const sortEntry = sorting[0]
+    onStateChange({
+      page: pagination.pageIndex + 1,
+      perPage: pagination.pageSize,
+      sortBy: sortEntry?.id ?? "",
+      sortDir: sortEntry?.desc ? "desc" : "asc",
+    })
+  }, [pagination.pageIndex, pagination.pageSize, sorting, onStateChange])
 
   const isEmpty = data.length === 0
 
