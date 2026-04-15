@@ -18,6 +18,12 @@ export default defineConfig({
     stdout: 'pipe',
     stderr: 'pipe',
     timeout: 120_000,
+    env: {
+      // `next start` runs with NODE_ENV=production, which would otherwise
+      // hide /api/test/reset behind a 404 gate. Open the gate explicitly for
+      // the test harness only — real Vercel deployments never set this.
+      TEST_RESET_ENABLED: '1',
+    },
   },
 
   use: {
