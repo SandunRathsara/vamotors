@@ -14,6 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 0.1: Frontend Shell Migration** - Migrate reviewed HTML/CSS wireframes (quick-260322-tpo) into Next.js 16 + shadcn/ui + Tailwind v4 as a clickable static frontend with mock data — client sign-off on UI before feature work begins
 - [x] **Phase 0.2: Migrate Data Table to DiceUI** - Replace shadcn data-table components with diceui data-table across all entity tables (vehicles, purchases, sales, repairs, customers, third-parties, users, approvals, lease deals) (completed 2026-04-13)
+- [ ] **Phase 0.3: Testing Strategy** - Justfile with valuable recipes + three-tier test suite: unit/component tests (vitest), E2E tests (playwright), and API endpoint tests (playwright). `just test` runs all tiers; feature-scoped runs supported
 - [ ] **Phase 1: Foundation** - Project scaffold, auth, CASL permissions, audit infrastructure, layout shell, dashboard, user management, PWA
 - [ ] **Phase 2: Vehicle Lifecycle** - Vehicle purchase (3 channels), 10-state status machine, repairs, suppliers, mileage, additional costs, cost basis
 - [ ] **Phase 3: Vehicle Sales** - All four sale types (cash, advance, lease/finance, trade-in), customer management, R2 file upload, advance expiry cron, profit calculation
@@ -240,7 +241,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 0.1 → 0.2 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 0.1 → 0.2 → 0.3 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
 Note: Phase 5 (Invoice) and Phase 6 (Audit Viewer) both depend on Phase 3/4 and can be sequenced flexibly. Phase 8 depends only on Phase 1 and can begin in parallel with Phase 4-7 if desired.
 
@@ -248,6 +249,7 @@ Note: Phase 5 (Invoice) and Phase 6 (Audit Viewer) both depend on Phase 3/4 and 
 |-------|----------------|--------|-----------|
 | 0.1. Frontend Shell Migration | 0/11 | Planning complete | - |
 | 0.2. Migrate Data Table to DiceUI | 3/3 | Complete    | 2026-04-13 |
+| 0.3. Testing Strategy | 0/TBD | Not planned | - |
 | 1. Foundation | 0/5 | Not started | - |
 | 2. Vehicle Lifecycle | 0/5 | Not started | - |
 | 3. Vehicle Sales | 0/5 | Not started | - |
@@ -259,3 +261,13 @@ Note: Phase 5 (Invoice) and Phase 6 (Audit Viewer) both depend on Phase 3/4 and 
 | 9. Lease Brokerage — Deal Flow | 0/5 | Not started | - |
 | 10. Historical Data Import | 0/2 | Not started | - |
 
+
+### Phase 0.3: Testing Strategy
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 0.2 (shell must exist to test against)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 0.3 to break down)
