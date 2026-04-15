@@ -31,9 +31,18 @@ export type QueryParams = {
 
 export class MockStore<T extends { id: string }> {
   private map: Map<string, T>
+  private readonly initial: T[]
 
   constructor(fixtures: T[]) {
+    this.initial = fixtures
     this.map = new Map(fixtures.map((item) => [item.id, structuredClone(item)]))
+  }
+
+  /** Rehydrate to initial fixtures. Used by POST /api/__test__/reset (D-14). */
+  reset(): void {
+    this.map = new Map(
+      this.initial.map((item) => [item.id, structuredClone(item)])
+    )
   }
 
   getAll(): T[] {
@@ -115,8 +124,10 @@ export class MockStore<T extends { id: string }> {
 
 class SettingsStore {
   private data: Settings
+  private readonly initial: Settings
 
   constructor(initial: Settings) {
+    this.initial = initial
     this.data = structuredClone(initial)
   }
 
@@ -127,6 +138,11 @@ class SettingsStore {
   update(patch: Partial<Settings>): Settings {
     this.data = { ...this.data, ...patch }
     return structuredClone(this.data)
+  }
+
+  /** Rehydrate to initial fixture. Used by POST /api/__test__/reset (D-14). */
+  reset(): void {
+    this.data = structuredClone(this.initial)
   }
 }
 
@@ -146,3 +162,26 @@ export const leaseDispatchStore = new MockStore<LeaseDispatch>(leaseDispatchFixt
 export const leaseReconciliationStore = new MockStore<LeaseReconciliation>(leaseReconciliationFixtures)
 export const leaseRateSheetsStore = new MockStore<LeaseRateSheet>(leaseRateSheetsFixtures)
 export const settingsStore = new SettingsStore(settingsFixture)
+
+/**
+ * Rehydrate every mock store to its initial fixtures.
+ * Called by `POST /api/__test__/reset` (D-14, Phase 0.3). Contract is stable:
+ * when Phase 1+ swaps to Prisma, this function's body becomes
+ * `await prisma.$transaction([...deleteMany])` but the callers do not change.
+ */
+export function resetAll(): void {
+  vehiclesStore.reset()
+  customersStore.reset()
+  salesStore.reset()
+  repairsStore.reset()
+  approvalsStore.reset()
+  leaseDealsStore.reset()
+  thirdPartiesStore.reset()
+  notificationsStore.reset()
+  usersStore.reset()
+  cashFlowStore.reset()
+  leaseDispatchStore.reset()
+  leaseReconciliationStore.reset()
+  leaseRateSheetsStore.reset()
+  settingsStore.reset()
+}
