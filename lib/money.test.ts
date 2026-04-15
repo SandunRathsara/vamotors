@@ -20,6 +20,14 @@ describe("money — integer-cents helpers", () => {
       expect(toCents("-5.00")).toBe(-500);
     });
 
+    it("normalizes negative zero", () => {
+      // `-0 === 0` is true, but Object.is(-0, 0) is false. We must return +0
+      // so sort order, fixture diffs, and Object.is checks stay consistent.
+      expect(Object.is(toCents("-0"), 0)).toBe(true);
+      expect(Object.is(toCents("-0.00"), 0)).toBe(true);
+      expect(Object.is(toCents("-0.0"), 0)).toBe(true);
+    });
+
     it("rejects invalid input", () => {
       expect(() => toCents("abc")).toThrow(RangeError);
       expect(() => toCents("1.234")).toThrow(RangeError);

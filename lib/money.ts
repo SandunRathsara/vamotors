@@ -21,7 +21,11 @@ export function toCents(amount: string): number {
   const paddedFrac = (frac + "00").slice(0, 2);
   const sign = whole.startsWith("-") ? -1 : 1;
   const wholeAbs = whole.replace(/^-/, "");
-  return sign * (parseInt(wholeAbs, 10) * 100 + parseInt(paddedFrac, 10));
+  const result = sign * (parseInt(wholeAbs, 10) * 100 + parseInt(paddedFrac, 10));
+  // Normalize negative-zero: `-0 === 0` is true, but `Object.is(-0, 0)` is
+  // false and JSON.stringify flattens `-0` to `"0"`. The asymmetry can leak
+  // into fixture diffs, sort order, and equality assertions.
+  return result === 0 ? 0 : result;
 }
 
 /** Convert integer cents into a plain decimal string with 2 fraction digits. */
