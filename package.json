@@ -9,7 +9,12 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "just test",
+    "test:unit": "vitest run",
+    "test:api": "playwright test --project=api",
+    "test:e2e": "playwright test --project=e2e",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@dnd-kit/core": "6.3.1",
@@ -44,17 +49,25 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.5",
+    "@playwright/test": "1.59.1",
     "@tailwindcss/postcss": "4.2.2",
     "@tanstack/react-query-devtools": "5.97.0",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
     "@types/node": "25.6.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.1",
+    "@vitest/coverage-v8": "4.1.4",
     "eslint": "9.39.4",
     "eslint-config-next": "16.1.7",
+    "jsdom": "29.0.2",
     "postcss": "8.5.9",
     "prettier": "3.8.2",
     "prettier-plugin-tailwindcss": "0.7.2",
     "tailwindcss": "4.2.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.1.4"
   }
 }

@@ -39,3 +39,9 @@ next-env.d.ts
 .claude/worktrees/
 .opencode
 .claude
+
+# playwright
+/playwright-report
+/test-results
+/playwright/.auth/*.json
+!/playwright/.auth/.gitkeep
