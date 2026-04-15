@@ -17,6 +17,9 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     clearMocks: true,
     restoreMocks: true,
+    // Plan 01 ships the harness before Plan 02 ships the first tests;
+    // keep `just test-unit` green when the include glob matches zero files.
+    passWithNoTests: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
