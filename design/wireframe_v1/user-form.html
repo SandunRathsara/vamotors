@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="users" data-title="User">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="users.html">Users</a> <span class="sep">›</span> <span>Nimali Jayasuriya</span></div>
+        <div class="page-header"><div><h1>Nimali Jayasuriya</h1><p>Cashier</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='users.html';">
+          <div class="grid-2">
+            <div class="card mb-24">
+              <div class="card-header"><h3>User Information</h3></div>
+              <div class="card-body">
+                <div class="form-row"><div class="form-group"><label class="form-label form-required">Full Name</label><input class="form-control" value="Nimali Jayasuriya"></div><div class="form-group"><label class="form-label form-required">Username</label><input class="form-control" value="nimali.cashier"></div></div>
+                <div class="form-row"><div class="form-group"><label class="form-label form-required">Email</label><input class="form-control" value="nimali@vamotors.lk"></div><div class="form-group"><label class="form-label">Phone</label><input class="form-control" value="+94 77 234 5678"></div></div>
+                <div class="form-row"><div class="form-group"><label class="form-label form-required">Role</label><select class="form-control"><option>Owner / Admin</option><option>Manager</option><option selected>Cashier</option><option>Sales Person</option></select></div><div class="form-group"><label class="form-label form-required">Status</label><select class="form-control"><option selected>Active</option><option>Disabled</option></select></div></div>
+              </div>
+            </div>
+            <div class="card mb-24">
+              <div class="card-header"><h3>Password</h3></div>
+              <div class="card-body">
+                <div class="form-group"><label class="form-label">New Password</label><input type="password" class="form-control" placeholder="Leave empty to keep current"><div class="form-hint">Min. 8 characters</div></div>
+                <div class="form-group"><label class="form-label">Confirm Password</label><input type="password" class="form-control" placeholder="Re-enter new password"></div>
+                <button type="button" class="btn btn-sm btn-secondary mt-8">Reset Password & Send Email</button>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Activity Log</h3></div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="timeline-item"><div class="tl-date">07 Mar 2026, 08:30 AM</div><div class="tl-content"><p>Logged in</p></div></div>
+                <div class="timeline-item"><div class="tl-date">06 Mar 2026, 05:15 PM</div><div class="tl-content"><p>Logged out</p></div></div>
+                <div class="timeline-item"><div class="tl-date">06 Mar 2026, 03:00 PM</div><div class="tl-content"><p>Requested discount approval — SL-2026-018 (Rs. 100,000)</p></div></div>
+                <div class="timeline-item"><div class="tl-date">06 Mar 2026, 02:30 PM</div><div class="tl-content"><p>Recorded advance payment — Suzuki Swift 2019 (Rs. 350,000)</p></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between"><a href="users.html" class="btn btn-secondary">Cancel</a><button type="submit" class="btn btn-primary">Save User</button></div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

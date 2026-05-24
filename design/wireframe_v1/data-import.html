@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Import — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="data-import" data-title="Data Import">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header"><div><h1>📂 Data Import</h1><p>Import existing data from CSV files</p></div></div>
+        <div class="card mb-24">
+          <div class="card-header"><h3>Select Import Type</h3></div>
+          <div class="card-body">
+            <div class="form-group mb-16">
+              <label class="form-label form-required">Data Type</label>
+              <select class="form-control" style="max-width:300px;">
+                <option>Vehicles</option>
+                <option>Customers</option>
+                <option>Suppliers</option>
+                <option>Sales History</option>
+                <option>Repair Vendors</option>
+              </select>
+            </div>
+            <div style="border:2px dashed var(--border); border-radius:var(--radius); padding:32px; text-align:center; color:var(--text-muted);">
+              <p style="font-size:16px;">Drag & drop your CSV file here or <a href="#">browse files</a></p>
+              <p class="fs-sm mt-8">Accepted format: .csv (max 10MB)</p>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-24">
+          <div class="card-header"><h3>Template Downloads</h3></div>
+          <div class="card-body">
+            <p class="mb-16 text-muted">Download sample templates to prepare your data for import:</p>
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:12px;">
+              <button class="btn btn-secondary">📥 Vehicles Template</button>
+              <button class="btn btn-secondary">📥 Customers Template</button>
+              <button class="btn btn-secondary">📥 Suppliers Template</button>
+              <button class="btn btn-secondary">📥 Sales Template</button>
+              <button class="btn btn-secondary">📥 Vendors Template</button>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-24">
+          <div class="card-header"><h3>Preview & Validation</h3></div>
+          <div class="card-body">
+            <div style="background:var(--success-bg); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
+              <p class="fs-sm text-success fw-600">✓ File validated successfully. 15 records found, 0 errors.</p>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Row</th><th>Make</th><th>Model</th><th>Year</th><th>Chassis No.</th><th>Colour</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>Toyota</td><td>Aqua</td><td>2018</td><td>NHP10-6234567</td><td>White</td><td><span class="text-success">✓ Valid</span></td></tr>
+                  <tr><td>2</td><td>Honda</td><td>Vezel</td><td>2019</td><td>RU3-4567891</td><td>Black</td><td><span class="text-success">✓ Valid</span></td></tr>
+                  <tr><td>3</td><td>Suzuki</td><td>Alto</td><td>2020</td><td>HA36S-987654</td><td>Silver</td><td><span class="text-success">✓ Valid</span></td></tr>
+                  <tr class="text-muted"><td colspan="7" style="text-align:center;">... 12 more valid rows ...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-8 justify-between">
+          <button class="btn btn-secondary">Cancel</button>
+          <button class="btn btn-primary btn-lg">Import 15 Records</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

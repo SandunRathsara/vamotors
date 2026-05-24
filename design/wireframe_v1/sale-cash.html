@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cash Sale — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="sales" data-title="Record Cash Sale">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="sales.html">Sales</a> <span class="sep">›</span> <span>Cash Sale</span></div>
+        <div class="page-header"><div><h1>Record Cash Sale</h1><p>Immediate full payment sale</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='sale-detail.html';">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Select Vehicle</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Vehicle</label>
+                  <select class="form-control"><option>Toyota Aqua 2018 (CAB-1234) — Rs. 5,900,000</option><option>Suzuki Alto 2020 (WP-9012) — Rs. 3,600,000</option><option>Toyota Corolla 2022 (—) — Rs. 12,800,000</option></select></div>
+              </div>
+              <div style="background:var(--bg-secondary); border-radius:var(--radius-sm); padding:12px 16px; margin-top:8px;">
+                <div class="detail-grid">
+                  <div class="detail-item"><label>Listed Price</label><span class="fw-bold">Rs. 5,900,000</span></div>
+                  <div class="detail-item"><label>Cost Basis</label><span>Rs. 4,600,000</span></div>
+                  <div class="detail-item"><label>Expected Profit</label><span class="text-success fw-600">Rs. 1,300,000</span></div>
+                  <div class="detail-item"><label>Days in Inventory</label><span>51 days</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Customer Information</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Customer</label>
+                  <select class="form-control"><option>Kamal Perera — NIC: 199512345678</option><option>Nishantha Silva — NIC: 198765432109</option><option>Chamari Fernando — NIC: 200012345678</option><option>+ Add New Customer</option></select></div>
+              </div>
+              <div style="background:var(--bg-secondary); border-radius:var(--radius-sm); padding:12px 16px; margin-top:8px;">
+                <div class="detail-grid">
+                  <div class="detail-item"><label>NIC</label><span>199512345678</span></div>
+                  <div class="detail-item"><label>Phone</label><span>+94 77 123 4567</span></div>
+                  <div class="detail-item"><label>Address</label><span>No. 45, Galle Road, Dehiwala</span></div>
+                  <div class="detail-item"><label>Previous Purchases</label><span>1</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Sale Details</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Sale Price (Rs.)</label><input type="number" class="form-control" value="5800000"><div class="form-hint">Listed: Rs. 5,900,000. Difference: -Rs. 100,000 (discount)</div></div>
+                <div class="form-group"><label class="form-label form-required">Sale Date</label><input type="date" class="form-control" value="2026-03-05"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Discount Amount (Rs.)</label><input type="number" class="form-control" value="100000" disabled><div class="form-hint text-warning">⚠ Discount requires manager approval</div></div>
+                <div class="form-group"><label class="form-label">Discount Reason</label><input class="form-control" value="Loyal customer — repeat buyer, negotiate deal"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Payment Method</label><select class="form-control"><option>Cash</option><option>Bank Transfer</option><option>Cheque</option><option>Multiple Methods</option></select></div>
+                <div class="form-group"><label class="form-label">Payment Reference</label><input class="form-control" placeholder="Cheque no / transfer ref"></div>
+              </div>
+              <div style="background:var(--bg-secondary); border-radius:var(--radius-sm); padding:16px; margin-top:12px;">
+                <div class="d-flex justify-between mb-8"><span>Sale Price</span><span class="fw-600">Rs. 5,800,000</span></div>
+                <div class="d-flex justify-between mb-8"><span>Cost Basis</span><span>Rs. 4,600,000</span></div>
+                <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+                <div class="d-flex justify-between"><span class="fw-bold">Profit</span><span class="fw-bold text-success" style="font-size:18px;">Rs. 1,200,000 (26.1%)</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Mileage at Sale</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Current Mileage (km)</label><input type="number" class="form-control" value="78500"><div class="form-hint">Last recorded: 78,500 km</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Notes</h3></div>
+            <div class="card-body">
+              <div class="form-group"><textarea class="form-control" placeholder="Additional sale notes...">Customer paid full amount in cash. Vehicle handed over same day.</textarea></div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="sales.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg">Complete Sale</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

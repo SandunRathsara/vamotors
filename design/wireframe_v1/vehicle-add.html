@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Vehicle — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="vehicle-add" data-title="Add Vehicle">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb">
+          <a href="vehicles.html">Vehicles</a> <span class="sep">›</span> <span>Add Vehicle</span>
+        </div>
+        <div class="page-header">
+          <div><h1>Add New Vehicle</h1><p>Record a new vehicle purchase</p></div>
+        </div>
+
+        <!-- Purchase Type Tabs -->
+        <div class="tabs" data-tabs>
+          <div class="tab active" data-tab="cash">Cash Purchase</div>
+          <div class="tab" data-tab="lease">Lease Settlement</div>
+          <div class="tab" data-tab="brandnew">Brand New</div>
+        </div>
+
+        <!-- Cash Purchase Form -->
+        <div class="tab-content active" data-tab-content="cash">
+          <form onsubmit="event.preventDefault(); window.location.href='vehicle-detail.html';">
+            <div class="card mb-24">
+              <div class="card-header"><h3>Vehicle Information</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Make</label><input class="form-control" value="Toyota" placeholder="e.g. Toyota"></div>
+                  <div class="form-group"><label class="form-label form-required">Model</label><input class="form-control" value="Aqua" placeholder="e.g. Aqua"></div>
+                  <div class="form-group"><label class="form-label form-required">Year of Manufacture</label><input type="number" class="form-control" value="2018"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Chassis Number</label><input class="form-control" value="NHP10-6234567"></div>
+                  <div class="form-group"><label class="form-label">Engine Number</label><input class="form-control" value="1NZ-FXE-4567890"></div>
+                  <div class="form-group"><label class="form-label">VIN</label><input class="form-control" value="JTDKN3DU7A0123456"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Registration Number</label><input class="form-control" value="CAB-1234"><div class="form-hint">Leave empty if unregistered</div></div>
+                  <div class="form-group"><label class="form-label">CR Number</label><input class="form-control" value="WP-CAB-1234"></div>
+                  <div class="form-group"><label class="form-label form-required">Colour</label><input class="form-control" value="White"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Fuel Type</label><select class="form-control"><option>Hybrid</option><option>Petrol</option><option>Diesel</option><option>Electric</option></select></div>
+                  <div class="form-group"><label class="form-label form-required">Transmission</label><select class="form-control"><option>Automatic (CVT)</option><option>Automatic</option><option>Manual</option></select></div>
+                  <div class="form-group"><label class="form-label form-required">Mileage at Purchase (km)</label><input type="number" class="form-control" value="72340"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mb-24">
+              <div class="card-header"><h3>Supplier Information</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label form-required">Supplier Type</label>
+                    <select class="form-control"><option>Individual</option><option>Company</option></select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label form-required">Supplier</label>
+                    <select class="form-control">
+                      <option>Mahinda Rathnayake</option>
+                      <option>Lanka Auto Traders (Pvt) Ltd</option>
+                      <option>Colombo Motor Imports</option>
+                      <option>+ Add New Supplier</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mb-24">
+              <div class="card-header"><h3>Purchase Details</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Purchase Date</label><input type="date" class="form-control" value="2026-01-15"></div>
+                  <div class="form-group"><label class="form-label form-required">Purchase Price (Rs.)</label><input type="number" class="form-control" value="4500000"><div class="form-hint">Amount in LKR</div></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Payment Method</label><select class="form-control"><option>Cash</option><option>Bank Transfer</option><option>Cheque</option></select></div>
+                  <div class="form-group"><label class="form-label">Payment Reference</label><input class="form-control" placeholder="Cheque no / transfer ref"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" placeholder="Any additional notes about this purchase...">Purchased from owner. Single-owner vehicle. Full service history available.</textarea></div>
+              </div>
+            </div>
+
+            <div class="card mb-24">
+              <div class="card-header"><h3>Initial Costs (Optional)</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Cost Category</label><select class="form-control"><option>Transport</option><option>Inspection</option><option>Registration</option><option>Other</option></select></div>
+                  <div class="form-group"><label class="form-label">Description</label><input class="form-control" value="Transport from Kurunegala to Colombo"></div>
+                  <div class="form-group"><label class="form-label">Amount (Rs.)</label><input type="number" class="form-control" value="15000"></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary mt-8">+ Add Another Cost</button>
+              </div>
+            </div>
+
+            <div class="card mb-24">
+              <div class="card-header"><h3>Photos</h3></div>
+              <div class="card-body">
+                <div style="border:2px dashed var(--border); border-radius:var(--radius); padding:32px; text-align:center; color:var(--text-muted);">
+                  <p>Drag & drop photos here or <a href="#">browse files</a></p>
+                  <p class="fs-sm mt-8">Upload up to 10 photos (JPEG, PNG). Max 5MB each.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-8 justify-between">
+              <a href="vehicles.html" class="btn btn-secondary">Cancel</a>
+              <div class="d-flex gap-8">
+                <button type="button" class="btn btn-secondary">Save as Draft</button>
+                <button type="submit" class="btn btn-primary">Save & Add to Inventory</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Lease Settlement Form -->
+        <div class="tab-content" data-tab-content="lease">
+          <form onsubmit="event.preventDefault(); window.location.href='vehicle-detail.html';">
+            <div class="card mb-24">
+              <div class="card-header"><h3>Vehicle Information</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Make</label><input class="form-control" value="Honda" placeholder="e.g. Honda"></div>
+                  <div class="form-group"><label class="form-label form-required">Model</label><input class="form-control" value="Grace" placeholder="e.g. Grace"></div>
+                  <div class="form-group"><label class="form-label form-required">Year</label><input type="number" class="form-control" value="2017"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Chassis Number</label><input class="form-control" value="GM4-1234567"></div>
+                  <div class="form-group"><label class="form-label">Engine Number</label><input class="form-control" value="LEB-H1-9876543"></div>
+                  <div class="form-group"><label class="form-label form-required">Colour</label><input class="form-control" value="Dark Blue"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Registration Number</label><input class="form-control" value="KV-2345"></div>
+                  <div class="form-group"><label class="form-label form-required">Fuel Type</label><select class="form-control"><option>Hybrid</option></select></div>
+                  <div class="form-group"><label class="form-label form-required">Mileage (km)</label><input type="number" class="form-control" value="95000"></div>
+                </div>
+              </div>
+            </div>
+            <div class="card mb-24">
+              <div class="card-header"><h3>Lease Settlement Details</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Finance Company</label><input class="form-control" value="LOLC Finance PLC"></div>
+                  <div class="form-group"><label class="form-label form-required">Lease Agreement No.</label><input class="form-control" value="LF-2024-78901"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Settlement Amount (Rs.)</label><input type="number" class="form-control" value="3200000"><div class="form-hint">Total amount paid to settle the lease</div></div>
+                  <div class="form-group"><label class="form-label form-required">Settlement Date</label><input type="date" class="form-control" value="2026-02-20"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Supplier (Owner)</label><select class="form-control"><option>Kamal Gunasekara</option><option>+ Add New Supplier</option></select></div>
+                  <div class="form-group"><label class="form-label">Additional Amount to Owner (Rs.)</label><input type="number" class="form-control" value="1500000"><div class="form-hint">Amount paid directly to the owner</div></div>
+                </div>
+                <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control">Lease settled in full. Vehicle released from LOLC. CR transfer pending.</textarea></div>
+              </div>
+            </div>
+            <div class="d-flex gap-8 justify-between">
+              <a href="vehicles.html" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">Save & Add to Inventory</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Brand New Form -->
+        <div class="tab-content" data-tab-content="brandnew">
+          <form onsubmit="event.preventDefault(); window.location.href='vehicle-detail.html';">
+            <div class="card mb-24">
+              <div class="card-header"><h3>Vehicle Information</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Make</label><input class="form-control" value="Toyota" placeholder="e.g. Toyota"></div>
+                  <div class="form-group"><label class="form-label form-required">Model</label><input class="form-control" value="Corolla Cross" placeholder="e.g. Corolla Cross"></div>
+                  <div class="form-group"><label class="form-label form-required">Year</label><input type="number" class="form-control" value="2026"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Chassis Number</label><input class="form-control" value="ZSG10-0001234"></div>
+                  <div class="form-group"><label class="form-label">Engine Number</label><input class="form-control" value="2ZR-FXE-1234567"></div>
+                  <div class="form-group"><label class="form-label form-required">Colour</label><input class="form-control" value="Celestial Black"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Registration Number</label><input class="form-control" placeholder="Not yet registered"><div class="form-hint">Leave empty if not yet registered</div></div>
+                  <div class="form-group"><label class="form-label form-required">Fuel Type</label><select class="form-control"><option>Hybrid</option></select></div>
+                  <div class="form-group"><label class="form-label form-required">Mileage (km)</label><input type="number" class="form-control" value="12"><div class="form-hint">Brand new — factory mileage only</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card mb-24">
+              <div class="card-header"><h3>Purchase Details</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Supplier (Dealer)</label><select class="form-control"><option>Toyota Lanka (Pvt) Ltd</option><option>+ Add New Supplier</option></select></div>
+                  <div class="form-group"><label class="form-label form-required">Invoice Number</label><input class="form-control" value="TL-INV-2026-0456"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Purchase Price (Rs.)</label><input type="number" class="form-control" value="15500000"></div>
+                  <div class="form-group"><label class="form-label form-required">Purchase Date</label><input type="date" class="form-control" value="2026-03-01"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control">Brand new from Toyota Lanka. Full manufacturer warranty (3 years / 100,000 km).</textarea></div>
+              </div>
+            </div>
+            <div class="d-flex gap-8 justify-between">
+              <a href="vehicles.html" class="btn btn-secondary">Cancel</a>
+              <button type="submit" class="btn btn-primary">Save & Add to Inventory</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

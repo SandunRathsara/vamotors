@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profit Report — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="reports" data-title="Profit Report">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="reports.html">Reports</a> <span class="sep">›</span> <span>Profit Report</span></div>
+        <div class="page-header"><div><h1>💰 Profit Report</h1></div><button class="btn btn-secondary">📥 Export CSV</button></div>
+        <div class="card mb-24"><div class="card-body" style="padding:12px 20px;"><div class="filter-bar" style="margin-bottom:0;"><select class="form-control" style="width:auto;"><option selected>Q1 2026</option><option>Jan 2026</option><option>Feb 2026</option><option>Mar 2026</option></select><button class="btn btn-primary btn-sm">Generate</button></div></div></div>
+        <div class="stat-grid mb-24">
+          <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">Rs. 30.8M</div></div>
+          <div class="stat-card"><div class="stat-label">Total Costs</div><div class="stat-value">Rs. 25.8M</div></div>
+          <div class="stat-card"><div class="stat-label">Gross Profit</div><div class="stat-value text-success">Rs. 5.0M</div></div>
+          <div class="stat-card"><div class="stat-label">Avg. Margin</div><div class="stat-value text-success">16.2%</div></div>
+        </div>
+        <div class="card mb-24">
+          <div class="card-header"><h3>Profit per Vehicle (Sold)</h3></div>
+          <div class="card-body" style="padding:0;">
+            <table>
+              <thead><tr><th>Vehicle</th><th>Purchase Price</th><th>Repair Costs</th><th>Other Costs</th><th>Total Cost</th><th>Sale Price</th><th>Profit</th><th>Margin</th></tr></thead>
+              <tbody>
+                <tr><td class="fw-600">Nissan Leaf 2021</td><td>Rs. 7,200,000</td><td>Rs. 85,000</td><td>Rs. 515,000</td><td>Rs. 7,800,000</td><td>Rs. 9,500,000</td><td class="text-success fw-bold">Rs. 1,700,000</td><td class="text-success fw-600">17.9%</td></tr>
+                <tr><td class="fw-600">Toyota Aqua 2018</td><td>Rs. 4,500,000</td><td>Rs. 57,000</td><td>Rs. 43,000</td><td>Rs. 4,600,000</td><td>Rs. 5,800,000</td><td class="text-success fw-bold">Rs. 1,200,000</td><td class="text-success fw-600">20.7%</td></tr>
+                <tr><td class="fw-600">Honda Vezel 2019</td><td>Rs. 6,800,000</td><td>Rs. 120,000</td><td>Rs. 280,000</td><td>Rs. 7,200,000</td><td>Rs. 8,200,000</td><td class="text-success fw-bold">Rs. 1,000,000</td><td class="text-success fw-600">12.2%</td></tr>
+                <tr><td class="fw-600">Toyota Vitz 2016</td><td>Rs. 3,100,000</td><td>Rs. 45,000</td><td>Rs. 155,000</td><td>Rs. 3,300,000</td><td>Rs. 3,900,000</td><td class="text-success fw-bold">Rs. 600,000</td><td class="text-success fw-600">15.4%</td></tr>
+                <tr><td class="fw-600">Suzuki Alto 2020</td><td>Rs. 2,700,000</td><td>Rs. 25,000</td><td>Rs. 175,000</td><td>Rs. 2,900,000</td><td>Rs. 3,400,000</td><td class="text-success fw-bold">Rs. 500,000</td><td class="text-success fw-600">14.7%</td></tr>
+              </tbody>
+              <tfoot><tr class="fw-bold"><td>Total</td><td>Rs. 24,300,000</td><td>Rs. 332,000</td><td>Rs. 1,168,000</td><td>Rs. 25,800,000</td><td>Rs. 30,800,000</td><td class="text-success">Rs. 5,000,000</td><td class="text-success">16.2%</td></tr></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="card"><div class="card-header"><h3>Monthly Trend</h3></div><div class="card-body">
+          <table><thead><tr><th>Month</th><th>Sales</th><th>Revenue</th><th>Costs</th><th>Profit</th><th>Margin</th></tr></thead><tbody>
+            <tr><td class="fw-600">January 2026</td><td>4</td><td>Rs. 12,400,000</td><td>Rs. 10,800,000</td><td class="text-success fw-600">Rs. 1,600,000</td><td>12.9%</td></tr>
+            <tr><td class="fw-600">February 2026</td><td>3</td><td>Rs. 16,800,000</td><td>Rs. 14,000,000</td><td class="text-success fw-600">Rs. 2,800,000</td><td>16.7%</td></tr>
+            <tr><td class="fw-600">March 2026 (partial)</td><td>2</td><td>Rs. 14,000,000</td><td>Rs. 11,800,000</td><td class="text-success fw-600">Rs. 2,200,000</td><td>15.7%</td></tr>
+          </tbody></table>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

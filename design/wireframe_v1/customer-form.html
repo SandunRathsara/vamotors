@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="customers" data-title="Customer">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="customers.html">Customers</a> <span class="sep">›</span> <span>Kamal Perera</span></div>
+        <div class="page-header"><div><h1>Kamal Perera</h1><p>Customer since January 2026</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='customers.html';">
+          <div class="grid-2">
+            <div class="card mb-24">
+              <div class="card-header"><h3>Personal Information</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Full Name</label><input class="form-control" value="Kamal Perera"></div>
+                  <div class="form-group"><label class="form-label form-required">NIC Number</label><input class="form-control" value="199512345678"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Phone</label><input class="form-control" value="+94 77 123 4567"></div>
+                  <div class="form-group"><label class="form-label">Email</label><input class="form-control" value="kamal.perera@gmail.com"></div>
+                </div>
+                <div class="form-group"><label class="form-label form-required">Address</label><textarea class="form-control">No. 45, Galle Road, Dehiwala</textarea></div>
+                <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control">Repeat customer. Referred by Lakshan Bandara. Prefers hybrid vehicles.</textarea></div>
+              </div>
+            </div>
+            <div>
+              <div class="card mb-24">
+                <div class="card-header"><h3>Purchase History (2 purchases)</h3></div>
+                <div class="card-body" style="padding:0;">
+                  <table>
+                    <thead><tr><th>Sale #</th><th>Vehicle</th><th>Date</th><th>Amount</th></tr></thead>
+                    <tbody>
+                      <tr><td><a href="sale-detail.html">SL-2026-018</a></td><td>Toyota Aqua 2018</td><td>05 Mar 2026</td><td class="fw-600">Rs. 5,800,000</td></tr>
+                      <tr><td><a href="sale-detail.html">SL-2026-008</a></td><td>Honda Fit 2016</td><td>15 Jan 2026</td><td class="fw-600">Rs. 3,200,000</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card mb-24">
+                <div class="card-header"><h3>Advance History</h3></div>
+                <div class="card-body">
+                  <div class="empty-state"><p>No active or past advances for this customer.</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="customers.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Customer</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Role Detail — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="roles" data-title="Role Detail">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="roles.html">Roles</a> <span class="sep">›</span> <span>Cashier</span></div>
+        <div class="page-header"><div><h1>Cashier Role</h1><p>1 user assigned</p></div></div>
+        <div class="grid-2">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Permissions</h3></div>
+            <div class="card-body">
+              <table>
+                <thead><tr><th>Module</th><th>View</th><th>Create</th><th>Edit</th><th>Delete</th><th>Approve</th></tr></thead>
+                <tbody>
+                  <tr><td class="fw-600">Vehicles</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Sales</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Repairs</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Advances</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Customers</td><td>✓</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Suppliers</td><td>✓</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Approvals</td><td>✓</td><td>Request only</td><td>—</td><td>—</td><td class="text-danger fw-600">✗ No</td></tr>
+                  <tr><td class="fw-600">Users</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Reports</td><td>Limited</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+                  <tr><td class="fw-600">Settings</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Assigned Users</h3></div>
+            <div class="card-body">
+              <div class="d-flex gap-8" style="align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;">NJ</div>
+                <div><div class="fw-600">Nimali Jayasuriya</div><div class="fs-sm text-muted">nimali.cashier · Active</div></div>
+                <a href="user-form.html" class="btn btn-sm btn-secondary" style="margin-left:auto;">Edit</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <a href="roles.html" class="btn btn-secondary">← Back to Roles</a>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

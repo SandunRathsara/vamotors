@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repair Cost Report — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="reports" data-title="Repair Cost Report">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="reports.html">Reports</a> <span class="sep">›</span> <span>Repair Costs</span></div>
+        <div class="page-header"><div><h1>🔧 Repair Cost Report</h1></div><button class="btn btn-secondary">📥 Export CSV</button></div>
+        <div class="stat-grid mb-24">
+          <div class="stat-card"><div class="stat-label">Total Repair Spend</div><div class="stat-value">Rs. 842,000</div></div>
+          <div class="stat-card"><div class="stat-label">Total Repairs</div><div class="stat-value">18</div></div>
+          <div class="stat-card"><div class="stat-label">Currently In Repair</div><div class="stat-value text-warning">4</div></div>
+          <div class="stat-card"><div class="stat-label">Avg. Turnaround</div><div class="stat-value">4.5 days</div></div>
+        </div>
+        <div class="card mb-24"><div class="card-header"><h3>By Vendor</h3></div><div class="card-body" style="padding:0;"><table><thead><tr><th>Vendor</th><th>Total Jobs</th><th>Total Cost</th><th>Avg. Cost</th><th>Avg. Days</th></tr></thead><tbody>
+          <tr><td class="fw-600">City Auto Repairs</td><td>8</td><td class="fw-600">Rs. 420,000</td><td>Rs. 52,500</td><td>3.8 days</td></tr>
+          <tr><td class="fw-600">Rajapaksa Body Shop</td><td>6</td><td class="fw-600">Rs. 285,000</td><td>Rs. 47,500</td><td>5.2 days</td></tr>
+          <tr><td class="fw-600">Kandy Motor Works</td><td>4</td><td class="fw-600">Rs. 137,000</td><td>Rs. 34,250</td><td>4.5 days</td></tr>
+        </tbody><tfoot><tr class="fw-bold"><td>Total</td><td>18</td><td>Rs. 842,000</td><td>Rs. 46,778</td><td>4.5 days</td></tr></tfoot></table></div></div>
+        <div class="card"><div class="card-header"><h3>Recent Repairs</h3></div><div class="card-body" style="padding:0;"><table><thead><tr><th>Vehicle</th><th>Vendor</th><th>Sent</th><th>Returned</th><th>Days</th><th>Cost</th></tr></thead><tbody>
+          <tr><td>Honda Fit 2018</td><td>City Auto</td><td>06 Mar</td><td>—</td><td class="text-warning">1</td><td>—</td></tr>
+          <tr><td>Toyota Aqua 2018</td><td>City Auto</td><td>20 Jan</td><td>25 Jan</td><td>5</td><td>Rs. 45,000</td></tr>
+          <tr><td>Toyota Aqua 2018</td><td>Rajapaksa</td><td>02 Feb</td><td>05 Feb</td><td>3</td><td>Rs. 12,000</td></tr>
+          <tr><td>Suzuki Swift 2019</td><td>City Auto</td><td>05 Jan</td><td>10 Jan</td><td>5</td><td>Rs. 32,000</td></tr>
+        </tbody></table></div></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

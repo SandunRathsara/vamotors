@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Inventory — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="vehicles" data-title="Vehicle Inventory">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1>Vehicle Inventory</h1>
+            <p>24 vehicles in system · 12 available for sale</p>
+          </div>
+          <div class="d-flex gap-8">
+            <a href="vehicle-add.html" class="btn btn-primary">+ Add Vehicle</a>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-24">
+          <div class="card-body" style="padding:12px 20px;">
+            <div class="filter-bar" style="margin-bottom:0;">
+              <div class="search-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="form-control" placeholder="Search by make, model, reg. number..." style="padding-left:32px;">
+              </div>
+              <select class="form-control" style="width:auto;min-width:140px;">
+                <option>All Statuses</option>
+                <option>In Stock</option>
+                <option>In Repair</option>
+                <option>Advance Placed</option>
+                <option>Finance Pending</option>
+                <option>Sold</option>
+                <option>Written Off</option>
+              </select>
+              <select class="form-control" style="width:auto;min-width:140px;">
+                <option>All Makes</option>
+                <option>Toyota</option>
+                <option>Honda</option>
+                <option>Suzuki</option>
+                <option>Nissan</option>
+                <option>Mitsubishi</option>
+              </select>
+              <select class="form-control" style="width:auto;min-width:160px;">
+                <option>Availability: All</option>
+                <option>Available for Sale</option>
+                <option>Not Available</option>
+              </select>
+              <div class="view-toggle" style="margin-left:auto;">
+                <button class="active" data-view="table">☰ Table</button>
+                <button data-view="card">⊞ Cards</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table View -->
+        <div class="card table-view">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vehicle</th>
+                    <th>Reg. No.</th>
+                    <th>Year</th>
+                    <th>Colour</th>
+                    <th>Fuel</th>
+                    <th>Status</th>
+                    <th>Available</th>
+                    <th>Listed Price</th>
+                    <th>Cost Basis</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Toyota Aqua</a><br><span class="fs-sm text-muted">Chassis: NHP10-6234567</span></td>
+                    <td>CAB-1234</td>
+                    <td>2018</td>
+                    <td>White</td>
+                    <td>Hybrid</td>
+                    <td><span class="badge badge-success">In Stock</span></td>
+                    <td><span class="text-success">✓ Yes</span></td>
+                    <td class="fw-600">Rs. 5,900,000</td>
+                    <td>Rs. 4,800,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                      <a href="vehicle-edit.html" class="btn btn-sm btn-secondary">Edit</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Honda Vezel</a><br><span class="fs-sm text-muted">Chassis: RU3-4567891</span></td>
+                    <td>KD-5678</td>
+                    <td>2019</td>
+                    <td>Black</td>
+                    <td>Hybrid</td>
+                    <td><span class="badge badge-info">Finance Pending</span></td>
+                    <td><span class="text-danger">✗ No</span></td>
+                    <td class="fw-600">Rs. 8,500,000</td>
+                    <td>Rs. 7,200,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Suzuki Alto</a><br><span class="fs-sm text-muted">Chassis: HA36S-987654</span></td>
+                    <td>WP-9012</td>
+                    <td>2020</td>
+                    <td>Silver</td>
+                    <td>Petrol</td>
+                    <td><span class="badge badge-success">In Stock</span></td>
+                    <td><span class="text-success">✓ Yes</span></td>
+                    <td class="fw-600">Rs. 3,600,000</td>
+                    <td>Rs. 2,900,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                      <a href="vehicle-edit.html" class="btn btn-sm btn-secondary">Edit</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Mitsubishi Lancer</a><br><span class="fs-sm text-muted">Chassis: CS5A-112233</span></td>
+                    <td>NW-3456</td>
+                    <td>2017</td>
+                    <td>Red</td>
+                    <td>Petrol</td>
+                    <td><span class="badge badge-warning">In Repair</span></td>
+                    <td><span class="text-danger">✗ No</span></td>
+                    <td class="fw-600">Rs. 4,200,000</td>
+                    <td>Rs. 3,400,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Toyota Prius</a><br><span class="fs-sm text-muted">Chassis: ZVW50-445566</span></td>
+                    <td>SP-7890</td>
+                    <td>2020</td>
+                    <td>Blue</td>
+                    <td>Hybrid</td>
+                    <td><span class="badge badge-danger">Advance Placed</span></td>
+                    <td><span class="text-danger">✗ No</span></td>
+                    <td class="fw-600">Rs. 6,200,000</td>
+                    <td>Rs. 5,100,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Nissan Leaf</a><br><span class="fs-sm text-muted">Chassis: ZE1-778899</span></td>
+                    <td>—</td>
+                    <td>2021</td>
+                    <td>White</td>
+                    <td>Electric</td>
+                    <td><span class="badge badge-default">Sold</span></td>
+                    <td><span class="text-muted">—</span></td>
+                    <td class="fw-600">Rs. 9,500,000</td>
+                    <td>Rs. 7,800,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Toyota Corolla</a><br><span class="fs-sm text-muted">Chassis: NRE210-223344</span></td>
+                    <td>—</td>
+                    <td>2022</td>
+                    <td>Pearl White</td>
+                    <td>Petrol</td>
+                    <td><span class="badge badge-success">In Stock</span></td>
+                    <td><span class="text-danger">✗ No</span><br><span class="fs-sm text-muted">Not yet in showroom</span></td>
+                    <td class="fw-600">Rs. 12,800,000</td>
+                    <td>Rs. 11,200,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                      <a href="vehicle-edit.html" class="btn btn-sm btn-secondary">Edit</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="vehicle-detail.html" class="fw-600">Suzuki Swift</a><br><span class="fs-sm text-muted">Chassis: ZC33S-556677</span></td>
+                    <td>CAR-4321</td>
+                    <td>2019</td>
+                    <td>Orange</td>
+                    <td>Petrol</td>
+                    <td><span class="badge badge-danger">Advance Expired</span></td>
+                    <td><span class="text-danger">✗ No</span></td>
+                    <td class="fw-600">Rs. 4,800,000</td>
+                    <td>Rs. 3,500,000</td>
+                    <td>
+                      <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                      <a href="advance-resolve.html" class="btn btn-sm btn-danger">Resolve</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="pagination" style="width:100%;">
+              <span>Showing 1–8 of 24 vehicles</span>
+              <div class="pagination-controls">
+                <button>← Prev</button>
+                <button class="active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>Next →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card View -->
+        <div class="card-view" style="display:none;">
+          <div class="data-cards">
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html">Toyota Aqua 2018</a></div>
+                  <div class="data-card-subtitle">CAB-1234 · Chassis: NHP10-6234567</div>
+                </div>
+                <span class="badge badge-success">In Stock</span>
+              </div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Colour</label><span>White</span></div>
+                <div class="data-card-field"><label>Fuel</label><span>Hybrid</span></div>
+                <div class="data-card-field"><label>Listed Price</label><span class="fw-600">Rs. 5,900,000</span></div>
+                <div class="data-card-field"><label>Cost Basis</label><span>Rs. 4,800,000</span></div>
+                <div class="data-card-field"><label>Available</label><span class="text-success">✓ Yes</span></div>
+                <div class="data-card-field"><label>Transmission</label><span>Automatic</span></div>
+              </div>
+              <div class="data-card-actions">
+                <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                <a href="vehicle-edit.html" class="btn btn-sm btn-secondary">Edit</a>
+                <a href="sale-cash.html" class="btn btn-sm btn-primary">Sell</a>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html">Honda Vezel 2019</a></div>
+                  <div class="data-card-subtitle">KD-5678 · Chassis: RU3-4567891</div>
+                </div>
+                <span class="badge badge-info">Finance Pending</span>
+              </div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Colour</label><span>Black</span></div>
+                <div class="data-card-field"><label>Fuel</label><span>Hybrid</span></div>
+                <div class="data-card-field"><label>Listed Price</label><span class="fw-600">Rs. 8,500,000</span></div>
+                <div class="data-card-field"><label>Cost Basis</label><span>Rs. 7,200,000</span></div>
+                <div class="data-card-field"><label>Available</label><span class="text-danger">✗ No</span></div>
+                <div class="data-card-field"><label>Transmission</label><span>Automatic</span></div>
+              </div>
+              <div class="data-card-actions">
+                <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html">Suzuki Alto 2020</a></div>
+                  <div class="data-card-subtitle">WP-9012 · Chassis: HA36S-987654</div>
+                </div>
+                <span class="badge badge-success">In Stock</span>
+              </div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Colour</label><span>Silver</span></div>
+                <div class="data-card-field"><label>Fuel</label><span>Petrol</span></div>
+                <div class="data-card-field"><label>Listed Price</label><span class="fw-600">Rs. 3,600,000</span></div>
+                <div class="data-card-field"><label>Cost Basis</label><span>Rs. 2,900,000</span></div>
+                <div class="data-card-field"><label>Available</label><span class="text-success">✓ Yes</span></div>
+                <div class="data-card-field"><label>Transmission</label><span>Manual</span></div>
+              </div>
+              <div class="data-card-actions">
+                <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                <a href="vehicle-edit.html" class="btn btn-sm btn-secondary">Edit</a>
+                <a href="sale-cash.html" class="btn btn-sm btn-primary">Sell</a>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html">Mitsubishi Lancer 2017</a></div>
+                  <div class="data-card-subtitle">NW-3456 · Chassis: CS5A-112233</div>
+                </div>
+                <span class="badge badge-warning">In Repair</span>
+              </div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Colour</label><span>Red</span></div>
+                <div class="data-card-field"><label>Fuel</label><span>Petrol</span></div>
+                <div class="data-card-field"><label>Listed Price</label><span class="fw-600">Rs. 4,200,000</span></div>
+                <div class="data-card-field"><label>Cost Basis</label><span>Rs. 3,400,000</span></div>
+                <div class="data-card-field"><label>Available</label><span class="text-danger">✗ No</span></div>
+                <div class="data-card-field"><label>Transmission</label><span>Automatic</span></div>
+              </div>
+              <div class="data-card-actions">
+                <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html">Suzuki Swift 2019</a></div>
+                  <div class="data-card-subtitle">CAR-4321 · Chassis: ZC33S-556677</div>
+                </div>
+                <span class="badge badge-danger">Advance Expired</span>
+              </div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Colour</label><span>Orange</span></div>
+                <div class="data-card-field"><label>Fuel</label><span>Petrol</span></div>
+                <div class="data-card-field"><label>Listed Price</label><span class="fw-600">Rs. 4,800,000</span></div>
+                <div class="data-card-field"><label>Cost Basis</label><span>Rs. 3,500,000</span></div>
+                <div class="data-card-field"><label>Available</label><span class="text-danger">✗ No</span></div>
+                <div class="data-card-field"><label>Transmission</label><span>Manual</span></div>
+              </div>
+              <div class="data-card-actions">
+                <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+                <a href="advance-resolve.html" class="btn btn-sm btn-danger">Resolve Advance</a>
+              </div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header">
+                <div>
+                  <div class="data-card-title"><a href="vehicle-detail.html">Toyota Prius 2020</a></div>
+                  <div class="data-card-subtitle">SP-7890 · Chassis: ZVW50-445566</div>
+                </div>
+                <span class="badge badge-danger">Advance Placed</span>
+              </div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Colour</label><span>Blue</span></div>
+                <div class="data-card-field"><label>Fuel</label><span>Hybrid</span></div>
+                <div class="data-card-field"><label>Listed Price</label><span class="fw-600">Rs. 6,200,000</span></div>
+                <div class="data-card-field"><label>Cost Basis</label><span>Rs. 5,100,000</span></div>
+                <div class="data-card-field"><label>Available</label><span class="text-danger">✗ No</span></div>
+                <div class="data-card-field"><label>Transmission</label><span>CVT</span></div>
+              </div>
+              <div class="data-card-actions">
+                <a href="vehicle-detail.html" class="btn btn-sm btn-secondary">View</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

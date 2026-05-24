@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Detail — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="vehicles" data-title="Vehicle Detail">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb">
+          <a href="vehicles.html">Vehicles</a> <span class="sep">›</span> <span>Toyota Aqua 2018</span>
+        </div>
+        <div class="page-header">
+          <div>
+            <h1>Toyota Aqua 2018 <span class="badge badge-success" style="vertical-align:middle;">In Stock</span></h1>
+            <p>CAB-1234 · <span class="text-success">Available for Sale</span></p>
+          </div>
+          <div class="d-flex gap-8 flex-wrap">
+            <a href="vehicle-edit.html" class="btn btn-secondary">✏ Edit</a>
+            <a href="send-repair.html" class="btn btn-secondary">🔧 Send for Repair</a>
+            <a href="sale-cash.html" class="btn btn-primary">💰 Sell Vehicle</a>
+            <a href="writeoff.html" class="btn btn-danger">Write Off</a>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" data-tabs>
+          <div class="tab active" data-tab="overview">Overview</div>
+          <div class="tab" data-tab="financial">Financial Summary</div>
+          <div class="tab" data-tab="mileage">Mileage History</div>
+          <div class="tab" data-tab="repairs">Repair History</div>
+          <div class="tab" data-tab="sales">Sales History</div>
+          <div class="tab" data-tab="audit">Audit Trail</div>
+        </div>
+
+        <!-- Overview Tab -->
+        <div class="tab-content active" data-tab-content="overview">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><h3>Vehicle Details</h3></div>
+              <div class="card-body">
+                <div class="detail-grid">
+                  <div class="detail-item"><label>Make</label><span>Toyota</span></div>
+                  <div class="detail-item"><label>Model</label><span>Aqua</span></div>
+                  <div class="detail-item"><label>Year</label><span>2018</span></div>
+                  <div class="detail-item"><label>Colour</label><span>White</span></div>
+                  <div class="detail-item"><label>Engine No.</label><span>1NZ-FXE-4567890</span></div>
+                  <div class="detail-item"><label>Chassis No.</label><span>NHP10-6234567</span></div>
+                  <div class="detail-item"><label>VIN</label><span>JTDKN3DU7A0123456</span></div>
+                  <div class="detail-item"><label>CR Number</label><span>WP-CAB-1234</span></div>
+                  <div class="detail-item"><label>Fuel Type</label><span>Hybrid</span></div>
+                  <div class="detail-item"><label>Transmission</label><span>Automatic (CVT)</span></div>
+                  <div class="detail-item"><label>Current Mileage</label><span>78,500 km</span></div>
+                  <div class="detail-item"><label>Listed Price</label><span class="fw-bold">Rs. 5,900,000</span></div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="card mb-16">
+                <div class="card-header"><h3>Purchase Information</h3></div>
+                <div class="card-body">
+                  <div class="detail-grid">
+                    <div class="detail-item"><label>Purchase Type</label><span>Cash Purchase</span></div>
+                    <div class="detail-item"><label>Purchase Date</label><span>15 Jan 2026</span></div>
+                    <div class="detail-item"><label>Purchase Price</label><span class="fw-bold">Rs. 4,500,000</span></div>
+                    <div class="detail-item"><label>Supplier</label><span><a href="supplier-form.html">Mahinda Rathnayake</a></span></div>
+                    <div class="detail-item"><label>Supplier Type</label><span>Individual</span></div>
+                    <div class="detail-item"><label>Recorded By</label><span>Sandun Admin</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header"><h3>Status & Availability</h3></div>
+                <div class="card-body">
+                  <div class="detail-grid">
+                    <div class="detail-item"><label>Primary Status</label><span><span class="badge badge-success">In Stock</span></span></div>
+                    <div class="detail-item"><label>Available for Sale</label><span class="text-success fw-600">Yes</span></div>
+                    <div class="detail-item"><label>Days in Inventory</label><span>51 days</span></div>
+                    <div class="detail-item"><label>Last Status Change</label><span>18 Jan 2026</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Financial Summary Tab -->
+        <div class="tab-content" data-tab-content="financial">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><h3>Cost Breakdown</h3></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Item</th><th>Date</th><th class="text-right">Amount</th></tr></thead>
+                  <tbody>
+                    <tr><td>Purchase Price</td><td>15 Jan 2026</td><td class="text-right fw-600">Rs. 4,500,000</td></tr>
+                    <tr><td>Transport (Kurunegala → Colombo)</td><td>16 Jan 2026</td><td class="text-right">Rs. 15,000</td></tr>
+                    <tr><td>Vehicle Inspection Fee</td><td>17 Jan 2026</td><td class="text-right">Rs. 5,000</td></tr>
+                    <tr><td>Body wash & polish</td><td>20 Jan 2026</td><td class="text-right">Rs. 8,000</td></tr>
+                    <tr><td>Repair: Engine tune-up (City Auto)</td><td>25 Jan 2026</td><td class="text-right">Rs. 45,000</td></tr>
+                    <tr><td>Repair: Interior cleaning (Rajapaksa)</td><td>02 Feb 2026</td><td class="text-right">Rs. 12,000</td></tr>
+                    <tr><td>Revenue Licence Renewal</td><td>10 Feb 2026</td><td class="text-right">Rs. 15,000</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr style="border-top:2px solid var(--primary);"><td colspan="2" class="fw-bold">Total Cost Basis</td><td class="text-right fw-bold" style="font-size:16px;">Rs. 4,600,000</td></tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3>Pricing & Profit</h3></div>
+              <div class="card-body">
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                  <div class="d-flex justify-between"><span class="text-muted">Purchase Price</span><span class="fw-600">Rs. 4,500,000</span></div>
+                  <div class="d-flex justify-between"><span class="text-muted">+ Repair Costs</span><span>Rs. 57,000</span></div>
+                  <div class="d-flex justify-between"><span class="text-muted">+ Other Costs</span><span>Rs. 43,000</span></div>
+                  <hr style="border:none; border-top:1px solid var(--border);">
+                  <div class="d-flex justify-between"><span class="fw-bold">Total Cost Basis</span><span class="fw-bold">Rs. 4,600,000</span></div>
+                  <hr style="border:none; border-top:1px solid var(--border);">
+                  <div class="d-flex justify-between"><span class="text-muted">Listed Sale Price</span><span class="fw-bold" style="font-size:18px;">Rs. 5,900,000</span></div>
+                  <div class="d-flex justify-between"><span class="text-muted">Expected Profit</span><span class="fw-bold text-success" style="font-size:18px;">Rs. 1,300,000</span></div>
+                  <div class="d-flex justify-between"><span class="text-muted">Profit Margin</span><span class="fw-600 text-success">28.3%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mileage History Tab -->
+        <div class="tab-content" data-tab-content="mileage">
+          <div class="card">
+            <div class="card-header">
+              <h3>Mileage History</h3>
+              <button class="btn btn-sm btn-primary">+ Add Reading</button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <table>
+                <thead><tr><th>Date</th><th>Mileage (km)</th><th>Remark</th><th>Recorded By</th></tr></thead>
+                <tbody>
+                  <tr><td>15 Jan 2026</td><td class="fw-600">72,340</td><td>Mileage at purchase</td><td>Sandun Admin</td></tr>
+                  <tr><td>20 Jan 2026</td><td class="fw-600">72,380</td><td>Mileage at repair intake – Engine tune-up</td><td>Cashier Nimali</td></tr>
+                  <tr><td>25 Jan 2026</td><td class="fw-600">72,390</td><td>Mileage at repair return</td><td>Cashier Nimali</td></tr>
+                  <tr><td>02 Feb 2026</td><td class="fw-600">72,520</td><td>Mileage at interior cleaning intake</td><td>Sandun Admin</td></tr>
+                  <tr><td>05 Feb 2026</td><td class="fw-600">72,530</td><td>Mileage at repair return</td><td>Sandun Admin</td></tr>
+                  <tr><td>07 Mar 2026</td><td class="fw-600">78,500</td><td>Current reading – showroom check</td><td>Sales Arun</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Repair History Tab -->
+        <div class="tab-content" data-tab-content="repairs">
+          <div class="card mb-16">
+            <div class="card-header"><h3>Repair History (2 repairs)</h3></div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="tl-date">25 Jan 2026 – Completed</div>
+                  <div class="tl-content">
+                    <p class="fw-600">Engine Tune-Up</p>
+                    <p class="text-muted fs-sm">Vendor: <a href="repair-vendor-form.html">City Auto Repairs</a></p>
+                    <p class="fs-sm mt-8"><strong>Repair Request:</strong> Engine running rough, hesitation on acceleration. Needs full tune-up and diagnostic check.</p>
+                    <p class="fs-sm mt-8"><strong>Repair Summary:</strong> Replaced spark plugs, cleaned throttle body, replaced air filter. Engine diagnostics cleared.</p>
+                    <p class="fs-sm mt-8">Sent: 20 Jan 2026 · Returned: 25 Jan 2026 · <strong>Cost: Rs. 45,000</strong></p>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">05 Feb 2026 – Completed</div>
+                  <div class="tl-content">
+                    <p class="fw-600">Interior Deep Cleaning</p>
+                    <p class="text-muted fs-sm">Vendor: <a href="repair-vendor-form.html">Rajapaksa Body Shop</a></p>
+                    <p class="fs-sm mt-8"><strong>Repair Request:</strong> Full interior cleaning needed – seats have stains, dashboard dusty, needs deodorising.</p>
+                    <p class="fs-sm mt-8"><strong>Repair Summary:</strong> Full interior shampoo, dashboard polish, deodorising, floor mat replacement.</p>
+                    <p class="fs-sm mt-8">Sent: 02 Feb 2026 · Returned: 05 Feb 2026 · <strong>Cost: Rs. 12,000</strong></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales History Tab -->
+        <div class="tab-content" data-tab-content="sales">
+          <div class="card">
+            <div class="card-header"><h3>Sales History</h3></div>
+            <div class="card-body">
+              <div class="empty-state">
+                <p>This vehicle has not been sold yet.</p>
+                <a href="sale-cash.html" class="btn btn-primary mt-16">Record a Sale</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit Trail Tab -->
+        <div class="tab-content" data-tab-content="audit">
+          <div class="card">
+            <div class="card-header"><h3>Audit Trail</h3></div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="tl-date">07 Mar 2026, 09:15 AM — Sales Arun</div>
+                  <div class="tl-content"><p>Updated mileage: 72,530 km → 78,500 km</p></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">10 Feb 2026, 11:00 AM — Sandun Admin</div>
+                  <div class="tl-content"><p>Added cost: Revenue Licence Renewal — Rs. 15,000</p></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">05 Feb 2026, 03:30 PM — Sandun Admin</div>
+                  <div class="tl-content"><p>Status changed: IN_REPAIR → IN_STOCK (returned from Rajapaksa Body Shop)</p></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">02 Feb 2026, 10:00 AM — Sandun Admin</div>
+                  <div class="tl-content"><p>Status changed: IN_STOCK → IN_REPAIR (sent to Rajapaksa Body Shop). isAvailableForSale: true → false</p></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">25 Jan 2026, 04:00 PM — Cashier Nimali</div>
+                  <div class="tl-content"><p>Status changed: IN_REPAIR → IN_STOCK (returned from City Auto Repairs). Repair cost: Rs. 45,000</p></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">20 Jan 2026, 09:00 AM — Cashier Nimali</div>
+                  <div class="tl-content"><p>Status changed: IN_STOCK → IN_REPAIR (sent to City Auto Repairs)</p></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">18 Jan 2026, 02:00 PM — Sandun Admin</div>
+                  <div class="tl-content"><p>Status changed: PURCHASED → IN_STOCK. isAvailableForSale: false → true. Listed price set: Rs. 5,900,000</p></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="tl-date">15 Jan 2026, 10:30 AM — Sandun Admin</div>
+                  <div class="tl-content"><p>Vehicle record created. Purchase type: Cash. Supplier: Mahinda Rathnayake. Purchase price: Rs. 4,500,000</p></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

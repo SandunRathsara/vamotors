@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suppliers — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="suppliers" data-title="Suppliers">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header"><div><h1>Suppliers</h1><p>8 registered suppliers</p></div><a href="supplier-form.html" class="btn btn-primary">+ Add Supplier</a></div>
+        <div class="card mb-24"><div class="card-body" style="padding:12px 20px;"><div class="filter-bar" style="margin-bottom:0;"><div class="search-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" class="form-control" placeholder="Search suppliers..." style="padding-left:32px;"></div><select class="form-control" style="width:auto;min-width:130px;"><option>All Types</option><option>Individual</option><option>Company</option></select><div class="view-toggle" style="margin-left:auto;"><button class="active" data-view="table">☰ Table</button><button data-view="card">⊞ Cards</button></div></div></div></div>
+        <div class="card table-view">
+          <div class="card-body" style="padding:0;">
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Contact</th><th>Phone</th><th>Location</th><th>Vehicles Supplied</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr><td class="fw-600"><a href="supplier-form.html">Mahinda Rathnayake</a></td><td>Individual</td><td>Mahinda Rathnayake</td><td>+94 77 890 1234</td><td>Kurunegala</td><td>3</td><td><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></td></tr>
+                <tr><td class="fw-600"><a href="supplier-form.html">Lanka Auto Traders (Pvt) Ltd</a></td><td><span class="badge badge-info">Company</span></td><td>Suresh Wijesinghe</td><td>+94 11 567 8901</td><td>Colombo 02</td><td>5</td><td><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></td></tr>
+                <tr><td class="fw-600"><a href="supplier-form.html">Colombo Motor Imports</a></td><td><span class="badge badge-info">Company</span></td><td>Anura De Silva</td><td>+94 11 234 9012</td><td>Colombo 15</td><td>8</td><td><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></td></tr>
+                <tr><td class="fw-600"><a href="supplier-form.html">Toyota Lanka (Pvt) Ltd</a></td><td><span class="badge badge-info">Company</span></td><td>—</td><td>+94 11 200 0000</td><td>Colombo 01</td><td>1</td><td><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></td></tr>
+                <tr><td class="fw-600"><a href="supplier-form.html">Kamal Gunasekara</a></td><td>Individual</td><td>Kamal Gunasekara</td><td>+94 72 345 6789</td><td>Gampaha</td><td>2</td><td><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-view" style="display:none;"><div class="data-cards">
+          <div class="data-card"><div class="data-card-header"><div><div class="data-card-title">Mahinda Rathnayake</div><div class="data-card-subtitle">Individual · Kurunegala</div></div></div><div class="data-card-body"><div class="data-card-field"><label>Phone</label><span>+94 77 890 1234</span></div><div class="data-card-field"><label>Vehicles</label><span class="fw-600">3</span></div></div><div class="data-card-actions"><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></div></div>
+          <div class="data-card"><div class="data-card-header"><div><div class="data-card-title">Lanka Auto Traders</div><div class="data-card-subtitle">Company · Colombo 02</div></div><span class="badge badge-info">Company</span></div><div class="data-card-body"><div class="data-card-field"><label>Contact</label><span>Suresh Wijesinghe</span></div><div class="data-card-field"><label>Phone</label><span>+94 11 567 8901</span></div><div class="data-card-field"><label>Vehicles</label><span class="fw-600">5</span></div></div><div class="data-card-actions"><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></div></div>
+          <div class="data-card"><div class="data-card-header"><div><div class="data-card-title">Colombo Motor Imports</div><div class="data-card-subtitle">Company · Colombo 15</div></div><span class="badge badge-info">Company</span></div><div class="data-card-body"><div class="data-card-field"><label>Contact</label><span>Anura De Silva</span></div><div class="data-card-field"><label>Phone</label><span>+94 11 234 9012</span></div><div class="data-card-field"><label>Vehicles</label><span class="fw-600">8</span></div></div><div class="data-card-actions"><a href="supplier-form.html" class="btn btn-sm btn-secondary">View</a></div></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

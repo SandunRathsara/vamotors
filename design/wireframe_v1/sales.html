@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="sales" data-title="Sales">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header">
+          <div><h1>Sales</h1><p>18 total sales · 4 this month</p></div>
+          <div class="d-flex gap-8 flex-wrap">
+            <a href="sale-cash.html" class="btn btn-primary">+ Cash Sale</a>
+            <a href="sale-advance.html" class="btn btn-secondary">+ Advance / Reservation</a>
+            <a href="sale-lease.html" class="btn btn-secondary">+ Lease Sale</a>
+            <a href="sale-tradein.html" class="btn btn-secondary">+ Trade-In Sale</a>
+          </div>
+        </div>
+
+        <div class="card mb-24">
+          <div class="card-body" style="padding:12px 20px;">
+            <div class="filter-bar" style="margin-bottom:0;">
+              <div class="search-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="form-control" placeholder="Search by vehicle, customer..." style="padding-left:32px;">
+              </div>
+              <select class="form-control" style="width:auto;min-width:130px;"><option>All Types</option><option>Cash</option><option>Advance</option><option>Lease</option><option>Trade-In</option></select>
+              <select class="form-control" style="width:auto;min-width:130px;"><option>All Status</option><option>Completed</option><option>Pending</option><option>Cancelled</option></select>
+              <input type="month" class="form-control" value="2026-03" style="width:auto;">
+              <div class="view-toggle" style="margin-left:auto;">
+                <button class="active" data-view="table">☰ Table</button>
+                <button data-view="card">⊞ Cards</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card table-view">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>Sale #</th><th>Date</th><th>Vehicle</th><th>Customer</th><th>Type</th><th>Sale Price</th><th>Profit</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td class="fw-600">SL-2026-018</td>
+                    <td>05 Mar 2026</td>
+                    <td><a href="vehicle-detail.html">Toyota Aqua 2018</a></td>
+                    <td><a href="customer-form.html">Kamal Perera</a></td>
+                    <td><span class="badge badge-success">Cash</span></td>
+                    <td class="fw-600">Rs. 5,800,000</td>
+                    <td class="text-success fw-600">Rs. 1,200,000</td>
+                    <td><span class="badge badge-success">Completed</span></td>
+                    <td><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a> <a href="invoice-preview.html" class="btn btn-sm btn-secondary">Invoice</a></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-600">SL-2026-017</td>
+                    <td>03 Mar 2026</td>
+                    <td><a href="vehicle-detail.html">Honda Vezel 2019</a></td>
+                    <td><a href="customer-form.html">Nishantha Silva</a></td>
+                    <td><span class="badge badge-info">Lease</span></td>
+                    <td class="fw-600">Rs. 8,200,000</td>
+                    <td class="text-success fw-600">Rs. 1,000,000</td>
+                    <td><span class="badge badge-warning">DO Pending</span></td>
+                    <td><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-600">SL-2026-016</td>
+                    <td>28 Feb 2026</td>
+                    <td><a href="vehicle-detail.html">Suzuki Alto 2020</a></td>
+                    <td><a href="customer-form.html">Chamari Fernando</a></td>
+                    <td><span class="badge badge-warning">Advance</span></td>
+                    <td class="fw-600">Rs. 3,400,000</td>
+                    <td class="text-success fw-600">Rs. 500,000</td>
+                    <td><span class="badge badge-success">Completed</span></td>
+                    <td><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a> <a href="invoice-preview.html" class="btn btn-sm btn-secondary">Invoice</a></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-600">SL-2026-015</td>
+                    <td>25 Feb 2026</td>
+                    <td><a href="vehicle-detail.html">Nissan Leaf 2021</a></td>
+                    <td><a href="customer-form.html">Ruwan Jayawardena</a></td>
+                    <td><span class="badge badge-default">Trade-In</span></td>
+                    <td class="fw-600">Rs. 9,500,000</td>
+                    <td class="text-success fw-600">Rs. 1,700,000</td>
+                    <td><span class="badge badge-success">Completed</span></td>
+                    <td><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a> <a href="invoice-preview.html" class="btn btn-sm btn-secondary">Invoice</a></td>
+                  </tr>
+                  <tr>
+                    <td class="fw-600">SL-2026-014</td>
+                    <td>20 Feb 2026</td>
+                    <td><a href="vehicle-detail.html">Toyota Vitz 2016</a></td>
+                    <td><a href="customer-form.html">Lakshan Bandara</a></td>
+                    <td><span class="badge badge-success">Cash</span></td>
+                    <td class="fw-600">Rs. 3,900,000</td>
+                    <td class="text-success fw-600">Rs. 600,000</td>
+                    <td><span class="badge badge-danger">Cancelled</span></td>
+                    <td><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="pagination" style="width:100%;"><span>Showing 1–5 of 18 sales</span><div class="pagination-controls"><button>← Prev</button><button class="active">1</button><button>2</button><button>3</button><button>4</button><button>Next →</button></div></div>
+          </div>
+        </div>
+
+        <div class="card-view" style="display:none;">
+          <div class="data-cards">
+            <div class="data-card">
+              <div class="data-card-header"><div><div class="data-card-title">SL-2026-018 — Toyota Aqua 2018</div><div class="data-card-subtitle">05 Mar 2026 · Kamal Perera</div></div><span class="badge badge-success">Cash</span></div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Sale Price</label><span class="fw-600">Rs. 5,800,000</span></div>
+                <div class="data-card-field"><label>Profit</label><span class="text-success fw-600">Rs. 1,200,000</span></div>
+                <div class="data-card-field"><label>Status</label><span class="badge badge-success">Completed</span></div>
+                <div class="data-card-field"><label>Payment</label><span>Full Cash</span></div>
+              </div>
+              <div class="data-card-actions"><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a> <a href="invoice-preview.html" class="btn btn-sm btn-secondary">Invoice</a></div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header"><div><div class="data-card-title">SL-2026-017 — Honda Vezel 2019</div><div class="data-card-subtitle">03 Mar 2026 · Nishantha Silva</div></div><span class="badge badge-info">Lease</span></div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Sale Price</label><span class="fw-600">Rs. 8,200,000</span></div>
+                <div class="data-card-field"><label>Profit</label><span class="text-success fw-600">Rs. 1,000,000</span></div>
+                <div class="data-card-field"><label>Status</label><span class="badge badge-warning">DO Pending</span></div>
+                <div class="data-card-field"><label>Finance Co.</label><span>People's Leasing</span></div>
+              </div>
+              <div class="data-card-actions"><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a></div>
+            </div>
+            <div class="data-card">
+              <div class="data-card-header"><div><div class="data-card-title">SL-2026-016 — Suzuki Alto 2020</div><div class="data-card-subtitle">28 Feb 2026 · Chamari Fernando</div></div><span class="badge badge-warning">Advance</span></div>
+              <div class="data-card-body">
+                <div class="data-card-field"><label>Sale Price</label><span class="fw-600">Rs. 3,400,000</span></div>
+                <div class="data-card-field"><label>Profit</label><span class="text-success fw-600">Rs. 500,000</span></div>
+                <div class="data-card-field"><label>Status</label><span class="badge badge-success">Completed</span></div>
+                <div class="data-card-field"><label>Advance Paid</label><span>Rs. 350,000</span></div>
+              </div>
+              <div class="data-card-actions"><a href="sale-detail.html" class="btn btn-sm btn-secondary">View</a> <a href="invoice-preview.html" class="btn btn-sm btn-secondary">Invoice</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Report — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="reports" data-title="Customer Report">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="reports.html">Reports</a> <span class="sep">›</span> <span>Customer Report</span></div>
+        <div class="page-header"><div><h1>👥 Customer Report</h1></div><button class="btn btn-secondary">📥 Export CSV</button></div>
+        <div class="stat-grid mb-24">
+          <div class="stat-card"><div class="stat-label">Total Customers</div><div class="stat-value">42</div></div>
+          <div class="stat-card"><div class="stat-label">Repeat Customers</div><div class="stat-value">5</div></div>
+          <div class="stat-card"><div class="stat-label">New (This Month)</div><div class="stat-value text-success">3</div></div>
+          <div class="stat-card"><div class="stat-label">Active Advances</div><div class="stat-value text-warning">3</div></div>
+        </div>
+        <div class="card mb-24"><div class="card-header"><h3>Top Customers by Revenue</h3></div><div class="card-body" style="padding:0;"><table><thead><tr><th>#</th><th>Customer</th><th>Purchases</th><th>Total Revenue</th><th>Last Purchase</th></tr></thead><tbody>
+          <tr><td>1</td><td class="fw-600">Ruwan Jayawardena</td><td>1</td><td class="fw-600">Rs. 9,500,000</td><td>25 Feb 2026</td></tr>
+          <tr><td>2</td><td class="fw-600">Kamal Perera</td><td>2</td><td class="fw-600">Rs. 9,000,000</td><td>05 Mar 2026</td></tr>
+          <tr><td>3</td><td class="fw-600">Nishantha Silva</td><td>1</td><td class="fw-600">Rs. 8,200,000</td><td>03 Mar 2026</td></tr>
+          <tr><td>4</td><td class="fw-600">Lakshan Bandara</td><td>1</td><td class="fw-600">Rs. 3,900,000</td><td>20 Feb 2026</td></tr>
+          <tr><td>5</td><td class="fw-600">Chamari Fernando</td><td>1</td><td class="fw-600">Rs. 3,400,000</td><td>28 Feb 2026</td></tr>
+        </tbody></table></div></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

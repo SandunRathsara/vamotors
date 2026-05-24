@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="suppliers" data-title="Supplier">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="suppliers.html">Suppliers</a> <span class="sep">›</span> <span>Mahinda Rathnayake</span></div>
+        <div class="page-header"><div><h1>Mahinda Rathnayake</h1><p>Individual Supplier</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='suppliers.html';">
+          <div class="grid-2">
+            <div class="card mb-24">
+              <div class="card-header"><h3>Supplier Information</h3></div>
+              <div class="card-body">
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">Full Name</label><input class="form-control" value="Mahinda Rathnayake"></div>
+                  <div class="form-group"><label class="form-label form-required">Type</label><select class="form-control"><option selected>Individual</option><option>Company</option></select></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label form-required">NIC / BR Number</label><input class="form-control" value="197234567890"></div>
+                  <div class="form-group"><label class="form-label form-required">Phone</label><input class="form-control" value="+94 77 890 1234"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Email</label><input class="form-control" value="mahinda.r@gmail.com"></div>
+                  <div class="form-group"><label class="form-label">Bank Account</label><input class="form-control" value="BOC - 87654321"></div>
+                </div>
+                <div class="form-group"><label class="form-label form-required">Address</label><textarea class="form-control">No. 12, Rajapihilla Mawatha, Kurunegala</textarea></div>
+                <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control">Trusted seller from Kurunegala area. Deals in used Japanese vehicles. Good communication.</textarea></div>
+              </div>
+            </div>
+            <div class="card mb-24">
+              <div class="card-header"><h3>Vehicles Supplied (3)</h3></div>
+              <div class="card-body" style="padding:0;">
+                <table>
+                  <thead><tr><th>Vehicle</th><th>Date</th><th>Purchase Price</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td class="fw-600"><a href="vehicle-detail.html">Toyota Aqua 2018</a></td><td>15 Jan 2026</td><td>Rs. 4,500,000</td><td><span class="badge badge-success">In Stock</span></td></tr>
+                    <tr><td class="fw-600"><a href="vehicle-detail.html">Suzuki Alto 2020</a></td><td>10 Dec 2025</td><td>Rs. 2,900,000</td><td><span class="badge badge-default">Sold</span></td></tr>
+                    <tr><td class="fw-600"><a href="vehicle-detail.html">Toyota Vitz 2016</a></td><td>01 Nov 2025</td><td>Rs. 3,300,000</td><td><span class="badge badge-default">Sold</span></td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td class="fw-bold" colspan="2">Total Supplied Value</td><td class="fw-bold" colspan="2">Rs. 10,700,000</td></tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="suppliers.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Supplier</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

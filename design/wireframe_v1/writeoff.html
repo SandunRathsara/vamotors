@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Write Off Vehicle — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="writeoff" data-title="Write Off Vehicle">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="vehicles.html">Vehicles</a> <span class="sep">›</span> <span>Write Off</span></div>
+        <div class="page-header"><div><h1>Write Off Vehicle</h1><p>Mark a vehicle as written off (total loss)</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='vehicles.html';">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Select Vehicle</h3></div>
+            <div class="card-body">
+              <div class="form-row"><div class="form-group"><label class="form-label form-required">Vehicle</label><select class="form-control"><option>Toyota Vitz 2015 (WP-1122) — In Stock</option><option>Suzuki Wagon R 2016 — In Repair</option></select></div></div>
+              <div style="background:var(--bg-secondary); border-radius:var(--radius-sm); padding:12px 16px; margin-top:8px;">
+                <div class="detail-grid">
+                  <div class="detail-item"><label>Purchase Price</label><span>Rs. 2,100,000</span></div>
+                  <div class="detail-item"><label>Repair Costs</label><span>Rs. 350,000</span></div>
+                  <div class="detail-item"><label>Other Costs</label><span>Rs. 150,000</span></div>
+                  <div class="detail-item"><label>Total Investment</label><span class="fw-bold text-danger">Rs. 2,600,000</span></div>
+                  <div class="detail-item"><label>Current Status</label><span><span class="badge badge-success">In Stock</span></span></div>
+                  <div class="detail-item"><label>Days in Inventory</label><span>120 days</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Write-Off Details</h3></div>
+            <div class="card-body">
+              <div class="form-group"><label class="form-label form-required">Reason for Write-Off</label>
+                <select class="form-control" style="max-width:400px;"><option>Flood Damage</option><option>Accident — Beyond Repair</option><option>Fire Damage</option><option>Theft — Unrecoverable</option><option>Other</option></select></div>
+              <div class="form-group"><label class="form-label form-required">Detailed Description</label><textarea class="form-control" rows="4">Vehicle sustained severe flood damage during heavy rains on 28 Feb 2026. Engine submerged, ECU and all electronic components damaged. Mechanic assessed that repair cost would exceed vehicle value. Recommended write-off.</textarea></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Salvage Value (Rs.)</label><input type="number" class="form-control" value="200000"><div class="form-hint">Estimated value if sold for parts / scrap</div></div>
+                <div class="form-group"><label class="form-label">Insurance Claim Amount (Rs.)</label><input type="number" class="form-control" value="1500000"><div class="form-hint">Expected insurance payout (if any)</div></div>
+              </div>
+              <div style="background:var(--danger-bg); border-radius:var(--radius); padding:16px; margin-top:16px;">
+                <p class="fw-bold mb-8 text-danger">⚠ Loss Summary</p>
+                <div class="d-flex justify-between mb-8"><span>Total Investment</span><span class="fw-600">Rs. 2,600,000</span></div>
+                <div class="d-flex justify-between mb-8"><span>Salvage Value</span><span class="text-success">+ Rs. 200,000</span></div>
+                <div class="d-flex justify-between mb-8"><span>Insurance Claim</span><span class="text-success">+ Rs. 1,500,000</span></div>
+                <hr style="border:none;border-top:1px solid var(--danger);margin:8px 0;">
+                <div class="d-flex justify-between"><span class="fw-bold">Net Loss</span><span class="fw-bold text-danger" style="font-size:20px;">Rs. 900,000</span></div>
+              </div>
+            </div>
+          </div>
+          <div style="background:var(--warning-bg); border-radius:var(--radius); padding:16px; margin-bottom:24px;">
+            <p class="fs-sm"><strong>⚠ Requires Manager Approval:</strong> Write-off requests must be approved by a Manager or Owner before the vehicle status is updated. An approval request will be created automatically.</p>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="vehicles.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-danger btn-lg">Submit Write-Off Request</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

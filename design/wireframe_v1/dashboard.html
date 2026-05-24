@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="dashboard" data-title="Dashboard">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Welcome back, Sandun. Here's your business overview.</p>
+          </div>
+          <div style="font-size:13px; color:var(--text-secondary);">
+            Friday, 7 March 2026
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-card stat-info">
+            <div class="stat-label">Total Inventory</div>
+            <div class="stat-value">24</div>
+            <div class="stat-sub">12 available for sale · 8 in stock · 4 in repair</div>
+          </div>
+          <div class="stat-card stat-warning">
+            <div class="stat-label">Outstanding Advances</div>
+            <div class="stat-value">3</div>
+            <div class="stat-sub">1 expiring in 2 days · 1 expired</div>
+          </div>
+          <div class="stat-card stat-danger">
+            <div class="stat-label">Vehicles in Repair</div>
+            <div class="stat-value">4</div>
+            <div class="stat-sub">Avg. 6 days in repair</div>
+          </div>
+          <div class="stat-card stat-success">
+            <div class="stat-label">Cash Position (This Month)</div>
+            <div class="stat-value">Rs. 2.8M</div>
+            <div class="stat-sub">In: Rs. 4.5M · Out: Rs. 1.7M</div>
+          </div>
+        </div>
+
+        <div class="grid-2-1">
+          <!-- Left Column: Recent Activity + Quick Actions -->
+          <div>
+            <!-- Quick Actions -->
+            <div class="card mb-24">
+              <div class="card-header">
+                <h3>Quick Actions</h3>
+              </div>
+              <div class="card-body" style="display:flex; gap:10px; flex-wrap:wrap;">
+                <a href="vehicle-add.html" class="btn btn-primary">+ Add Vehicle</a>
+                <a href="sale-cash.html" class="btn btn-secondary">Record Sale</a>
+                <a href="send-repair.html" class="btn btn-secondary">Send for Repair</a>
+                <a href="sale-advance.html" class="btn btn-secondary">Record Advance</a>
+                <a href="customers.html" class="btn btn-secondary">Customers</a>
+                <a href="approvals.html" class="btn btn-secondary">Approvals (2)</a>
+              </div>
+            </div>
+
+            <!-- Recent Sales -->
+            <div class="card mb-24">
+              <div class="card-header">
+                <h3>Recent Sales</h3>
+                <a href="sales.html" class="btn btn-sm btn-secondary">View All</a>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Vehicle</th>
+                      <th>Customer</th>
+                      <th>Type</th>
+                      <th>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>05 Mar 2026</td>
+                      <td><a href="sale-detail.html">Toyota Aqua 2018</a></td>
+                      <td>Kamal Perera</td>
+                      <td><span class="badge badge-success">Cash</span></td>
+                      <td class="fw-600">Rs. 5,800,000</td>
+                    </tr>
+                    <tr>
+                      <td>03 Mar 2026</td>
+                      <td><a href="sale-detail.html">Honda Vezel 2019</a></td>
+                      <td>Nishantha Silva</td>
+                      <td><span class="badge badge-info">Lease</span></td>
+                      <td class="fw-600">Rs. 8,200,000</td>
+                    </tr>
+                    <tr>
+                      <td>28 Feb 2026</td>
+                      <td><a href="sale-detail.html">Suzuki Alto 2020</a></td>
+                      <td>Chamari Fernando</td>
+                      <td><span class="badge badge-warning">Advance</span></td>
+                      <td class="fw-600">Rs. 3,400,000</td>
+                    </tr>
+                    <tr>
+                      <td>25 Feb 2026</td>
+                      <td><a href="sale-detail.html">Nissan Leaf 2021</a></td>
+                      <td>Ruwan Jayawardena</td>
+                      <td><span class="badge badge-default">Trade-In</span></td>
+                      <td class="fw-600">Rs. 9,500,000</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Vehicles in Repair -->
+            <div class="card mb-24">
+              <div class="card-header">
+                <h3>Vehicles Currently in Repair</h3>
+                <a href="report-repairs.html" class="btn btn-sm btn-secondary">View Report</a>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Vehicle</th>
+                      <th>Vendor</th>
+                      <th>Sent Date</th>
+                      <th>Days</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="vehicle-detail.html">Mitsubishi Lancer 2017</a></td>
+                      <td>City Auto Repairs</td>
+                      <td>01 Mar 2026</td>
+                      <td><span class="badge badge-warning">6</span></td>
+                    </tr>
+                    <tr>
+                      <td><a href="vehicle-detail.html">Toyota Vitz 2016</a></td>
+                      <td>Kandy Motor Works</td>
+                      <td>03 Mar 2026</td>
+                      <td><span class="badge badge-success">4</span></td>
+                    </tr>
+                    <tr>
+                      <td><a href="vehicle-detail.html">Suzuki Wagon R 2019</a></td>
+                      <td>Rajapaksa Body Shop</td>
+                      <td>05 Mar 2026</td>
+                      <td><span class="badge badge-success">2</span></td>
+                    </tr>
+                    <tr>
+                      <td><a href="vehicle-detail.html">Honda Fit 2018</a></td>
+                      <td>City Auto Repairs</td>
+                      <td>06 Mar 2026</td>
+                      <td><span class="badge badge-success">1</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Notifications -->
+          <div>
+            <!-- Notification Center -->
+            <div class="card mb-24" id="notifications">
+              <div class="card-header">
+                <h3>🔔 Notifications</h3>
+                <button class="btn btn-sm btn-secondary">Mark All Read</button>
+              </div>
+              <div class="card-body">
+                <ul class="notification-list">
+                  <li class="notification-item">
+                    <div class="notification-dot"></div>
+                    <div class="notification-text">
+                      <p><strong>Advance expiring soon:</strong> Advance by <a href="advance-resolve.html">Priya Wickramasinghe</a> for Toyota Prius 2020 expires in <strong>2 days</strong>.</p>
+                      <div class="notif-time">10 minutes ago</div>
+                    </div>
+                  </li>
+                  <li class="notification-item">
+                    <div class="notification-dot"></div>
+                    <div class="notification-text">
+                      <p><strong>Advance expired:</strong> Advance by <a href="advance-resolve.html">Dinesh Rajapaksa</a> for Suzuki Swift 2019 has expired. Action required.</p>
+                      <div class="notif-time">1 hour ago</div>
+                    </div>
+                  </li>
+                  <li class="notification-item">
+                    <div class="notification-dot"></div>
+                    <div class="notification-text">
+                      <p><strong>Approval required:</strong> <a href="approval-detail.html">Discount approval</a> requested by Cashier Nimali for Honda Vezel — selling below listed price.</p>
+                      <div class="notif-time">2 hours ago</div>
+                    </div>
+                  </li>
+                  <li class="notification-item">
+                    <div class="notification-dot"></div>
+                    <div class="notification-text">
+                      <p><strong>Vehicle returned from repair:</strong> <a href="vehicle-detail.html">Suzuki Wagon R 2019</a> returned from Rajapaksa Body Shop.</p>
+                      <div class="notif-time">3 hours ago</div>
+                    </div>
+                  </li>
+                  <li class="notification-item">
+                    <div class="notification-dot read"></div>
+                    <div class="notification-text">
+                      <p><strong>Approval approved:</strong> Write-off request for Nissan March 2014 was <span class="text-success">approved</span> by Manager.</p>
+                      <div class="notif-time">Yesterday, 4:30 PM</div>
+                    </div>
+                  </li>
+                  <li class="notification-item">
+                    <div class="notification-dot read"></div>
+                    <div class="notification-text">
+                      <p><strong>New vehicle purchased:</strong> <a href="vehicle-detail.html">Toyota Corolla 2022</a> added to inventory by Cashier Nimali.</p>
+                      <div class="notif-time">Yesterday, 11:00 AM</div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div class="card-footer">
+                <a href="#" class="btn btn-sm btn-secondary">View All Notifications</a>
+              </div>
+            </div>
+
+            <!-- Outstanding Advances -->
+            <div class="card mb-24">
+              <div class="card-header">
+                <h3>⏳ Outstanding Advances</h3>
+                <a href="advances.html" class="btn btn-sm btn-secondary">View All</a>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <div class="notification-list" style="padding:0 16px;">
+                  <div class="notification-item">
+                    <div class="notification-dot" style="background:var(--danger);"></div>
+                    <div class="notification-text">
+                      <p><strong>Dinesh Rajapaksa</strong> — Suzuki Swift 2019</p>
+                      <p class="fs-sm">Rs. 350,000 (10%) · <span class="text-danger fw-600">Expired 2 days ago</span></p>
+                      <div class="mt-8">
+                        <a href="advance-resolve.html" class="btn btn-sm btn-danger">Resolve</a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="notification-item">
+                    <div class="notification-dot" style="background:var(--warning);"></div>
+                    <div class="notification-text">
+                      <p><strong>Priya Wickramasinghe</strong> — Toyota Prius 2020</p>
+                      <p class="fs-sm">Rs. 500,000 (8%) · <span class="text-warning fw-600">Expires in 2 days</span></p>
+                    </div>
+                  </div>
+                  <div class="notification-item">
+                    <div class="notification-dot" style="background:var(--success);"></div>
+                    <div class="notification-text">
+                      <p><strong>Amaya Dissanayake</strong> — Honda Grace 2017</p>
+                      <p class="fs-sm">Rs. 700,000 (15%) · <span class="text-success fw-600">Active — 12 days left</span></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Monthly Summary -->
+            <div class="card">
+              <div class="card-header">
+                <h3>📊 March 2026 Summary</h3>
+              </div>
+              <div class="card-body">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div class="d-flex justify-between">
+                    <span class="text-muted fs-sm">Vehicles Purchased</span>
+                    <span class="fw-600">6</span>
+                  </div>
+                  <div class="d-flex justify-between">
+                    <span class="text-muted fs-sm">Vehicles Sold</span>
+                    <span class="fw-600">4</span>
+                  </div>
+                  <div class="d-flex justify-between">
+                    <span class="text-muted fs-sm">Total Revenue</span>
+                    <span class="fw-600 text-success">Rs. 26,900,000</span>
+                  </div>
+                  <div class="d-flex justify-between">
+                    <span class="text-muted fs-sm">Total Costs</span>
+                    <span class="fw-600 text-danger">Rs. 21,400,000</span>
+                  </div>
+                  <hr style="border:none; border-top:1px solid var(--border);">
+                  <div class="d-flex justify-between">
+                    <span class="fw-600">Gross Profit</span>
+                    <span class="fw-bold text-success">Rs. 5,500,000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advance Payments — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="advances" data-title="Advance Payments">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header"><div><h1>Advance Payments</h1><p>3 active advances · 1 expired</p></div><a href="sale-advance.html" class="btn btn-primary">+ Record Advance</a></div>
+        <div class="card mb-24"><div class="card-body" style="padding:12px 20px;"><div class="filter-bar" style="margin-bottom:0;"><select class="form-control" style="width:auto;min-width:140px;"><option>All Statuses</option><option>Active</option><option>Expired</option><option>Converted to Sale</option><option>Cancelled / Refunded</option></select><div class="view-toggle" style="margin-left:auto;"><button class="active" data-view="table">☰ Table</button><button data-view="card">⊞ Cards</button></div></div></div></div>
+        <div class="card table-view">
+          <div class="card-body" style="padding:0;">
+            <table>
+              <thead><tr><th>Vehicle</th><th>Customer</th><th>Advance (Rs.)</th><th>Agreed Price</th><th>Date</th><th>Expiry</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr style="background:var(--danger-bg);">
+                  <td class="fw-600"><a href="vehicle-detail.html">Suzuki Swift 2019</a></td><td>Dinesh Rajapaksa</td><td class="fw-600">Rs. 350,000</td><td>Rs. 4,800,000</td><td>20 Feb 2026</td><td class="text-danger fw-600">05 Mar 2026 (Expired)</td><td><span class="badge badge-danger">Expired</span></td><td><a href="advance-resolve.html" class="btn btn-sm btn-danger">Resolve</a></td>
+                </tr>
+                <tr style="background:var(--warning-bg);">
+                  <td class="fw-600"><a href="vehicle-detail.html">Toyota Prius 2020</a></td><td>Priya Wickramasinghe</td><td class="fw-600">Rs. 500,000</td><td>Rs. 6,200,000</td><td>28 Feb 2026</td><td class="text-warning fw-600">09 Mar 2026 (2 days)</td><td><span class="badge badge-warning">Expiring Soon</span></td><td><a href="advance-resolve.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600"><a href="vehicle-detail.html">Honda Grace 2017</a></td><td>Amaya Dissanayake</td><td class="fw-600">Rs. 700,000</td><td>Rs. 4,650,000</td><td>01 Mar 2026</td><td class="text-success">19 Mar 2026 (12 days)</td><td><span class="badge badge-success">Active</span></td><td><a href="advance-resolve.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600 text-muted">Suzuki Alto 2020</td><td class="text-muted">Chamari Fernando</td><td class="text-muted">Rs. 340,000</td><td class="text-muted">Rs. 3,400,000</td><td class="text-muted">15 Feb 2026</td><td class="text-muted">28 Feb 2026</td><td><span class="badge badge-default">Converted</span></td><td><a href="sale-detail.html" class="btn btn-sm btn-secondary">View Sale</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-view" style="display:none;"><div class="data-cards">
+          <div class="data-card" style="border-left:4px solid var(--danger);"><div class="data-card-header"><div><div class="data-card-title">Suzuki Swift 2019</div><div class="data-card-subtitle">Dinesh Rajapaksa</div></div><span class="badge badge-danger">Expired</span></div><div class="data-card-body"><div class="data-card-field"><label>Advance</label><span class="fw-600">Rs. 350,000</span></div><div class="data-card-field"><label>Agreed Price</label><span>Rs. 4,800,000</span></div><div class="data-card-field"><label>Expired</label><span class="text-danger fw-600">05 Mar</span></div><div class="data-card-field"><label>Days Overdue</label><span class="text-danger fw-600">2 days</span></div></div><div class="data-card-actions"><a href="advance-resolve.html" class="btn btn-sm btn-danger">Resolve</a></div></div>
+          <div class="data-card" style="border-left:4px solid var(--warning);"><div class="data-card-header"><div><div class="data-card-title">Toyota Prius 2020</div><div class="data-card-subtitle">Priya Wickramasinghe</div></div><span class="badge badge-warning">Expiring Soon</span></div><div class="data-card-body"><div class="data-card-field"><label>Advance</label><span class="fw-600">Rs. 500,000</span></div><div class="data-card-field"><label>Agreed Price</label><span>Rs. 6,200,000</span></div><div class="data-card-field"><label>Expiry</label><span class="text-warning fw-600">09 Mar</span></div><div class="data-card-field"><label>Days Left</label><span class="text-warning fw-600">2 days</span></div></div><div class="data-card-actions"><a href="advance-resolve.html" class="btn btn-sm btn-secondary">View</a></div></div>
+          <div class="data-card" style="border-left:4px solid var(--success);"><div class="data-card-header"><div><div class="data-card-title">Honda Grace 2017</div><div class="data-card-subtitle">Amaya Dissanayake</div></div><span class="badge badge-success">Active</span></div><div class="data-card-body"><div class="data-card-field"><label>Advance</label><span class="fw-600">Rs. 700,000</span></div><div class="data-card-field"><label>Agreed Price</label><span>Rs. 4,650,000</span></div><div class="data-card-field"><label>Expiry</label><span>19 Mar</span></div><div class="data-card-field"><label>Days Left</label><span class="text-success fw-600">12 days</span></div></div><div class="data-card-actions"><a href="advance-resolve.html" class="btn btn-sm btn-secondary">View</a></div></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

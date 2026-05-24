@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cash Flow Report — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="reports" data-title="Cash Flow Report">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="reports.html">Reports</a> <span class="sep">›</span> <span>Cash Flow</span></div>
+        <div class="page-header"><div><h1>💵 Cash Flow Report</h1></div><button class="btn btn-secondary">📥 Export CSV</button></div>
+        <div class="card mb-24"><div class="card-body" style="padding:12px 20px;"><div class="filter-bar" style="margin-bottom:0;"><select class="form-control" style="width:auto;"><option selected>March 2026</option><option>February 2026</option></select><button class="btn btn-primary btn-sm">Generate</button></div></div></div>
+        <div class="stat-grid mb-24">
+          <div class="stat-card"><div class="stat-label">Cash Inflows</div><div class="stat-value text-success">Rs. 14.0M</div></div>
+          <div class="stat-card"><div class="stat-label">Cash Outflows</div><div class="stat-value text-danger">Rs. 8.2M</div></div>
+          <div class="stat-card"><div class="stat-label">Net Cash Flow</div><div class="stat-value text-success">Rs. 5.8M</div></div>
+          <div class="stat-card"><div class="stat-label">Current Balance</div><div class="stat-value">Rs. 12.4M</div></div>
+        </div>
+        <div class="grid-2 mb-24">
+          <div class="card"><div class="card-header"><h3 class="text-success">Inflows</h3></div><div class="card-body" style="padding:0;"><table><thead><tr><th>Category</th><th class="text-right">Amount</th></tr></thead><tbody>
+            <tr><td>Vehicle Sales (Cash)</td><td class="text-right fw-600">Rs. 9,700,000</td></tr>
+            <tr><td>Lease Down Payments</td><td class="text-right fw-600">Rs. 2,000,000</td></tr>
+            <tr><td>DO Receipts</td><td class="text-right fw-600">Rs. 1,500,000</td></tr>
+            <tr><td>Advance Payments</td><td class="text-right fw-600">Rs. 800,000</td></tr>
+          </tbody><tfoot><tr class="fw-bold"><td>Total Inflows</td><td class="text-right text-success">Rs. 14,000,000</td></tr></tfoot></table></div></div>
+          <div class="card"><div class="card-header"><h3 class="text-danger">Outflows</h3></div><div class="card-body" style="padding:0;"><table><thead><tr><th>Category</th><th class="text-right">Amount</th></tr></thead><tbody>
+            <tr><td>Vehicle Purchases</td><td class="text-right fw-600">Rs. 5,500,000</td></tr>
+            <tr><td>Repair Costs</td><td class="text-right fw-600">Rs. 1,200,000</td></tr>
+            <tr><td>Transport & Other Costs</td><td class="text-right fw-600">Rs. 350,000</td></tr>
+            <tr><td>Lease Settlements</td><td class="text-right fw-600">Rs. 1,000,000</td></tr>
+            <tr><td>Refunds</td><td class="text-right fw-600">Rs. 150,000</td></tr>
+          </tbody><tfoot><tr class="fw-bold"><td>Total Outflows</td><td class="text-right text-danger">Rs. 8,200,000</td></tr></tfoot></table></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

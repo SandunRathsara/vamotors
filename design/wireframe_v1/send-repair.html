@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Send for Repair — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="send-repair" data-title="Send for Repair">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="vehicles.html">Vehicles</a> <span class="sep">›</span> <span>Send for Repair</span></div>
+        <div class="page-header"><div><h1>Send Vehicle for Repair</h1><p>Record a vehicle being sent to a repair vendor</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='vehicle-detail.html';">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Vehicle</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Select Vehicle</label>
+                  <select class="form-control"><option>Honda Fit 2018 (WP-4567) — In Stock</option><option>Toyota Aqua 2018 (CAB-1234) — In Stock</option><option>Toyota Corolla 2022 — In Stock</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Repair Vendor</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Vendor</label>
+                  <select class="form-control"><option>City Auto Repairs — Colombo 05</option><option>Kandy Motor Works — Kandy</option><option>Rajapaksa Body Shop — Galle</option><option>+ Add New Vendor</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Repair Details</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Sent Date</label><input type="date" class="form-control" value="2026-03-07"></div>
+                <div class="form-group"><label class="form-label form-required">Mileage at Sent (km)</label><input type="number" class="form-control" value="45200"></div>
+              </div>
+              <div class="form-group"><label class="form-label form-required">Repair Request Description</label><textarea class="form-control" rows="4">Front bumper has a crack and needs replacement. Left headlight foggy — needs polishing or replacement. General body touch-up needed on the driver side door.</textarea></div>
+              <div class="form-group"><label class="form-label">Estimated Cost (Rs.)</label><input type="number" class="form-control" value="75000"><div class="form-hint">This is an estimate — actual cost will be recorded upon return</div></div>
+            </div>
+          </div>
+          <div style="background:var(--info-bg); border-radius:var(--radius); padding:16px; margin-bottom:24px;">
+            <p class="fs-sm"><strong>ℹ What happens next:</strong> The vehicle status will change to "In Repair" and it will be marked as not available for sale. You can update the status when the vehicle is returned from the repair vendor.</p>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="vehicles.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg">Send for Repair</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

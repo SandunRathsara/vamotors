@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lease / Finance Sale — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="sales" data-title="Lease Sale">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="sales.html">Sales</a> <span class="sep">›</span> <span>Lease / Finance Sale</span></div>
+        <div class="page-header"><div><h1>Lease / Finance Sale</h1><p>Sale through a finance company</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='sale-detail.html';">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Select Vehicle</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Vehicle</label>
+                  <select class="form-control"><option>Honda Vezel 2019 (KD-5678) — Rs. 8,500,000</option><option>Toyota Aqua 2018 (CAB-1234) — Rs. 5,900,000</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Customer</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Customer</label>
+                  <select class="form-control"><option>Nishantha Silva — NIC: 198765432109</option><option>+ Add New Customer</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Finance Details</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Finance Company</label><select class="form-control"><option>People's Leasing & Finance PLC</option><option>LOLC Finance PLC</option><option>HNB Finance</option><option>Commercial Credit</option><option>Other</option></select></div>
+                <div class="form-group"><label class="form-label">Lease Agreement No.</label><input class="form-control" value="PL-2026-0891" placeholder="Will be filled after DO"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Sale Price (Rs.)</label><input type="number" class="form-control" value="8200000"></div>
+                <div class="form-group"><label class="form-label form-required">Down Payment by Customer (Rs.)</label><input type="number" class="form-control" value="2000000"><div class="form-hint">Paid directly to VA Motors by customer</div></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Financed Amount (Rs.)</label><input type="number" class="form-control" value="6200000" disabled><div class="form-hint">Amount financed by the leasing company</div></div>
+                <div class="form-group"><label class="form-label form-required">Sale Date</label><input type="date" class="form-control" value="2026-03-03"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">DO Status</label>
+                  <select class="form-control"><option selected>DO Pending</option><option>DO Received</option></select>
+                  <div class="form-hint text-warning">⚠ Vehicle status will change to "Finance Pending" until DO is received</div></div>
+                <div class="form-group"><label class="form-label">DO Received Date</label><input type="date" class="form-control" placeholder="Not yet received" disabled></div>
+              </div>
+              <div class="form-group"><label class="form-label">Mileage at Sale (km)</label><input type="number" class="form-control" value="85000"></div>
+              <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control">Customer financing through People's Leasing. Down payment received in cash. Awaiting DO from People's Leasing.</textarea></div>
+              <div style="background:var(--bg-secondary); border-radius:var(--radius-sm); padding:16px; margin-top:12px;">
+                <div class="d-flex justify-between mb-8"><span>Sale Price</span><span class="fw-600">Rs. 8,200,000</span></div>
+                <div class="d-flex justify-between mb-8"><span>Down Payment (Customer)</span><span>Rs. 2,000,000</span></div>
+                <div class="d-flex justify-between mb-8"><span>Financed Amount (Leasing Co.)</span><span>Rs. 6,200,000</span></div>
+                <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+                <div class="d-flex justify-between mb-8"><span>Cost Basis</span><span>Rs. 7,200,000</span></div>
+                <div class="d-flex justify-between"><span class="fw-bold">Expected Profit</span><span class="fw-bold text-success" style="font-size:18px;">Rs. 1,000,000</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="sales.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg">Record Lease Sale</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

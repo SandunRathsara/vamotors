@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customers — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="customers" data-title="Customers">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header"><div><h1>Customers</h1><p>42 registered customers</p></div><a href="customer-form.html" class="btn btn-primary">+ Add Customer</a></div>
+        <div class="card mb-24"><div class="card-body" style="padding:12px 20px;"><div class="filter-bar" style="margin-bottom:0;"><div class="search-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" class="form-control" placeholder="Search by name, NIC, phone..." style="padding-left:32px;"></div><div class="view-toggle" style="margin-left:auto;"><button class="active" data-view="table">☰ Table</button><button data-view="card">⊞ Cards</button></div></div></div></div>
+        <div class="card table-view">
+          <div class="card-body" style="padding:0;">
+            <table>
+              <thead><tr><th>Name</th><th>NIC</th><th>Phone</th><th>Address</th><th>Purchases</th><th>Last Purchase</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="fw-600"><a href="customer-form.html">Kamal Perera</a></td><td>199512345678</td><td>+94 77 123 4567</td><td>No. 45, Galle Road, Dehiwala</td><td>2</td><td>05 Mar 2026</td><td><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600"><a href="customer-form.html">Nishantha Silva</a></td><td>198765432109</td><td>+94 71 234 5678</td><td>No. 12, Temple Road, Kandy</td><td>1</td><td>03 Mar 2026</td><td><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600"><a href="customer-form.html">Chamari Fernando</a></td><td>200012345678</td><td>+94 76 345 6789</td><td>No. 88, Main Street, Matara</td><td>1</td><td>28 Feb 2026</td><td><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600"><a href="customer-form.html">Ruwan Jayawardena</a></td><td>197612345890</td><td>+94 70 456 7890</td><td>No. 23, Flower Road, Colombo 07</td><td>1</td><td>25 Feb 2026</td><td><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600"><a href="customer-form.html">Priya Wickramasinghe</a></td><td>198234567890</td><td>+94 75 567 8901</td><td>No. 5, Lake View, Kurunegala</td><td>0</td><td>— (Advance only)</td><td><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600"><a href="customer-form.html">Dinesh Rajapaksa</a></td><td>199345678901</td><td>+94 72 678 9012</td><td>No. 67, Station Road, Galle</td><td>0</td><td>— (Advance only)</td><td><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+                <tr>
+                  <td class="fw-600"><a href="customer-form.html">Lakshan Bandara</a></td><td>198901234567</td><td>+94 78 789 0123</td><td>No. 34, Nawala Road, Colombo 05</td><td>1</td><td>20 Feb 2026</td><td><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer"><div class="pagination" style="width:100%;"><span>Showing 1–7 of 42 customers</span><div class="pagination-controls"><button>← Prev</button><button class="active">1</button><button>2</button><button>3</button><button>Next →</button></div></div></div>
+        </div>
+        <div class="card-view" style="display:none;"><div class="data-cards">
+          <div class="data-card"><div class="data-card-header"><div><div class="data-card-title">Kamal Perera</div><div class="data-card-subtitle">NIC: 199512345678</div></div></div><div class="data-card-body"><div class="data-card-field"><label>Phone</label><span>+94 77 123 4567</span></div><div class="data-card-field"><label>Address</label><span>No. 45, Galle Road, Dehiwala</span></div><div class="data-card-field"><label>Purchases</label><span class="fw-600">2</span></div><div class="data-card-field"><label>Last Purchase</label><span>05 Mar 2026</span></div></div><div class="data-card-actions"><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></div></div>
+          <div class="data-card"><div class="data-card-header"><div><div class="data-card-title">Nishantha Silva</div><div class="data-card-subtitle">NIC: 198765432109</div></div></div><div class="data-card-body"><div class="data-card-field"><label>Phone</label><span>+94 71 234 5678</span></div><div class="data-card-field"><label>Address</label><span>No. 12, Temple Road, Kandy</span></div><div class="data-card-field"><label>Purchases</label><span class="fw-600">1</span></div><div class="data-card-field"><label>Last Purchase</label><span>03 Mar 2026</span></div></div><div class="data-card-actions"><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></div></div>
+          <div class="data-card"><div class="data-card-header"><div><div class="data-card-title">Chamari Fernando</div><div class="data-card-subtitle">NIC: 200012345678</div></div></div><div class="data-card-body"><div class="data-card-field"><label>Phone</label><span>+94 76 345 6789</span></div><div class="data-card-field"><label>Address</label><span>No. 88, Main Street, Matara</span></div><div class="data-card-field"><label>Purchases</label><span class="fw-600">1</span></div><div class="data-card-field"><label>Last Purchase</label><span>28 Feb 2026</span></div></div><div class="data-card-actions"><a href="customer-form.html" class="btn btn-sm btn-secondary">View</a></div></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

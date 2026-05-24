@@ -2,6 +2,7 @@
 set shell := ["bash", "-cu"]
 set dotenv-load := true
 export FORCE_COLOR := "1"
+export PORT := env_var_or_default("PORT", "8000")
 
 # Default recipe: show the list.
 default:

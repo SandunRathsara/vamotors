@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade-In Sale — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="sales" data-title="Trade-In Sale">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="sales.html">Sales</a> <span class="sep">›</span> <span>Trade-In Sale</span></div>
+        <div class="page-header"><div><h1>Trade-In Sale</h1><p>Sale with customer's vehicle as partial payment</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='sale-detail.html';">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Vehicle Being Sold</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Vehicle</label>
+                  <select class="form-control"><option>Nissan Leaf 2021 — Rs. 9,500,000</option><option>Toyota Aqua 2018 — Rs. 5,900,000</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Customer</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Customer</label>
+                  <select class="form-control"><option>Ruwan Jayawardena — NIC: 197612345890</option><option>+ Add New Customer</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Trade-In Vehicle Details</h3></div>
+            <div class="card-body">
+              <div style="background:var(--info-bg); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:16px;">
+                <p class="fs-sm"><strong>ℹ Note:</strong> The trade-in vehicle will be recorded as a new purchase from this customer. A new vehicle record will be created in your inventory.</p>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Make</label><input class="form-control" value="Nissan"></div>
+                <div class="form-group"><label class="form-label form-required">Model</label><input class="form-control" value="Note e-Power"></div>
+                <div class="form-group"><label class="form-label form-required">Year</label><input type="number" class="form-control" value="2018"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Chassis No.</label><input class="form-control" value="HE12-1234567"></div>
+                <div class="form-group"><label class="form-label">Registration No.</label><input class="form-control" value="CAP-8765"></div>
+                <div class="form-group"><label class="form-label form-required">Colour</label><input class="form-control" value="Silver"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Fuel Type</label><select class="form-control"><option>Hybrid</option></select></div>
+                <div class="form-group"><label class="form-label form-required">Mileage (km)</label><input type="number" class="form-control" value="65000"></div>
+                <div class="form-group"><label class="form-label form-required">Assessed Value (Rs.)</label><input type="number" class="form-control" value="4500000"><div class="form-hint">Value assigned to trade-in vehicle</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Sale & Payment Summary</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Sale Price (Rs.)</label><input type="number" class="form-control" value="9500000"></div>
+                <div class="form-group"><label class="form-label form-required">Sale Date</label><input type="date" class="form-control" value="2026-02-25"></div>
+              </div>
+              <div class="form-group"><label class="form-label form-required">Mileage at Sale (km)</label><input type="number" class="form-control" value="15200"></div>
+              <div style="background:var(--bg-secondary); border-radius:var(--radius-sm); padding:16px; margin-top:16px;">
+                <div class="d-flex justify-between mb-8"><span>Sale Price</span><span class="fw-600">Rs. 9,500,000</span></div>
+                <div class="d-flex justify-between mb-8"><span>Trade-In Value</span><span class="fw-600">- Rs. 4,500,000</span></div>
+                <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+                <div class="d-flex justify-between mb-8"><span class="fw-bold">Cash Balance Due from Customer</span><span class="fw-bold" style="font-size:18px;">Rs. 5,000,000</span></div>
+                <hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">
+                <div class="d-flex justify-between mb-8"><span>Cost Basis (sold vehicle)</span><span>Rs. 7,800,000</span></div>
+                <div class="d-flex justify-between"><span class="fw-bold">Profit on Sale</span><span class="fw-bold text-success" style="font-size:18px;">Rs. 1,700,000</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Notes</h3></div>
+            <div class="card-body">
+              <div class="form-group"><textarea class="form-control">Customer trading in Nissan Note e-Power 2018 as part payment. Balance paid via bank transfer.</textarea></div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="sales.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg">Complete Trade-In Sale</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

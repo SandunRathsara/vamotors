@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approval Detail — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="approvals" data-title="Approval Detail">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="approvals.html">Approvals</a> <span class="sep">›</span> <span>Discount: Toyota Aqua 2018</span></div>
+        <div class="page-header">
+          <div><h1>Discount Approval <span class="badge badge-warning" style="vertical-align:middle;">Pending</span></h1><p>Requested by Cashier Nimali · 05 March 2026</p></div>
+        </div>
+        <div class="grid-2 mb-24">
+          <div class="card">
+            <div class="card-header"><h3>Request Details</h3></div>
+            <div class="card-body">
+              <div class="detail-grid">
+                <div class="detail-item"><label>Request Type</label><span><span class="badge badge-warning">Discount</span></span></div>
+                <div class="detail-item"><label>Requested By</label><span>Cashier Nimali</span></div>
+                <div class="detail-item"><label>Request Date</label><span>05 March 2026, 02:00 PM</span></div>
+                <div class="detail-item"><label>Discount Amount</label><span class="fw-bold text-danger" style="font-size:18px;">Rs. 100,000</span></div>
+                <div class="detail-item"><label>Reason</label><span>Loyal customer — repeat buyer. Customer negotiated and agreed on Rs. 5,800,000.</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Context</h3></div>
+            <div class="card-body">
+              <div class="detail-grid">
+                <div class="detail-item"><label>Vehicle</label><span><a href="vehicle-detail.html">Toyota Aqua 2018 (CAB-1234)</a></span></div>
+                <div class="detail-item"><label>Customer</label><span><a href="customer-form.html">Kamal Perera</a></span></div>
+                <div class="detail-item"><label>Listed Price</label><span>Rs. 5,900,000</span></div>
+                <div class="detail-item"><label>Proposed Sale Price</label><span class="fw-600">Rs. 5,800,000</span></div>
+                <div class="detail-item"><label>Cost Basis</label><span>Rs. 4,600,000</span></div>
+                <div class="detail-item"><label>Profit After Discount</label><span class="text-success fw-600">Rs. 1,200,000 (26.1%)</span></div>
+                <div class="detail-item"><label>Customer History</label><span>1 previous purchase (Honda Fit 2016)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-24">
+          <div class="card-header"><h3>Manager Decision</h3></div>
+          <div class="card-body">
+            <div class="form-group mb-16">
+              <label class="form-label form-required">Decision</label>
+              <div class="d-flex gap-8">
+                <button type="button" class="btn btn-primary btn-lg">✓ Approve</button>
+                <button type="button" class="btn btn-danger btn-lg">✗ Reject</button>
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label">Manager Notes</label><textarea class="form-control" placeholder="Add any comments or conditions...">Approved. Discount is within acceptable margin. Customer loyalty justified.</textarea></div>
+          </div>
+        </div>
+        <div class="d-flex gap-8"><a href="approvals.html" class="btn btn-secondary">← Back to Approvals</a></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

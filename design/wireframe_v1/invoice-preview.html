@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Preview — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    @media print {
+      .sidebar, .top-header, .sidebar-overlay, .no-print { display: none !important; }
+      .main-content { margin-left: 0 !important; }
+      .page-content { padding: 0 !important; }
+      .invoice-preview { box-shadow: none; border: none; }
+    }
+  </style>
+</head>
+<body data-page="sales" data-title="Invoice Preview">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb no-print"><a href="sales.html">Sales</a> <span class="sep">›</span> <a href="sale-detail.html">SL-2026-018</a> <span class="sep">›</span> <span>Invoice</span></div>
+        <div class="page-header no-print">
+          <div><h1>Invoice Preview</h1></div>
+          <div class="d-flex gap-8">
+            <button onclick="window.print()" class="btn btn-primary">🖨 Print</button>
+            <button class="btn btn-secondary">📥 Download PDF</button>
+            <a href="sale-detail.html" class="btn btn-secondary">← Back to Sale</a>
+          </div>
+        </div>
+
+        <div class="invoice-preview">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px;">
+            <div>
+              <img src="va_motors_logo.jpeg" alt="VA Motors" style="width:60px; height:60px; border-radius:50%; object-fit:contain; margin-bottom:8px;">
+              <h2 style="margin:0; font-size:20px;">VA Motors</h2>
+              <p style="font-size:12px; color:var(--text-secondary); margin-top:4px;">No. 123, Kandy Road, Kadawatha<br>Colombo, Sri Lanka<br>Tel: +94 11 234 5678<br>Email: info@vamotors.lk</p>
+            </div>
+            <div style="text-align:right;">
+              <h1 style="font-size:28px; font-weight:700; margin:0; color:var(--primary);">INVOICE</h1>
+              <p style="font-size:14px; margin-top:8px;"><strong>Invoice No:</strong> SL-2026-018</p>
+              <p style="font-size:14px;"><strong>Date:</strong> 05 March 2026</p>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; margin-bottom:32px; gap:24px;">
+            <div style="flex:1; background:var(--bg-secondary); padding:16px; border-radius:var(--radius-sm);">
+              <p style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:8px;">Bill To</p>
+              <p class="fw-bold">Kamal Perera</p>
+              <p style="font-size:13px; color:var(--text-secondary);">NIC: 199512345678<br>No. 45, Galle Road, Dehiwala<br>Tel: +94 77 123 4567<br>Email: kamal.perera@gmail.com</p>
+            </div>
+          </div>
+
+          <h3 style="margin-bottom:12px;">Vehicle Details</h3>
+          <table style="margin-bottom:24px;">
+            <thead><tr><th>Description</th><th>Details</th></tr></thead>
+            <tbody>
+              <tr><td>Make / Model</td><td>Toyota Aqua 2018</td></tr>
+              <tr><td>Colour</td><td>White</td></tr>
+              <tr><td>Chassis No.</td><td>NHP10-6234567</td></tr>
+              <tr><td>Engine No.</td><td>1NZ-FXE-4567890</td></tr>
+              <tr><td>Registration No.</td><td>CAB-1234</td></tr>
+              <tr><td>CR Number</td><td>WP-CAB-1234</td></tr>
+              <tr><td>Mileage at Sale</td><td>78,500 km</td></tr>
+            </tbody>
+          </table>
+
+          <h3 style="margin-bottom:12px;">Payment Summary</h3>
+          <table style="margin-bottom:24px;">
+            <tbody>
+              <tr><td>Sale Price</td><td class="text-right fw-600">Rs. 5,900,000</td></tr>
+              <tr><td>Discount</td><td class="text-right text-danger">- Rs. 100,000</td></tr>
+              <tr style="border-top:2px solid var(--primary);"><td class="fw-bold" style="font-size:16px;">Total Amount</td><td class="text-right fw-bold" style="font-size:18px;">Rs. 5,800,000</td></tr>
+              <tr><td>Payment Method</td><td class="text-right">Cash</td></tr>
+              <tr><td>Amount Received</td><td class="text-right fw-600 text-success">Rs. 5,800,000</td></tr>
+              <tr><td>Balance Due</td><td class="text-right fw-600">Rs. 0</td></tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top:40px; padding-top:20px; border-top:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; margin-top:40px;">
+              <div style="text-align:center; width:200px;">
+                <div style="border-top:1px solid var(--text); padding-top:8px; font-size:12px;">Authorized Signature<br><span class="text-muted">(VA Motors)</span></div>
+              </div>
+              <div style="text-align:center; width:200px;">
+                <div style="border-top:1px solid var(--text); padding-top:8px; font-size:12px;">Customer Signature<br><span class="text-muted">(Kamal Perera)</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:center; margin-top:32px; font-size:11px; color:var(--text-muted);">
+            <p>Thank you for your purchase! | VA Motors — Your trusted vehicle partner</p>
+            <p>This is a computer-generated invoice.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

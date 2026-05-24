@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approvals — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="approvals" data-title="Approvals">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header"><div><h1>Approvals</h1><p>3 pending approvals</p></div></div>
+        <div class="card mb-24"><div class="card-body" style="padding:12px 20px;"><div class="filter-bar" style="margin-bottom:0;"><select class="form-control" style="width:auto;min-width:140px;"><option>All Types</option><option>Discount Approval</option><option>Refund Approval</option><option>Write-Off Approval</option><option>Price Override</option></select><select class="form-control" style="width:auto;min-width:130px;"><option>Pending</option><option>Approved</option><option>Rejected</option><option>All Statuses</option></select><div class="view-toggle" style="margin-left:auto;"><button class="active" data-view="table">☰ Table</button><button data-view="card">⊞ Cards</button></div></div></div></div>
+        <div class="card table-view">
+          <div class="card-body" style="padding:0;">
+            <table>
+              <thead><tr><th>Type</th><th>Description</th><th>Requested By</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge badge-warning">Discount</span></td>
+                  <td class="fw-600"><a href="approval-detail.html">Rs. 100,000 discount on Toyota Aqua 2018</a><br><span class="fs-sm text-muted">Customer: Kamal Perera — SL-2026-018</span></td>
+                  <td>Cashier Nimali</td><td>05 Mar 2026</td><td class="fw-600 text-danger">Rs. 100,000</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td><a href="approval-detail.html" class="btn btn-sm btn-primary">Review</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-danger">Refund</span></td>
+                  <td class="fw-600"><a href="approval-detail.html">Refund advance for Suzuki Swift 2019</a><br><span class="fs-sm text-muted">Customer: Dinesh Rajapaksa — Advance expired</span></td>
+                  <td>Sales Arun</td><td>06 Mar 2026</td><td class="fw-600 text-danger">Rs. 350,000</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td><a href="approval-detail.html" class="btn btn-sm btn-primary">Review</a></td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-default">Write-Off</span></td>
+                  <td class="fw-600"><a href="approval-detail.html">Write-off request for Toyota Vitz 2015</a><br><span class="fs-sm text-muted">Reason: Flood damage — beyond economical repair</span></td>
+                  <td>Sandun Admin</td><td>04 Mar 2026</td><td class="fw-600 text-danger">Rs. 2,800,000</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                  <td><a href="approval-detail.html" class="btn btn-sm btn-primary">Review</a></td>
+                </tr>
+                <tr class="text-muted">
+                  <td><span class="badge badge-warning">Discount</span></td>
+                  <td>Rs. 50,000 discount on Suzuki Alto 2020<br><span class="fs-sm">Customer: Chamari Fernando</span></td>
+                  <td>Cashier Nimali</td><td>01 Mar 2026</td><td>Rs. 50,000</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                  <td><a href="approval-detail.html" class="btn btn-sm btn-secondary">View</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-view" style="display:none;"><div class="data-cards">
+          <div class="data-card" style="border-left:4px solid var(--warning);"><div class="data-card-header"><div><div class="data-card-title">Discount: Toyota Aqua 2018</div><div class="data-card-subtitle">Requested by Cashier Nimali · 05 Mar</div></div><span class="badge badge-warning">Pending</span></div><div class="data-card-body"><div class="data-card-field"><label>Amount</label><span class="fw-600 text-danger">Rs. 100,000</span></div><div class="data-card-field"><label>Customer</label><span>Kamal Perera</span></div></div><div class="data-card-actions"><a href="approval-detail.html" class="btn btn-sm btn-primary">Review</a></div></div>
+          <div class="data-card" style="border-left:4px solid var(--danger);"><div class="data-card-header"><div><div class="data-card-title">Refund: Suzuki Swift 2019</div><div class="data-card-subtitle">Requested by Sales Arun · 06 Mar</div></div><span class="badge badge-warning">Pending</span></div><div class="data-card-body"><div class="data-card-field"><label>Amount</label><span class="fw-600 text-danger">Rs. 350,000</span></div><div class="data-card-field"><label>Customer</label><span>Dinesh Rajapaksa</span></div></div><div class="data-card-actions"><a href="approval-detail.html" class="btn btn-sm btn-primary">Review</a></div></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

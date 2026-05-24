@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repair Vendor — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="repair-vendors" data-title="Repair Vendor">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="repair-vendors.html">Repair Vendors</a> <span class="sep">›</span> <span>City Auto Repairs</span></div>
+        <div class="page-header"><div><h1>City Auto Repairs</h1><p>Edit vendor details</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='repair-vendors.html';">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Vendor Information</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Vendor Name</label><input class="form-control" value="City Auto Repairs"></div>
+                <div class="form-group"><label class="form-label form-required">Contact Person</label><input class="form-control" value="Ajith Kumara"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Phone</label><input class="form-control" value="+94 11 234 5678"></div>
+                <div class="form-group"><label class="form-label">Email</label><input class="form-control" value="info@cityautorepairs.lk"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Address</label><input class="form-control" value="No. 78, Dutugemunu Street, Colombo 05"></div>
+                <div class="form-group"><label class="form-label">Speciality</label><input class="form-control" value="Engine, Mechanical" placeholder="e.g. Engine, Body Work, Electrical"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control">Reliable vendor. Quick turnaround. Good quality work on engine repairs.</textarea></div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Repair History (15 jobs)</h3></div>
+            <div class="card-body" style="padding:0;">
+              <table>
+                <thead><tr><th>Vehicle</th><th>Sent</th><th>Returned</th><th>Cost</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>Honda Fit 2018</td><td>06 Mar 2026</td><td>—</td><td>—</td><td><span class="badge badge-warning">In Progress</span></td></tr>
+                  <tr><td>Mitsubishi Lancer 2017</td><td>01 Mar 2026</td><td>—</td><td>—</td><td><span class="badge badge-warning">In Progress</span></td></tr>
+                  <tr><td>Toyota Aqua 2018</td><td>20 Jan 2026</td><td>25 Jan 2026</td><td>Rs. 45,000</td><td><span class="badge badge-success">Done</span></td></tr>
+                  <tr><td>Suzuki Swift 2019</td><td>05 Jan 2026</td><td>10 Jan 2026</td><td>Rs. 32,000</td><td><span class="badge badge-success">Done</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="repair-vendors.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save Vendor</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

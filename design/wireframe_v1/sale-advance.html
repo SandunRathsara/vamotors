@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advance / Reservation — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="sales" data-title="Record Advance">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="breadcrumb"><a href="sales.html">Sales</a> <span class="sep">›</span> <span>Advance / Reservation</span></div>
+        <div class="page-header"><div><h1>Record Advance Payment</h1><p>Reserve a vehicle with an advance payment</p></div></div>
+        <form onsubmit="event.preventDefault(); window.location.href='advances.html';">
+          <div class="card mb-24">
+            <div class="card-header"><h3>Select Vehicle</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Vehicle</label>
+                  <select class="form-control"><option>Toyota Prius 2020 (SP-7890) — Rs. 6,200,000</option><option>Toyota Aqua 2018 (CAB-1234) — Rs. 5,900,000</option><option>Suzuki Alto 2020 (WP-9012) — Rs. 3,600,000</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Customer</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Customer</label>
+                  <select class="form-control"><option>Priya Wickramasinghe — NIC: 198234567890</option><option>Kamal Perera — NIC: 199512345678</option><option>+ Add New Customer</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header"><h3>Advance Details</h3></div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Agreed Sale Price (Rs.)</label><input type="number" class="form-control" value="6200000"></div>
+                <div class="form-group"><label class="form-label form-required">Advance Amount (Rs.)</label><input type="number" class="form-control" value="500000"><div class="form-hint">Suggested: 10% = Rs. 620,000</div></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label form-required">Payment Date</label><input type="date" class="form-control" value="2026-03-07"></div>
+                <div class="form-group"><label class="form-label form-required">Validity Period (days)</label><input type="number" class="form-control" value="14"><div class="form-hint">Advance expires on: 21 March 2026</div></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Payment Method</label><select class="form-control"><option>Cash</option><option>Bank Transfer</option><option>Cheque</option></select></div>
+                <div class="form-group"><label class="form-label">Payment Reference</label><input class="form-control" placeholder="Cheque no / transfer ref"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control">Customer wants to arrange finance. Advance to hold vehicle while finance is processed. Will convert to full sale or lease sale within 14 days.</textarea></div>
+              <div style="background:var(--warning-bg); border-radius:var(--radius-sm); padding:12px 16px; margin-top:12px;">
+                <p class="fs-sm"><strong>⚠ Important:</strong> This advance will reserve the vehicle for 14 days. The vehicle will be marked as "Advance Placed" and removed from the available for sale list. If the advance expires without resolution, a notification will be sent 3 days before expiry.</p>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 justify-between">
+            <a href="sales.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary btn-lg">Record Advance</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>

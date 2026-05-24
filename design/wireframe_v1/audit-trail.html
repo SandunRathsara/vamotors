@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Trail — VA Motors VSMS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="audit-trail" data-title="Audit Trail">
+  <div class="sidebar-overlay"></div>
+  <div class="app-layout">
+    <aside class="sidebar"></aside>
+    <main class="main-content">
+      <header class="top-header"></header>
+      <div class="page-content">
+        <div class="page-header"><div><h1>📝 Audit Trail</h1><p>Complete system activity log</p></div><button class="btn btn-secondary">📥 Export</button></div>
+        <div class="card mb-24"><div class="card-body" style="padding:12px 20px;"><div class="filter-bar" style="margin-bottom:0;">
+          <input type="date" class="form-control" value="2026-03-01" style="width:auto;">
+          <span>to</span>
+          <input type="date" class="form-control" value="2026-03-07" style="width:auto;">
+          <select class="form-control" style="width:auto;min-width:120px;"><option>All Users</option><option>Sandun Admin</option><option>Manager Ravi</option><option>Cashier Nimali</option><option>Sales Arun</option></select>
+          <select class="form-control" style="width:auto;min-width:130px;"><option>All Modules</option><option>Vehicles</option><option>Sales</option><option>Repairs</option><option>Advances</option><option>Users</option><option>Approvals</option></select>
+          <select class="form-control" style="width:auto;min-width:130px;"><option>All Actions</option><option>Create</option><option>Update</option><option>Delete</option><option>Login</option><option>Status Change</option></select>
+          <button class="btn btn-primary btn-sm">Filter</button>
+        </div></div></div>
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <table>
+              <thead><tr><th>Timestamp</th><th>User</th><th>Module</th><th>Action</th><th>Details</th></tr></thead>
+              <tbody>
+                <tr><td class="fs-sm">07 Mar, 09:15 AM</td><td>Sales Arun</td><td>Vehicles</td><td><span class="badge badge-info">Update</span></td><td>Updated mileage for Toyota Aqua 2018: 72,530 → 78,500 km</td></tr>
+                <tr><td class="fs-sm">07 Mar, 09:00 AM</td><td>Sandun Admin</td><td>System</td><td><span class="badge badge-default">Login</span></td><td>Logged in from 192.168.1.100</td></tr>
+                <tr><td class="fs-sm">06 Mar, 05:15 PM</td><td>Cashier Nimali</td><td>System</td><td><span class="badge badge-default">Logout</span></td><td>Logged out</td></tr>
+                <tr><td class="fs-sm">06 Mar, 03:00 PM</td><td>Cashier Nimali</td><td>Approvals</td><td><span class="badge badge-warning">Create</span></td><td>Requested discount approval — SL-2026-018 (Rs. 100,000)</td></tr>
+                <tr><td class="fs-sm">05 Mar, 02:30 PM</td><td>Sandun Admin</td><td>Sales</td><td><span class="badge badge-success">Create</span></td><td>Completed cash sale SL-2026-018. Vehicle: Toyota Aqua 2018. Customer: Kamal Perera. Amount: Rs. 5,800,000</td></tr>
+                <tr><td class="fs-sm">05 Mar, 02:15 PM</td><td>Manager Ravi</td><td>Approvals</td><td><span class="badge badge-success">Approve</span></td><td>Approved discount of Rs. 100,000 for SL-2026-018</td></tr>
+                <tr><td class="fs-sm">05 Mar, 02:00 PM</td><td>Sandun Admin</td><td>Sales</td><td><span class="badge badge-warning">Create</span></td><td>Created sale record SL-2026-018 (pending discount approval)</td></tr>
+                <tr><td class="fs-sm">04 Mar, 11:00 AM</td><td>Sandun Admin</td><td>Vehicles</td><td><span class="badge badge-warning">Create</span></td><td>Submitted write-off request for Toyota Vitz 2015. Reason: Flood damage.</td></tr>
+                <tr><td class="fs-sm">03 Mar, 10:00 AM</td><td>Cashier Nimali</td><td>Sales</td><td><span class="badge badge-success">Create</span></td><td>Created lease sale SL-2026-017. Vehicle: Honda Vezel 2019. Customer: Nishantha Silva.</td></tr>
+                <tr><td class="fs-sm">01 Mar, 09:30 AM</td><td>Cashier Nimali</td><td>Repairs</td><td><span class="badge badge-info">Status</span></td><td>Sent Mitsubishi Lancer 2017 to City Auto Repairs. Status: IN_STOCK → IN_REPAIR</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer"><div class="pagination" style="width:100%;"><span>Showing 1–10 of 156 entries</span><div class="pagination-controls"><button>← Prev</button><button class="active">1</button><button>2</button><button>3</button><button>...</button><button>16</button><button>Next →</button></div></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="shared.js"></script>
+</body>
+</html>
