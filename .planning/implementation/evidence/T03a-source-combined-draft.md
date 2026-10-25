@@ -38,7 +38,7 @@ Dependencies were cloned locally with `cp -cR ../t3-5c40fd8d/node_modules ./node
 
 The synthetic URL-config test emits the known pg future-SSL-semantics warning. Current pinned effective config is tested; operational proposal prefers `sslmode=verify-full`. No dependency upgrade or transport certification is inferred.
 
-Preservation checks **PASS**: all **40 source-changed files** byte-identical (including both source runbooks); exact infrastructure-doc bytes; every prior evidence report byte-identical to pending ledger; contracts/matrix/decisions/Netlify/infrastructure implementation unchanged from accepted base. Matrix has **134 rows**, unchanged zero accepted; **57 local Markdown link paths** exist (fragments not checked). `git diff --check` **PASS**. No external reviewer fixture was edited or represented as freshly rerun here. No API/E2E/browser/hosted tests run; legacy unauthenticated mock UI/API remains uncertified and must not be published as G1/G2.
+Preservation checks **PASS**: all **40 source-changed files** byte-identical (including both source runbooks); exact infrastructure-doc bytes; every prior evidence report byte-identical to pending ledger; contracts/matrix/decisions/Netlify/infrastructure implementation unchanged from accepted base. Matrix has **134 rows**, unchanged zero accepted; **58 local Markdown link paths** exist (fragments not checked). `git diff --check` **PASS**. No external reviewer fixture was edited or represented as freshly rerun here. No API/E2E/browser/hosted tests run; legacy unauthenticated mock UI/API remains uncertified and must not be published as G1/G2.
 
 ## Exact remaining access/isolation handshake — not executed
 
