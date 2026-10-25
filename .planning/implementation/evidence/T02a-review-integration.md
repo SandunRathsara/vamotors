@@ -2,6 +2,10 @@
 
 Recorded 2026-10-25 by sole integration/ledger worker under bounded orchestrator dispatch. No recursive delegation. GSD unavailable as recorded in D24; explicit dispatch followed, no simulated workflow or phase-counter edits.
 
+## Acceptance addendum — 2026-10-25
+
+Orchestrator supplied subsequent independent integrated PASS from reviewer `d40d8552-a2c7-442e-8c00-acf04d14d3f3`. PR [#2](https://github.com/SandunRathsara/vamotors/pull/2) merged to `integration/full-v1` at `3d9596e60eec2766f83a18d71809e0186dd7a43e`; both checks successful, merge tree equals approved `c42a05a`. **Bounded T02a accepted**, not parent T02 or any feature. The candidate/pending language below is historical evidence from before that confirmation, not current status. Browser installation/launch was subsequently resolved as environment readiness only; see [independent browser evidence](browser-readiness-integration.md). Other pending hosting/security/recovery work remains.
+
 ## Revision binding and scope
 
 - Accepted integration target observed after fetch: `81216521917c726df1b93e52b487950a2aeb8b13` (`integration/full-v1`, includes T00 readiness PR #1).
