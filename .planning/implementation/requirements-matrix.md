@@ -1,10 +1,18 @@
 # V1 requirement acceptance matrix
 
-Source: `.planning/REQUIREMENTS.md` **v1 section only**, individual ID anchors below. Contract: `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md`. Decisions: [defaults/adjustments](decisions.md), D01–D24. Historical phase mappings and reports confer no acceptance.
+Source: `.planning/REQUIREMENTS.md` **v1 section only**, individual ID anchors below. Contract: `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md`. Decisions: [defaults/adjustments and proposed T01 refinements](decisions.md), D01–D31. Historical phase mappings and reports confer no acceptance.
 
 Coverage: **134 individual IDs / 134 mapped / 0 omitted / 0 accepted**. Each row has exactly one accountable task; contributing tasks do not divide accountability. Owner roles and dependencies are in [task-ledger.md](task-ledger.md). T06 provides shared private files; T01 contracts and T18 release verification apply across rows despite having no exclusive requirement IDs.
 
 `Planned seam` is a proposed integration target, **not a claim that production code exists**. `U` means unverified/pending implementation and independent review, with no accepted SHA. All scenarios require real UI → authorized server → persistent synthetic data where applicable, plus direct denied/malformed calls; pure helpers supplement, not replace, that proof. Future updates must replace planned seams with actual code/test paths and add executed results, reviewer identity and verified integrated SHA. A dash is explicitly missing evidence, not a pass.
+
+## T01 contract references (not implemented acceptance)
+
+Every matrix row maps by its exact individual ID to the corresponding row in [contracts/coverage.md](contracts/coverage.md), which supplies normative file/section references for **all 134 IDs**; shared DTOs are in [api.ts](contracts/api.ts), access/revision rules in [access-transactions.md](contracts/access-transactions.md), and package index in [README](contracts/README.md). These contract references supplement, never replace, the planned runtime seams and acceptance scenarios below.
+
+Exact source `d7d66530a79049a5813696c9f117b2d91adcad2a`, independent reviewer `a596ed66-8f84-425b-9644-190e612517b6`: **PASS, 134/134 adequate contract seams, no remaining blockers/waivers**. [Attributed review and fresh integration checks](evidence/T01-source-integration.md). Combined-head verification still pending; all 134 result cells stay `U / — / —`. G0 pending; **0/134 IMPLEMENTED requirements accepted**. Earlier 128 adequate/six blocked findings apply only to rejected `a0e5eee`, preserved as history.
+
+Former six blocked IDs now reference: FNDN-08/RCNL-02 → A3R/W13 current remittance+entitlement reads, child IDs, all affected current CAS parents and parent revision bumps; REPT-07/IMPT-02 → E2/W16 exact exclusive CURRENT/IMPORTED ApprovalProvenance shared by disposal detail/report; LBRK-06/LBRK-15 → A1Q/W11 grantable Quote create/read, owner/company/field scoping and explicit cross-staff handoff. No fabricated approval, guessed revision or implicit Quote read grant. REPT-08 retains **complete original filtered population**, bounded snapshot/render/part steps without a 10,000-row population cap; quota pause is incomplete and release-blocking. Runtime validation, DB constraints, auth and races remain future tests, not proven by compile/pure checks.
 
 | ID | Owner | Source rule | Decision / contributors | Planned seam | Meaningful planned acceptance scenario | Result / reviewer / accepted SHA |
 | --- | --- | --- | --- | --- | --- | --- |
