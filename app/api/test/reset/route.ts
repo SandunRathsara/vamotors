@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { resetAll } from "@/lib/mock-store";
+import { NextResponse } from "next/server"
+import { resetAll } from "@/lib/mock-store"
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
 
 /**
  * POST /api/test/reset — rehydrates the in-memory mock store.
@@ -24,28 +24,36 @@ export const runtime = "nodejs";
  * .planning/phases/00.3-testing-strategy/00.3-REVIEW.md.
  */
 export async function POST(request: Request) {
-  const isProd = process.env.NODE_ENV === "production";
-  const isVercelProd = process.env.VERCEL_ENV === "production";
-  const testOverride = process.env.TEST_RESET_ENABLED === "1";
+  // Persistent environments never expose a reset, even with legacy overrides.
+  if (
+    process.env.APP_ENV === "shared-dev" ||
+    process.env.APP_ENV === "preview" ||
+    process.env.DATABASE_URL
+  ) {
+    return new NextResponse("Not Found", { status: 404 })
+  }
+  const isProd = process.env.NODE_ENV === "production"
+  const isVercelProd = process.env.VERCEL_ENV === "production"
+  const testOverride = process.env.TEST_RESET_ENABLED === "1"
 
   // Vercel production can NEVER open the gate, regardless of other env vars.
   if (isVercelProd) {
-    return new NextResponse("Not Found", { status: 404 });
+    return new NextResponse("Not Found", { status: 404 })
   }
   if (isProd && !testOverride) {
-    return new NextResponse("Not Found", { status: 404 });
+    return new NextResponse("Not Found", { status: 404 })
   }
 
   // Optional second signal: signed header check. When TEST_RESET_SECRET is
   // configured, the request must present a matching header.
-  const secret = process.env.TEST_RESET_SECRET;
+  const secret = process.env.TEST_RESET_SECRET
   if (secret) {
-    const headerSecret = request.headers.get("x-test-reset-secret");
+    const headerSecret = request.headers.get("x-test-reset-secret")
     if (headerSecret !== secret) {
-      return new NextResponse("Not Found", { status: 404 });
+      return new NextResponse("Not Found", { status: 404 })
     }
   }
 
-  resetAll();
-  return NextResponse.json({ ok: true });
+  resetAll()
+  return NextResponse.json({ ok: true })
 }
