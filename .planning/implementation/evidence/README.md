@@ -1,9 +1,12 @@
 # Evidence index
 
+Current 2026-10-26: [Second T03 FAIL and focused diagnostic dispatch](T03a-second-source-rejection-attributed.md), source `7ea6064c11d4896cf72d31420eab34cca6010ce0`, reviewer `d40f3c2a-50da-4579-9a65-1dda6be02317`. Three non-logging defects/auth leak closed; residual P2 missing redacted auth-failure event, 4 groups PASS/1 FAIL. Diagnostic `ddc2e87e-89a2-4be1-9840-74b91c2a576f` running; original workers idle. Supersedes prior running descriptions below; G0 accepted, T03/G1 unaccepted, real DB blocked, 0/134 implemented acceptance. Attributed, not rerun here.
+
 Latest update 2026-10-26: [T03 source rejection, independent checks and correction/ledger recovery](T03a-source-rejection-attributed.md), rejected source `ad314cdbbc8adc2bb86a086449c48c3cc4e0804a6`, verifier `f0300cd4-f056-4a0d-929d-289ca5433d1c`. Four findings (two P1/two P2); fresh correction running, original worker idle, failed resumes not success. Supersedes original T03a running statements below without rewriting prior evidence. G0 accepted; T03/G1 unaccepted, real DB blocked; 0/134 implemented acceptance. Attributed only, not reproduced by ledger worker.
 
 | Task | Revision | Artifact | Classification |
 | --- | --- | --- | --- |
+| T03a second source rejection / diagnostic | Rejected `7ea6064c11d4896cf72d31420eab34cca6010ce0`; diagnostic starts at same source | [Attributed second review and next action](T03a-second-source-rejection-attributed.md) | Independent FAIL: residual P2 observability gap; reported checks pass except one acceptance group; real DB blocked. Diagnostic running, no acceptance |
 | T00 | `8203d2a1dbd9b98c13d3188abf53286f393d98c7` | [Preservation](T00-preservation.md) | Author inventory, original byte hashes, staging boundary |
 | T00 | same preservation revision | [Current checks](T00-checks.md) | Fresh local author results, explicit failures/omissions |
 | T00 | final documentation commit containing this index | [Traceability validation](T00-validation.md) | Author exact-set/byte checks; independently reproduce and review scenario quality |

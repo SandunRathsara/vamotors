@@ -1,8 +1,12 @@
-# Full-v1 execution handoff — G0 accepted, T03 source rejected, correction running
+# Full-v1 execution handoff — G0 accepted, second T03 FAIL, diagnostic running
 
 Updated 2026-10-25. **T00/T01 accepted by orchestrator; G0 ACCEPTED at `ddd69fb617b4790b3cd64cbf09cb10112d19c281`. G1 real-DB acceptance blocked; G2–G6 pending; 0/134 implemented feature requirements accepted.** Contract readiness is not an implemented/deployed v1; full T02 and parent T03 remain unaccepted.
 
 ## Current accepted integration and next action
+
+Current update 2026-10-26: **second T03 source review FAIL** on `7ea6064c11d4896cf72d31420eab34cca6010ce0`, independent reviewer `d40f3c2a-50da-4579-9a65-1dda6be02317`. Three original non-logging defects and auth SQL-detail leak closed; residual **P2** `auth-options` lines 7–15 suppress all logs without a redacted failure event, violating accepted A3/orchestration observability. Actual Better Auth handler/public POST/signed-cookie session synthetic `23514` paths yielded **zero events**. Supplied **39 library / 63 unit / 19 contract**, strict TS/typecheck, build, owned lint/format PASS; full lint **3 errors / 27 warnings**; independent groups **4 PASS / 1 FAIL**. Real DB **BLOCKED unchanged**. [Attributed second review](evidence/T03a-second-source-rejection-attributed.md).
+
+**Fresh focused diagnostic worker `ddc2e87e-89a2-4be1-9840-74b91c2a576f` running from `7ea6064`**, same command `c7da7ebe-28a5-4c15-983f-3a7a818760fd`; original workers idle. Foundation owns fixed-allowlist failure event, safe correlation and actual-library secret-marker regressions. Reconcile completion/exact committed artifact, then fresh independent source/integrated review; do not duplicate workers or infer success. **G0 accepted; T03/G1 unaccepted; 0/134 implemented acceptance.** Neon private access/authorized isolation still needed; no credentials/DB/cloud actions. Pending ledger `bbddbb1f5bfa5ba4e39f5bae706d9518bf3901cd` carried as `f72d34d` + `973f905` + `d25752f` on isolated `t3/update-review-ledger`, tree-identical before this update. Carry with **next substantive integration**, no PR/push/main/integration ref change. Earlier rejection/recovery and running descriptions below are historical; access blockers remain current.
 
 Recovery update 2026-10-26: pending ledger head `9f4ea66e2ce0419956a88c98769a1dfd8f26fff8` was inspected and carried intact as `ba71500` + `3152b90` on `t3/integration-ledger-recovery`. Preserve this history and carry with the **next substantive integration**, no separate documentation PR/push. The 2026-10-25 header date describes the prior accepted/access snapshot; current T03 status is below. No acceptance advanced.
 

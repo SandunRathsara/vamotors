@@ -4,7 +4,15 @@ Updated: 2026-10-25. Integration owner: T00 integration/ledger worker. Contract:
 
 ## Current accepted integration and bounded dispatches
 
-### Recovery update — 2026-10-26 (supersedes original T03a running statements below)
+### Second T03 review — 2026-10-26 (current; supersedes earlier running statements)
+
+- **Corrected source `7ea6064c11d4896cf72d31420eab34cca6010ce0` FAIL**, independent reviewer `d40f3c2a-50da-4579-9a65-1dda6be02317`. Three original non-logging defects closed; auth SQL-detail leak also closed. Residual **P2**: `auth-options` lines 7–15 suppress all logs without a redacted failure event, violating accepted A3 and orchestration observability. Actual Better Auth handler/public POST/signed-cookie session paths with synthetic SQLSTATE `23514` yielded **zero events**. [Attributed second review](evidence/T03a-second-source-rejection-attributed.md).
+- Supplied checks: **39 library / 63 unit / 19 contract**, strict TypeScript/typecheck, build, owned lint/format PASS; full lint **3 errors / 27 warnings**; independent acceptance groups **4 PASS / 1 FAIL**. Real DB **BLOCKED unchanged**. These results were not rerun by this ledger worker and do not advance acceptance.
+- **Focused diagnostic correction running**, Foundation owner, suffix `ddc2e87e-89a2-4be1-9840-74b91c2a576f`, from exact rejected `7ea6064`; branch/returned head not supplied. Add a fixed-allowlist failure event, safe correlation and actual-library secret-marker regressions. Original workers idle; prior correction-running descriptions below are historical. All suffixes use command `c7da7ebe-28a5-4c15-983f-3a7a818760fd`. No duplicate dispatch or recursive delegation.
+- Next: reconcile diagnostic completion and exact committed artifact; require fresh independent corrected-head and integrated verification. **G0 accepted; T03/G1 unaccepted; 0/134 implemented acceptance.** Neon private management access/authorized isolated branch remains needed; no credentials/DB/cloud actions or owner/shared DB fallback.
+- Pending `t3/integration-ledger-recovery` head `bbddbb1f5bfa5ba4e39f5bae706d9518bf3901cd` carried in this isolated `t3/update-review-ledger` branch as `f72d34d` + `973f905` + `d25752f`, with identical carried tree. Preserve prior evidence/contracts/matrix. Carry all ledger history with **next substantive integration**, no separate PR/push/main/integration-ref changes.
+
+### Historical first-rejection recovery — 2026-10-26
 
 - **T03 source `ad314cdbbc8adc2bb86a086449c48c3cc4e0804a6` rejected**, independent verifier `f0300cd4-f056-4a0d-929d-289ca5433d1c`: **P1** Prisma P2010 nested SQLSTATE missed retry/lock mapping; **P1** query role/host/TLS/startup GUC override bypass; **P2** Better Auth SQL detail logging; **P2** inherited state action properties. [New attributed review and check summary](evidence/T03a-source-rejection-attributed.md).
 - Independent frozen offline ignore-scripts install, generated schema, migration diff, typecheck, **24 unit / 19 contract**, build and owned lint/format PASS; full lint **3 errors/27 warnings**. Real DB **BLOCKED**, no isolated resources/restricted credentials; private asks timed out. These are supplied verifier results, not rerun here.
@@ -46,7 +54,7 @@ The following records describe the earlier source/integration review stage only;
 
 ## Task dependency graph / acceptance ledger
 
-For T03a, the original dispatch row below is historical: **source state failed/rejected; original worker idle**. The active **T03a correction recovery** is **running**, owner Foundation/contract, suffix `45799758-6c45-4480-8f32-295b02141367`; exact head pending. Its blocker/next action is all four fixes plus fresh independent verification, with real DB separately blocked by T02b1. See recovery update above for failed-resume identities and attribution. All other dependency/acceptance bindings remain unchanged.
+For T03a, the original dispatch row below is historical: **corrected source `7ea6064` failed second review; original workers idle**. The active **focused diagnostic correction** is **running**, owner Foundation/contract, suffix `ddc2e87e-89a2-4be1-9840-74b91c2a576f`, base `7ea6064`; exact returned head pending. Next action is a safe observable auth-failure event and actual-library regressions, then fresh independent source/integrated verification. Real DB remains separately blocked by T02b1. See current second-review update above; all other dependency/acceptance bindings remain unchanged.
 
 The dependency column is the complete task-level graph. An edge means **accepted** prerequisite, not merely started. All not-yet-dispatched rows have no checkout/base/head/PR/reviewer/evidence; those fields must be filled in at dispatch and review, never guessed from this proposed graph. Shared checkouts are prohibited after initial T00 preservation.
 
