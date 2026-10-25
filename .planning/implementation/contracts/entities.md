@@ -1,0 +1,104 @@
+# Relational proposal and migration sequence
+
+This is a complete proposed entity inventory, not executable migrations. T03 foundation alone authors shared schema/SQL after review; feature owners request changes, never fork schema. Every business FK `ON DELETE RESTRICT`; no cascading history loss. Archive is explicit audited action, not physical delete. Auth ephemeral sessions may expire/delete; retained business actors are not deleted. UUID PK unless noted, server UTC createdAt/updatedAt, createdBy actor FK and positive integer revision on mutable aggregates. All money follows M1, dates M3. Immutable rows have no update/delete application grant. JSON fields below have strict versioned runtime schemas, not arbitrary patches.
+
+## E1: identity, policy, governance (T03/T04/T07)
+
+| Entity | Required fields / relations / constraints |
+| --- | --- |
+| User, Session, Account, Verification | Better Auth-generated exact schema pinned in T03 (do not invent library internals here); User business extension fullName, active, authzRevision; unique normalized email. Account holds credentials, never DTO/audit. Session→User, expiry/revocation. Verification only if selected auth requires it; no public registration/reset feature implied. |
+| Role | unique name; protected systemKey `ADMINISTRATOR` unique and immutable; revision. RolePermission(roleId,permissionId) composite PK; UserRole(userId,roleId) composite PK, assignedBy/At. |
+| Permission | unique canonical ruleHash; action/subject/fields[]/conditions version1 per access contract, grants only. No client expressions/SQL/deny rules. |
+| AdminGuard | singleton id=1; all account activation/admin-role assignment mutations lock this row BEFORE evaluating remaining active administrators; DB trigger same invariant. Bootstrap initializes first admin in same owner transaction. |
+| Supplier | INDIVIDUAL/COMPANY, name, optional nicOrRegNumber/address/phone/hotline/notes, recurring, active; company contact children. |
+| RepairVendor | same contact shape plus specialisation; active. |
+| FinanceCompany | name, active, contacts, policyRevision FK. Same company referenced by all finance sources. |
+| SupplierContact, VendorContact, FinanceContact | typed parent FK, name/phone/email?/role/isPrimary; at most one primary per parent. Existing contact referenced historically is archived not deleted. |
+| Customer | fullName/callingName/nicOrPassport/address/phone required, email/licence/notes optional, active. Normalized identity unique (case/whitespace normalization), phone indexed not unique. |
+| SettingsVersion | immutable version integer unique, effectiveAt, validated policy JSON: currency/scale/timezone, tiers/leadDays, dealership info/declarations, processingFee, display settings; current singleton FK. Currency/scale frozen after first business row. |
+| FinancePolicyVersion | companyId, version unique per company, processingPath APPLICATION/REFERRAL, commissionBps, basis FIXED/FINANCED_PRINCIPAL, fixedCommission?, processingFee, reconciliationMethod PERIOD_NOTICE/PER_DEAL, effectiveAt; immutable. |
+| ApprovalRequest | kind, requester FK/time, reason, schemaVersion=1, typed payload JSON/hash, dependencies JSON {entityType,id,revision}[], status PENDING/APPROVED/REJECTED/STALE, reviewer FK/time/note?, appliedCommandId? unique. APPROVED implies applied exactly once in same commit; requester!=reviewer. |
+| CommandReceipt | unique(environmentId,actorKey,commandName,idempotencyKey); canonical inputHash, committedAt, result reference/status, responseSchemaVersion. No expiry/deletion of committed business receipts. A rolled-back command has no receipt. |
+| AuditEntry | immutable entityType/id, commandId FK, action, actorKind/userId?/systemScope?, initiatedBy?, approverId?, reason?, recordedAt, fieldDiff JSON with Money strings, no secrets. Composite indexes(entityType,entityId,recordedAt,id), (userId,recordedAt,id), commandId. |
+| StatusEvent | cycleId FK, from?, to, action, commandId FK, actor, occurredAt/recordedAt. Indexed(cycleId,recordedAt,id); immutable. |
+| Notification | recipientUserId, eventKey, kind, typed target(type,id), safe nonfinancial title/body, createdAt, readAt?; unique(recipient,eventKey). Index(recipient,readAt,createdAt,id). Required recipient insertion transactional. |
+
+Directory tab is a query union, not a nullable mega-table. Do not put Customer IDs into Supplier FK. Inline creation is its own idempotent directory command (form retains inputs) or explicit same-transaction nested creation; never a fixture-only name.
+
+## E2: ownership and sales (T05/T08–T10)
+
+| Entity | Fields / cardinality / checks |
+| --- | --- |
+| Vehicle | engine/chassis original and normalized, make/model/year/colour/fuelType/transmission, vin?/cr?/notes?, activePurchaseId?; unique(normalizedEngine,normalizedChassis). Normalize trim + uppercase + remove ASCII whitespace, retain punctuation (AB-1 != AB1). Identifiers 1..100 chars, year1886..currentYear+1; fuel PETROL/DIESEL/HYBRID/ELECTRIC/OTHER, transmission MANUAL/AUTOMATIC/CVT/OTHER. Composite FK(activePurchaseId,id)→PurchaseRecord(id,vehicleId), deferred for circular creation. |
+| PurchaseRecord | vehicleId, cycleNumber, purchaseType CASH/LEASE_SETTLEMENT/BRAND_NEW, acquisitionKind SUPPLIER/TRADE_IN, supplierId? XOR sellerCustomerId?, purchaseDate, purchasePrice, listedPrice?, status ten-state enum, available, holdReason?, receivedDate?, closedAt?, revision. unique(vehicleId,cycleNumber), partial unique(vehicleId) WHERE closedAt IS NULL. Active pointer must name open cycle, null after close; deferred trigger checks pointer consistency. TRADE_IN: customer seller + unique tradeInSourceSaleId, noncash basis, channel CASH retained for compatibility. BRAND_NEW requires company supplier. |
+| LeasePurchaseDetail | unique purchaseRecordId FK, institutionType, companyId? XOR institutionName? (company only for FINANCE_COMPANY, name for BANK/PRIVATE_PARTY), nameSnapshot, settlementRef, settlementAmount/cashToSeller; sum=purchasePrice, constraints via deferred trigger. |
+| MileageReading | vehicleId, purchaseRecordId, recordedDate, nonnegative integer reading<=99999999, remark?, sourceSaleCompletionId? unique. Composite vehicle/cycle FK; preserve zero. Backdated readings chronological; decreasing reading allowed only with explicit reason (odometer replacement/correction), never silently discard. |
+| VehicleCost | purchaseRecordId, category, description required, amount, incurredDate; revision. Reasoned correction versions after close; not erase payment children. |
+| RepairRecord | purchaseRecordId, vendorId, request, sentDate, returnedDate?/summary?/invoiceDate?/invoiceAmount? all absent before return, all present on return; partial unique(purchaseRecordId) WHERE returnedDate IS NULL. No estimate. Returned invoice >=0; return summary nonempty. |
+| CycleBasisVersion | cycleId, version, component snapshot {purchase,repairs[{id,amount}],costs[{id,amount}]}, total, reason, supersedesId?; unique(cycleId,version), immutable. Completion/disposal references frozen version. Reasoned closed-cycle correction creates version, reports expose original and restated values without silently changing old completion snapshot. |
+| SaleCase | purchaseRecordId, customerId, kind CASH/ADVANCE/LEASE/TRADE_IN, agreedPrice, listedSnapshot?, reference?, state RESERVED/EXPIRED/FINANCE_PENDING/DO_RECEIVED/COMPLETED/CANCELLED, revision, openedAt. Partial unique(purchaseRecordId) WHERE state!='CANCELLED' (completed retains terminal claim). Storing future proposals is in ApprovalRequest, not SaleCase. |
+| Reservation | unique saleCaseId, purchaseRecordId (composite FK to case cycle), amount, placedDate, policyVersion/snapshot, listedBasis, validThrough/expiresAt, status ACTIVE/EXPIRED/CONVERTED/REFUNDED/CANCELLED, resolvedBy/At?, retainedAmount?, disposition RELEASE/HOLD?, resolutionReason?; CONVERTED requires completion FK, CANCELLED/REFUNDED require explicit retained remainder. |
+| LeaseFinanceDetail | unique saleCaseId, companyId, policy snapshot, downPayment>0, financeAmount>0, termMonths1..120, DOattachmentId?/issueDate?/receivedAt?, completedAt?; down+finance=agreedPrice. Nullable DO until recorded; no completed sale required to initiate. |
+| SaleCompletion | unique saleCaseId AND unique purchaseRecordId, saleDate=handoverDate, handoverMileage, agreedPrice, basisVersionId, originalProfit, immutable terms/customer/vehicle snapshot, approvalId?; current revision handled via SaleCorrection records, not overwriting evidence. |
+| SaleCorrection | completionId, version unique per completion, approved patch of business fields, reason, approvalId unique, corrected snapshot, basisVersionId, priorVersionId, recordedAt. New financial differences are explicit source reversals/replacements; no history overwrite. |
+| TradeInConsideration | unique saleCaseId, description, value>0<=agreedPrice, optional vehicleId/acquiredPurchaseId unique; intake captures complete Vehicle input/mileage/listedPrice; customer seller from source case. Acquisition can occur during sale transaction OR later same guarded intake command, once only. |
+| Disposal | unique purchaseRecordId, approvalId unique, date/reason/method SCRAPPED/AUCTIONED/DONATED/OTHER, proceeds>=0, basisVersionId, netLoss; close correct cycle. Zero proceeds has no payment row. |
+
+For any redundant vehicleId/cycleId pairs enforce composite FKs, not independent references that can disagree. Transitions/revision updates are only through guarded commands; cross-table invariants enforced by deferred constraint triggers plus transaction locks, not CHECK expressions referencing other tables. SQL enum/value checks alone do not enforce legal transitions; T03 adds transition trigger covering old/new status plus sanctioned immutable completion/import evidence. One completed sale or disposal, never both, guarded under cycle lock and deferred trigger.
+
+## E3: external brokerage and finance (T11–T13)
+
+| Entity | Fields / relations / constraints |
+| --- | --- |
+| RateSheetVersion | companyId, version, make/model/year, maximumLoan, validFrom/Through, publishedAt; immutable; no overlapping published validity for same company/model/year. |
+| RateCardEntry | sheetVersionId, principal, months, installment; unique(sheetVersionId,principal,months); exact lookup. Reverse installments can yield multiple term options, never guess. |
+| Quote | selected entry FK, vehicle description fields, principal/term/installment/max snapshots, policyVersion, expiry instant, charges[{category,amount}], createdBy; immutable. expiresAt=min(rateValidThrough next midnight, createdAt+24h). |
+| BrokerageDeal | customerId, companyId, externalVehicle JSON (make/model/year/engine?/chassis?/description), quoteId/snapshot, path snapshot, requestedLoan/approvedLoan, state INTAKE/ELIGIBILITY_PENDING/ELIGIBLE/INSPECTED/DOCUMENTS_READY/DISPATCHED/REFERRED/COMPLETED/REJECTED, processingFee snapshot, fileRef?, informedContactId?/At?, rejectionReason?, revision. Optional physical identity link allowed, no purchase FK or owned cycle created. |
+| GuarantorParticipation | dealId, name/identity/address/phone, role/contact snapshot; at least1 enforced at command and deferred trigger. Unique(dealId,normalizedIdentity); cannot be same identity as customer. |
+| EligibilityCheck | dealId, target CUSTOMER/GUARANTOR/VEHICLE, guarantorId? typed conditional FK, outcome CONFIRMED/REJECTED, companyContactId, feedback, checkedAt, actor, supersedesId?; append-only decisions, latest valid governs. |
+| InspectionPhoto | dealId, category FRONT/BACK/LEFT/RIGHT/CHASSIS/ENGINE/METER/DEALER_WITH_VEHICLE/CUSTOMER_WITH_VEHICLE, attachmentId; unique(dealId,category,version). Current category pointer, old evidence retained. |
+| ChecklistItem | dealId, subject participantId?/vehicle, kind, applicability REQUIRED/NOT_REQUIRED/OPTIONAL, applicabilityReason?, collected, quantity, documentIds[], revision. Required kinds enumerated in workflows; extra key physical status not fake attachment. |
+| VerificationEvent | dealId, checklistRevisionHash, outcome CLEAN/ISSUES/RESOLVED, issues[], contactId, confirmedAt, feedback, actor; immutable, latest resolution must cover all current applicable items. |
+| DealEvent | dealId, kind LOAN_ADJUSTMENT/COMPANY_INFORMED/REFERRAL/COMPLETED/REJECTED, typed payload, contact/date/feedback, commandId; immutable; path guards. |
+| ProcessingIssue | dealId, kind BLOCKER/DELAY_INQUIRY/NON_REMITTANCE, openedAt/text, feedbackEvents[], resolvedAt?/resolution?; retain all feedback with actor/contact/time; blocker target step explicit. |
+| CashFacility | unique dealId, requestedAt, gross, deductions[{label,amount,recipient,handling WITHHELD/PAID_BY_DEALERSHIP}], fee, feeMode WITHHELD/SEPARATE, net, recoverablePrincipal=net, separatelyRecoverableCharges (explicit0..actually separately funded charges), state REQUESTED/DISBURSED/PARTIAL/RECOVERED, revision; gross - withheld deductions - withheld fee = net>=0. |
+| DispatchBatch | handedOverAt, actor, courier/tracking, immutable manifest; 1..50 items. DispatchItem has saleCaseId XOR brokerageDealId, checklist snapshot/hash, sourceRevision/sentAt; each source dispatched once (unique nullable source FKs); all members atomically progress. |
+| CommissionEntitlement | companyId, saleCaseId XOR brokerageDealId (unique per source), expectedAmount, policy/basis/rounding snapshot, eligibleAt, sentDate, state OPEN/PARTIAL/SETTLED/RESOLVED; revision. Sale eligibility handover; Application dispatch; Referral handoff. |
+| Remittance | companyId, state STAGED/RECEIVED, bankRef nonempty unique(companyId,bankRef), amount?/receivedDate?/noticeAttachmentId?, currency, revision; stageRemittance creates metadata target only; recordRemittance finalizes receipt amount>0/date once. RECEIVED fact immutable, never duplicate child receipt or count STAGED metadata in cash. |
+| NoticeLine | remittanceId, lineKey unique within remittance, source ref?, reportedAmount, description; unmatched allowed, not autoassigned. |
+| ReconciliationRun | companyId, asOfDate, method/policy snapshot, previousWatermarkDate?, newWatermarkDate?, completedBy/At; immutable reproducible cutoff. |
+| CommissionAllocation | runId/remittanceId/entitlementId/noticeLineId?, amount>0, reversalOf? unique, recordedAt; company/currency must match. Under locks sum live allocations<=remittance amount. Entitlement excess requires explicit OVERPAYMENT discrepancy; never silently clamp. |
+| CommissionDiscrepancy | entitlementId, expectedMinusAllocated signed, classification SHORTFALL/OVERPAYMENT, resolution KEEP_OPEN/ACCEPT_SHORTFALL/CARRY_CREDIT/RETURN_OVERPAYMENT, reason, reviewer/At, related allocation/version; no implicit cash. Return payment separately on remittance source. |
+
+## E4: cash ownership — no general ledger
+
+Separate source-child tables share this value shape: `{id, amount>0, direction:IN|OUT, occurredDate, recordedAt, method:CASH|BANK_TRANSFER, reference?, reversalOf?, commandId, reason?, importRowId?}`. Owner FK mandatory; reversal must reference same owner and be exact opposite. Unique commandId+lineKey prevents duplicate child facts. CHECK bounds; cumulative obligation limits checked while locking source. Immutable after insert.
+
+| Cash table / owner | Facts and projection |
+| --- | --- |
+| PurchasePayment → PurchaseRecord | supplier cash, settlement institution, seller cash; trade-in none |
+| RepairPayment → RepairRecord | actual invoice payments (partials<=invoice, no invoice=no payment) |
+| CostPayment → VehicleCost | actual payments<=incurred amount |
+| SaleReceipt → SaleCase | advance/down/balance/lender receipts; REFUND outflow child tied to original reservation receipt; conversion never copies advance |
+| DisposalReceipt → Disposal | actual positive proceeds once |
+| FacilityPayment → CashFacility | net payout OUT; separately paid dealership deduction OUT; principal recovery IN capped by net; fee receipt IN only if separately actually paid; withheld fee/deduction not additional cash |
+| BrokerageFeeReceipt → BrokerageDeal | actual processing/additional fee receipts only, never implied by setting fee |
+| RECEIVED Remittance (and RemittanceReturn child) | bank commission receipt IN once; STAGED/allocations/notice/expectation are NOT cash |
+
+Read-only `CashMovement` UNION ALL view returns stable `{sourceType,sourceId,paymentId,date,direction,amount,method}` across these sources. No writable CashFlowEntry/MoneyMovement/general-journal table or double-entry rewrite. Deductions WITHHELD by lender are informational, not dealership cash; PAID_BY_DEALERSHIP records separate outflow and cannot also subtract from net as withheld. Cash facility recoverable is actual dealership-funded net, not invented gross disbursement; separately funded charges have explicit separate recovery component if agreed, never silently added to principal.
+
+## E5: files, import and read models (T06/T14–T16)
+
+UploadIntent(target typed FK,purpose,actor,declared size/MIME/hash,stagingKey,expiresAt,state INIT/FINALIZING/FINAL/FAILED,revision); Attachment(target typed FK,finalKey unique,sha256,size,MIME,uploader,verifiedAt,uploadIntentId unique). Use typed nullable FKs + exactly-one check for SaleCase/BrokerageDeal/Remittance/ImportBatch targets, not unchecked source IDs. Purpose-owner mapping enforced. InvoiceVersion(completionId,saleRevision,version,number unique,snapshot/hash,state PENDING/READY/FAILED,attachmentId?,requestKey unique,issuedBy/At?) retains all versions. Unique(completionId,version); READY requires object/hash/time, PENDING not issued. Rendering attempts are not READY/issued versions until linked; PENDING/FAILED version requests still retain numbers/snapshots.
+
+ImportBatch(actor,fileAttachmentId,fileHash,normalizedHash,templateVersion,schemaVersion,revision,state STAGED/VALIDATED/COMMITTED/FAILED,controlTotals,committedAt?); ImportRow(batchId,rowNo,sourceNamespace,sourceKey,entityType,mappedPayload,errors[],targetId?,reviewedMapping?) unique(batchId,rowNo). ImportProvenance(entityType,entityId,batchId,rowId,sourceNamespace,sourceKey) unique(namespace,type,sourceKey); multiple historical cycles require distinct source keys. Imported DTO marker derives provenance, never client flag. Source file metadata/preview retained; no business data pruning. Query projections/dashboard/reports have no independent mutable financial tables.
+
+## E6: serialized migration order / deploy requirements
+
+1. T03 pin verified auth/Prisma/client/adapter versions and transaction-capable driver without changing Next/React. Generate auth schema in isolated disposable DB, inspect exact SQL. T02 prepares role/environment constraints, not parallel schema edits.
+2. Bootstrap owner/schema `vamotors`, migration history owner `vamotors_migrator`; runtime `vamotors_runtime` and job execution role scopes. Identity/auth/roles/AdminGuard, policies, command receipts, audit/notification first. Append-only grants/triggers before any shared business writes.
+3. Directory/customer/policy versions, physical identity + purchase cycle using deferred circular FKs, cycle status triggers/constraints/indexes; costs/repairs/basis/payments; sales/reservations/finance/completion/trade-in/disposal. Add circular sale/acquisition FK after both tables exist. Grants explicitly per table, no broad future-table write grants.
+4. Approval typed payload dependencies, private file intents/attachments/invoice versions; brokerage/rates/guarantors/events/checklists/facility; dispatch/commission/remittance/reconciliation; import/provenance; read-only cash view and reporting indexes. Nullable typed source links added only after target tables exist; exactly-one/unique constraints validated before enablement.
+5. Seed deterministic synthetic two suitable admin/manager accounts plus restricted staff and exact rate fixtures, privately supplied passwords; no hardcoded public passwords. Real-DB rollback/revocation/race/append-only tests, then T02 authorized serialized migration deploy. No migrations in request/build/preview startup.
+
+Indexes beyond keys: cycles(status,available,purchaseDate,id), reservations(status,expiresAt,id), repairs(vendorId,returnedDate,sentDate,id), sales(customerId,saleDate,id), source payment(occurredDate,id), deals(companyId,state,id), entitlements(companyId,state,sentDate,id), allocations(remittanceId,entitlementId), import hashes/source keys. Review EXPLAIN under representative synthetic data in lane, not speculative cache infra. All partial indexes/deferred triggers require checked-in SQL migrations; Prisma schema alone is insufficient evidence.
