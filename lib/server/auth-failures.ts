@@ -13,10 +13,14 @@ export function authFailure() {
   const call = calls.getStore()
   if (call?.emitted) return
   if (call) call.emitted = true
-  console.error("AUTHENTICATION_FAILURE", {
-    operation: call?.operation ?? "library",
-    requestId: call?.requestId ?? randomUUID(),
-  })
+  try {
+    console.error("AUTHENTICATION_FAILURE", {
+      operation: call?.operation ?? "library",
+      requestId: call?.requestId ?? randomUUID(),
+    })
+  } catch {
+    // A failed event sink must not change authentication response semantics.
+  }
 }
 
 export function authCall<T>(

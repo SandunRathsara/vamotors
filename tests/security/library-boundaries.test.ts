@@ -333,6 +333,66 @@ describe("actual Better Auth + Prisma adapter failure logging", () => {
     ;(await auth.$context).skipOriginCheck = false
     return { auth, POST, seen }
   }
+  it("preserves a prepared 503 response when the failure sink throws", async () => {
+    await fixture(() => undefined)
+    const { authCall, authFailure } =
+      await import("../../lib/server/auth-failures")
+    const sink = vi.spyOn(console, "error").mockImplementation(() => {
+      throw new Error("synthetic sink unavailable")
+    })
+    const response = new Response("existing-safe-body", {
+      status: 503,
+      headers: { "Retry-After": "1" },
+    })
+    await expect(authCall("http", async () => response)).resolves.toBe(response)
+    expect(await response.text()).toBe("existing-safe-body")
+    expect(response.headers.get("Retry-After")).toBe("1")
+    await expect(
+      authCall("session", () =>
+        authCall("http", async () => {
+          authFailure()
+          authFailure()
+          return "unchanged"
+        })
+      )
+    ).resolves.toBe("unchanged")
+    expect(sink).toHaveBeenCalledTimes(2)
+    expect(sink.mock.calls.map((entry) => entry[1])).toEqual([
+      { operation: "http", requestId: expect.any(String) },
+      { operation: "session", requestId: expect.any(String) },
+    ])
+  })
+  it.each(["preflight", "adapter"])(
+    "preserves the actual public POST sanitized JSON when the sink throws during %s failure",
+    async (failure) => {
+      const { POST, seen } = await fixture(() => pgError("23514"))
+      if (failure === "preflight") seam.environmentFailure = pgError("23514")
+      const sink = vi.spyOn(console, "error").mockImplementation(() => {
+        throw new Error("synthetic sink unavailable")
+      })
+      const response = await POST(request())
+      expect(response.status).toBe(500)
+      expect(response.headers.get("Cache-Control")).toBe("private,no-store")
+      expect(await response.json()).toEqual(
+        failure === "preflight"
+          ? {
+              ok: false,
+              error: {
+                code: "INTERNAL_ERROR",
+                requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+                message: "Request failed",
+                retryable: false,
+              },
+            }
+          : { ok: false, error: { code: "UNAUTHENTICATED" } }
+      )
+      expect(sink).toHaveBeenCalledExactlyOnceWith("AUTHENTICATION_FAILURE", {
+        operation: "http",
+        requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      })
+      expect(seen).toEqual([])
+    }
+  )
   it("never logs SQL/failing rows through HTTP handler or server session API", async () => {
     Object.entries(runtime).forEach(([key, value]) => vi.stubEnv(key, value))
     const seen: unknown[] = []

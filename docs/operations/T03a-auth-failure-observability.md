@@ -37,3 +37,14 @@ No original error, error message, SQLSTATE, SQL, row, credential, cookie, token,
 - Current Better Auth docs resolved/fetched via ctx7 `/better-auth/better-auth/v1.6.23` for logger/custom log and onAPIError behavior; installed source and real-library tests establish the actual swallowing/fallback paths.
 
 No migration, schema, lifecycle, retry classifier, URL allowlist, cloud, real-DB access, credentials, bootstrap, seed, push, PR or merge action. The other three independently closed findings remain unchanged and their regression tests pass. Management-key access remains blocked per the handoff; there is no fallback. These local synthetic checks do not establish real-DB permissions, transaction/race behavior, pooled transport, hosted login success, or T03/G1 acceptance.
+
+## Throwing-sink correction (2026-10-26)
+
+Bounded follow-up to reviewer `29b748fa-e4ca-4b06-9655-2a3aeec35d23`, sourceFAIL P2 at `lib/server/auth-failures.ts:16–19`. Base `ae372a7ecb20bcbc8dcfd926999756f30b050482`, isolated branch `fix/t03-auth-failure-sink`; other branches/checkouts and approved-temp reviewer fixtures remain untouched.
+
+- Cause: unguarded `console.error` escaped event emission, converting an already prepared503 Response into a rejected500 APIError and making actual public POST preflight reject outside `endpoint` instead of returning its prepared sanitized JSON.
+- Fix: catch sink exceptions only in the shared emitter. Keep the pre-emission dedup flag, async-local context, server UUID and allowlisted event unchanged. No raw fallback, retry, new telemetry or response-path changes.
+- Red: `./node_modules/.bin/vitest run tests/security/library-boundaries.test.ts -t 'sink throws'` reproduced both exact failures (**2 failed / 1 passed**). Three new cases cover prepared503 identity/body/headers, nested dedup/context with a throwing sink, and actual public POST preflight/adapter failures with exact sanitized JSON/no-store headers, one attempted event and no fallback console output.
+- Green: direct installed tools, no install/lifecycle invocation: full Vitest **69/69** (boundary suite45), contract runner **19/19**, `tsc --noEmit`, `next build`, owned-path ESLint/Prettier and `git diff --check` pass. Full-repo lint was not rerun; the previously recorded3 errors/27 warnings are not claimed fixed. Dependencies copied locally from the installed base checkout; pins/lockfiles unchanged.
+
+No recursive delegation, DB/credentials/cloud/browser/PR/push/merge. Real-DB evidence remains blocked; **T03/G1 remains unaccepted** pending independent review and authorized DB evidence.
