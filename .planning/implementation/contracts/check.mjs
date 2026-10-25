@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { A, B, C, bounded, minor, parseMajor, major, sum, roundRatio, commission,
   tierDays, reservationDates, addDays, overdue, states, transition, effectiveAvailable, facility } from './reference.mjs';
+import { validateExpected, safeActorSnapshot, loanMaximum, compareExact, replaceQuote,
+  planHistoricalGraph, exportSnapshot, exportParts, completeExport } from './reference.mjs';
 let count = 0;
 function test(name, run) { run(); count++; console.log(`ok ${count} - ${name}`); }
 test('money boundary/grammar/decimal conversion and beyond 32-bit', () => {
@@ -135,5 +137,151 @@ test('all command/query DTO names unique; query response map complete; ten-state
   assert.deepEqual(queries.sort(), data.sort());
   const stateType = text.split('export type State = ')[1].split(';')[0];
   assert.deepEqual([...stateType.matchAll(/"([A-Z_]+)"/g)].map(m => m[1]).sort(), states.slice().sort());
+});
+test('116029 independent quotient/remainder rounding regressions (including wide signed operands)', () => {
+  for (let i = 1n; i <= 116029n; i++) {
+    const d = i % 97n + 1n;
+    const n = (i * i * 99999999999999n + i % d) * (i % 2n ? 1n : -1n);
+    const q = n / d, r = n % d, absR = r < 0n ? -r : r;
+    const expected = q + (absR * 2n >= d ? (n < 0n ? -1n : 1n) : 0n);
+    assert.equal(roundRatio(n, d), expected);
+  }
+});
+const apiText = readFileSync(resolve(dir, 'api.ts'), 'utf8');
+const revisionRules = JSON.parse(apiText.split('export const commandRevisionRules = ')[1].split(' satisfies Record')[0]);
+test('every command has a revision rule; missing/stale child and directory primary revisions fail', () => {
+  const commandNames = [...apiText.split('export interface Commands {')[1].split('\n}\nexport type ImportType')[0].matchAll(/^  (\w+):/gm)].map(m => m[1]);
+  assert.deepEqual(Object.keys(revisionRules).sort(), commandNames.sort());
+  const cases = [
+    ['updateCustomer', { id: 'c' }, [{ type: 'Customer', id: 'c', revision: 4 }]],
+    ['updateDirectoryParty', { type: 'SUPPLIER', id: 's' }, [{ type: 'Supplier', id: 's', revision: 3 }]],
+    ['updateDirectoryParty', { type: 'REPAIR_VENDOR', id: 'v' }, [{ type: 'RepairVendor', id: 'v', revision: 3 }]],
+    ['recoverFacility', { dealId: 'd' }, [{ type: 'BrokerageDeal', id: 'd', revision: 8 }, { type: 'CashFacility', id: 'f', revision: 6 }]],
+    ['completeUpload', { uploadId: 'u' }, [{ type: 'UploadIntent', id: 'u', revision: 2 }, { type: 'SaleCase', id: 'sale', revision: 7 }]]
+  ];
+  for (const [name, input, rows] of cases) {
+    const context = { load: (type, id) => rows.find(r => r.type === type && r.id === id),
+      expand: selector => selector === '@party' ? rows : selector === '@facilityForDeal' ? rows.filter(r => r.type === 'CashFacility') :
+        selector === '@uploadTarget' ? rows.filter(r => r.type === 'SaleCase') : undefined };
+    assert.deepEqual(validateExpected(revisionRules[name], input, rows, context), rows);
+    assert.throws(() => validateExpected(revisionRules[name], input, rows.slice(0, -1), context), /REVISION_REQUIRED/);
+    const stale = rows.map((r, i) => ({ ...r, revision: r.revision - (i === rows.length - 1 ? 1 : 0) }));
+    assert.throws(() => validateExpected(revisionRules[name], input, stale, context), /STALE_REVISION/);
+  }
+});
+test('safe self actor has no credentials and changes fingerprint on role revocation/current activation', () => {
+  const user = { id: 'u', revision: 1, name: 'Synthetic', active: true, password: 'not-output', token: 'not-output', passwordHash: 'not-output' };
+  const roles = [{ id: 'r', revision: 1, active: true, name: 'Reader', grants: [{ action: 'read', subject: 'Vehicle', fields: ['id'] }] }];
+  const before = safeActorSnapshot(user, roles);
+  assert.deepEqual(Object.keys(before.user).sort(), ['active', 'id', 'name']);
+  assert.equal(JSON.stringify(before).includes('not-output'), false);
+  const after = safeActorSnapshot(user, [{ ...roles[0], revision: 2, grants: [] }]);
+  assert.notEqual(before.authzRevision, after.authzRevision);
+  assert.deepEqual(after.presentationGrants, []);
+  assert.throws(() => safeActorSnapshot({ ...user, active: false }, roles), /ACCOUNT_INACTIVE/);
+});
+const vehicle = { make: 'Demo', model: 'Demo100', year: 2026 };
+const sheet = { id: 'sheet', ...vehicle, maximum: '120000', validFrom: '2026-01-01', validThrough: '2026-12-31',
+  cards: [{ id: 'card', principal: '100000', months: 12, installment: '9000' }] };
+test('vehicle-only maxima works before terms; NO_CARD and OVER_LIMIT retain applicable maximum', () => {
+  assert.equal(loanMaximum([sheet], vehicle, '2026-10-25').maximum, '120000');
+  assert.equal(loanMaximum([sheet], { ...vehicle, year: 2025 }, '2026-10-25').reason, 'NO_SHEET');
+  assert.equal(loanMaximum([sheet], vehicle, '2027-01-01').maximum, null);
+  assert.deepEqual(compareExact(sheet, '120001', 12), { status: 'UNSUPPORTED', reason: 'OVER_LIMIT', maximum: '120000', sheetId: 'sheet' });
+  assert.equal(compareExact(sheet, '100001', 12).maximum, '120000');
+  assert.equal(compareExact(sheet, '100001', 12).reason, 'NO_CARD');
+});
+test('existing-deal requote preserves original/policy/facility and invalidates verification before dispatch', () => {
+  const policy = { path: 'APPLICATION', commission: { basis: 'FINANCED_PRINCIPAL', rateBps: 100 }, processingFee: '250000' };
+  const deal = { id: 'd', revision: 5, state: 'DOCUMENTS_READY', path: 'APPLICATION', companyId: 'fc',
+    originalQuoteId: 'original', quoteHistory: [{ id: 'original' }], policy, charges: [], approvedLoan: '100000',
+    facility: { gross: '100000', net: '88000', outstanding: '40000' }, verification: { clean: true }, fileManifest: 'old' };
+  const candidate = { id: 'replacement', companyId: 'fc', policy: { ...policy, commission: { ...policy.commission, rateBps: 999 } },
+    charges: [], principal: '100000', maximum: '120000', supported: true, expiresAt: '2026-10-26T00:00:00.000Z' };
+  const options = { expectedRevision: 5, now: '2026-10-25T00:00:00.000Z', authorized: true };
+  const next = replaceQuote(deal, candidate, options);
+  assert.equal(next.revision, 6); assert.equal(next.originalQuoteId, 'original');
+  assert.deepEqual(next.quoteHistory.map(q => q.id), ['original', 'replacement']);
+  assert.deepEqual(next.policy, policy); assert.deepEqual(next.facility, deal.facility);
+  assert.equal(next.state, 'INSPECTED'); assert.equal(next.verification, null); assert.equal(next.fileManifest, null);
+  assert.equal(deal.quoteHistory.length, 1); // original evidence not mutated
+  for (const [patch, error] of [[{ companyId: 'other' }, /BALANCE_MISMATCH/], [{ policy: { ...policy, path: 'REFERRAL' } }, /PATH_MISMATCH/],
+    [{ expiresAt: options.now }, /QUOTE_EXPIRED/], [{ supported: false }, /UNSUPPORTED_RATE/], [{ charges: [{ amount: '1' }] }, /BALANCE_MISMATCH/]]) {
+    assert.throws(() => replaceQuote(deal, { ...candidate, ...patch }, options), error);
+  }
+  assert.throws(() => replaceQuote(next, candidate, options), /STALE_REVISION/);
+  assert.throws(() => replaceQuote({ ...deal, state: 'DISPATCHED' }, candidate, options), /INVALID_STATE/);
+  assert.throws(() => replaceQuote({ ...deal, facility: { ...deal.facility, gross: '90000' } }, candidate, options), /OBLIGATION_OPEN/);
+  assert.throws(() => replaceQuote(deal, candidate, { ...options, authorized: false }), /FORBIDDEN/);
+});
+function historicalFixture() {
+  const ref = (type, sourceKey) => ({ namespace: 'synthetic', type, sourceKey });
+  const payment = (sourceKey, amount, direction) => ({ sourceKey, amount, direction, date: '2026-01-01', method: 'CASH' });
+  return [
+    { type: 'SUPPLIERS', sourceKey: 'supplier', payload: { name: 'Synthetic supplier' } },
+    { type: 'CUSTOMERS', sourceKey: 'customer', payload: { fullName: 'Synthetic customer' } },
+    { type: 'REPAIR_VENDORS', sourceKey: 'vendor', payload: { name: 'Synthetic vendor' } },
+    { type: 'VEHICLES', sourceKey: 'cycle', payload: { supplier: ref('SUPPLIERS', 'supplier'), cycleSourceKey: 'cycle',
+      status: 'SOLD', closedAt: '2026-01-04T00:00:00.000Z', purchasePrice: '50000',
+      payments: [payment('purchase', '50000', 'OUT')], additionalCosts: [{ sourceKey: 'transport', amount: '2500', payments: [] }] } },
+    { type: 'REPAIRS', sourceKey: 'repair', payload: { cycle: ref('VEHICLES', 'cycle'), vendor: ref('REPAIR_VENDORS', 'vendor'), invoiceAmount: '5000', payments: [] } },
+    { type: 'ADVANCES', sourceKey: 'advance', payload: { cycle: ref('VEHICLES', 'cycle'), customer: ref('CUSTOMERS', 'customer'),
+      agreed: '100000', amount: '10000', saleCaseSourceKey: 'case', state: 'CONVERTED', completedSale: ref('SALES', 'sale'), payments: [payment('advance-receipt', '10000', 'IN')] } },
+    { type: 'SALES', sourceKey: 'sale', payload: { cycle: ref('VEHICLES', 'cycle'), customer: ref('CUSTOMERS', 'customer'),
+      price: '100000', kind: 'ADVANCE', state: 'COMPLETED', saleCaseSourceKey: 'case', reservation: ref('ADVANCES', 'advance'),
+      completion: { basis: { purchase: '50000', repairs: [{ sourceKey: 'repair', amount: '5000' }], costs: [{ sourceKey: 'transport', amount: '2500' }] } },
+      payments: [payment('balance-receipt', '90000', 'IN')] } }
+  ];
+}
+test('all-seven-type atomic graph resolves converted advance/cycle/completion into ONE shared case', () => {
+  const rows = historicalFixture();
+  const plan = planHistoricalGraph(rows);
+  assert.equal(plan.saleCases.length, 1); assert.equal(plan.saleCases[0].rowKeys.length, 2);
+  assert.equal(plan.provenance.length, 7);
+  assert.equal(plan.provenance.filter(p => p.targets.includes('synthetic:SaleCase:case')).length, 2);
+  assert.deepEqual(plan.controlTotals, { rows: 7, purchase: '50000', cost: '7500', consideration: '100000', cashIn: '100000', cashOut: '50000',
+    byType: ['SUPPLIERS','CUSTOMERS','REPAIR_VENDORS','VEHICLES','SALES','REPAIRS','ADVANCES'].map(type => ({ type, rows: 1 })) });
+  assert.equal(100000n - 50000n - 7500n, 42500n);
+  assert.deepEqual(planHistoricalGraph(rows.slice().reverse()), plan); // CSV/sheet ordering cannot change logical plan
+  const reorderKeys = value => Array.isArray(value) ? value.map(reorderKeys) : value && typeof value === 'object' ?
+    Object.fromEntries(Object.entries(value).reverse().map(([key, v]) => [key, reorderKeys(v)])) : value;
+  assert.equal(planHistoricalGraph(reorderKeys(rows).reverse()).normalizedHash, plan.normalizedHash);
+  rows.find(r => r.type === 'VEHICLES').payload.status = 'DELIVERED';
+  assert.equal(planHistoricalGraph(rows).saleCases.length, 1);
+});
+test('historical invalid interim/reciprocal/basis/duplicate receipt graphs reject before plan publication', () => {
+  const original = historicalFixture();
+  assert.throws(() => planHistoricalGraph(original.filter(r => r.type !== 'SALES')), /IMPORT_INVALID/);
+  assert.throws(() => planHistoricalGraph(original.filter(r => r.type !== 'ADVANCES')), /IMPORT_INVALID/);
+  assert.throws(() => planHistoricalGraph([...original, structuredClone(original[0])]), /IMPORT_DUPLICATE/);
+  assert.throws(() => planHistoricalGraph(Array.from({ length: 201 }, (_, i) => ({ type: 'CUSTOMERS', sourceKey: String(i), payload: {} }))), /graph bound/);
+  const mutations = [
+    rows => { rows.find(r => r.type === 'SALES').payload.saleCaseSourceKey = 'wrong-case'; },
+    rows => { rows.find(r => r.type === 'SALES').payload.completion.basis.repairs[0].amount = '5001'; },
+    rows => { delete rows.find(r => r.type === 'SALES').payload.completion; },
+    rows => { rows.find(r => r.type === 'VEHICLES').payload.status = 'IN_STOCK'; },
+    rows => { rows.find(r => r.type === 'ADVANCES').payload.completedSale.sourceKey = 'future-batch'; },
+    rows => { rows.find(r => r.type === 'SALES').payload.payments.push({ ...rows.find(r => r.type === 'ADVANCES').payload.payments[0] }); },
+    rows => { rows.find(r => r.type === 'SALES').payload.payments[0].amount = '100000'; }
+  ];
+  for (const mutate of mutations) {
+    const rows = structuredClone(original); mutate(rows);
+    assert.throws(() => planHistoricalGraph(rows), /IMPORT_INVALID|IMPORT_DUPLICATE/);
+    assert.equal(original.find(r => r.type === 'SALES').payload.payments.length, 1);
+  }
+});
+test('10001-row ORIGINAL export is stable across source changes with full contiguous manifest/totals', () => {
+  const source = Array.from({ length: 10001 }, (_, i) => ({ id: String(i).padStart(6, '0'), amount: '1' }));
+  const filter = { kind: 'SOLD', from: '2026-01-01', through: '2026-12-31' };
+  const snapshot = exportSnapshot(source, filter, 'authz-1');
+  source[0].amount = '99'; source.pop(); source.push({ id: '999999', amount: '42' }); filter.from = '2026-06-01';
+  const parts = exportParts(snapshot, 1000, 'authz-1');
+  assert.equal(parts.length, 11); assert.equal(parts[10].rowCount, 1);
+  assert.equal(snapshot.filter.from, '2026-01-01'); assert.equal(parts[0].rows[0].amount, '1');
+  assert.deepEqual(exportParts(snapshot, 1000, 'authz-1'), parts); // resume/retry unchanged bytes/order
+  assert.equal(completeExport(snapshot, parts).rowCount, 10001); assert.equal(completeExport(snapshot, parts).total, '10001');
+  assert.throws(() => completeExport(snapshot, parts.slice(0, -1)), /incomplete population/);
+  assert.throws(() => completeExport(snapshot, [parts[0], parts[0], ...parts.slice(1)]), /manifest coverage/);
+  assert.throws(() => exportParts(snapshot, 1000, 'revoked-authz'), /FORBIDDEN/);
 });
 console.log(`PASS ${count} contract checks; pure specification only, not DB/HTTP/hosted acceptance.`);

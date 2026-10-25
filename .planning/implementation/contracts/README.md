@@ -15,6 +15,7 @@ Author: foundation owner, 2026-10-25. Base verified before edits: `f51b1648bbbda
 | [coverage.md](coverage.md) | All 134 individual IDs → relevant seams; no acceptance claims |
 | [reference.mjs](reference.mjs) | Dependency-free executable reference for exact money, dates, lifecycle and overdue semantics; not installed in runtime |
 | [check.mjs](check.mjs) | Runnable assertions and exhaustive catalog/DTO/index coverage check |
+| [api-check.ts](api-check.ts) | Compile-time review regressions: formerly missing dependency types, admin/actor reads, cycle edit roundtrip, graph import/maxima/requote/export interfaces |
 | [review-handoff.md](review-handoff.md) | Integration-owner update proposal, defaults, review scenarios, exact T03 prerequisites and validation scope |
 
 ## Authority and boundaries
@@ -23,4 +24,4 @@ Read in conjunction with `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md` (all 2
 
 Types describe the proposed `/api/v1` contract; existing mock `/api` DTOs are NOT compatible (number money, single role, embedded purchase facts). Migrate a lane end-to-end; never silently cast mock data into these DTOs. No arbitrary status PATCH or unrestricted entity JSON patch. Adapters must perform strict runtime validation; TypeScript alone is not validation. UUID IDs in examples/types are semantic aliases, not permission capabilities. Unknown command keys/fields fail, not strip silently.
 
-Validation: `node .planning/implementation/contracts/check.mjs`; `pnpm exec tsc --noEmit --strict --skipLibCheck --target ES2020 --module ESNext --moduleResolution bundler .planning/implementation/contracts/api.ts`. T03 adopts reference behavior into the existing shared utilities with real DB/security tests, rather than adding an alternate runtime money implementation now.
+Validation: `node .planning/implementation/contracts/check.mjs`; `pnpm exec tsc --noEmit --strict --skipLibCheck --target ES2020 --module ESNext --moduleResolution bundler .planning/implementation/contracts/api.ts .planning/implementation/contracts/api-check.ts`. T03 adopts reference behavior into the existing shared utilities with real DB/security tests, rather than adding an alternate runtime money implementation now. Original b7f185a review FAILED (verifier54f910ef-a541-4ba8-8441-c509475e9ac6); seven bounded corrections and current validation are in review-handoff. T01/G0 remain unaccepted pending fresh independent re-review.

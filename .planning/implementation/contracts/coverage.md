@@ -7,21 +7,21 @@ Exactly134 IDs, not grouped ranges. Integration retains ownership/acceptance in 
 | FNDN-01 | [E6 stack/migration sequence](entities.md#e6-serialized-migration-order--deploy-requirements) |
 | FNDN-02 | [R02 credentials](files-runtime.md#r02-names-and-least-privilege-deployment-contract-for-concurrent-t02), [E6](entities.md) |
 | FNDN-03 | [A1 actor](access-transactions.md), [R02 bootstrap](files-runtime.md) |
-| FNDN-04 | [A1 current multirole record/field grants](access-transactions.md) |
+| FNDN-04 | [A1/A1Q current actor/authz fingerprint and field grants](access-transactions.md), [CurrentActorDTO](api.ts) |
 | FNDN-05 | [M1 exact money](money-state.md), [reference](reference.mjs) |
 | FNDN-06 | [S1/S2 state map](money-state.md), [E2 constraints](entities.md) |
 | FNDN-07 | [A2 atomic audit](access-transactions.md), [E1 indexes](entities.md) |
-| FNDN-08 | [A1–A3 pipeline/errors/retries](access-transactions.md), [wire DTOs](api.ts) |
+| FNDN-08 | [A3R exhaustive command/child revision ownership](access-transactions.md), [commandRevisionRules](api.ts) |
 | FNDN-09 | [W14/W15 navigation/actions/notifications](workflows.md), [R02 no private cache](files-runtime.md) |
-| VPRC-01 | [W05 cash acquisition](workflows.md), [PurchaseInput](api.ts) |
-| VPRC-02 | [W05 settlement](workflows.md), [Settlement](api.ts), [E2](entities.md) |
+| VPRC-01 | [W05 acquisition and purchase detail](workflows.md), [PurchaseInput/PurchaseCycleDTO](api.ts) |
+| VPRC-02 | [W05 settlement full read/edit roundtrip](workflows.md), [PurchaseCycleDTO/Settlement](api.ts), [E2](entities.md) |
 | VPRC-03 | [W05 brand-new company](workflows.md), [VehicleInput](api.ts) |
 | VPRC-04 | [VehicleInput](api.ts), [E2 identity enums](entities.md) |
 | VPRC-05 | [Mileage](api.ts), [W05 dated zero reading](workflows.md) |
 | VPRC-06 | [setListedPrice](api.ts), [M2 independence](money-state.md) |
-| VPRC-07 | [addCost/editCost](api.ts), [E2 cost ownership](entities.md) |
+| VPRC-07 | [PurchaseCycleDTO itemized costs/source payment IDs](api.ts), [E2 cost ownership](entities.md) |
 | VPRC-08 | [E2 normalized identity/cycles](entities.md), [M2 two cycles](money-state.md) |
-| VPRC-09 | [editPurchase](api.ts), [W05 reasoned restatement](workflows.md) |
+| VPRC-09 | [editPurchase channel/seller/settlement correction](api.ts), [W05 reasoned restatement/roundtrip](workflows.md) |
 | TPRT-01 | [W04 typed tab union](workflows.md), [parties query](api.ts) |
 | TPRT-02 | [DirectoryInput](api.ts), [E1 supplier](entities.md) |
 | TPRT-03 | [Contact](api.ts), [E1 contact cardinality](entities.md) |
@@ -48,7 +48,7 @@ Exactly134 IDs, not grouped ranges. Integration retains ownership/acceptance in 
 | SLAD-02 | [M1 exact tier/M3 expiry snapshot](money-state.md), [reference](reference.mjs) |
 | SLAD-03 | [S1 reserve/unavailable](money-state.md), [E2 unique commitment](entities.md) |
 | SLAD-04 | [J10 due flag](files-runtime.md), [M3 effective expiry](money-state.md) |
-| SLAD-05 | [W09/W10 three resolutions](workflows.md), [A4 refund payload](access-transactions.md) |
+| SLAD-05 | [SaleDTO.reservation ID/revision and conversion/cancel](api.ts), [A3R/A4 revisions/refund](access-transactions.md) |
 | SLAD-06 | [J10 scheduler/catch-up/dedup](files-runtime.md), [JobResult](api.ts) |
 | SLLS-01 | [StartFinance](api.ts), [W09/W10 composition](workflows.md) |
 | SLLS-02 | [M2 positive down/finance](money-state.md), [E2 checks](entities.md) |
@@ -65,11 +65,11 @@ Exactly134 IDs, not grouped ranges. Integration retains ownership/acceptance in 
 | INVC-01 | [F14 durable PDF lifecycle](files-runtime.md), [issueInvoice](api.ts) |
 | INVC-02 | [F14 immutable full snapshot/declarations](files-runtime.md), [W14](workflows.md) |
 | INVC-03 | [F14 A4 layout/retained bytes](files-runtime.md) |
-| USER-01 | [createUser/updateUser](api.ts), [R02 private seed](files-runtime.md) |
+| USER-01 | [users/user/roles/role scoped read DTOs and commands](api.ts), [A1Q administrative reads](access-transactions.md) |
 | USER-02 | [A1 union grants](access-transactions.md), [E1 junction keys](entities.md) |
-| USER-03 | [Grant/saveRole](api.ts), [A1 bounded rule grammar](access-transactions.md) |
+| USER-03 | [permissionRegistry/RoleDTO/Grant/saveRole](api.ts), [A1F/A1Q field registry/read scope](access-transactions.md) |
 | USER-04 | [A1 last-admin lock/trigger](access-transactions.md), [E1 AdminGuard](entities.md) |
-| USER-05 | [A1 current revocation](access-transactions.md), [A4 reviewer recheck](access-transactions.md) |
+| USER-05 | [A1Q currentActor authzRevision/revocation](access-transactions.md), [A4 reviewer recheck](access-transactions.md) |
 | APRV-01 | [A4 exact discount proposal](access-transactions.md), [Proposal](api.ts) |
 | APRV-02 | [A4 write-off proposal](access-transactions.md), [WriteOff](api.ts) |
 | APRV-03 | [A4 refund proposal/remainder](access-transactions.md), [Refund](api.ts) |
@@ -93,14 +93,14 @@ Exactly134 IDs, not grouped ranges. Integration retains ownership/acceptance in 
 | REPT-05 | [W14/W15 REPAIRS](workflows.md), [M3 calendar days](money-state.md) |
 | REPT-06 | [W14/W15 CASH_FLOW](workflows.md), [E4 source facts](entities.md) |
 | REPT-07 | [W14/W15 DISPOSALS](workflows.md), [E2 cost snapshot](entities.md) |
-| REPT-08 | [W14/W15 full filtered CSV/PDF](workflows.md), [exportReport](api.ts) |
+| REPT-08 | [W15 full original population chunked export](workflows.md), [E5X temporal cutoff/manifest](entities.md), [ExportManifestDTO](api.ts) |
 | FINT-01 | [M2 same-cycle basis](money-state.md), [E2 BasisVersion](entities.md) |
 | FINT-02 | [M2 original/restated profit](money-state.md), [FinancialDTO](api.ts) |
 | FINT-03 | [FinancialDTO components/vehicle query](api.ts), [W15](workflows.md) |
 | FINT-04 | [E4 complete cash union](entities.md), [W14/W15 net movement](workflows.md) |
 | LBRK-01 | [E3 versioned sheets](entities.md), [publishRates](api.ts) |
 | LBRK-02 | [W11 exact cards](workflows.md), [E3 RateCardEntry](entities.md) |
-| LBRK-03 | [ExternalVehicle/compare](api.ts), [W11 no acquisition](workflows.md) |
+| LBRK-03 | [loanMaxima/LoanMaximumDTO before terms](api.ts), [W11 max independent of card](workflows.md) |
 | LBRK-04 | [W11 both lookup directions](workflows.md), [CompareResult](api.ts) |
 | LBRK-05 | [CompareResult per-company options](api.ts), [W11 fixtures](workflows.md) |
 | LBRK-06 | [selectQuote/charges](api.ts), [W11 snapshot handoff](workflows.md) |
@@ -112,7 +112,7 @@ Exactly134 IDs, not grouped ranges. Integration retains ownership/acceptance in 
 | LBRK-12 | [openIssue/recordIssueFeedback](api.ts), [W12 blockers](workflows.md) |
 | LBRK-13 | [W12 inquiries/history](workflows.md), [BrokerageDTO.issues](api.ts) |
 | LBRK-14 | [PhotoCategory/recordInspection](api.ts), [W12 all nine](workflows.md) |
-| LBRK-15 | [adjustLoan](api.ts), [W12 quote/facility revalidation](workflows.md) |
+| LBRK-15 | [adjustLoan/replaceDealQuote/quoteHistory](api.ts), [W12 safe requote back to dispatch](workflows.md), [DealQuoteSelection](entities.md) |
 | LBRK-16 | [ChecklistKind/setChecklist](api.ts), [W12 participant evidence](workflows.md) |
 | LBRK-17 | [W12 vehicle checklist/extra key](workflows.md), [F06](files-runtime.md) |
 | LBRK-18 | [setProcessingFee](api.ts), [W12 synthetic default/override](workflows.md) |
@@ -127,11 +127,11 @@ Exactly134 IDs, not grouped ranges. Integration retains ownership/acceptance in 
 | RCNL-03 | [ReconciliationDTO source](api.ts), [E3 entitlement](entities.md) |
 | RCNL-04 | [W13 exact OR cutoff/watermark](workflows.md), [reference overdue](reference.mjs) |
 | RCNL-05 | [W13 Finance navigation/access](workflows.md), [A1 independent grants](access-transactions.md) |
-| IMPT-01 | [W16 CSV/XLSX templates](workflows.md), [importTemplate](api.ts) |
-| IMPT-02 | [ImportType seven kinds](api.ts), [W16 full-field cycles](workflows.md) |
-| IMPT-03 | [ImportPreview errors](api.ts), [W16 revalidation](workflows.md) |
-| IMPT-04 | [W16 atomic/replay-safe commit](workflows.md), [E5 unique provenance](entities.md) |
-| IMPT-05 | [Provenance](api.ts), [E5 batch/row source keys](entities.md) |
+| IMPT-01 | [W16 CSV bundle/XLSX sheet graph parity](workflows.md), [previewImport sources](api.ts) |
+| IMPT-02 | [ImportType seven kinds/ImportGraphManifest shared case](api.ts), [W16 historical graph](workflows.md) |
+| IMPT-03 | [ImportPreview physical-row errors/graph dependencies](api.ts), [W16 revalidation](workflows.md) |
+| IMPT-04 | [W16 single commit deferred reciprocal edges](workflows.md), [E5 source claims](entities.md), [reference graph checks](reference.mjs) |
+| IMPT-05 | [Provenance contributingRows](api.ts), [E5 many-to-many target/source claims](entities.md) |
 | DASH-01 | [dashboard response](api.ts), [W15 date/year populations](workflows.md) |
 | DASH-02 | [dashboard.quickActions](api.ts), [W15 authorized live forms](workflows.md) |
 | NFNL-01 | [W17 360–1920 keyboard/form boundary](workflows.md), [review acceptance obligations](review-handoff.md) |

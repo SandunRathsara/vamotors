@@ -9,7 +9,9 @@ export type State = "PURCHASED" | "IN_STOCK" | "IN_REPAIR" | "ADVANCE_PLACED" |
   "ADVANCE_EXPIRED" | "FINANCE_PENDING" | "DO_RECEIVED" | "DELIVERED" | "SOLD" | "WRITTEN_OFF";
 export type Dependency = { type: "Vehicle" | "PurchaseRecord" | "SaleCase" | "Reservation" |
   "BrokerageDeal" | "FinanceCompany" | "Settings" | "Remittance" | "CommissionEntitlement" |
-  "RepairRecord" | "VehicleCost" | "ApprovalRequest" | "ImportBatch" | "Role" | "User";
+  "RepairRecord" | "VehicleCost" | "ApprovalRequest" | "ImportBatch" | "Role" | "User" |
+  "Customer" | "Supplier" | "RepairVendor" | "CashFacility" | "UploadIntent" |
+  "RateSheet" | "Quote" | "Notification" | "InvoiceVersion" | "ExportJob";
   id: Id; revision: Revision };
 export type Envelope<T> = { schemaVersion: 1; idempotencyKey: Id; expected: Dependency[]; input: T };
 export type CashInput = { amount: Money; date: DateOnly; method: Method; reference?: string };
@@ -67,11 +69,11 @@ export type Proposal = { kind: "DISCOUNT"; command:
   { kind: "WRITE_OFF"; input: WriteOff } | { kind: "REFUND"; input: Refund } |
   { kind: "SALE_EDIT"; operation: "EDIT_COMPLETION"; input: SaleEdit } |
   { kind: "SALE_EDIT"; operation: "CANCEL_FINANCE_ERROR"; input: CancelFinanceError };
-export type AttachmentTarget = { type: "SALE_CASE" | "BROKERAGE_DEAL" | "REMITTANCE" | "IMPORT_BATCH"; id: Id };
+export type AttachmentTarget = { type: "SALE_CASE" | "BROKERAGE_DEAL" | "REMITTANCE" | "IMPORT_BATCH" | "EXPORT_JOB"; id: Id };
 export type PhotoCategory = "FRONT" | "BACK" | "LEFT" | "RIGHT" | "CHASSIS" | "ENGINE" |
   "METER" | "DEALER_WITH_VEHICLE" | "CUSTOMER_WITH_VEHICLE";
 export type Purpose = "DO" | "INSPECTION" | "PARTICIPANT_DOCUMENT" | "VEHICLE_DOCUMENT" |
-  "PROCESSING_DOCUMENT" | "RECONCILIATION_NOTICE" | "IMPORT_SOURCE" | "INVOICE";
+  "PROCESSING_DOCUMENT" | "RECONCILIATION_NOTICE" | "IMPORT_SOURCE" | "INVOICE" | "REPORT_EXPORT";
 export type ExternalVehicle = { make: string; model: string; year: number; description: string;
   engineNumber?: string; chassisNumber?: string };
 export type Guarantor = { name: string; identity: string; address: string; phone: string };
@@ -115,7 +117,9 @@ export interface Commands {
   archiveRole: { id: Id; reason: string };
   recordPurchase: PurchaseInput;
   editPurchase: { cycleId: Id; reason: string; patch: { purchaseDate?: DateOnly;
-    purchasePrice?: Money; supplierId?: Id; notes?: string | null; settlement?: Settlement };
+    purchasePrice?: Money; seller?: { type: "SUPPLIER" | "CUSTOMER"; id: Id };
+    purchaseType?: "CASH" | "LEASE_SETTLEMENT" | "BRAND_NEW";
+    notes?: string | null; settlement?: Settlement | null };
     cashCorrections: { paymentId: Id; replacement?: CashInput; reason: string }[] };
   editVehicle: { vehicleId: Id; values: VehicleInput; reason: string };
   receiveStock: { cycleId: Id; date: DateOnly; disposition: Disposition };
@@ -145,7 +149,8 @@ export interface Commands {
   confirmDOAndHandover: { saleCaseId: Id; date: DateOnly; mileage: number };
   recordLenderReceipt: { saleCaseId: Id; payment: CashInput };
   normalizeDelivered: { cycleId: Id; reason: string };
-  initUpload: { target: AttachmentTarget; purpose: Exclude<Purpose, "INVOICE">;
+  initUpload: { target: Omit<AttachmentTarget, "type"> & { type: Exclude<AttachmentTarget["type"], "EXPORT_JOB"> };
+    purpose: Exclude<Purpose, "INVOICE" | "REPORT_EXPORT">;
     filename: string; contentType: string; size: number; sha256: string; category?: PhotoCategory };
   completeUpload: { uploadId: Id };
   issueInvoice: { saleId: Id; saleRevision: Revision; regenerate: boolean };
@@ -158,6 +163,7 @@ export interface Commands {
     guarantorId?: Id; outcome: "CONFIRMED" | "REJECTED"; contactId: Id; checkedAt: Instant; feedback: string };
   recordInspection: { dealId: Id; photos: { category: PhotoCategory; attachmentId: Id }[] };
   adjustLoan: { dealId: Id; amount: Money; contactId: Id; feedback: string; confirmedAt: Instant };
+  replaceDealQuote: { dealId: Id; quoteId: Id; reason: string; contactId: Id; confirmedAt: Instant };
   setChecklist: { dealId: Id; items: { kind: ChecklistKind; participantId?: Id;
     applicability: "REQUIRED" | "NOT_REQUIRED" | "OPTIONAL"; reason?: string;
     collected: boolean; quantity: number; attachmentIds: Id[] }[] };
@@ -191,10 +197,13 @@ export interface Commands {
     sourceId: Id; paymentId: Id; replacement?: CashInput; reason: string };
   markNotificationRead: { notificationId: Id };
   markAllNotificationsRead: { through: Instant };
-  stageImport: { type: ImportType; namespace: string }; // target for private source upload
-  previewImport: { batchId: Id; sourceAttachmentId: Id; templateVersion: 1; namespace: string;
-    type: ImportType; mappings: { row: number; existingVehicleId?: Id; cycleSourceKey?: string }[] };
+  stageImport: { types: ImportType[]; namespace: string }; // ONE bounded graph, not one commit per type
+  previewImport: { batchId: Id; sources: { attachmentId: Id; type: ImportType; sheetName?: string }[];
+    templateVersion: 1; namespace: string;
+    mappings: { type: ImportType; row: number; existingVehicleId?: Id; cycleSourceKey?: string }[] };
   confirmImport: { batchId: Id; previewHash: string; controlTotals: ControlTotals };
+  startReportExport: { filter: Omit<ReportFilter, "page" | "pageSize">; format: "CSV" | "PDF" };
+  continueReportExport: { exportId: Id }; // bounded resumable generation, never changes filter
   runExpiry: { through: Instant; cursor?: string; limit: number };
 }
 export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES";
@@ -221,6 +230,7 @@ export type ImportPayloads = {
       amount: Money; date: DateOnly; payments: LegacyPayment[] }[];
     disposal?: Omit<WriteOff, "cycleId"> & { legacyApprover: string } };
   SALES: { cycle: LegacyRef; customer: LegacyRef; kind: SaleDTO["kind"];
+    saleCaseSourceKey: string; // shared with ADVANCES, never a second SaleCase
     price: Money; reference?: string; state: "COMPLETED" | "FINANCE_PENDING" | "DO_RECEIVED" | "CANCELLED";
     completion?: { date: DateOnly; mileage: number; basis: { purchase: Money;
       repairs: { sourceKey: string; amount: Money }[]; costs: { sourceKey: string; amount: Money }[] } };
@@ -232,6 +242,7 @@ export type ImportPayloads = {
     returnedDate?: DateOnly; invoiceDate?: DateOnly; invoiceAmount?: Money; summary?: string;
     payments: LegacyPayment[] };
   ADVANCES: { cycle: LegacyRef; customer: LegacyRef; agreed: Money; amount: Money;
+    saleCaseSourceKey: string;
     placedDate: DateOnly; listedBasis: Money; validThrough: DateOnly; expiresAt: Instant;
     policySnapshot: { timezone: string; tiers: SettingsInput["tiers"]; leadDays: number; days: number };
     state: "ACTIVE" | "EXPIRED" | "CONVERTED" | "REFUNDED" | "CANCELLED";
@@ -241,8 +252,91 @@ export type ImportPayloads = {
 export type ImportRowInput = { [K in ImportType]: { type: K; sourceKey: string;
   payload: ImportPayloads[K]; legacy?: LegacyMetadata } }[ImportType];
 export type ControlTotals = { rows: number; purchase: Money; cost: Money; consideration: Money;
-  cashIn: Money; cashOut: Money; openingBalance?: Money };
+  cashIn: Money; cashOut: Money; openingBalance?: Money;
+  byType: { type: ImportType; rows: number }[] };
 export type CommandName = keyof Commands;
+/** Required CAS dependencies. @ selectors are trusted FK/singleton resolvers defined in A3R.
+ * Optional/list/variant references expand only when present; [] has explicit A3R semantics. */
+export type RevisionSelector = `${Dependency["type"]}:${string}` | `@${string}`;
+export const commandRevisionRules = {
+  "createCustomer": [],
+  "updateCustomer": ["Customer:input.id"],
+  "createDirectoryParty": [],
+  "updateDirectoryParty": ["@party"],
+  "createFinanceCompany": ["@settings"],
+  "updateFinanceCompany": ["FinanceCompany:input.id", "@settings"],
+  "archiveParty": ["@party"],
+  "updateSettings": ["@settings"],
+  "createUser": ["@assignedRoles"],
+  "updateUser": ["User:input.id", "@assignedRoles"],
+  "saveRole": ["@existingRole"],
+  "archiveRole": ["Role:input.id"],
+  "recordPurchase": ["@purchaseReferences"],
+  "editPurchase": ["PurchaseRecord:input.cycleId", "@purchaseEditReferences"],
+  "editVehicle": ["Vehicle:input.vehicleId"],
+  "receiveStock": ["PurchaseRecord:input.cycleId"],
+  "holdStock": ["PurchaseRecord:input.cycleId"],
+  "releaseStock": ["PurchaseRecord:input.cycleId"],
+  "setListedPrice": ["PurchaseRecord:input.cycleId"],
+  "addMileage": ["PurchaseRecord:input.cycleId", "@vehicleForCycle"],
+  "addCost": ["PurchaseRecord:input.cycleId"],
+  "editCost": ["VehicleCost:input.costId", "@cycleForCost"],
+  "payPurchase": ["PurchaseRecord:input.cycleId"],
+  "payCost": ["VehicleCost:input.costId", "@cycleForCost"],
+  "sendRepair": ["PurchaseRecord:input.cycleId", "RepairVendor:input.vendorId"],
+  "returnRepair": ["RepairRecord:input.repairId", "@cycleForRepair"],
+  "payRepair": ["RepairRecord:input.repairId", "@cycleForRepair"],
+  "requestApproval": ["@proposalDependencies"],
+  "reviewApproval": ["ApprovalRequest:input.approvalId", "@approvalDependencies"],
+  "completeImmediate": ["PurchaseRecord:input.cycleId", "Customer:input.customerId", "@tradeInIdentity"],
+  "intakeTradeIn": ["@saleAndCycle", "@tradeInIdentity"],
+  "placeReservation": ["PurchaseRecord:input.cycleId", "Customer:input.customerId", "@settings"],
+  "convertReservation": ["@reservationAndSaleAndCycle"],
+  "cancelRetained": ["@reservationAndSaleAndCycle"],
+  "startFinance": ["PurchaseRecord:input.cycleId", "Customer:input.customerId", "FinanceCompany:input.companyId", "@settings"],
+  "recordDO": ["@saleAndCycle"],
+  "confirmDOAndHandover": ["@saleAndCycle"],
+  "recordLenderReceipt": ["@saleAndCycle"],
+  "normalizeDelivered": ["PurchaseRecord:input.cycleId", "@completedSaleForCycle"],
+  "initUpload": ["@target"],
+  "completeUpload": ["UploadIntent:input.uploadId", "@uploadTarget"],
+  "issueInvoice": ["@saleAndCycle", "@existingInvoice"],
+  "publishRates": ["FinanceCompany:input.companyId"],
+  "selectQuote": ["RateSheet:input.sheetId", "@companyForSheet", "@settings"],
+  "openBrokerage": ["Customer:input.customerId", "Quote:input.quoteId", "@companyForQuote", "@settings"],
+  "recordEligibility": ["BrokerageDeal:input.dealId", "@companyForDeal"],
+  "recordInspection": ["BrokerageDeal:input.dealId"],
+  "adjustLoan": ["BrokerageDeal:input.dealId", "@facilityForDeal"],
+  "replaceDealQuote": ["BrokerageDeal:input.dealId", "Quote:input.quoteId", "@companyForDeal", "@facilityForDeal"],
+  "setChecklist": ["BrokerageDeal:input.dealId"],
+  "verifyDocuments": ["BrokerageDeal:input.dealId", "@companyForDeal"],
+  "setProcessingFee": ["BrokerageDeal:input.dealId"],
+  "informCompany": ["BrokerageDeal:input.dealId", "@companyForDeal"],
+  "dispatchBatch": ["@dispatchMembers"],
+  "referDeal": ["BrokerageDeal:input.dealId", "@companyForDeal"],
+  "rejectDeal": ["BrokerageDeal:input.dealId", "@companyForDeal"],
+  "completeBrokerage": ["BrokerageDeal:input.dealId", "@companyForDeal"],
+  "openIssue": ["BrokerageDeal:input.dealId"],
+  "recordIssueFeedback": ["@dealForIssue", "@companyForIssue"],
+  "requestFacility": ["BrokerageDeal:input.dealId", "@facilityForDeal"],
+  "disburseFacility": ["BrokerageDeal:input.dealId", "@facilityForDeal"],
+  "recoverFacility": ["BrokerageDeal:input.dealId", "@facilityForDeal"],
+  "recordBrokerageFee": ["BrokerageDeal:input.dealId"],
+  "stageRemittance": ["FinanceCompany:input.companyId"],
+  "recordRemittance": ["Remittance:input.draftId", "FinanceCompany:input.companyId"],
+  "reconcile": ["FinanceCompany:input.companyId", "@reconciliationMembers"],
+  "reverseAllocation": ["@allocationOwners"],
+  "returnRemittanceOverpayment": ["Remittance:input.remittanceId", "@discrepancyEntitlement"],
+  "reversePayment": ["@paymentOwners"],
+  "markNotificationRead": ["Notification:input.notificationId"],
+  "markAllNotificationsRead": [],
+  "stageImport": [],
+  "previewImport": ["ImportBatch:input.batchId", "@importMappings"],
+  "confirmImport": ["ImportBatch:input.batchId", "@importManifestDependencies"],
+  "startReportExport": [],
+  "continueReportExport": ["ExportJob:input.exportId"],
+  "runExpiry": []
+} satisfies Record<CommandName, readonly RevisionSelector[]>;
 export type CommandRequest = { [N in CommandName]: { name: N; body: Envelope<Commands[N]> } }[CommandName];
 export type ErrorCode = "UNAUTHENTICATED" | "ACCOUNT_INACTIVE" | "FORBIDDEN" | "FIELD_FORBIDDEN" |
   "NOT_FOUND" | "INVALID_INPUT" | "MONEY_OVERFLOW" | "OVERALLOWANCE" | "BALANCE_MISMATCH" |
@@ -269,7 +363,8 @@ export type UploadReady = { ok: true; status: "UPLOAD_READY"; uploadId: Id; revi
 export type InvoicePending = { ok: true; status: "DOCUMENT_PENDING"; invoiceId: Id; version: number;
   state: "PENDING" | "FAILED"; retryable: boolean };
 export type ImportPreview = { ok: true; status: "IMPORT_PREVIEW"; batchId: Id; revision: Revision;
-  previewHash: string; valid: boolean; rows: { row: number; sourceKey: string; type: ImportType;
+  previewHash: string; valid: boolean; graph: ImportGraphManifest;
+  rows: { attachmentId: Id; sheetName?: string; row: number; sourceKey: string; type: ImportType;
     normalized: ImportRowInput | null; errors: { field: string; code: string; message: string }[] }[];
   controlTotals: ControlTotals };
 export type JobResult = { ok: true; status: "JOB_RESULT"; runId: Id; cutoff: Instant;
@@ -284,23 +379,35 @@ export type ReportFilter = ListParams & { kind: ReportKind; statuses?: State[]; 
   make?: string; model?: string; saleType?: "CASH" | "ADVANCE" | "LEASE" | "TRADE_IN";
   vendorId?: Id; profitOnly?: boolean; lossOnly?: boolean; method?: Method };
 export interface Queries {
+  currentActor: Record<string, never>;
+  users: ListParams & { active?: boolean; roleId?: Id };
+  user: { id: Id };
+  roles: ListParams & { active?: boolean };
+  role: { id: Id };
+  permissionRegistry: { subject?: Subject; action?: Grant["action"] };
   parties: ListParams & { type: "SUPPLIER" | "REPAIR_VENDOR" | "FINANCE_COMPANY"; active?: boolean };
   customers: ListParams;
   customer: { id: Id };
   inventory: ListParams & { statuses?: State[]; available?: boolean; make?: string; model?: string };
   vehicle: { id: Id; cycleId?: Id };
+  vehicleIdentity: { engineNumber: string; chassisNumber: string };
+  purchases: ListParams & { supplierId?: Id; sellerCustomerId?: Id; vehicleId?: Id;
+    purchaseType?: PurchaseInput["purchaseType"]; statuses?: State[] };
+  purchase: { cycleId: Id };
   sale: { id: Id };
   approvals: ListParams & { status?: "PENDING" | "APPROVED" | "REJECTED" | "STALE" };
   audit: ListParams & { type: string; id: Id };
   notifications: ListParams & { unread?: boolean; kind?: string };
   compare: { vehicle: ExternalVehicle; principal: Money; asOf: DateOnly } &
     ({ months: number; installment?: never } | { installment: Money; months?: never });
+  loanMaxima: { vehicle: Pick<ExternalVehicle, "make" | "model" | "year">; asOf: DateOnly };
+  quote: { id: Id };
   brokerage: ListParams & { companyId?: Id; status?: string; includeRejected?: boolean };
   brokerageDeal: { id: Id };
   dispatchPreview: { sourceIds: { type: "VEHICLE_SALE" | "BROKERAGE"; id: Id }[] };
   reconciliation: ListParams & { companyId: Id; asOf: DateOnly; runId?: Id; pendingOnly?: boolean };
   report: ReportFilter;
-  exportReport: Omit<ReportFilter, "page" | "pageSize"> & { format: "CSV" | "PDF" };
+  exportReport: { exportId: Id }; // manifest/status; creation is startReportExport
   dashboard: { asOf: DateOnly; year: number; month: number };
   settings: Record<string, never>;
   importTemplate: { type: ImportType; format: "CSV" | "XLSX"; version: 1 };
@@ -310,18 +417,20 @@ export interface Queries {
   jobHealth: Record<string, never>;
   commandStatus: { name: CommandName; idempotencyKey: Id };
 }
-export type Provenance = { imported: false } | { imported: true; batchId: Id; row: number; sourceKey: string };
+export type Provenance = { imported: false } | { imported: true; batchId: Id; row: number; sourceKey: string;
+  contributingRows: { rowId: Id; type: ImportType; sourceKey: string }[] };
 export type PaymentDTO = CashInput & { id: Id; direction: "IN" | "OUT"; category: string;
   recordedAt: Instant; reversalOf?: Id };
 export type FinancialDTO = { currency: string; scale: 2; purchase: Money; repairs: Money;
   additionalCosts: Money; basis: Money; originalBasis?: Money; salePrice?: Money;
   originalProfit?: Money; restatedProfit?: Money; cashIn: Money; cashOut: Money; net: Money };
 export type VehicleDTO = { id: Id; identity: VehicleInput; cycleId: Id; revision: Revision;
+  identityRevision: Revision;
   status: State; available: boolean; holdReason?: string; listedPrice?: Money;
   financial?: FinancialDTO; mileage: Mileage[]; provenance: Provenance };
 export type SaleDTO = { id: Id; cycleId: Id; customerId: Id; revision: Revision;
   kind: "CASH" | "ADVANCE" | "LEASE" | "TRADE_IN"; state: string; price: Money;
-  reference?: string; reservation?: { amount: Money; listedBasis: Money; percentDisplay: string;
+  reference?: string; reservation?: { id: Id; revision: Revision; amount: Money; listedBasis: Money; percentDisplay: string;
     validThrough: DateOnly; expiresAt: Instant; effectiveStatus: "ACTIVE" | "EXPIRED" | "CONVERTED" | "REFUNDED" | "CANCELLED";
     expiryFlagPending: boolean; retainedAmount?: Money };
   finance?: { companyId: Id; down: Money; principal: Money; termMonths: number;
@@ -329,19 +438,20 @@ export type SaleDTO = { id: Id; cycleId: Id; customerId: Id; revision: Revision;
   tradeIn?: { description: string; value: Money; acquiredCycleId?: Id };
   completion?: { id: Id; date: DateOnly; mileage: number; basisVersionId: Id };
   payments?: PaymentDTO[]; timeline: { at: Instant; action: string; actorName: string }[];
-  nextActions: CommandName[]; invoices: { id: Id; version: number; state: "PENDING" | "READY" | "FAILED" }[];
+  nextActions: CommandName[]; invoices: { id: Id; revision: Revision; version: number; state: "PENDING" | "READY" | "FAILED" }[];
   provenance: Provenance };
 export type Page<T> = { ok: true; data: T[]; total: number; page: number; pageSize: number;
   asOf: Instant; totals?: Record<string, Money>; redactedFields: string[] };
-export type CompareResult = { companyId: Id; status: "SUPPORTED"; sheetId: Id; cardId: Id;
+export type CompareResult = { companyId: Id; companyRevision: Revision; status: "SUPPORTED"; sheetId: Id; cardId: Id;
   maximum: Money; principal: Money; installment: Money; months: number; validThrough: DateOnly } |
-  { companyId: Id; status: "UNSUPPORTED"; reason: "NO_CARD" | "OVER_LIMIT" | "EXPIRED" | "AMBIGUOUS";
+  { companyId: Id; companyRevision: Revision; status: "UNSUPPORTED"; reason: "NO_CARD" | "OVER_LIMIT" | "EXPIRED" | "AMBIGUOUS";
+    maximum: Money | null; sheetId: Id | null; validThrough: DateOnly | null;
     choices?: { cardId: Id; months: number; installment: Money }[] };
 export type ReconciliationDTO = { entitlementId: Id; source: "VEHICLE_SALE" | "BROKERAGE";
   sourceId: Id; companyId: Id; sentDate: DateOnly; expected: Money; received: Money;
   discrepancy: Money; outstanding: Money; state: "OPEN" | "PARTIAL" | "SETTLED" | "RESOLVED";
   overdue: boolean; cutoffDate: DateOnly; watermarkDate: DateOnly | null };
-export type NotificationDTO = { id: Id; kind: "ADVANCE_EXPIRING" | "ADVANCE_EXPIRED" |
+export type NotificationDTO = { id: Id; revision: Revision; kind: "ADVANCE_EXPIRING" | "ADVANCE_EXPIRED" |
   "REPAIR_RETURNED" | "APPROVAL_REQUIRED" | "APPROVAL_OUTCOME"; title: string; body: string;
   target: { type: string; id: Id; href: string }; createdAt: Instant; readAt: Instant | null };
 export type DownloadDTO = { ok: true; attachmentId: Id; url: string; expiresAt: Instant;
@@ -356,8 +466,8 @@ export type BrokerageDTO = { id: Id; revision: Revision; customerId: Id; company
   vehicle: ExternalVehicle; path: "APPLICATION" | "REFERRAL"; state: "INTAKE" |
   "ELIGIBILITY_PENDING" | "ELIGIBLE" | "INSPECTED" | "DOCUMENTS_READY" | "DISPATCHED" |
   "REFERRED" | "COMPLETED" | "REJECTED"; guarantors: (Guarantor & { id: Id })[];
-  quote: { sheetId: Id; cardId: Id; principal: Money; months: number; installment: Money;
-    maximum: Money; charges: Charge[]; policy: FinancePolicy };
+  quote: DealQuoteDTO; originalQuoteId: Id; quoteHistory: DealQuoteDTO[];
+  quoteStatus: "SUPPORTED" | "RESELECTION_REQUIRED";
   approvedLoan: Money; processingFee: Money; fileReference?: string;
   eligibility: { target: "CUSTOMER" | "GUARANTOR" | "VEHICLE"; guarantorId?: Id;
     outcome: "CONFIRMED" | "REJECTED"; contactId: Id; at: Instant; feedback: string }[];
@@ -366,7 +476,7 @@ export type BrokerageDTO = { id: Id; revision: Revision; customerId: Id; company
   verification: (Commands["verifyDocuments"] & { id: Id })[];
   issues: (Commands["openIssue"] & { id: Id; resolvedAt?: Instant; feedback:
     { contactId: Id; at: Instant; text: string }[] })[];
-  facility?: { terms: FacilityTerms; net: Money; principalOutstanding: Money;
+  facility?: { id: Id; revision: Revision; terms: FacilityTerms; net: Money; principalOutstanding: Money;
     chargesOutstanding: Money; feeOutstanding: Money; payments: PaymentDTO[] };
   events: { kind: string; at: Instant; contactId?: Id; text: string }[];
   nextActions: CommandName[]; provenance: Provenance };
@@ -401,37 +511,112 @@ export type DispatchPreview = { source: "VEHICLE_SALE" | "BROKERAGE"; id: Id;
   blockers: { code: ErrorCode; field: string; message: string }[] };
 export type JobHealth = { lastSuccess: Instant | null; lastFailure: Instant | null; stale: boolean;
   latestRun: { id: Id; status: "SUCCESS" | "PARTIAL" | "FAILED"; cursor: string | null } | null };
+export type CurrentActorDTO = { user: { id: Id; name: string; active: true };
+  authzRevision: string; // opaque fingerprint of CURRENT activation/user+role/rule versions, not a session token
+  roles: { id: Id; name: string; revision: Revision }[];
+  presentationGrants: Grant[]; registryVersion: number; serverTime: Instant };
+export type UserAdminDTO = { id: Id; revision: Revision; name: string; email?: string;
+  active: boolean; authzRevision: string; roles: { id: Id; name: string; revision: Revision }[];
+  createdAt: Instant; updatedAt: Instant;
+  adminProtection?: { isAdministrator: boolean; lastActiveAdministrator: boolean } };
+export type RoleDTO = { id: Id; revision: Revision; name: string; active: boolean;
+  systemKey: "ADMINISTRATOR" | null; grants: Grant[]; assignedUserCount?: number };
+export type PermissionRegistryDTO = { version: number; subjects: { subject: Subject;
+  actions: { action: Grant["action"]; fields: { path: string; dataType: "STRING" | "MONEY" |
+    "NUMBER" | "BOOLEAN" | "DATE" | "OBJECT" | "ARRAY"; readable: boolean; writable: boolean }[];
+    conditions: { key: keyof NonNullable<Grant["conditions"]>; operator: "EQ";
+      valueType: "ACTOR_ID" | "UUID" | "STATUS"; allowedValues?: string[] }[] }[] }[] };
+export type SourcePaymentDTO = PaymentDTO & { owner: { type: "PURCHASE" | "COST" | "REPAIR" |
+  "SALE" | "DISPOSAL"; id: Id }; commandId: Id; reason?: string };
+export type PurchaseCycleDTO = { id: Id; revision: Revision; vehicleId: Id;
+  identity: VehicleInput; identityRevision: Revision; cycleNumber: number;
+  purchaseType: PurchaseInput["purchaseType"]; acquisitionKind: "SUPPLIER" | "TRADE_IN";
+  seller: { type: "SUPPLIER" | "CUSTOMER"; id: Id; name: string; active: boolean };
+  tradeInSourceSaleId?: Id; purchaseDate: DateOnly; purchasePrice: Money; listedPrice?: Money;
+  notes?: string; settlement?: Settlement & { institutionNameSnapshot: string };
+  status: State; available: boolean; holdReason?: string; receivedDate?: DateOnly;
+  closedAt: Instant | null; payments: SourcePaymentDTO[];
+  outstanding: { seller: Money; settlement: Money };
+  costs: { id: Id; revision: Revision; category: string; description: string; amount: Money;
+    incurredDate: DateOnly; payments: SourcePaymentDTO[]; outstanding: Money; provenance: Provenance }[];
+  repairs: { id: Id; revision: Revision; vendorId: Id; request: string; sentDate: DateOnly;
+    returnedDate?: DateOnly; summary?: string; invoiceAmount?: Money; invoiceDate?: DateOnly;
+    payments: SourcePaymentDTO[] }[];
+  mileage: (Mileage & { id: Id })[]; financial?: FinancialDTO;
+  basisVersions: { id: Id; version: number; total: Money; reason: string }[];
+  sales: { saleCaseId: Id; revision: Revision; customerId: Id; kind: SaleDTO["kind"];
+    state: string; completionId?: Id; date?: DateOnly }[];
+  disposal: { id: Id; approvalId: Id | null; legacyApprovalReference?: string;
+    date: DateOnly; reason: string; method: WriteOff["method"]; proceeds: Money;
+    basisVersionId: Id; payments: SourcePaymentDTO[] } | null;
+  provenance: Provenance; nextActions: CommandName[] };
+export type QuoteDTO = { id: Id; revision: 1; vehicle: ExternalVehicle;
+  sheetId: Id; cardId: Id; companyId: Id; principal: Money; months: number; installment: Money;
+  maximum: Money; charges: Charge[]; policy: FinancePolicy; expiresAt: Instant };
+export type DealQuoteDTO = { id: Id; selectionId: Id; version: number; sheetId: Id; cardId: Id; companyId: Id;
+  principal: Money; months: number; installment: Money; maximum: Money;
+  charges: Charge[]; policy: FinancePolicy; expiresAt: Instant;
+  effectivePolicy: FinancePolicy; selectedAt: Instant; selectedBy: Id; replacedQuoteId: Id | null; reason?: string };
+export type LoanMaximumDTO = { companyId: Id; companyRevision: Revision; companyName: string; asOf: DateOnly } &
+  ({ status: "APPLICABLE"; sheetId: Id; maximum: Money; validFrom: DateOnly; validThrough: DateOnly } |
+   { status: "UNAVAILABLE"; reason: "NO_SHEET" | "EXPIRED"; maximum: null; sheetId: null });
+export type ImportGraphManifest = { schemaVersion: 1; types: ImportType[]; totalRows: number;
+  nodes: { rowKey: string; sourceType: ImportType; sourceKey: string;
+    targets: { type: "Vehicle" | "PurchaseRecord" | "SaleCase" | "Reservation" |
+      "SaleCompletion" | "RepairRecord" | "Supplier" | "Customer" | "RepairVendor"; id: Id }[] }[];
+  edges: { fromRowKey: string; field: string; toRowKey: string | null; existingTargetId: Id | null }[];
+  saleCases: { sourceKey: string; id: Id; cycleSourceKey: string; rowKeys: string[] }[];
+  existingDependencies: Dependency[]; normalizedHash: string };
+export type ExportManifestDTO = { id: Id; revision: Revision; state: "SNAPSHOTTING" | "RENDERING" |
+  "READY" | "PAUSED_QUOTA" | "FAILED"; format: "CSV" | "PDF"; filter: Omit<ReportFilter, "page" | "pageSize">;
+  filterHash: string; snapshotAt: Instant; authzRevision: string; rowCount: number | null;
+  snapshotSequence: string; // canonical positive integer commit prefix, not timestamp isolation
+  totals: Record<string, Money> | null; renderedRows: number; manifestHash: string | null;
+  parts: { ordinal: number; firstRow: number; lastRow: number; rowCount: number;
+    sha256: string; size: number; attachmentId: Id }[];
+  complete: boolean; retryable: boolean; errorCode?: ErrorCode; nextAction?: "continueReportExport" };
 export interface QueryData {
+  currentActor: CurrentActorDTO;
+  users: Page<UserAdminDTO>;
+  user: UserAdminDTO;
+  roles: Page<RoleDTO>;
+  role: RoleDTO;
+  permissionRegistry: PermissionRegistryDTO;
   parties: Page<PartyDTO>;
   customers: Page<CustomerDTO>;
   customer: CustomerDTO;
   inventory: Page<VehicleDTO>;
-  vehicle: VehicleDTO & { cycles: { id: Id; number: number; status: State;
-    purchaseDate: DateOnly; closedAt: Instant | null; financial?: FinancialDTO }[];
+  vehicle: VehicleDTO & { cycles: PurchaseCycleDTO[];
     repairs: { id: Id; cycleId: Id; vendorId: Id; request: string; sentDate: DateOnly;
       returnedDate?: DateOnly; summary?: string; invoiceAmount?: Money; invoiceDate?: DateOnly }[] };
+  vehicleIdentity: { id: Id; revision: Revision; identity: VehicleInput;
+    activeCycleId: Id | null; latestCycleId: Id | null; latestStatus: State } | null;
+  purchases: Page<PurchaseCycleDTO>;
+  purchase: PurchaseCycleDTO;
   sale: SaleDTO;
   approvals: Page<ApprovalDTO>;
   audit: Page<AuditDTO>;
   notifications: Page<NotificationDTO> & { unreadCount: number };
   compare: CompareResult[];
+  loanMaxima: LoanMaximumDTO[];
+  quote: QuoteDTO;
   brokerage: Page<BrokerageDTO>;
   brokerageDeal: BrokerageDTO;
   dispatchPreview: DispatchPreview[];
   reconciliation: Page<ReconciliationDTO> & { unallocatedRemittances: { id: Id; amount: Money }[] };
   report: ReportResponse;
-  exportReport: DownloadDTO; // CSV/PDF prepared artifact; entire filtered set, no pagination
+  exportReport: ExportManifestDTO;
   dashboard: { asOf: DateOnly; year: number; month: number; inStock: number; available: number;
     held: number; inRepair: number; activeAdvances: number; expiredAdvances: number;
     recentSales: SaleDTO[]; totals?: { salePrice: Money; profit: Money; cashIn: Money; cashOut: Money; net: Money };
     quickActions: ("recordPurchase" | "completeImmediate" | "sendRepair")[] };
-  settings: SettingsInput & { revision: Revision; policyVersion: number };
+  settings: SettingsInput & { id: Id; revision: Revision; policyVersion: number };
   importTemplate: { version: 1; type: ImportType; columns: { name: string; type: string;
     required: boolean; description: string }[]; download: DownloadDTO };
   importBatch: ImportPreview & { state: "STAGED" | "VALIDATED" | "COMMITTED" | "FAILED";
     targets: { sourceKey: string; type: string; id: Id }[] };
   download: DownloadDTO;
-  invoice: { id: Id; version: number; saleRevision: Revision; number: string;
+  invoice: { id: Id; revision: Revision; version: number; saleRevision: Revision; number: string;
     state: "PENDING" | "READY" | "FAILED"; download?: DownloadDTO };
   jobHealth: JobHealth;
   commandStatus: CommandResult | { ok: true; status: "NOT_COMMITTED" };
