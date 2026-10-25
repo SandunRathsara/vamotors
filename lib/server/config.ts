@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { fail } from "./errors"
+import { databaseURL } from "./database-url"
 
 export function runtimeConfig(
   env: Record<string, string | undefined> = process.env
@@ -21,14 +22,9 @@ export function runtimeConfig(
   )
     fail("ENVIRONMENT_UNAVAILABLE", 503)
   const config = result.data
-  const dbURL = new URL(config.DATABASE_URL)
   const origin = new URL(config.APP_ORIGIN)
   if (
-    decodeURIComponent(dbURL.username) !== "vamotors_runtime" ||
-    dbURL.searchParams.has("options") ||
-    !["require", "verify-full"].includes(
-      dbURL.searchParams.get("sslmode") ?? ""
-    ) ||
+    !databaseURL(config.DATABASE_URL, "vamotors_runtime") ||
     config.APP_ORIGIN !== origin.origin ||
     config.BETTER_AUTH_URL !== config.APP_ORIGIN ||
     (origin.protocol !== "https:" &&

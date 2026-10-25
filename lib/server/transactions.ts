@@ -3,14 +3,29 @@ import { Prisma } from "@prisma/client"
 import { database, assertEnvironment, type Tx } from "./db"
 import { CommandError } from "./errors"
 
-function sqlCode(error: unknown): string | undefined {
-  if (!error || typeof error !== "object") return
+function sqlCode(error: unknown, depth = 0): string | undefined {
+  if (!error || typeof error !== "object" || depth > 8) return
   const e = error as {
     code?: string
-    meta?: { code?: string }
+    originalCode?: string
+    meta?: unknown
+    driverAdapterError?: unknown
     cause?: unknown
   }
-  return e.meta?.code ?? e.code ?? sqlCode(e.cause)
+  // P2010's code/meta.code can be P2010/N/A. The pinned adapter preserves
+  // PostgreSQL SQLSTATE at meta.driverAdapterError.cause.originalCode.
+  for (const code of [e.originalCode, e.code])
+    if (
+      ["P2034", "40001", "40P01", "55P03", "P2002", "23505"].includes(
+        code ?? ""
+      )
+    )
+      return code
+  return (
+    sqlCode(e.meta, depth + 1) ??
+    sqlCode(e.driverAdapterError, depth + 1) ??
+    sqlCode(e.cause, depth + 1)
+  )
 }
 export async function transaction<T>(run: (tx: Tx) => Promise<T>) {
   for (let attempt = 0; attempt < 3; attempt++) {

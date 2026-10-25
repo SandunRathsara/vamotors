@@ -66,6 +66,8 @@ export function transition(
   action: string,
   evidence: Evidence = {}
 ): State {
+  if (!Object.hasOwn(edges, state) || !Object.hasOwn(edges[state], action))
+    throw new RangeError("INVALID_STATE")
   const next = edges[state]?.[action]
   if (!next) throw new RangeError("INVALID_STATE")
   if (
