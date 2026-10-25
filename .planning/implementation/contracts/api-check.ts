@@ -1,6 +1,7 @@
 /** Compile-time regressions for the seven review findings; no runtime/application imports. */
 import type { Commands, Dependency, Queries, QueryData, PurchaseCycleDTO, ImportRowInput,
-  CurrentActorDTO, UserAdminDTO, RoleDTO, PermissionRegistryDTO, ExportManifestDTO } from "./api";
+  CurrentActorDTO, UserAdminDTO, RoleDTO, PermissionRegistryDTO, ExportManifestDTO,
+  ApprovalProvenance, ImportPayloads, Grant } from "./api";
 
 const omittedDependencies: Dependency[] = [
   { type: "Customer", id: "customer", revision: 1 },
@@ -47,3 +48,35 @@ type SafeUserShape = Assert<NoCredentials<CurrentActorDTO["user"]>>;
 type AllQueriesReturn = Assert<Exclude<keyof Queries, keyof QueryData> extends never ? true : false>;
 type ExportNotOneFile = Assert<ExportManifestDTO["parts"] extends { firstRow: number; lastRow: number }[] ? true : false>;
 void [omittedDependencies, roundTripPurchase, convertFromSale, graphStage, advance, maximaBeforeTerms, requote, serverOnlyExportTarget];
+
+const quoteGrant: Grant = { subject: "Quote", action: "read", fields: ["policy", "charges"], conditions: { createdBy: "$actor.id" } };
+// @ts-expect-error Imported evidence must never impersonate a current approval/reviewer.
+const falseReviewer: ApprovalProvenance = { kind: "IMPORTED", approvalId: "fabricated" };
+// @ts-expect-error Current provenance cannot omit the real request/reviewer/time.
+const missingApproval: ApprovalProvenance = { kind: "CURRENT" };
+// @ts-expect-error The import payload carries legacy evidence, never a fabricated current approval.
+const fabricatedImport: NonNullable<ImportPayloads["VEHICLES"]["disposal"]> = { date: "2026-01-01", reason: "Historical", method: "DONATED", proceeds: "0", approvalId: "fabricated", legacyApproval: { approverName: "Legacy" } };
+// @ts-expect-error Ordinary disposal command has no browser-selectable approval-bypass switch.
+const bypass: Commands["requestApproval"] = { proposal: { kind: "WRITE_OFF", input: { cycleId: "cycle", date: "2026-10-25", reason: "reason", method: "SCRAPPED", proceeds: "0", historicalApprovalBypass: true } }, reason: "reason" };
+const legacyDisposal: NonNullable<ImportPayloads["VEHICLES"]["disposal"]> = {
+  date: "2026-01-01", reason: "Historical", method: "DONATED", proceeds: "0",
+  legacyApproval: { approverName: "Legacy manager", approvalReference: "Paper-42" }
+};
+function selectFromCompare(option: Extract<QueryData["compare"][number], { status: "SUPPORTED" }>,
+  settings: QueryData["settings"], vehicle: Commands["selectQuote"]["vehicle"]): { input: Commands["selectQuote"]; expected: Dependency[] } {
+  return { input: { sheetId: option.sheetId, cardId: option.cardId, vehicle, charges: [] }, expected: [
+    { type: "RateSheet", id: option.sheetId, revision: option.sheetRevision },
+    { type: "FinanceCompany", id: option.companyId, revision: option.companyRevision },
+    { type: "Settings", id: settings.id, revision: settings.revision }
+  ] };
+}
+function selectAmbiguous(option: Extract<QueryData["compare"][number], { status: "UNSUPPORTED" }>,
+  settings: QueryData["settings"], vehicle: Commands["selectQuote"]["vehicle"]) {
+  if (option.reason !== "AMBIGUOUS" || !option.sheetId || !option.sheetRevision || !option.choices?.[0]) return null;
+  const input: Commands["selectQuote"] = { sheetId: option.sheetId, cardId: option.choices[0].cardId, vehicle, charges: [] };
+  const expected: Dependency[] = [{ type: "RateSheet", id: option.sheetId, revision: option.sheetRevision },
+    { type: "FinanceCompany", id: option.companyId, revision: option.companyRevision },
+    { type: "Settings", id: settings.id, revision: settings.revision }];
+  return { input, expected };
+}
+void [quoteGrant, falseReviewer, missingApproval, fabricatedImport, bypass, legacyDisposal, selectFromCompare, selectAmbiguous];

@@ -87,7 +87,7 @@ export type FacilityTerms = { gross: Money; deductions: { label: string; amount:
   fee: Money; feeMode: "WITHHELD" | "SEPARATE"; separatelyRecoverableCharges: Money };
 export type Subject = "Vehicle" | "PurchaseRecord" | "SaleCase" | "Reservation" |
   "RepairRecord" | "VehicleCost" | "Disposal" | "Customer" | "Supplier" | "RepairVendor" |
-  "FinanceCompany" | "RateSheet" | "BrokerageDeal" | "CashFacility" | "DispatchBatch" |
+  "FinanceCompany" | "RateSheet" | "Quote" | "BrokerageDeal" | "CashFacility" | "DispatchBatch" |
   "CommissionEntitlement" | "Remittance" | "ReconciliationRun" | "ApprovalRequest" |
   "Document" | "Invoice" | "Report" | "AuditLog" | "Notification" | "ImportBatch" |
   "Settings" | "User" | "Role" | "ReservationExpiryJob";
@@ -213,6 +213,12 @@ export type LegacyPayment = CashInput & { sourceKey: string; direction: "IN" | "
   category: string; reversalOfSourceKey?: string };
 export type LegacyMetadata = { recordedAt?: Instant; recordedByName?: string;
   approverName?: string; approvalReference?: string; originalId?: string; notes?: string };
+export type LegacyApprovalEvidence = { approverName: string; approvalReference?: string };
+/** Server-derived provenance: historical evidence is never a current approval capability. */
+export type ApprovalProvenance =
+  { kind: "CURRENT"; approvalId: Id; reviewerId: Id; reviewerName: string; reviewedAt: Instant } |
+  { kind: "IMPORTED"; batchId: Id; rowId: Id; initiatedByAdminId: Id;
+    historicalApprovalBypass: true; legacy: LegacyApprovalEvidence };
 export type ImportPayloads = {
   SUPPLIERS: DirectoryInput;
   CUSTOMERS: CustomerInput;
@@ -228,7 +234,7 @@ export type ImportPayloads = {
     receivedDate?: DateOnly; closedAt?: Instant; payments: LegacyPayment[];
     additionalCosts: { sourceKey: string; category: string; description: string;
       amount: Money; date: DateOnly; payments: LegacyPayment[] }[];
-    disposal?: Omit<WriteOff, "cycleId"> & { legacyApprover: string } };
+    disposal?: Omit<WriteOff, "cycleId"> & { legacyApproval: LegacyApprovalEvidence } };
   SALES: { cycle: LegacyRef; customer: LegacyRef; kind: SaleDTO["kind"];
     saleCaseSourceKey: string; // shared with ADVANCES, never a second SaleCase
     price: Money; reference?: string; state: "COMPLETED" | "FINANCE_PENDING" | "DO_RECEIVED" | "CANCELLED";
@@ -326,7 +332,7 @@ export const commandRevisionRules = {
   "recordRemittance": ["Remittance:input.draftId", "FinanceCompany:input.companyId"],
   "reconcile": ["FinanceCompany:input.companyId", "@reconciliationMembers"],
   "reverseAllocation": ["@allocationOwners"],
-  "returnRemittanceOverpayment": ["Remittance:input.remittanceId", "@discrepancyEntitlement"],
+  "returnRemittanceOverpayment": ["Remittance:input.remittanceId", "@discrepancyEntitlement", "@companyForRemittance"],
   "reversePayment": ["@paymentOwners"],
   "markNotificationRead": ["Notification:input.notificationId"],
   "markAllNotificationsRead": [],
@@ -406,6 +412,9 @@ export interface Queries {
   brokerageDeal: { id: Id };
   dispatchPreview: { sourceIds: { type: "VEHICLE_SALE" | "BROKERAGE"; id: Id }[] };
   reconciliation: ListParams & { companyId: Id; asOf: DateOnly; runId?: Id; pendingOnly?: boolean };
+  reconciliationEntitlement: { id: Id }; // current detail, never a saved run snapshot
+  remittances: ListParams & { companyId: Id; state?: "STAGED" | "RECEIVED" };
+  remittance: { id: Id }; // includes fully allocated receipts and staging drafts
   report: ReportFilter;
   exportReport: { exportId: Id }; // manifest/status; creation is startReportExport
   dashboard: { asOf: DateOnly; year: number; month: number };
@@ -443,14 +452,29 @@ export type SaleDTO = { id: Id; cycleId: Id; customerId: Id; revision: Revision;
 export type Page<T> = { ok: true; data: T[]; total: number; page: number; pageSize: number;
   asOf: Instant; totals?: Record<string, Money>; redactedFields: string[] };
 export type CompareResult = { companyId: Id; companyRevision: Revision; status: "SUPPORTED"; sheetId: Id; cardId: Id;
-  maximum: Money; principal: Money; installment: Money; months: number; validThrough: DateOnly } |
+  sheetRevision: 1; maximum: Money; principal: Money; installment: Money; months: number; validThrough: DateOnly } |
   { companyId: Id; companyRevision: Revision; status: "UNSUPPORTED"; reason: "NO_CARD" | "OVER_LIMIT" | "EXPIRED" | "AMBIGUOUS";
-    maximum: Money | null; sheetId: Id | null; validThrough: DateOnly | null;
+    maximum: Money | null; sheetId: Id | null; sheetRevision: 1 | null; validThrough: DateOnly | null;
     choices?: { cardId: Id; months: number; installment: Money }[] };
-export type ReconciliationDTO = { entitlementId: Id; source: "VEHICLE_SALE" | "BROKERAGE";
+export type RevisionRef = { id: Id; revision: Revision };
+export type ReconciliationDTO = { entitlementId: Id; revision: Revision; source: "VEHICLE_SALE" | "BROKERAGE";
   sourceId: Id; companyId: Id; sentDate: DateOnly; expected: Money; received: Money;
   discrepancy: Money; outstanding: Money; state: "OPEN" | "PARTIAL" | "SETTLED" | "RESOLVED";
   overdue: boolean; cutoffDate: DateOnly; watermarkDate: DateOnly | null };
+export type AllocationDTO = { id: Id; runId: Id; remittance: RevisionRef; entitlement: RevisionRef;
+  noticeLineId?: Id; amount: Money; reversalOf?: Id; reversedById?: Id };
+export type DiscrepancyDTO = { id: Id; entitlement: RevisionRef; remittanceId: Id | null; allocationId: Id | null;
+  classification: "SHORTFALL" | "OVERPAYMENT"; expectedMinusAllocated: Money;
+  resolution: Commands["reconcile"]["resolutions"][number]["kind"]; reason: string;
+  returnOutstanding: Money; returns: PaymentDTO[] };
+export type RemittanceDTO = { id: Id; revision: Revision; company: RevisionRef;
+  state: "STAGED" | "RECEIVED"; reference: string; currency: string;
+  receipt: PaymentDTO | null; payments: PaymentDTO[]; unallocated: Money; noticeAttachmentId?: Id;
+  lines: { id: Id; key: string; source?: { type: "VEHICLE_SALE" | "BROKERAGE"; id: Id };
+    amount: Money; description: string; unallocated: Money }[];
+  allocations: AllocationDTO[]; discrepancies: DiscrepancyDTO[] };
+export type EntitlementDetailDTO = ReconciliationDTO & { company: RevisionRef;
+  allocations: AllocationDTO[]; discrepancies: DiscrepancyDTO[] };
 export type NotificationDTO = { id: Id; revision: Revision; kind: "ADVANCE_EXPIRING" | "ADVANCE_EXPIRED" |
   "REPAIR_RETURNED" | "APPROVAL_REQUIRED" | "APPROVAL_OUTCOME"; title: string; body: string;
   target: { type: string; id: Id; href: string }; createdAt: Instant; readAt: Instant | null };
@@ -502,7 +526,7 @@ export type ReportRow = {
     request: string; sentDate: DateOnly; daysInRepair: number };
   CASH_FLOW: { paymentId: Id; sourceType: string; sourceId: Id; date: DateOnly;
     amount: Money; direction: "IN" | "OUT"; method: Method; category: string };
-  DISPOSALS: { cycleId: Id; vehicle: string; date: DateOnly; reason: string; approvedBy: Id;
+  DISPOSALS: { cycleId: Id; vehicle: string; date: DateOnly; reason: string; approval: ApprovalProvenance;
     method: WriteOff["method"]; basis?: Money; proceeds?: Money; netLoss?: Money };
 };
 export type ReportResponse = { [K in ReportKind]: Page<ReportRow[K]> & { kind: K } }[ReportKind];
@@ -546,24 +570,25 @@ export type PurchaseCycleDTO = { id: Id; revision: Revision; vehicleId: Id;
   basisVersions: { id: Id; version: number; total: Money; reason: string }[];
   sales: { saleCaseId: Id; revision: Revision; customerId: Id; kind: SaleDTO["kind"];
     state: string; completionId?: Id; date?: DateOnly }[];
-  disposal: { id: Id; approvalId: Id | null; legacyApprovalReference?: string;
+  disposal: { id: Id; approval: ApprovalProvenance;
     date: DateOnly; reason: string; method: WriteOff["method"]; proceeds: Money;
     basisVersionId: Id; payments: SourcePaymentDTO[] } | null;
   provenance: Provenance; nextActions: CommandName[] };
-export type QuoteDTO = { id: Id; revision: 1; vehicle: ExternalVehicle;
-  sheetId: Id; cardId: Id; companyId: Id; principal: Money; months: number; installment: Money;
+export type QuoteDTO = { id: Id; revision: 1; createdBy: Id; vehicle: ExternalVehicle;
+  sheetId: Id; sheetRevision: 1; cardId: Id; companyId: Id; companyRevision: Revision;
+  principal: Money; months: number; installment: Money;
   maximum: Money; charges: Charge[]; policy: FinancePolicy; expiresAt: Instant };
-export type DealQuoteDTO = { id: Id; selectionId: Id; version: number; sheetId: Id; cardId: Id; companyId: Id;
+export type DealQuoteDTO = { id: Id; revision: 1; selectionId: Id; version: number; sheetId: Id; cardId: Id; companyId: Id;
   principal: Money; months: number; installment: Money; maximum: Money;
   charges: Charge[]; policy: FinancePolicy; expiresAt: Instant;
   effectivePolicy: FinancePolicy; selectedAt: Instant; selectedBy: Id; replacedQuoteId: Id | null; reason?: string };
 export type LoanMaximumDTO = { companyId: Id; companyRevision: Revision; companyName: string; asOf: DateOnly } &
-  ({ status: "APPLICABLE"; sheetId: Id; maximum: Money; validFrom: DateOnly; validThrough: DateOnly } |
+  ({ status: "APPLICABLE"; sheetId: Id; sheetRevision: 1; maximum: Money; validFrom: DateOnly; validThrough: DateOnly } |
    { status: "UNAVAILABLE"; reason: "NO_SHEET" | "EXPIRED"; maximum: null; sheetId: null });
 export type ImportGraphManifest = { schemaVersion: 1; types: ImportType[]; totalRows: number;
   nodes: { rowKey: string; sourceType: ImportType; sourceKey: string;
     targets: { type: "Vehicle" | "PurchaseRecord" | "SaleCase" | "Reservation" |
-      "SaleCompletion" | "RepairRecord" | "Supplier" | "Customer" | "RepairVendor"; id: Id }[] }[];
+      "SaleCompletion" | "RepairRecord" | "Disposal" | "Supplier" | "Customer" | "RepairVendor"; id: Id }[] }[];
   edges: { fromRowKey: string; field: string; toRowKey: string | null; existingTargetId: Id | null }[];
   saleCases: { sourceKey: string; id: Id; cycleSourceKey: string; rowKeys: string[] }[];
   existingDependencies: Dependency[]; normalizedHash: string };
@@ -603,7 +628,11 @@ export interface QueryData {
   brokerage: Page<BrokerageDTO>;
   brokerageDeal: BrokerageDTO;
   dispatchPreview: DispatchPreview[];
-  reconciliation: Page<ReconciliationDTO> & { unallocatedRemittances: { id: Id; amount: Money }[] };
+  reconciliation: Page<ReconciliationDTO> & { view: "LIVE" | "RUN_SNAPSHOT"; company: RevisionRef;
+    unallocatedRemittances: { id: Id; revision: Revision; amount: Money; unallocated: Money }[] };
+  reconciliationEntitlement: EntitlementDetailDTO;
+  remittances: Page<RemittanceDTO>;
+  remittance: RemittanceDTO;
   report: ReportResponse;
   exportReport: ExportManifestDTO;
   dashboard: { asOf: DateOnly; year: number; month: number; inStock: number; available: number;
