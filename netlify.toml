@@ -1,0 +1,4 @@
+# T02a safety interlock. T02b must replace this only after accepted auth/isolation.
+# This intentionally blocks every context, including manual builds of this SHA.
+[build]
+  command = "node scripts/infrastructure/netlify-build-blocked.mjs"
