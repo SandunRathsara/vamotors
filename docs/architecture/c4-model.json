@@ -1,0 +1,3451 @@
+{
+  "title": "VA Motors · C4 architecture",
+  "subtitle": "One system. Two business workflows. Explore one layer at a time.",
+  "views": [
+    {
+      "id": "context",
+      "level": "C1",
+      "title": "The dealership in context",
+      "summary": "Staff run two connected businesses: vehicle trading and lease brokerage.",
+      "state": "Target · documented scope",
+      "scope": "Software system: VA Motors VSMS",
+      "nodes": [
+        {
+          "id": "staff",
+          "name": "Dealership staff",
+          "type": "Person / role group",
+          "technology": "Cashier · sales · finance",
+          "status": "external",
+          "x": 30,
+          "y": 35,
+          "w": 260,
+          "h": 116,
+          "description": "Record day-to-day purchases, repairs, sales, payments and brokerage work.",
+          "detail": [
+            "Cashier is the primary daily user; permissions are configurable rather than hard-coded to these labels.",
+            "Customers and finance-company staff do not log in."
+          ],
+          "sources": [
+            ".planning/PROJECT.md:62–69",
+            "docs/02-1-business-requirements-specification.md §5"
+          ]
+        },
+        {
+          "id": "manager",
+          "name": "Manager / administrator",
+          "type": "Person / role group",
+          "technology": "Approvals · access · oversight",
+          "status": "external",
+          "x": 430,
+          "y": 35,
+          "w": 260,
+          "h": 116,
+          "description": "Approve controlled changes, manage users and inspect financial reports.",
+          "detail": [
+            "One person can have multiple roles. Manager approval is a business action, not a separate application."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.14, §9"
+          ]
+        },
+        {
+          "id": "vsms",
+          "name": "VA Motors VSMS",
+          "type": "Software system",
+          "technology": "Internal dealership platform",
+          "status": "planned",
+          "x": 230,
+          "y": 265,
+          "w": 260,
+          "h": 116,
+          "description": "Keeps the complete financial story of every vehicle and brokerage deal.",
+          "detail": [
+            "Inventory, purchases, repairs, sales, advances, lease finance, trade-ins and write-offs.",
+            "Customers, third parties, approvals, notifications, reports, invoice generation and audit.",
+            "Brokerage handles vehicles owned by customers; it does not automatically create dealership stock.",
+            "Today this system is a mock-backed UI. Target capabilities are planned; proposed corrections are recommended."
+          ],
+          "sources": [
+            ".planning/PROJECT.md",
+            "docs/round_1_customer_feedback.md:8–44"
+          ]
+        },
+        {
+          "id": "partners",
+          "name": "Customers & partners",
+          "type": "People outside VSMS",
+          "technology": "Suppliers · garages · financiers",
+          "status": "external",
+          "x": 230,
+          "y": 495,
+          "w": 260,
+          "h": 116,
+          "description": "Exchange vehicles, money, documents and decisions with staff outside the application.",
+          "detail": [
+            "Phone, WhatsApp, paper and courier activity is recorded manually by staff.",
+            "No banking API, external portal, WhatsApp integration or accounting integration is in scope.",
+            "Couriers transport documents; guarantors are recorded as brokerage participants."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md",
+            "docs/02-1-business-requirements-specification.md §2.2"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "vsms",
+          "label": "Records operations",
+          "detail": "",
+          "from": "staff"
+        },
+        {
+          "to": "vsms",
+          "label": "Approves & reviews",
+          "detail": "",
+          "from": "manager"
+        },
+        {
+          "to": "partners",
+          "label": "Manual exchange",
+          "detail": "No direct system integration.",
+          "points": [
+            [
+              30,
+              93
+            ],
+            [
+              10,
+              93
+            ],
+            [
+              10,
+              553
+            ],
+            [
+              230,
+              553
+            ]
+          ],
+          "labelX": 94,
+          "labelY": 430,
+          "from": "staff"
+        }
+      ],
+      "width": 720,
+      "height": 650,
+      "groups": [],
+      "notes": [
+        "C1 shows people and the whole system. Database and hosting details belong in C2 / Deployment.",
+        "Production hosting is unresolved: Vercel Hobby excludes commercial use, conflicting with the documented $0 target. See Deployment and Decisions."
+      ]
+    },
+    {
+      "id": "containers-target",
+      "level": "C2",
+      "title": "Target runtime containers",
+      "summary": "One deployable web app, one database, one private file store.",
+      "state": "Target · planned",
+      "scope": "VSMS software-system boundary",
+      "nodes": [
+        {
+          "id": "browser",
+          "name": "Staff web application",
+          "type": "Container",
+          "technology": "React 19 · browser / PWA",
+          "status": "implemented",
+          "x": 230,
+          "y": 55,
+          "w": 260,
+          "h": 116,
+          "description": "Interactive screens, forms, tables and local query cache.",
+          "detail": [
+            "The web UI exists. Installable PWA behavior is planned; offline business mutations are not proposed.",
+            "Client validation improves usability; it never replaces server authorization or validation."
+          ],
+          "sources": [
+            "package.json",
+            "components/",
+            ".planning/ROADMAP.md §Phase 1"
+          ]
+        },
+        {
+          "id": "server",
+          "name": "Next.js application",
+          "type": "Container",
+          "technology": "Node.js · App Router + HTTP",
+          "status": "planned",
+          "x": 230,
+          "y": 285,
+          "w": 260,
+          "h": 116,
+          "description": "Renders pages and runs authenticated business operations in the same deployment.",
+          "detail": [
+            "Route Handlers, server-rendered reads, Better Auth, CASL and domain modules share one Node.js application.",
+            "Auth libraries and business modules are components, not independent services.",
+            "Current routes use mocks. Production domain logic and persistence are planned."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:65–78,365–418"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "Business database",
+          "type": "Data-store container",
+          "technology": "PostgreSQL · Neon · Prisma",
+          "status": "planned",
+          "x": 30,
+          "y": 535,
+          "w": 260,
+          "h": 116,
+          "description": "Persistent transactional records, sessions, roles, audit and notifications.",
+          "detail": [
+            "Single dealership; no multi-tenant or multi-branch partitioning.",
+            "Money and lifecycle invariants belong in database transactions and constraints.",
+            "Business changes and their audit entries commit together."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:473–515",
+            ".planning/PROJECT.md:73–81"
+          ]
+        },
+        {
+          "id": "files",
+          "name": "Private documents",
+          "type": "Data-store container",
+          "technology": "Cloudflare R2 · S3-compatible",
+          "status": "planned",
+          "x": 430,
+          "y": 535,
+          "w": 260,
+          "h": 116,
+          "description": "Vehicle photos, finance documents and brokerage attachments.",
+          "detail": [
+            "Browser transfers file bytes directly using short-lived signed URLs.",
+            "Recommended: persist owned attachment metadata, validate staging uploads and copy to immutable final keys before linking.",
+            "Authorize downloads as well as uploads; do not expose a public bucket."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:320–349",
+            "docs/round_1_customer_feedback.md:19–30"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "server",
+          "label": "HTTPS · JSON / HTML",
+          "detail": "",
+          "from": "browser"
+        },
+        {
+          "to": "db",
+          "label": "SQL over TLS",
+          "detail": "Prisma's selected PostgreSQL adapter must support interactive transactions.",
+          "from": "server"
+        },
+        {
+          "to": "files",
+          "label": "S3 API · HTTPS",
+          "detail": "Signs scoped object access and verifies upload metadata.",
+          "from": "server"
+        },
+        {
+          "to": "files",
+          "label": "Signed file transfer",
+          "detail": "HTTPS PUT/GET; file bytes bypass application functions.",
+          "points": [
+            [
+              490,
+              113
+            ],
+            [
+              710,
+              113
+            ],
+            [
+              710,
+              593
+            ],
+            [
+              690,
+              593
+            ]
+          ],
+          "labelX": 615,
+          "labelY": 220,
+          "from": "browser"
+        }
+      ],
+      "width": 720,
+      "height": 720,
+      "groups": [
+        {
+          "name": "VA Motors VSMS — logically owned containers",
+          "x": 15,
+          "y": 15,
+          "w": 690,
+          "h": 670
+        }
+      ],
+      "notes": [
+        "Managed providers host the data stores; those stores still belong to the logical VSMS system.",
+        "Physical hosting and the commercial-plan constraint are shown in Deployment."
+      ]
+    },
+    {
+      "id": "containers-current",
+      "level": "C2",
+      "title": "Today: the prototype",
+      "summary": "The screens work against process-local demo data, not a production backend.",
+      "state": "Current · code verified",
+      "scope": "VSMS prototype",
+      "nodes": [
+        {
+          "id": "browser",
+          "name": "Interactive UI",
+          "type": "Container",
+          "technology": "React · TanStack · nuqs",
+          "status": "implemented",
+          "x": 230,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Pages and forms fetch same-origin mock endpoints.",
+          "detail": [
+            "Login is a UI simulation; business permissions are not enforced."
+          ],
+          "sources": [
+            "app/",
+            "hooks/use-entity-query.ts"
+          ]
+        },
+        {
+          "id": "next",
+          "name": "Next.js dev / app server",
+          "type": "Container",
+          "technology": "Next.js 16.1.7 · Node.js",
+          "status": "implemented",
+          "x": 230,
+          "y": 285,
+          "w": 260,
+          "h": 116,
+          "description": "Renders routes and handles demo JSON requests.",
+          "detail": [
+            "There is no separate API server.",
+            "In-memory stores are internal modules of this container, not a database container."
+          ],
+          "sources": [
+            "package.json",
+            "app/api/"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "next",
+          "label": "Same-origin fetch",
+          "detail": "",
+          "from": "browser"
+        }
+      ],
+      "width": 720,
+      "height": 455,
+      "groups": [],
+      "notes": [
+        "Mock stores are internal components of the Next.js container (see C3 Today), not a separate data-store container. Process restart can discard demo edits.",
+        "No Prisma, Better Auth, CASL or R2 integration is installed today."
+      ]
+    },
+    {
+      "id": "client",
+      "level": "C3",
+      "title": "Browser components",
+      "summary": "The existing UI structure is reusable when the backend becomes real.",
+      "state": "Current + planned integrations",
+      "scope": "Container: staff web application",
+      "nodes": [
+        {
+          "id": "screens",
+          "name": "Feature screens",
+          "type": "Component",
+          "technology": "React client components",
+          "status": "implemented",
+          "x": 30,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Inventory, purchases, sales, repairs, parties, reports and brokerage screens.",
+          "detail": [
+            "The app shell provides navigation, sidebar, header and command palette.",
+            "Each feature owns its screens; shared UI primitives stay reusable."
+          ],
+          "sources": [
+            "components/",
+            "app/(app)/"
+          ]
+        },
+        {
+          "id": "forms",
+          "name": "Forms & shared UI",
+          "type": "Component",
+          "technology": "TanStack Form · Zod · shadcn",
+          "status": "implemented",
+          "x": 430,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Input controls, drawers, dialogs, toasts and reusable visual primitives.",
+          "detail": [
+            "Target: share input contracts with server-side parsing, but keep authorization server-side."
+          ],
+          "sources": [
+            "components/ui/",
+            "components/shared/",
+            "package.json"
+          ]
+        },
+        {
+          "id": "queries",
+          "name": "Server-state hooks",
+          "type": "Component",
+          "technology": "TanStack Query · fetch",
+          "status": "implemented",
+          "x": 30,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Read lists/details and submit HTTP mutations.",
+          "detail": [
+            "useEntityQuery/useEntityDetail have a 30-second stale time.",
+            "useEntityMutation invalidates the named entity key only.",
+            "Recommended: invalidate all affected inventory, sale, dashboard and report keys after cross-domain mutations."
+          ],
+          "sources": [
+            "hooks/use-entity-query.ts:9–57",
+            "hooks/use-entity-mutation.ts:37–79"
+          ]
+        },
+        {
+          "id": "tables",
+          "name": "Table URL state",
+          "type": "Component",
+          "technology": "TanStack Table · nuqs",
+          "status": "implemented",
+          "x": 430,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Reusable sorting, filtering and pagination tied to URL parameters.",
+          "detail": [
+            "DiceUI table infrastructure is shared across feature tables.",
+            "Target: database-side filtering/pagination replaces in-memory full scans."
+          ],
+          "sources": [
+            "hooks/use-data-table.ts",
+            "components/data-table/"
+          ]
+        },
+        {
+          "id": "api",
+          "name": "Next.js HTTP interface",
+          "type": "External to this container",
+          "technology": "HTTPS · JSON",
+          "status": "planned",
+          "x": 230,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Current mock routes become authenticated production endpoints.",
+          "detail": [
+            "The browser never connects directly to the business database.",
+            "Signed direct object transfers are the deliberate exception to app-proxied data access."
+          ],
+          "sources": [
+            "app/api/",
+            ".planning/research/ARCHITECTURE.md"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "forms",
+          "label": "Renders",
+          "detail": "",
+          "from": "screens"
+        },
+        {
+          "to": "queries",
+          "label": "Reads / mutates",
+          "detail": "",
+          "from": "screens"
+        },
+        {
+          "to": "tables",
+          "label": "Shares controls",
+          "detail": "",
+          "from": "forms"
+        },
+        {
+          "to": "queries",
+          "label": "Page + first sort",
+          "detail": "Current bridge forwards pagination and first sort only. Filter forwarding is not complete; it must be implemented before claiming end-to-end server filtering.",
+          "from": "tables"
+        },
+        {
+          "to": "api",
+          "label": "JSON requests",
+          "detail": "",
+          "from": "queries"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [
+        {
+          "name": "Browser application",
+          "x": 15,
+          "y": 15,
+          "w": 690,
+          "h": 430
+        }
+      ],
+      "notes": [
+        "Browser checks are user experience only; production authorization is enforced for every server entry point."
+      ]
+    },
+    {
+      "id": "server-core",
+      "level": "C3",
+      "title": "Business components",
+      "summary": "Business rules live behind a few domain operations—not inside HTTP handlers.",
+      "state": "Target · documented modules + recommended seams",
+      "scope": "Container: Next.js application",
+      "nodes": [
+        {
+          "id": "entry",
+          "name": "Authorized entry points",
+          "type": "Component",
+          "technology": "Route Handlers · server reads",
+          "status": "planned",
+          "x": 230,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Translate HTTP or server-rendered requests into domain operations.",
+          "detail": [
+            "Authenticate, validate, pass actor context; use record-aware authorization in domain operations.",
+            "Server reads must not bypass the same access rules used by HTTP routes."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:216–251,400–418"
+          ]
+        },
+        {
+          "id": "inventory",
+          "name": "Inventory & ownership",
+          "type": "Component",
+          "technology": "TypeScript domain module",
+          "status": "planned",
+          "x": 30,
+          "y": 280,
+          "w": 260,
+          "h": 116,
+          "description": "Vehicle identity, purchase cycles, repairs, costs, mileage and write-offs.",
+          "detail": [
+            "Same engine + chassis identifies the vehicle across re-purchases.",
+            "Repairs and additional costs belong to a purchase cycle.",
+            "Write-off requires approved action and records disposal proceeds."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.1–3.4, §4, §5",
+            ".planning/ROADMAP.md §Phase 2,4"
+          ]
+        },
+        {
+          "id": "sales",
+          "name": "Sales & reservations",
+          "type": "Component",
+          "technology": "TypeScript domain module",
+          "status": "planned",
+          "x": 430,
+          "y": 280,
+          "w": 260,
+          "h": 116,
+          "description": "Cash, advances, lease-finance and trade-in workflows.",
+          "detail": [
+            "Owns sale completion, receipt/refund facts, reservation decisions and finance documents.",
+            "Calls inventory transitions inside the same transaction.",
+            "Recommended: idempotency key, purchase-cycle binding and stale-state protection."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.11–3.13, §5–7"
+          ]
+        },
+        {
+          "id": "parties",
+          "name": "People & counterparties",
+          "type": "Component",
+          "technology": "TypeScript domain module",
+          "status": "planned",
+          "x": 30,
+          "y": 525,
+          "w": 260,
+          "h": 116,
+          "description": "Customers and third-party directory with contact people.",
+          "detail": [
+            "Supplier, repair vendor and finance company are third-party roles.",
+            "Inline party creation is reused by purchase, sale and brokerage forms."
+          ],
+          "sources": [
+            ".planning/ROADMAP.md §Phase 2,3",
+            "lib/mock-data/schemas.ts:54–69,142–160"
+          ]
+        },
+        {
+          "id": "broker",
+          "name": "Lease brokerage",
+          "type": "Component",
+          "technology": "TypeScript domain module",
+          "status": "planned",
+          "x": 430,
+          "y": 525,
+          "w": 260,
+          "h": 116,
+          "description": "Comparisons, eligibility, application/referral, dispatch and commission reconciliation.",
+          "detail": [
+            "Customer-owned vehicles are not dealership purchases.",
+            "Finance companies communicate outside VSMS; staff record outcomes.",
+            "Commission reconciliation can reference both vehicle-finance sales and brokerage deals."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md",
+            ".planning/ROADMAP.md §Phase 8–9"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "inventory",
+          "label": "Invokes operations",
+          "detail": "",
+          "from": "entry"
+        },
+        {
+          "to": "sales",
+          "label": "Invokes operations",
+          "detail": "",
+          "from": "entry"
+        },
+        {
+          "to": "inventory",
+          "label": "Coordinates lifecycle",
+          "detail": "",
+          "from": "sales"
+        },
+        {
+          "to": "parties",
+          "label": "Uses supplier / vendor",
+          "detail": "",
+          "from": "inventory"
+        },
+        {
+          "to": "broker",
+          "label": "Invokes brokerage",
+          "detail": "",
+          "points": [
+            [
+              490,
+              103
+            ],
+            [
+              710,
+              103
+            ],
+            [
+              710,
+              583
+            ],
+            [
+              690,
+              583
+            ]
+          ],
+          "labelX": 610,
+          "labelY": 210,
+          "from": "entry"
+        },
+        {
+          "to": "parties",
+          "label": "Uses customer / financier",
+          "detail": "",
+          "from": "broker"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [
+        {
+          "name": "Next.js — core business modules",
+          "x": 15,
+          "y": 15,
+          "w": 690,
+          "h": 670
+        }
+      ],
+      "notes": [
+        "These are in-process modules, not microservices. All mutations use the access + transaction components in the next view.",
+        "Sales and brokerage both use Finance & reconciliation, shown in its own component view. Neither workflow owns the other."
+      ]
+    },
+    {
+      "id": "server-support",
+      "level": "C3",
+      "title": "Access & supporting components",
+      "summary": "One trusted operation owns authorization, state changes and audit together.",
+      "state": "Target · recommended enforcement design",
+      "scope": "Container: Next.js application",
+      "nodes": [
+        {
+          "id": "access",
+          "name": "Identity & permissions",
+          "type": "Component",
+          "technology": "Better Auth · CASL",
+          "status": "planned",
+          "x": 30,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Sessions, users, multi-role permissions and record-aware checks.",
+          "detail": [
+            "Read current permission rules once per request; avoid an initial cross-request permission cache.",
+            "Pass actor context to authorized operations from HTTP, server pages, imports and scheduled tasks.",
+            "Role management and account activation are audited."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §9",
+            ".planning/research/ARCHITECTURE.md:254–284"
+          ]
+        },
+        {
+          "id": "commands",
+          "name": "Domain operations",
+          "type": "Component",
+          "technology": "Explicit transaction owner",
+          "status": "recommended",
+          "x": 430,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Validate rules and apply each business action atomically.",
+          "detail": [
+            "One operation owns the database transaction, including audit and approval application.",
+            "No public generic status setter that can bypass sale/repair/payment requirements.",
+            "No new generic repository hierarchy or message bus is needed."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:365–398",
+            ".planning/research/c4-infrastructure-findings.md"
+          ]
+        },
+        {
+          "id": "govern",
+          "name": "Approvals & history",
+          "type": "Component",
+          "technology": "TypeScript · Prisma transaction",
+          "status": "planned",
+          "x": 30,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Approval requests, immutable history and recipient-specific notifications.",
+          "detail": [
+            "Recommended: bind approvals to exact proposed payload and record version; re-check when applying.",
+            "Notifications are stored transactionally and polled in-app.",
+            "Audit actor, reason and before/after changes; do not audit credentials or secrets."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §8–10",
+            ".planning/ROADMAP.md §Phase 4,6"
+          ]
+        },
+        {
+          "id": "persist",
+          "name": "Persistence & files",
+          "type": "Component",
+          "technology": "Prisma · R2 signing client",
+          "status": "planned",
+          "x": 430,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Database queries, transactions, private file access and attachment metadata.",
+          "detail": [
+            "Database constraints enforce identity and one active sale/reservation per cycle.",
+            "Files are uploaded first; attach only verified owned objects. Failed uploads never become finance documents.",
+            "Apply migrations explicitly, not during request handling."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:320–359",
+            ".planning/PROJECT.md:73–94"
+          ]
+        },
+        {
+          "id": "outputs",
+          "name": "Reports & documents",
+          "type": "Component",
+          "technology": "Queries · CSV · PDF renderer",
+          "status": "planned",
+          "x": 30,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Dashboard, seven reports, cash position and invoice generation.",
+          "detail": [
+            "Required reports: inventory, sales, profit, outstanding advances, current repairs, cash flow and write-offs/disposal. Shell purchase/audit reports do not replace this catalog.",
+            "Read authoritative purchase-cycle costs and dated payment facts; never sum mock reports.",
+            "Retain immutable issued PDF versions in R2. Recommended snapshots keep reprints stable.",
+            "Authorized queries filter records before serialization."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §7, §8.4, §11",
+            ".planning/ROADMAP.md §Phase 5,7"
+          ]
+        },
+        {
+          "id": "jobs",
+          "name": "Import & expiry",
+          "type": "Component",
+          "technology": "Bounded jobs · same domain rules",
+          "status": "planned",
+          "x": 430,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Validate historical batches and flag expired advances.",
+          "detail": [
+            "Prevalidate whole bounded import batches, then commit atomically; stable import keys make retries safe.",
+            "Expiry flags are automatic; staff decide refund, extension or conversion.",
+            "Use date-based expiry checks even if the scheduled run is delayed."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §6, §12",
+            ".planning/ROADMAP.md §Phase 3,10"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "commands",
+          "label": "Supplies actor / rules",
+          "detail": "",
+          "from": "access"
+        },
+        {
+          "to": "persist",
+          "label": "Commits transaction",
+          "detail": "",
+          "from": "commands"
+        },
+        {
+          "to": "govern",
+          "label": "Applies controls",
+          "detail": "",
+          "from": "commands"
+        },
+        {
+          "to": "persist",
+          "label": "Writes in same tx",
+          "detail": "",
+          "from": "govern"
+        },
+        {
+          "to": "persist",
+          "label": "Authorized reads",
+          "detail": "",
+          "from": "outputs"
+        },
+        {
+          "to": "commands",
+          "label": "Domain calls",
+          "detail": "Imports and expiry invoke the same authorized domain operations, not raw persistence.",
+          "points": [
+            [
+              690,
+              608
+            ],
+            [
+              710,
+              608
+            ],
+            [
+              710,
+              108
+            ],
+            [
+              690,
+              108
+            ]
+          ],
+          "labelX": 650,
+          "labelY": 195,
+          "from": "jobs"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [
+        {
+          "name": "Next.js — access, persistence and supporting modules",
+          "x": 15,
+          "y": 15,
+          "w": 690,
+          "h": 670
+        }
+      ],
+      "notes": [
+        "Arrows describe logical dependencies, not network calls. Report rendering and object transfer are outside the database transaction."
+      ]
+    },
+    {
+      "id": "code-current",
+      "level": "C4",
+      "title": "Existing query → store code",
+      "summary": "These symbols exist today. The database seam is still a mock implementation.",
+      "state": "Current · implemented symbols",
+      "scope": "Code-level zoom: vehicle list read",
+      "nodes": [
+        {
+          "id": "hook",
+          "name": "useEntityQuery<T>()",
+          "type": "Function",
+          "technology": "hooks/use-entity-query.ts",
+          "status": "implemented",
+          "x": 30,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Builds URL params and a query key, then fetches JSON.",
+          "detail": [
+            "queryKey = [entityKey, params]; staleTime = 30,000ms."
+          ],
+          "sources": [
+            "hooks/use-entity-query.ts:9–32"
+          ]
+        },
+        {
+          "id": "route",
+          "name": "GET(request)",
+          "type": "HTTP function",
+          "technology": "app/api/vehicles/route.ts",
+          "status": "mock",
+          "x": 430,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Parses list parameters and delegates to vehiclesStore.",
+          "detail": [
+            "The current route has no production auth or business persistence."
+          ],
+          "sources": [
+            "app/api/vehicles/route.ts"
+          ]
+        },
+        {
+          "id": "instance",
+          "name": "vehiclesStore",
+          "type": "Object instance",
+          "technology": "MockStore<Vehicle>",
+          "status": "mock",
+          "x": 430,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Module-scoped singleton initialized from vehicle fixtures.",
+          "detail": [
+            "Each server process has its own Map; it is not distributed storage."
+          ],
+          "sources": [
+            "lib/mock-store.ts:151"
+          ]
+        },
+        {
+          "id": "store",
+          "name": "MockStore<T>",
+          "type": "Class",
+          "technology": "query · create · update · reset",
+          "status": "mock",
+          "x": 30,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Generic CRUD over a Map with cloning on creation/reset.",
+          "detail": [
+            "query(): string search, exact filters, sorting and array slicing.",
+            "update(): shallow merges a Partial<T>; it does not validate business invariants."
+          ],
+          "sources": [
+            "lib/mock-store.ts:32–121"
+          ]
+        },
+        {
+          "id": "schema",
+          "name": "Vehicle / VehicleSchema",
+          "type": "Type + schema",
+          "technology": "Zod · inferred TypeScript",
+          "status": "implemented",
+          "x": 30,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Current UI data contract includes purchase facts directly on Vehicle.",
+          "detail": [
+            "This is a mock DTO, not the final purchase-cycle database schema.",
+            "A TypeScript assertion on request JSON does not perform runtime validation."
+          ],
+          "sources": [
+            "lib/mock-data/schemas.ts:18–52"
+          ]
+        },
+        {
+          "id": "fixtures",
+          "name": "vehicleFixtures",
+          "type": "Seed data",
+          "technology": "lib/mock-data/vehicles.ts",
+          "status": "mock",
+          "x": 430,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Deterministic sample inventory for the shell and tests.",
+          "detail": [
+            "resetAll() restores all mock collections to their initial fixture state."
+          ],
+          "sources": [
+            "lib/mock-data/vehicles.ts",
+            "lib/mock-store.ts:172–187"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "route",
+          "label": "fetch JSON",
+          "detail": "",
+          "from": "hook"
+        },
+        {
+          "to": "instance",
+          "label": "query(params)",
+          "detail": "",
+          "from": "route"
+        },
+        {
+          "to": "store",
+          "label": "Instance of",
+          "detail": "",
+          "from": "instance"
+        },
+        {
+          "to": "schema",
+          "label": "Generic constraint",
+          "detail": "",
+          "from": "store"
+        },
+        {
+          "to": "instance",
+          "label": "Constructor seed",
+          "detail": "",
+          "from": "fixtures"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [],
+      "notes": []
+    },
+    {
+      "id": "code-cycle",
+      "level": "C4",
+      "title": "Purchase-cycle domain types",
+      "summary": "A vehicle can be bought again. Each sale must retain its original costs.",
+      "state": "Target · conceptual code types, not implemented",
+      "scope": "Code-level design: inventory / sale model",
+      "nodes": [
+        {
+          "id": "vehicle",
+          "name": "Vehicle",
+          "type": "Entity type",
+          "technology": "id · engine + chassis · status",
+          "status": "planned",
+          "x": 30,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Long-lived physical vehicle identity.",
+          "detail": [
+            "Unique normalized engine/chassis pair; optional VIN and CR number.",
+            "activePurchaseId points to current ownership, never to historical sale costs."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.1"
+          ]
+        },
+        {
+          "id": "cycle",
+          "name": "PurchaseRecord",
+          "type": "Entity type",
+          "technology": "id · vehicleId · purchasePrice",
+          "status": "planned",
+          "x": 430,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "One acquisition/ownership cycle, repeated when buying the vehicle back.",
+          "detail": [
+            "Purchase type: cash, lease settlement or brand-new.",
+            "Trade-in acquisition additionally links tradeInSourceSaleId and the customer-as-seller; its purchase basis is the agreed noncash value.",
+            "Recommended: explicit closed/open lifecycle and version for concurrent writes."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md:130–149",
+            "docs/02-2-requirements-specification.md §13"
+          ]
+        },
+        {
+          "id": "costs",
+          "name": "RepairRecord / VehicleCost",
+          "type": "Entity types",
+          "technology": "purchaseRecordId · amount",
+          "status": "planned",
+          "x": 430,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Costs are attached to this purchase cycle.",
+          "detail": [
+            "Actual repair invoice and additional costs contribute to cost basis.",
+            "Incurred date and paid date are different concepts for cash reports."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.3, §3.10, §7.1"
+          ]
+        },
+        {
+          "id": "sale",
+          "name": "SaleRecord",
+          "type": "Entity type",
+          "technology": "purchaseRecordId · salePrice",
+          "status": "recommended",
+          "x": 30,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Completed sale bound permanently to its acquisition cycle.",
+          "detail": [
+            "Add purchaseRecordId: the current specification links only vehicleId.",
+            "One completed sale per cycle; a later buy-back creates a new PurchaseRecord.",
+            "Optional trade-in consideration links a traded identity and, when added to stock, its new purchase cycle. Do not treat that asset value as cash.",
+            "Final agreed sale price already includes discount; do not subtract discount twice."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md:290–311,785–800",
+            "docs/02-2-requirements-specification.md §13"
+          ]
+        },
+        {
+          "id": "advance",
+          "name": "Advance / finance details",
+          "type": "Entity types",
+          "technology": "receipt facts · agreement state",
+          "status": "planned",
+          "x": 30,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Reservation and lease progress precede final sale completion.",
+          "detail": [
+            "Advances can expire without automatically refunding money.",
+            "Recommended: allow a finance agreement before a completed SaleRecord; DO and delivery fields remain optional until required by the transition."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.12–3.13, §5.3"
+          ]
+        },
+        {
+          "id": "profit",
+          "name": "calculateCycleProfit()",
+          "type": "Proposed pure function",
+          "technology": "sale − purchase − cycle costs",
+          "status": "recommended",
+          "x": 430,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "One shared financial calculation for detail pages and reports.",
+          "detail": [
+            "Select the sale's purchaseRecordId, never Vehicle.activePurchaseId, for historical profit.",
+            "Use exact minor-unit arithmetic with explicit database and JSON bounds."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §7.1–7.3"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "cycle",
+          "label": "1 → many cycles",
+          "detail": "",
+          "from": "vehicle"
+        },
+        {
+          "to": "costs",
+          "label": "1 → many costs",
+          "detail": "",
+          "from": "cycle"
+        },
+        {
+          "to": "cycle",
+          "label": "Belongs to one cycle",
+          "detail": "",
+          "from": "sale"
+        },
+        {
+          "to": "sale",
+          "label": "Converts / completes",
+          "detail": "",
+          "from": "advance"
+        },
+        {
+          "to": "profit",
+          "label": "Provides agreed price",
+          "detail": "",
+          "from": "sale"
+        },
+        {
+          "to": "profit",
+          "label": "Provides cycle costs",
+          "detail": "",
+          "from": "costs"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [],
+      "notes": [
+        "C4 code-level views here are proposed entity/function designs, not generated Prisma schemas.",
+        "Financial event dates persist when status changes. Trade-in value is non-cash consideration, not bank cash."
+      ]
+    },
+    {
+      "id": "code-sale",
+      "level": "C4",
+      "title": "One safe sale command",
+      "summary": "Either the whole sale is saved—including its audit—or nothing is.",
+      "state": "Target · recommended function design",
+      "scope": "Code-level zoom: Sales module",
+      "nodes": [
+        {
+          "id": "command",
+          "name": "completeSale(input, actor)",
+          "type": "Proposed function",
+          "technology": "Server-only domain operation",
+          "status": "recommended",
+          "x": 230,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "The single trusted entry for finalizing a vehicle sale.",
+          "detail": [
+            "Input: purchaseRecordId, expectedVersion, idempotencyKey, terms and payment facts.",
+            "Actor: authenticated user and current permission rules.",
+            "Return: completed sale or an explicit conflict/approval-required result."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:365–398",
+            "docs/02-2-requirements-specification.md §5, §8–9"
+          ]
+        },
+        {
+          "id": "checks",
+          "name": "Validate + authorize",
+          "type": "Internal functions",
+          "technology": "Zod · CASL subject checks",
+          "status": "planned",
+          "x": 30,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Validate input, permissions, current cycle and exact approval payload.",
+          "detail": [
+            "Reject duplicate active reservations, stale versions and invalid financial combinations.",
+            "Verify required down payment and DO; checking a role name alone is insufficient."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §5.3, §8–9"
+          ]
+        },
+        {
+          "id": "tx",
+          "name": "Transaction callback",
+          "type": "Implementation seam",
+          "technology": "Prisma interactive transaction",
+          "status": "recommended",
+          "x": 430,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Re-check the current state and atomically persist the business result.",
+          "detail": [
+            "Claim idempotency key; compare/lock the active cycle; enforce unique sale-per-cycle.",
+            "Create sale and payment facts, close inventory cycle, add mileage, apply approval and append audit/notifications.",
+            "If adding a trade-in to stock: reuse/create its physical identity, create the linked purchase cycle at agreed noncash value and retain customer-as-seller. This participates in the same commit; never invent a cash purchase payment.",
+            "Rollback all changes on error; retry only with the same request key."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:385–391",
+            "docs/02-2-requirements-specification.md §13"
+          ]
+        },
+        {
+          "id": "policy",
+          "name": "transition + money rules",
+          "type": "Pure functions",
+          "technology": "Allowed actions · exact amounts",
+          "status": "recommended",
+          "x": 30,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Validate transitions and calculate balance/profit consistently.",
+          "detail": [
+            "IN_STOCK → SOLD must exist for a cash sale.",
+            "Re-purchase starts a new cycle rather than rewriting the completed sale.",
+            "A status change alone cannot substitute for the corresponding business operation."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:286–318",
+            "docs/02-2-requirements-specification.md §4–7"
+          ]
+        },
+        {
+          "id": "result",
+          "name": "Committed result",
+          "type": "Return contract",
+          "technology": "Sale DTO · affected identities",
+          "status": "recommended",
+          "x": 430,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Return only after commit; refresh dependent UI queries.",
+          "detail": [
+            "File uploads/PDF work must not hold a database transaction open.",
+            "Client invalidates inventory, sales, dashboards and relevant reports after success."
+          ],
+          "sources": [
+            "hooks/use-entity-mutation.ts:71–74",
+            ".planning/research/ARCHITECTURE.md:393–397"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "checks",
+          "label": "Checks contract",
+          "detail": "",
+          "from": "command"
+        },
+        {
+          "to": "tx",
+          "label": "Owns transaction",
+          "detail": "",
+          "from": "command"
+        },
+        {
+          "to": "policy",
+          "label": "Uses pure rules",
+          "detail": "",
+          "from": "checks"
+        },
+        {
+          "to": "policy",
+          "label": "Revalidates state",
+          "detail": "",
+          "from": "tx"
+        },
+        {
+          "to": "result",
+          "label": "Returns after commit",
+          "detail": "",
+          "from": "tx"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [],
+      "notes": []
+    },
+    {
+      "id": "code-broker",
+      "level": "C4",
+      "title": "Brokerage domain types",
+      "summary": "A customer-owned vehicle can receive finance without entering inventory.",
+      "state": "Target · conceptual domain types",
+      "scope": "Code-level design: Lease brokerage module",
+      "nodes": [
+        {
+          "id": "rates",
+          "name": "FinanceCompany + RateSheet",
+          "type": "Entity types",
+          "technology": "Model / year · amount / term",
+          "status": "planned",
+          "x": 30,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Rate sheets and cards drive the finance comparison.",
+          "detail": [
+            "Staff maintains rates manually. No finance-company integration.",
+            "Recommended: capture selected terms on the deal so later rate edits do not rewrite it."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:8–16",
+            ".planning/ROADMAP.md §Phase 8"
+          ]
+        },
+        {
+          "id": "deal",
+          "name": "LeaseDeal",
+          "type": "Entity type",
+          "technology": "Customer · vehicle description",
+          "status": "planned",
+          "x": 430,
+          "y": 50,
+          "w": 260,
+          "h": 116,
+          "description": "Brokerage case with application-processing or referral path.",
+          "detail": [
+            "Links customer, guarantors, selected financier, loan terms and cash-advance facility.",
+            "The described vehicle is not necessarily a stock Vehicle record."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:13–37",
+            "lib/mock-data/schemas.ts:162–204"
+          ]
+        },
+        {
+          "id": "processing",
+          "name": "Eligibility + case events",
+          "type": "Entity/value types",
+          "technology": "Checks · blockers · inquiries",
+          "status": "planned",
+          "x": 430,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Eligibility decisions, inspection, documents, verification and reference number.",
+          "detail": [
+            "Application path: collect/verify documents and dispatch.",
+            "Referral path: handoff and follow-up; record rejection or non-remittance.",
+            "Store finance-company contact and feedback on verification/blocker events."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:18–37"
+          ]
+        },
+        {
+          "id": "dispatch",
+          "name": "DispatchBatch / item",
+          "type": "Proposed entity types",
+          "technology": "LeaseDeal or finance-sale ref",
+          "status": "recommended",
+          "x": 30,
+          "y": 300,
+          "w": 260,
+          "h": 116,
+          "description": "Checked files grouped for physical courier handover.",
+          "detail": [
+            "Recommended: explicit links to the source sale or brokerage deal; retain dispatched time and actor.",
+            "A single dispatch capability supports both sources."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:30",
+            "lib/mock-data/schemas.ts:296–309"
+          ]
+        },
+        {
+          "id": "commission",
+          "name": "Commission + allocation",
+          "type": "Proposed entity types",
+          "technology": "Expected · received · match",
+          "status": "recommended",
+          "x": 30,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Expected fees matched to dated finance-company remittances.",
+          "detail": [
+            "Support per-company reconciliation rules and partial/discrepant payments.",
+            "Prevent allocating the same remittance amount twice.",
+            "Overdue rules depend on dispatch/referral and the company's reconciliation method."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:39–45",
+            "lib/mock-data/schemas.ts:313–327"
+          ]
+        },
+        {
+          "id": "cash",
+          "name": "Disbursement facts",
+          "type": "Domain value / receipt data",
+          "technology": "Gross − deductions − held fee",
+          "status": "recommended",
+          "x": 430,
+          "y": 550,
+          "w": 260,
+          "h": 116,
+          "description": "Record actual cash-advance payout and its fee/deductions.",
+          "detail": [
+            "Payout and commission receipt are separate cash events with independent dates.",
+            "Recommended: retain them within source transaction records; no general-accounting ledger is introduced."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:29,37",
+            "docs/02-2-requirements-specification.md §7.4"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "deal",
+          "label": "Provides selected terms",
+          "detail": "",
+          "from": "rates"
+        },
+        {
+          "to": "processing",
+          "label": "1 → many events",
+          "detail": "",
+          "from": "deal"
+        },
+        {
+          "to": "dispatch",
+          "label": "Makes file ready",
+          "detail": "",
+          "from": "processing"
+        },
+        {
+          "to": "commission",
+          "label": "Starts eligibility clock",
+          "detail": "",
+          "from": "dispatch"
+        },
+        {
+          "to": "cash",
+          "label": "Records payout",
+          "detail": "",
+          "from": "processing"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [],
+      "notes": [
+        "Detailed type names for dispatch/allocation are recommendations. The user-required workflows already exist in the business brief."
+      ]
+    },
+    {
+      "id": "server-current",
+      "level": "C3",
+      "title": "Today: two demo data paths",
+      "summary": "Mutable records and bundled fixtures coexist. Reports can disagree with edited screens.",
+      "state": "Current · code verified",
+      "scope": "Container: Next.js prototype (with browser context)",
+      "nodes": [
+        {
+          "id": "ui",
+          "name": "Feature UI",
+          "type": "Browser component",
+          "technology": "React · fetch + imports",
+          "status": "implemented",
+          "x": 230,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Reads API data but also uses bundled fixtures for names and histories.",
+          "detail": [
+            "Fixture lookup is not an authorized server read."
+          ],
+          "sources": [
+            "components/sales/record-sale-dialog.tsx:5–6,82–85",
+            "components/vehicles/vehicle-financials.tsx:17–25"
+          ]
+        },
+        {
+          "id": "crud",
+          "name": "CRUD Route Handlers",
+          "type": "Server component",
+          "technology": "GET / POST / PATCH",
+          "status": "mock",
+          "x": 30,
+          "y": 275,
+          "w": 260,
+          "h": 116,
+          "description": "Direct request-to-store calls with artificial latency.",
+          "detail": [
+            "Purchases create Vehicle rows; sales/repairs do not coordinate vehicle status.",
+            "Current TypeScript assertions do not validate arbitrary JSON."
+          ],
+          "sources": [
+            "app/api/purchases/route.ts",
+            "app/api/sales/route.ts"
+          ]
+        },
+        {
+          "id": "reports",
+          "name": "Report Route Handlers",
+          "type": "Server component",
+          "technology": "Fixture aggregation helpers",
+          "status": "mock",
+          "x": 430,
+          "y": 275,
+          "w": 260,
+          "h": 116,
+          "description": "Most report endpoints compute from original fixture arrays.",
+          "detail": [
+            "Dashboard mixes mutable store data with fixed activity; cash flow is a separate seeded store."
+          ],
+          "sources": [
+            "lib/mock-data/reports.ts:5–10,21–74",
+            "app/api/dashboard/route.ts",
+            "app/api/cash-flow/route.ts"
+          ]
+        },
+        {
+          "id": "maps",
+          "name": "MockStore / SettingsStore",
+          "type": "Server component",
+          "technology": "Process-local Maps",
+          "status": "mock",
+          "x": 30,
+          "y": 525,
+          "w": 260,
+          "h": 116,
+          "description": "Mutable demo state; independent collections.",
+          "detail": [
+            "No FK, multi-record transaction, authorization or durable audit guarantee."
+          ],
+          "sources": [
+            "lib/mock-store.ts:32–164"
+          ]
+        },
+        {
+          "id": "fixtures",
+          "name": "Original fixtures",
+          "type": "Bundled data module",
+          "technology": "TypeScript arrays",
+          "status": "mock",
+          "x": 430,
+          "y": 525,
+          "w": 260,
+          "h": 116,
+          "description": "Initial data and static joins, separately imported in server and browser bundles.",
+          "detail": [
+            "Store creation clones these arrays. Editing the Map does not edit the original fixture."
+          ],
+          "sources": [
+            "lib/mock-store.ts:36–39",
+            "lib/mock-data/"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "crud",
+          "label": "HTTP JSON",
+          "detail": "",
+          "from": "ui"
+        },
+        {
+          "to": "reports",
+          "label": "HTTP JSON",
+          "detail": "",
+          "from": "ui"
+        },
+        {
+          "to": "maps",
+          "label": "In-process CRUD",
+          "detail": "",
+          "from": "crud"
+        },
+        {
+          "to": "fixtures",
+          "label": "Static imports",
+          "detail": "",
+          "from": "reports"
+        },
+        {
+          "to": "maps",
+          "label": "Seeds a clone",
+          "detail": "",
+          "from": "fixtures"
+        },
+        {
+          "to": "fixtures",
+          "label": "Bundled fixture lookup",
+          "detail": "",
+          "points": [
+            [
+              490,
+              103
+            ],
+            [
+              710,
+              103
+            ],
+            [
+              710,
+              583
+            ],
+            [
+              690,
+              583
+            ]
+          ],
+          "labelX": 610,
+          "labelY": 200,
+          "from": "ui"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [
+        {
+          "name": "Next.js server — no production domain modules yet",
+          "x": 15,
+          "y": 235,
+          "w": 690,
+          "h": 445
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": "finance-components",
+      "level": "C3",
+      "title": "Shared finance & reconciliation",
+      "summary": "Sales and brokerage share financial evidence without becoming one workflow.",
+      "state": "Target · recommended module ownership",
+      "scope": "Container: Next.js application",
+      "nodes": [
+        {
+          "id": "sales",
+          "name": "Sales & inventory",
+          "type": "Domain component",
+          "technology": "Sales · purchases · repairs",
+          "status": "planned",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Provides dated receipts, supplier/vendor payments, refunds and disposal proceeds.",
+          "detail": [
+            "A trade-in is non-cash acquisition and consideration; DO issuance is not finance-company cash receipt."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §5–7",
+            ".planning/research/c4-business-findings.md §8.2"
+          ]
+        },
+        {
+          "id": "broker",
+          "name": "Brokerage",
+          "type": "Domain component",
+          "technology": "Cases · facility · commissions",
+          "status": "planned",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Provides cash-facility payout/recovery and commission entitlements.",
+          "detail": [
+            "Commission expectation is distinct from receipt; actual remittance is recorded separately."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:29,37–45"
+          ]
+        },
+        {
+          "id": "finance",
+          "name": "Finance & reconciliation",
+          "type": "Domain component",
+          "technology": "Receipt rules · allocation",
+          "status": "recommended",
+          "x": 230,
+          "y": 295,
+          "w": 260,
+          "h": 116,
+          "description": "Applies shared money rules and matches remittances to entitlements.",
+          "detail": [
+            "Source-linked immutable payment facts with occurredAt, amount, method, direction and reversal reference.",
+            "Keep receipt child records within their business source; aggregate a read projection rather than introducing general-ledger accounting.",
+            "Unified finance-company reconciliation covers vehicle-sale leases and brokerage, including discrepancy resolutions and overdue cutoffs."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §7.4",
+            ".planning/REQUIREMENTS.md:201–207"
+          ]
+        },
+        {
+          "id": "reports",
+          "name": "Reports & dashboard",
+          "type": "Read component",
+          "technology": "Authorized projections",
+          "status": "planned",
+          "x": 30,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Builds cash movement, stock cost and profit views from authoritative facts.",
+          "detail": [
+            "Date range means actual occurred date for cash, completion date for sales.",
+            "Net movement is not an absolute cash balance without an opening balance."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §7, §11",
+            ".planning/research/c4-business-findings.md §8.2"
+          ]
+        },
+        {
+          "id": "data",
+          "name": "Database access",
+          "type": "Persistence component",
+          "technology": "Prisma · PostgreSQL",
+          "status": "planned",
+          "x": 430,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Persists facts/allocations under the calling domain transaction.",
+          "detail": [
+            "No duplicate allocations, money counted once, audit written in the same commit.",
+            "Recommended bigint money columns with safe JSON-number bounds; use strings if a bound is exceeded."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md",
+            ".planning/research/c4-infrastructure-findings.md §5"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "finance",
+          "label": "Records money facts",
+          "detail": "",
+          "from": "sales"
+        },
+        {
+          "to": "finance",
+          "label": "Records money facts",
+          "detail": "",
+          "from": "broker"
+        },
+        {
+          "to": "data",
+          "label": "Writes in caller tx",
+          "detail": "",
+          "from": "finance"
+        },
+        {
+          "to": "finance",
+          "label": "Uses shared semantics",
+          "detail": "",
+          "from": "reports"
+        },
+        {
+          "to": "data",
+          "label": "Queries facts",
+          "detail": "",
+          "from": "reports"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [
+        {
+          "name": "One app and one database transaction model",
+          "x": 15,
+          "y": 15,
+          "w": 690,
+          "h": 675
+        }
+      ],
+      "notes": []
+    },
+    {
+      "id": "code-access",
+      "level": "C4",
+      "title": "Identity, approval & audit types",
+      "summary": "Authority belongs to the signed-in actor and the exact action being approved.",
+      "state": "Target · documented entities + proposed guards",
+      "scope": "Code-level design: access and governance",
+      "nodes": [
+        {
+          "id": "user",
+          "name": "User + Session",
+          "type": "Entity types",
+          "technology": "Better Auth · active account",
+          "status": "planned",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Credentials-based sign-in; server resolves actor identity.",
+          "detail": [
+            "Do not accept actor IDs or permission rules from browser payloads.",
+            "Protect the last administrator from accidental removal/deactivation."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.14, §9",
+            ".planning/REQUIREMENTS.md:107–113"
+          ]
+        },
+        {
+          "id": "roles",
+          "name": "Role / Permission",
+          "type": "Entity types",
+          "technology": "UserRole · RolePermission",
+          "status": "planned",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Many roles per user; runtime-configurable actions and subjects.",
+          "detail": [
+            "Record/field conditions are enforced against actual entities and scoped collection queries.",
+            "Fresh rules once per request; client rule copies only drive presentation."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §3.14–3.17, §9"
+          ]
+        },
+        {
+          "id": "operation",
+          "name": "authorizeOperation()",
+          "type": "Proposed function seam",
+          "technology": "Actor · record · action",
+          "status": "recommended",
+          "x": 230,
+          "y": 295,
+          "w": 260,
+          "h": 116,
+          "description": "Shared server-only authorization for API, RSC, exports and files.",
+          "detail": [
+            "Typed, minimized DTOs exclude unauthorized private or financial fields.",
+            "System jobs have explicit system authority; imports need admin permission and provenance."
+          ],
+          "sources": [
+            "https://nextjs.org/docs/app/guides/authentication",
+            ".planning/research/ARCHITECTURE.md:400–418"
+          ]
+        },
+        {
+          "id": "approval",
+          "name": "ApprovalRequest",
+          "type": "Entity type + guard",
+          "technology": "Payload · revision · decision",
+          "status": "recommended",
+          "x": 30,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Stores a proposed action and consumes approval exactly once.",
+          "detail": [
+            "Recheck current authority, revision, price and obligations before applying.",
+            "Recommend separate requester/reviewer for financial gates; any override must be explicit and audited."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §8.3",
+            ".planning/research/c4-business-findings.md §8.5"
+          ]
+        },
+        {
+          "id": "audit",
+          "name": "AuditLog / Notification",
+          "type": "Entity types",
+          "technology": "Actor · reason · recipient",
+          "status": "planned",
+          "x": 430,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Append-only field changes and recipient-specific in-app events.",
+          "detail": [
+            "Append with the transaction client, including requester and approver where relevant.",
+            "Notifications are deduplicated and marked read per recipient.",
+            "Append-only at application/DB-role level does not mean tamper-proof against a DB administrator."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §8–10",
+            ".planning/research/c4-infrastructure-findings.md §4"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "roles",
+          "label": "Many-to-many roles",
+          "detail": "",
+          "from": "user"
+        },
+        {
+          "to": "operation",
+          "label": "Supplies trusted actor",
+          "detail": "",
+          "from": "user"
+        },
+        {
+          "to": "operation",
+          "label": "Builds current rules",
+          "detail": "",
+          "from": "roles"
+        },
+        {
+          "to": "approval",
+          "label": "Checks exact proposal",
+          "detail": "",
+          "from": "operation"
+        },
+        {
+          "to": "audit",
+          "label": "Appends in same tx",
+          "detail": "",
+          "from": "approval"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [],
+      "notes": []
+    },
+    {
+      "id": "flow-sale",
+      "level": "Flows",
+      "title": "Finalize a vehicle sale",
+      "summary": "Same request key + same cycle version = one sale, even after a retry.",
+      "state": "Target · dynamic view",
+      "scope": "Scenario: sale with optional approval",
+      "nodes": [
+        {
+          "id": "staff",
+          "name": "Staff UI",
+          "type": "Container instance",
+          "technology": "Browser",
+          "status": "planned",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Submits sale details, expected cycle version and operation key.",
+          "detail": [
+            "The same key is retained across a retry; a changed payload needs a different request."
+          ],
+          "sources": [
+            "hooks/use-entity-mutation.ts",
+            ".planning/research/c4-business-findings.md §7"
+          ]
+        },
+        {
+          "id": "entry",
+          "name": "Authorized HTTP entry",
+          "type": "Component instance",
+          "technology": "Next.js Route Handler",
+          "status": "planned",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Resolves session, validates the request and calls the sales command.",
+          "detail": [
+            "Return unauthorized/forbidden, validation, pending approval, conflict or success explicitly."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:216–251"
+          ]
+        },
+        {
+          "id": "sales",
+          "name": "Sales command",
+          "type": "Component instance",
+          "technology": "completeSale(input, actor)",
+          "status": "recommended",
+          "x": 30,
+          "y": 295,
+          "w": 260,
+          "h": 116,
+          "description": "Checks cycle, balance, sale type and approval before completing.",
+          "detail": [
+            "If below asking price: store exact proposal and return pending; do not hand over or finalize.",
+            "A manager's approved proposal is revalidated before the completion transaction."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §5.3, §8.3"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "PostgreSQL",
+          "type": "Data-store instance",
+          "technology": "One atomic transaction",
+          "status": "planned",
+          "x": 430,
+          "y": 295,
+          "w": 260,
+          "h": 116,
+          "description": "Persist sale, receipt facts, inventory closure, mileage, audit and notifications together.",
+          "detail": [
+            "Lock/compare cycle revision and enforce a unique completed sale for that cycle.",
+            "For trade-in-to-stock, also reuse/create the traded identity and its new purchase cycle, linked back to this sale and customer-as-seller at agreed noncash value.",
+            "Any required write failure rolls back all effects.",
+            "A duplicate operation returns its recorded result; a different racing sale returns conflict."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:385–391",
+            "docs/02-2-requirements-specification.md §13",
+            ".planning/research/c4-infrastructure-findings.md §4"
+          ]
+        },
+        {
+          "id": "manager",
+          "name": "Manager UI",
+          "type": "Container instance",
+          "technology": "Browser · authorized approver",
+          "status": "planned",
+          "x": 30,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Reviews the unchanged proposal and approves or rejects.",
+          "detail": [
+            "Approval does not authorize arbitrary future edits to the sale."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §8.3"
+          ]
+        },
+        {
+          "id": "approval",
+          "name": "Approval operation",
+          "type": "Component instance",
+          "technology": "Pending → decision once",
+          "status": "recommended",
+          "x": 430,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Checks reviewer and applies the proposed action through the owning domain command.",
+          "detail": [
+            "Never replay arbitrary JSON directly into a record."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §8.3",
+            ".planning/research/c4-business-findings.md §8.5"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "entry",
+          "label": "1. POST sale",
+          "detail": "",
+          "from": "staff"
+        },
+        {
+          "to": "sales",
+          "label": "2. Trusted command",
+          "detail": "",
+          "from": "entry"
+        },
+        {
+          "to": "db",
+          "label": "3 / 6. Atomic write",
+          "detail": "3 creates a pending proposal when approval is required; 6 commits the approved sale. Ungated sales complete at step 3.",
+          "from": "sales"
+        },
+        {
+          "to": "approval",
+          "label": "4. Review decision",
+          "detail": "",
+          "from": "manager"
+        },
+        {
+          "to": "sales",
+          "label": "5. Revalidate & apply",
+          "detail": "",
+          "from": "approval"
+        },
+        {
+          "to": "entry",
+          "label": "7. Commit result",
+          "detail": "",
+          "from": "db"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [],
+      "notes": [
+        "The response flows back to the staff UI after commit; it invalidates all affected query keys.",
+        "Invoice generation is a separate post-sale operation, not part of the sale transaction."
+      ]
+    },
+    {
+      "id": "flow-files",
+      "level": "Flows",
+      "title": "Private upload & invoice flow",
+      "summary": "A file is usable only after it is verified and linked to an authorized record.",
+      "state": "Target · dynamic view",
+      "scope": "Scenario: DO / inspection evidence, then protected download",
+      "nodes": [
+        {
+          "id": "browser",
+          "name": "Staff browser",
+          "type": "Container instance",
+          "technology": "File API · HTTPS",
+          "status": "planned",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Requests an upload slot, sends bytes, then asks to attach.",
+          "detail": [
+            "Declared file type/size are checked server-side; a MIME header alone is not proof of content."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:320–349",
+            ".planning/research/c4-infrastructure-findings.md §3"
+          ]
+        },
+        {
+          "id": "app",
+          "name": "Document operations",
+          "type": "Component instance",
+          "technology": "Authorize · sign · finalize",
+          "status": "recommended",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Owns pending upload metadata and short-lived file capabilities.",
+          "detail": [
+            "Init checks actor and target record; completion rechecks ownership and content/metadata.",
+            "Copy validated staging object to a fresh server-only final key, then link final metadata.",
+            "Downloads check the parent record's read permission before issuing a signed GET."
+          ],
+          "sources": [
+            "https://developers.cloudflare.com/r2/api/s3/presigned-urls/",
+            ".planning/research/c4-infrastructure-findings.md §3"
+          ]
+        },
+        {
+          "id": "r2",
+          "name": "Private R2 bucket",
+          "type": "Data-store instance",
+          "technology": "Staging + immutable final keys",
+          "status": "planned",
+          "x": 30,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Holds bytes; browser can only write short-lived staging keys.",
+          "detail": [
+            "R2 and PostgreSQL do not share a transaction. Failures leave unreferenced objects for cleanup, not half-valid business attachments.",
+            "A signed URL remains a bearer capability until expiry; revocation of a role cannot revoke an already issued URL immediately."
+          ],
+          "sources": [
+            "https://developers.cloudflare.com/r2/api/s3/presigned-urls/"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "Attachment / invoice metadata",
+          "type": "Data-store instance",
+          "technology": "PostgreSQL",
+          "status": "recommended",
+          "x": 430,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Records owner, purpose, final key, hash/type/size and issuance version.",
+          "detail": [
+            "Invoice: authorize completed sale → snapshot → render PDF outside DB transaction → save new immutable R2 key → commit version metadata and audit.",
+            "Failed persistence must not mark a PDF as issued. Retrying issuance is separate from retrying the sale."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md:888–892",
+            ".planning/research/c4-infrastructure-findings.md §3"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "app",
+          "label": "1 / 5. Request access",
+          "detail": "1 init upload; later confirm completion; 5 request a permission-checked download.",
+          "from": "browser"
+        },
+        {
+          "to": "r2",
+          "label": "2. Signed PUT / GET",
+          "detail": "",
+          "from": "browser"
+        },
+        {
+          "to": "r2",
+          "label": "3. Verify & finalize",
+          "detail": "",
+          "from": "app"
+        },
+        {
+          "to": "db",
+          "label": "4. Link + audit",
+          "detail": "",
+          "from": "app"
+        }
+      ],
+      "width": 720,
+      "height": 515,
+      "groups": [],
+      "notes": [
+        "Pending metadata is created at init. Final metadata is committed only after bytes are verified.",
+        "Required inspection photos and DO documents are v1. General inventory-photo galleries are deferred in the current requirement catalog."
+      ]
+    },
+    {
+      "id": "flow-broker",
+      "level": "Flows",
+      "title": "Brokerage → commission",
+      "summary": "Processing completion and commission payment are separate outcomes.",
+      "state": "Target · dynamic view",
+      "scope": "Scenario: customer-owned vehicle finance",
+      "nodes": [
+        {
+          "id": "staff",
+          "name": "Brokerage operator",
+          "type": "Person using staff UI",
+          "technology": "Manual finance liaison",
+          "status": "external",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Captures the external vehicle, customer, guarantors and finance-company responses.",
+          "detail": [
+            "Eligibility, contact handoff, DO/file references and courier handover are manual outside VSMS."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md"
+          ]
+        },
+        {
+          "id": "compare",
+          "name": "Rate comparison",
+          "type": "Component instance",
+          "technology": "Finance-company rate cards",
+          "status": "planned",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Looks up supported principal / term / installment and maximum loan.",
+          "detail": [
+            "Recommend exact rate-card lookup; do not promote the mock's ±20% nearest-loan approximation to real quotations.",
+            "Snapshot selected terms and charges on the deal."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:8–16",
+            ".planning/research/c4-business-findings.md §8.6"
+          ]
+        },
+        {
+          "id": "broker",
+          "name": "Brokerage case",
+          "type": "Component instance",
+          "technology": "Common intake → selected path",
+          "status": "planned",
+          "x": 430,
+          "y": 295,
+          "w": 260,
+          "h": 116,
+          "description": "Records eligibility and selects Application or Referral.",
+          "detail": [
+            "Application: inspection → evidence/checklists → verification/contact → file number → dispatch; track blockers and inquiries.",
+            "Referral: handoff contact/date → track rejection or non-remittance.",
+            "Either path can disburse a cash facility; keep payout/recovery separate from commissions."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:13–37"
+          ]
+        },
+        {
+          "id": "documents",
+          "name": "Documents & dispatch",
+          "type": "Component instance",
+          "technology": "Private evidence · batch handover",
+          "status": "planned",
+          "x": 30,
+          "y": 295,
+          "w": 260,
+          "h": 116,
+          "description": "Stores verified evidence and records physical courier handover.",
+          "detail": [
+            "Application requires the specified inspection categories and conditional documents.",
+            "Referral does not inherit Application-only photo/document prerequisites."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:19–31"
+          ]
+        },
+        {
+          "id": "finance",
+          "name": "Finance & reconciliation",
+          "type": "Component instance",
+          "technology": "Entitlements · remittance matches",
+          "status": "planned",
+          "x": 30,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Matches actual received commission using the finance company's method.",
+          "detail": [
+            "Unmatched eligible items remain visible after reconciliation; preserve cutoff and discrepancy resolution.",
+            "Also includes commission entitlements from owned-vehicle lease sales."
+          ],
+          "sources": [
+            "docs/round_1_customer_feedback.md:39–45",
+            ".planning/REQUIREMENTS.md:201–207"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "PostgreSQL",
+          "type": "Data-store instance",
+          "technology": "Case history + finance facts",
+          "status": "planned",
+          "x": 430,
+          "y": 545,
+          "w": 260,
+          "h": 116,
+          "description": "Stores each command's outcome and audit atomically.",
+          "detail": [
+            "No automatic owned-inventory purchase is created by brokerage intake."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §8",
+            "docs/round_1_customer_feedback.md:9"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "compare",
+          "label": "1. Compare offers",
+          "detail": "",
+          "from": "staff"
+        },
+        {
+          "to": "broker",
+          "label": "2. Selected terms",
+          "detail": "",
+          "from": "compare"
+        },
+        {
+          "to": "documents",
+          "label": "3a. Application evidence",
+          "detail": "",
+          "from": "broker"
+        },
+        {
+          "to": "finance",
+          "label": "4a. Sent eligibility",
+          "detail": "",
+          "from": "documents"
+        },
+        {
+          "to": "finance",
+          "label": "3b / 4b. Referral date",
+          "detail": "",
+          "from": "broker"
+        },
+        {
+          "to": "db",
+          "label": "5. Match + audit",
+          "detail": "",
+          "from": "finance"
+        }
+      ],
+      "width": 720,
+      "height": 710,
+      "groups": [],
+      "notes": []
+    },
+    {
+      "id": "flow-expiry",
+      "level": "Flows",
+      "title": "Advance expiry & manual decision",
+      "summary": "Expired does not mean refunded—or available for a different buyer.",
+      "state": "Target · dynamic view",
+      "scope": "Scenario: daily expiry plus staff resolution",
+      "nodes": [
+        {
+          "id": "cron",
+          "name": "Daily scheduler",
+          "type": "Infrastructure trigger",
+          "technology": "Authenticated HTTPS invocation",
+          "status": "planned",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Calls a bounded, retry-safe expiry operation.",
+          "detail": [
+            "Scheduler is supplied by the eligible production host. Monitor last success and failures.",
+            "A permissioned manual catch-up invokes the same operation."
+          ],
+          "sources": [
+            ".planning/ROADMAP.md §Phase 3",
+            ".planning/research/c4-infrastructure-findings.md §7"
+          ]
+        },
+        {
+          "id": "command",
+          "name": "Reservation operation",
+          "type": "Component instance",
+          "technology": "expire / resolve reservation",
+          "status": "planned",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Checks due date and current cycle before flagging an active reservation.",
+          "detail": [
+            "If a sale has completed, expiry must not overwrite it.",
+            "Business timezone and validity basis are explicit snapshotted inputs."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §6",
+            ".planning/research/c4-business-findings.md §8.6"
+          ]
+        },
+        {
+          "id": "staff",
+          "name": "Staff / approver",
+          "type": "Person using UI",
+          "technology": "Convert · cancel · refund",
+          "status": "external",
+          "x": 30,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Chooses what happens to the expired reservation.",
+          "detail": [
+            "Convert: record remaining balance only. No-refund cancel: keep original receipt. Refund: approval then a separately dated outflow.",
+            "Active advance extension is deferred; do not invent a second receipt when an expired extension policy is approved."
+          ],
+          "sources": [
+            ".planning/REQUIREMENTS.md:71–78,235–239",
+            "docs/02-2-requirements-specification.md §6"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "PostgreSQL",
+          "type": "Data-store instance",
+          "technology": "Reservation + cycle + events",
+          "status": "planned",
+          "x": 430,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Atomically writes reservation/cycle status, audit and notifications.",
+          "detail": [
+            "EXPIRED remains an unresolved commitment until staff acts.",
+            "Mutation guards evaluate dates even if the cron flag is late; cash receipt history never disappears."
+          ],
+          "sources": [
+            ".planning/research/c4-business-findings.md §8.2–8.4"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "command",
+          "label": "1. Expire due items",
+          "detail": "",
+          "from": "cron"
+        },
+        {
+          "to": "db",
+          "label": "2 / 4. Atomic change",
+          "detail": "",
+          "from": "command"
+        },
+        {
+          "to": "command",
+          "label": "3. Resolve with rules",
+          "detail": "",
+          "from": "staff"
+        },
+        {
+          "to": "staff",
+          "label": "2b. In-app notification",
+          "detail": "",
+          "from": "db"
+        }
+      ],
+      "width": 720,
+      "height": 515,
+      "groups": [],
+      "notes": []
+    },
+    {
+      "id": "flow-import",
+      "level": "Flows",
+      "title": "Historical import",
+      "summary": "Preview the whole batch, then commit the whole batch—or reject it.",
+      "state": "Target · dynamic view",
+      "scope": "Scenario: one-time historical data intake",
+      "nodes": [
+        {
+          "id": "admin",
+          "name": "Administrator",
+          "type": "Person using UI",
+          "technology": "CSV / Excel + review",
+          "status": "external",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Supplies transcribed legacy data and confirms a validated preview.",
+          "detail": [
+            "No OCR. Customer/supplier directories are loaded before records that reference them."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §12"
+          ]
+        },
+        {
+          "id": "import",
+          "name": "Import component",
+          "type": "Component instance",
+          "technology": "Parse · validate · stage",
+          "status": "planned",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Maps rows, flags missing identity, duplicates and inconsistent amounts.",
+          "detail": [
+            "Errors identify row/field; do not fabricate vehicle identity to make data pass.",
+            "Keep file hash, reviewed data version and stable source-row keys."
+          ],
+          "sources": [
+            ".planning/ROADMAP.md §Phase 10",
+            ".planning/research/c4-business-findings.md §8.6"
+          ]
+        },
+        {
+          "id": "commands",
+          "name": "Historical intake operation",
+          "type": "Component instance",
+          "technology": "Authorized bounded transaction",
+          "status": "recommended",
+          "x": 30,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Rechecks conflicts and writes reviewed history with import provenance.",
+          "detail": [
+            "It may accept a historically final state without replaying physical handovers; integrity rules still apply.",
+            "Chunking must remain inside one atomic batch transaction, not independent commits disguised as all-or-nothing."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §12",
+            ".planning/research/c4-business-findings.md §8.6"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "PostgreSQL",
+          "type": "Data-store instance",
+          "technology": "Business rows + import audit",
+          "status": "planned",
+          "x": 430,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Commits or rolls back the complete approved batch.",
+          "detail": [
+            "Retry keys prevent duplicate historical cycles/payments.",
+            "Mark records imported and retain source batch/row references."
+          ],
+          "sources": [
+            ".planning/ROADMAP.md:226–239"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "import",
+          "label": "1. Upload & preview",
+          "detail": "",
+          "from": "admin"
+        },
+        {
+          "to": "commands",
+          "label": "2. Confirm snapshot",
+          "detail": "",
+          "from": "import"
+        },
+        {
+          "to": "db",
+          "label": "3. One commit / rollback",
+          "detail": "",
+          "from": "commands"
+        }
+      ],
+      "width": 720,
+      "height": 515,
+      "groups": [],
+      "notes": []
+    },
+    {
+      "id": "deployment-target",
+      "level": "Deployment",
+      "title": "Production deployment — blocked",
+      "summary": "The design fits one Node app. The $0 commercial hosting choice is not yet valid.",
+      "state": "Target · production hosting unresolved",
+      "scope": "Deployment nodes and external managed infrastructure",
+      "nodes": [
+        {
+          "id": "browser",
+          "name": "Staff device",
+          "type": "Deployment node",
+          "technology": "Desktop / mobile browser",
+          "status": "planned",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Runs the React client; installable PWA planned.",
+          "detail": [
+            "No offline business writes; only synthetic data belongs in the current mock deployment."
+          ],
+          "sources": [
+            ".planning/PROJECT.md",
+            ".planning/REQUIREMENTS.md"
+          ]
+        },
+        {
+          "id": "host",
+          "name": "Production Node host",
+          "type": "Deployment node",
+          "technology": "Vercel intended · plan BLOCKED",
+          "status": "blocked",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Hosts the Next.js renderer and API in one deployment.",
+          "detail": [
+            "Vercel Hobby is restricted to non-commercial personal use; the internal dealership application is commercial.",
+            "Keep the $0 constraint visibly unresolved: no paid plan or replacement host is approved by this model.",
+            "Choose eligible hosting before go-live. Runtime secrets remain server-side; dev/test resources are isolated from production."
+          ],
+          "sources": [
+            "vercel-policy",
+            ".planning/research/c4-infrastructure-findings.md §1"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "Neon project",
+          "type": "Managed deployment node",
+          "technology": "PostgreSQL · pooled app access",
+          "status": "planned",
+          "x": 30,
+          "y": 305,
+          "w": 260,
+          "h": 116,
+          "description": "Hosts the business database including sessions, permissions and audit.",
+          "detail": [
+            "Scale-to-zero can cause cold starts; free capacity is finite, not guaranteed indefinite runway.",
+            "Use direct operational access for migrations/backups; choose compatible Prisma/adapter versions at implementation time.",
+            "Prisma's Neon adapter uses WebSockets for interactive transactions; do not label it a plain HTTP-only transaction client."
+          ],
+          "sources": [
+            "neon-prisma",
+            "neon-plans",
+            ".planning/research/c4-infrastructure-findings.md §2"
+          ]
+        },
+        {
+          "id": "r2",
+          "name": "Cloudflare account",
+          "type": "Managed deployment node",
+          "technology": "Private R2 Standard bucket",
+          "status": "planned",
+          "x": 430,
+          "y": 305,
+          "w": 260,
+          "h": 116,
+          "description": "Hosts final attachments, invoice versions and temporary staging objects.",
+          "detail": [
+            "Bucket-scoped server credentials, explicit browser CORS and authenticated signing operations.",
+            "Free allowance is not a hard spending cap; monitor storage/operations and confirm account controls."
+          ],
+          "sources": [
+            "r2-pricing",
+            "r2-presign"
+          ]
+        },
+        {
+          "id": "scheduler",
+          "name": "Daily schedule",
+          "type": "Infrastructure node",
+          "technology": "Host scheduler · secret request",
+          "status": "planned",
+          "x": 30,
+          "y": 565,
+          "w": 260,
+          "h": 116,
+          "description": "Triggers advance expiry; it does not host a separate business worker.",
+          "detail": [
+            "Record last successful run and failures. Staff can run authorized catch-up.",
+            "Do not add a queue solely to satisfy stale 10-second assumptions."
+          ],
+          "sources": [
+            "vercel-limits",
+            "vercel-cron",
+            ".planning/ROADMAP.md §Phase 3"
+          ]
+        },
+        {
+          "id": "ops",
+          "name": "Operator + recovery copy",
+          "type": "Operational deployment node",
+          "technology": "Independent encrypted backup",
+          "status": "recommended",
+          "x": 430,
+          "y": 565,
+          "w": 260,
+          "h": 116,
+          "description": "Backs up PostgreSQL and final R2 objects to an independent location.",
+          "detail": [
+            "Proposed daily backups plus pre-migration/import copies; monthly restore rehearsal.",
+            "Recovery owner/storage are not provisioned. Up to one business day loss assumes daily success; recovery time is unmeasured.",
+            "Account monitoring, error/failed-job logs and a restore runbook are go-live tasks, not extra application services."
+          ],
+          "sources": [
+            "neon-backup",
+            ".planning/research/c4-infrastructure-findings.md §6"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "host",
+          "label": "HTTPS",
+          "detail": "",
+          "from": "browser"
+        },
+        {
+          "to": "db",
+          "label": "TLS · pooled SQL",
+          "detail": "",
+          "from": "host"
+        },
+        {
+          "to": "r2",
+          "label": "HTTPS · S3 API",
+          "detail": "",
+          "from": "host"
+        },
+        {
+          "to": "host",
+          "label": "Daily invocation",
+          "detail": "",
+          "points": [
+            [
+              30,
+              623
+            ],
+            [
+              10,
+              623
+            ],
+            [
+              10,
+              215
+            ],
+            [
+              560,
+              215
+            ],
+            [
+              560,
+              161
+            ]
+          ],
+          "labelX": 115,
+          "labelY": 215,
+          "from": "scheduler"
+        },
+        {
+          "to": "r2",
+          "label": "Copy final objects",
+          "detail": "",
+          "from": "ops"
+        },
+        {
+          "to": "db",
+          "label": "Dump / restore rehearsal",
+          "detail": "",
+          "from": "ops"
+        }
+      ],
+      "width": 720,
+      "height": 735,
+      "groups": [],
+      "notes": [
+        "The browser also transfers signed bytes directly to R2 (C2). Infrastructure resources shown are planned, not account-verified.",
+        "No commercial-plan purchase, cloud provisioning or production deployment was performed."
+      ]
+    },
+    {
+      "id": "deployment-test",
+      "level": "Deployment",
+      "title": "Local development & verification",
+      "summary": "Tests exercise the shell today; transactional business scenarios are the next test layer.",
+      "state": "Current tooling + target integration checks",
+      "scope": "Developer workstation / future isolated test environment",
+      "nodes": [
+        {
+          "id": "developer",
+          "name": "Developer workstation",
+          "type": "Deployment node",
+          "technology": "pnpm · Justfile",
+          "status": "implemented",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Runs local development, builds and checks.",
+          "detail": [
+            "Current dev command uses portless; dev:port uses port 8000.",
+            "No production deployment, CI workflow or infrastructure-as-code configuration was found."
+          ],
+          "sources": [
+            "package.json:6–18",
+            "Justfile"
+          ]
+        },
+        {
+          "id": "next",
+          "name": "Local Next.js app",
+          "type": "Container instance",
+          "technology": "Development or production build",
+          "status": "implemented",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Serves UI/HTTP over localhost with mock stores.",
+          "detail": [
+            "Playwright starts a build/start server. No real identity provider or database is required for current examples."
+          ],
+          "sources": [
+            "playwright.config.ts:14–26",
+            "next.config.mjs"
+          ]
+        },
+        {
+          "id": "unit",
+          "name": "Vitest",
+          "type": "Test process",
+          "technology": "Money + logic-heavy UI",
+          "status": "implemented",
+          "x": 30,
+          "y": 305,
+          "w": 260,
+          "h": 116,
+          "description": "Two test files; 16 unit/component examples passed during exploration.",
+          "detail": [
+            "These tests do not prove production financial workflows or authorization."
+          ],
+          "sources": [
+            "vitest.config.ts",
+            "lib/money.test.ts",
+            "components/vehicles/vehicles-columns.test.tsx"
+          ]
+        },
+        {
+          "id": "http",
+          "name": "Playwright API / E2E",
+          "type": "Test process",
+          "technology": "Real HTTP + Chromium",
+          "status": "implemented",
+          "x": 430,
+          "y": 305,
+          "w": 260,
+          "h": 116,
+          "description": "API examples and browser navigation run against the local app.",
+          "detail": [
+            "Gated /api/test/reset restores fixtures; auth setup currently writes empty browser state.",
+            "Current global reset is not isolation for parallel mutating business tests."
+          ],
+          "sources": [
+            "playwright.config.ts",
+            "tests/",
+            "app/api/test/reset/route.ts"
+          ]
+        },
+        {
+          "id": "scenarios",
+          "name": "Transactional scenarios",
+          "type": "Proposed test process",
+          "technology": "Isolated database + role fixtures",
+          "status": "recommended",
+          "x": 230,
+          "y": 565,
+          "w": 260,
+          "h": 116,
+          "description": "Validate real business invariants when persistence is implemented.",
+          "detail": [
+            "Double sale, repeat request, stale approval, forced audit failure, expired reservation race, buy-back profit, partial refund and trade-in cash.",
+            "Check both HTTP and server-only read authorization, uploads/downloads and immutable invoice versions.",
+            "Production cannot expose destructive test reset; keep explicit disposable DB/credential separation."
+          ],
+          "sources": [
+            ".planning/research/c4-business-findings.md §9",
+            ".planning/research/c4-infrastructure-findings.md §8"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "next",
+          "label": "Starts app",
+          "detail": "",
+          "from": "developer"
+        },
+        {
+          "to": "unit",
+          "label": "Runs checks",
+          "detail": "",
+          "from": "developer"
+        },
+        {
+          "to": "next",
+          "label": "HTTP + browser",
+          "detail": "",
+          "from": "http"
+        },
+        {
+          "to": "http",
+          "label": "Runs API / E2E",
+          "detail": "",
+          "from": "developer"
+        },
+        {
+          "to": "http",
+          "label": "Extends test coverage",
+          "detail": "",
+          "from": "scenarios"
+        }
+      ],
+      "width": 720,
+      "height": 735,
+      "groups": [],
+      "notes": []
+    },
+    {
+      "id": "flow-tradein",
+      "level": "Flows",
+      "title": "Trade-in: sale + new acquisition",
+      "summary": "Example: sale 1,500 = cash 1,000 + traded vehicle 500. Cash received is only 1,000.",
+      "state": "Target · dynamic view",
+      "scope": "Scenario: add a traded vehicle to stock",
+      "nodes": [
+        {
+          "id": "sale",
+          "name": "Sales operation",
+          "type": "Component instance",
+          "technology": "Original cycle · buyer · terms",
+          "status": "planned",
+          "x": 30,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "Completes the original vehicle sale at the full agreed price.",
+          "detail": [
+            "Trade-in is a noncash consideration component. The UI can retain its familiar TradeIn category.",
+            "This does not confirm combined finance-plus-trade-in as v1 scope."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §13",
+            ".planning/REQUIREMENTS.md:88–92"
+          ]
+        },
+        {
+          "id": "inventory",
+          "name": "Acquisition operation",
+          "type": "Component instance",
+          "technology": "Traded identity + new cycle",
+          "status": "recommended",
+          "x": 430,
+          "y": 45,
+          "w": 260,
+          "h": 116,
+          "description": "If the vehicle is entering stock, reuse/create its identity and open its purchase cycle.",
+          "detail": [
+            "Match engine/chassis; reject a duplicate currently owned cycle.",
+            "Purchase basis = agreed trade-in value. Store tradeInSourceSaleId and a valid customer-as-seller reference, not a Customer ID in a Supplier-only FK.",
+            "This is conditional: a description/value may be recorded without adding the traded vehicle to stock."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md:1071–1106",
+            ".planning/research/c4-business-findings.md §5.G"
+          ]
+        },
+        {
+          "id": "finance",
+          "name": "Finance rules",
+          "type": "Component instance",
+          "technology": "Cash vs noncash split",
+          "status": "recommended",
+          "x": 30,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Records residual cash only; preserves noncash asset consideration separately.",
+          "detail": [
+            "No 500 cash inflow or 500 cash purchase outflow is invented in this example.",
+            "Original vehicle profit = full sale price minus original cycle cost."
+          ],
+          "sources": [
+            "docs/02-2-requirements-specification.md §7.2",
+            ".planning/research/c4-business-findings.md §8.2"
+          ]
+        },
+        {
+          "id": "db",
+          "name": "PostgreSQL",
+          "type": "Data-store instance",
+          "technology": "One transaction / retry key",
+          "status": "planned",
+          "x": 430,
+          "y": 335,
+          "w": 260,
+          "h": 116,
+          "description": "Commits original sale + new acquisition + money facts + audit together.",
+          "detail": [
+            "Use consistent lock ordering when touching two physical vehicles.",
+            "Repeating the same command cannot create another traded vehicle acquisition."
+          ],
+          "sources": [
+            ".planning/research/ARCHITECTURE.md:365–391",
+            ".planning/research/c4-business-findings.md §8.3"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "to": "inventory",
+          "label": "1. Conditional acquisition",
+          "detail": "",
+          "from": "sale"
+        },
+        {
+          "to": "finance",
+          "label": "2. Split consideration",
+          "detail": "",
+          "from": "sale"
+        },
+        {
+          "to": "db",
+          "label": "3. Same transaction",
+          "detail": "",
+          "from": "inventory"
+        },
+        {
+          "to": "db",
+          "label": "3. Same transaction",
+          "detail": "",
+          "from": "finance"
+        }
+      ],
+      "width": 720,
+      "height": 515,
+      "groups": [],
+      "notes": []
+    }
+  ],
+  "decisions": [
+    {
+      "title": "Keep one monolith",
+      "status": "Documented decision",
+      "summary": "No extra backend, microservices or message broker.",
+      "detail": "Next.js renders pages and exposes Route Handlers. Domain modules remain ordinary in-process TypeScript. PostgreSQL and object storage are the only persistent data stores.",
+      "sources": [
+        ".planning/PROJECT.md:73–94",
+        "docs/03-tech-and-infra-stack.md:14–42"
+      ]
+    },
+    {
+      "title": "Separate stock from brokerage",
+      "status": "Documented decision",
+      "summary": "Brokerage vehicles do not become purchases automatically.",
+      "detail": "The newer customer feedback adds brokerage as a separate workflow sharing customers, finance companies, documents and reconciliation. This extends the earlier dealership-only specification.",
+      "sources": [
+        "docs/round_1_customer_feedback.md:8–45",
+        ".planning/ROADMAP.md §Phase 8–9"
+      ]
+    },
+    {
+      "title": "Preserve payment history",
+      "status": "Recommended clarification",
+      "summary": "Workflow status is not cash movement.",
+      "detail": "Keep dated receipt/disbursement/refund facts on source transactions, even after cancellation or expiry. Count an advance once, then only the final balance; trade-in value is non-cash. Keep the user's computed-report/no-general-ledger decision.",
+      "sources": [
+        "docs/02-2-requirements-specification.md:816–830",
+        "docs/02-2-requirements-specification.md §11 cash-flow report"
+      ]
+    },
+    {
+      "title": "Bind sale to purchase cycle",
+      "status": "Recommended correction",
+      "summary": "Re-purchasing must not change historical profit.",
+      "detail": "Add SaleRecord.purchaseRecordId and enforce sale uniqueness for that cycle. Repair/cost scoping already exists in the specification. Historical reports must never use the vehicle's current activePurchaseId.",
+      "sources": [
+        "docs/02-2-requirements-specification.md:130–149,290–311,778–814"
+      ]
+    },
+    {
+      "title": "Atomic, retry-safe business commands",
+      "status": "Recommended correction",
+      "summary": "A sale, its state change and its audit commit together.",
+      "detail": "Use one explicit transaction owner with idempotency and database concurrency constraints. Bind an approval to the exact payload/version and revalidate before applying. An audit extension is optional implementation detail, not the guarantee of atomicity.",
+      "sources": [
+        ".planning/research/ARCHITECTURE.md:351–359,365–398",
+        "docs/02-2-requirements-specification.md §8–9"
+      ]
+    },
+    {
+      "title": "One authorization seam",
+      "status": "Recommended clarification",
+      "summary": "HTTP and server-rendered reads enforce the same record permissions.",
+      "detail": "Keep Better Auth and CASL. Load current rules once per request. Domain entry points receive actor context and enforce resource-level access; UI visibility is not authorization. This resolves conflicting research advice about session-cached versus fresh permissions.",
+      "sources": [
+        ".planning/research/ARCHITECTURE.md:254–284,400–418",
+        ".planning/research/PITFALLS.md:84–106"
+      ]
+    },
+    {
+      "title": "Lifecycle by business action",
+      "status": "Recommended correction",
+      "summary": "Cash sales, cancellations and re-purchases need explicit paths.",
+      "detail": "Do not implement the example map literally: it omits IN_STOCK → SOLD and a buy-back path. Preserve ten-status compatibility and availability, but drive transitions through business commands. The customer requires simultaneous handover and sale: recommend delivery as the completion event/timestamp, not a separately mutable Delivered step. Re-purchase opens a new cycle. Automatic expiry flags leave the final decision to staff.",
+      "sources": [
+        ".planning/research/ARCHITECTURE.md:286–318",
+        "docs/01-requirements-questionnaire.md:156–162",
+        "docs/02-2-requirements-specification.md §4–6"
+      ]
+    },
+    {
+      "title": "Controls precede go-live",
+      "status": "Recommended sequencing",
+      "summary": "Approval and audit enforcement ship with the action they protect.",
+      "detail": "UI viewers can arrive later. Sale edits, refunds, discounts and write-offs must enforce approvals and mandatory reasons from their first production implementation. Add integration tests for rollback, double submission, simultaneous sale, buy-back profit and cross-role access.",
+      "sources": [
+        ".planning/ROADMAP.md §Phase 1–7"
+      ]
+    },
+    {
+      "title": "Production hosting is unresolved",
+      "status": "BLOCKED · budget/policy conflict",
+      "summary": "Vercel Hobby is not eligible for this commercial dealership application.",
+      "detail": "Official Hobby/fair-use terms restrict commercial use to eligible paid plans unless Vercel grants an exception. Keep the Next.js design, but do not claim the documented $0 Vercel deployment is viable. No spend or alternate host has been approved. Current Fluid-compute duration limits also supersede the old universal 10-second assumption; verify actual account/runtime settings before deploying.",
+      "sources": [
+        "vercel-policy",
+        "vercel-limits",
+        ".planning/research/c4-infrastructure-findings.md §1"
+      ]
+    },
+    {
+      "title": "Private, versioned documents",
+      "status": "Required + recommended implementation",
+      "summary": "Invoices retain immutable versions; files need permission checks in both directions.",
+      "detail": "The specification already requires immutable PDF versions. Store each issued PDF under a new private R2 key and retain issuance metadata. Recommended: verify staged uploads, copy into server-only final keys, then link; PostgreSQL and R2 do not share atomic commit. Downloads use short-lived authorized GET capabilities. General vehicle galleries are deferred; brokerage inspection evidence is v1.",
+      "sources": [
+        "docs/02-2-requirements-specification.md:888–892",
+        ".planning/REQUIREMENTS.md:180–191,229–241",
+        "r2-presign"
+      ]
+    },
+    {
+      "title": "Wide integer money",
+      "status": "Recommended correction",
+      "summary": "Minor units remain integers—but not limited to a 32-bit database Int.",
+      "detail": "Use PostgreSQL bigint money columns. At two decimals, 32-bit Int tops out at 21,474,836.47 major units. Enforce safe-integer bounds before numeric JSON conversion, arithmetic and aggregates; use integer strings if those bounds are exceeded. Fix currency scale for stored history and define percentage rounding explicitly.",
+      "sources": [
+        "postgres-integers",
+        ".planning/research/c4-infrastructure-findings.md §5"
+      ]
+    },
+    {
+      "title": "Recovery is part of the architecture",
+      "status": "Recommended operational baseline",
+      "summary": "Primary storage alone is not a backup.",
+      "detail": "Daily encrypted database exports and final-object copies to independent storage, plus pre-import/migration backups and monthly restore drills. This is an operator procedure, not a new application service. Owner, capacity and restore time are unverified; one-day recovery-point target only holds if daily backups succeed. Free-tier capacity cannot promise indefinite growth.",
+      "sources": [
+        "neon-backup",
+        "neon-plans",
+        ".planning/research/c4-infrastructure-findings.md §6"
+      ]
+    },
+    {
+      "title": "Resolve business ambiguities explicitly",
+      "status": "Recommended assumptions",
+      "summary": "Use customer intent instead of copying conflicting technical examples.",
+      "detail": "Advance validity: prefer the BRS's listed-price-at-placement basis; retain agreed price separately. Proposed tier endpoints: ≤5%=7 days, ≤10%=14, ≤15%=21, >15%=31-day assumption; snapshot the rule and dealership timezone. Active extensions stay deferred. Rates use supplied cards, not invented interest math. If a facility fee is withheld, net payout = gross − deductions − fee; the catalog's plus-fee wording is not cash paid to the customer.",
+      "sources": [
+        "docs/02-1-business-requirements-specification.md:561–573",
+        ".planning/REQUIREMENTS.md:71–78,176,235–239",
+        "docs/round_1_customer_feedback.md:9–11,29,37",
+        ".planning/research/c4-business-findings.md §8.6"
+      ]
+    },
+    {
+      "title": "Evidence and scope precedence",
+      "status": "Interpretation, not signed approval",
+      "summary": "Later customer feedback and current requirements extend the older specifications.",
+      "detail": "Code determines what exists today. Phase context explains intentional mocks. Current REQUIREMENTS and later customer feedback govern target scope; PROJECT/infra replace older NestJS/RabbitMQ proposals. Earlier research snippets do not override business intent. No signed acceptance was found. This model makes recommendations visible rather than silently treating them as prior decisions. No app behavior changed.",
+      "sources": [
+        ".planning/REQUIREMENTS.md",
+        "docs/round_1_customer_feedback.md",
+        ".planning/PROJECT.md:83–94",
+        ".planning/research/c4-business-findings.md §2"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "business",
+      "title": "Business requirements",
+      "path": "docs/02-1-business-requirements-specification.md"
+    },
+    {
+      "id": "spec",
+      "title": "Detailed specification",
+      "path": "docs/02-2-requirements-specification.md"
+    },
+    {
+      "id": "feedback",
+      "title": "Customer feedback — brokerage extension",
+      "path": "docs/round_1_customer_feedback.md"
+    },
+    {
+      "id": "project",
+      "title": "Project constraints and decisions",
+      "path": ".planning/PROJECT.md"
+    },
+    {
+      "id": "architecture",
+      "title": "Existing architecture research",
+      "path": ".planning/research/ARCHITECTURE.md"
+    },
+    {
+      "id": "roadmap",
+      "title": "Delivery roadmap",
+      "path": ".planning/ROADMAP.md"
+    },
+    {
+      "id": "current",
+      "title": "Code exploration findings",
+      "path": ".planning/research/c4-current-findings.md"
+    },
+    {
+      "id": "domain",
+      "title": "Business exploration findings",
+      "path": ".planning/research/c4-business-findings.md"
+    },
+    {
+      "id": "infra",
+      "title": "Verified infrastructure research",
+      "path": ".planning/research/c4-infrastructure-findings.md"
+    },
+    {
+      "id": "requirements",
+      "title": "Current feature catalog / deferred scope",
+      "path": ".planning/REQUIREMENTS.md"
+    },
+    {
+      "id": "vercel-policy",
+      "title": "Vercel commercial-use restriction",
+      "path": "Official policy · checked 2026-10-25",
+      "url": "https://vercel.com/docs/limits/fair-use-guidelines#commercial-usage"
+    },
+    {
+      "id": "vercel-limits",
+      "title": "Vercel function limits",
+      "path": "Official documentation · account settings unverified",
+      "url": "https://vercel.com/docs/functions/limitations"
+    },
+    {
+      "id": "vercel-cron",
+      "title": "Vercel scheduler limits",
+      "path": "Official documentation",
+      "url": "https://vercel.com/docs/cron-jobs/usage-and-pricing"
+    },
+    {
+      "id": "neon-plans",
+      "title": "Neon capacity and recovery allowances",
+      "path": "Official documentation · account entitlement unverified",
+      "url": "https://neon.com/docs/introduction/plans"
+    },
+    {
+      "id": "neon-prisma",
+      "title": "Neon Prisma adapter / connection guidance",
+      "path": "Official documentation · version selection deferred",
+      "url": "https://neon.com/docs/guides/prisma"
+    },
+    {
+      "id": "neon-backup",
+      "title": "Neon independent backups",
+      "path": "Official documentation",
+      "url": "https://neon.com/docs/manage/backup-pg-dump"
+    },
+    {
+      "id": "r2-presign",
+      "title": "R2 signed file access",
+      "path": "Official documentation",
+      "url": "https://developers.cloudflare.com/r2/api/s3/presigned-urls/"
+    },
+    {
+      "id": "r2-pricing",
+      "title": "R2 allowances and billable excess",
+      "path": "Official documentation",
+      "url": "https://developers.cloudflare.com/r2/pricing/"
+    },
+    {
+      "id": "postgres-integers",
+      "title": "PostgreSQL integer ranges",
+      "path": "Official documentation",
+      "url": "https://www.postgresql.org/docs/current/datatype-numeric.html#DATATYPE-INT"
+    }
+  ]
+}

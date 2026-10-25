@@ -45,3 +45,6 @@ next-env.d.ts
 /test-results
 /playwright/.auth/*.json
 !/playwright/.auth/.gitkeep
+
+# Local Netlify folder
+.netlify
