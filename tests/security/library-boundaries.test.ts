@@ -11,13 +11,20 @@ import { authorizedMigration } from "../../scripts/private-environment"
 import { transition, states } from "../../lib/state"
 
 vi.mock("server-only", () => ({}))
-const seam = vi.hoisted(() => ({ db: undefined as unknown }))
+const seam = vi.hoisted(() => ({
+  db: undefined as unknown,
+  environmentFailure: undefined as unknown,
+}))
 vi.mock("../../lib/server/db", () => ({
   database: () => seam.db,
-  assertEnvironment: vi.fn(async () => ({})),
+  assertEnvironment: vi.fn(async () => {
+    if (seam.environmentFailure) throw seam.environmentFailure
+    return {}
+  }),
 }))
 import { transaction } from "../../lib/server/transactions"
 import { authentication } from "../../lib/server/auth"
+import { POST } from "../../app/api/auth/[...all]/route"
 
 const uid = "03000000-0000-4000-8000-000000000011"
 const runtimeURL =
@@ -74,6 +81,7 @@ function client(fail: (sql: string) => unknown) {
 afterEach(async () => {
   await Promise.all(clients.splice(0).map((db) => db.$disconnect()))
   vi.unstubAllEnvs()
+  seam.environmentFailure = undefined
 })
 
 describe("effective pinned pg configuration, no database", () => {
@@ -277,11 +285,67 @@ describe("installed Prisma raw/model envelopes and bounded command retries", () 
 })
 
 describe("actual Better Auth + Prisma adapter failure logging", () => {
+  let requestNumber = 0
+  function request(path = "sign-in/email", origin = runtime.APP_ORIGIN) {
+    return new Request(`${runtime.APP_ORIGIN}/api/auth/${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin,
+        "x-request-id": marker,
+        "x-forwarded-for": `192.0.2.${++requestNumber}`,
+      },
+      body: JSON.stringify(
+        path === "sign-in/email"
+          ? { email: "specimen@example.test", password: marker }
+          : {}
+      ),
+    })
+  }
+  function cookie() {
+    const token = "specimen-session-token"
+    const signature = createHmac("sha256", runtime.BETTER_AUTH_SECRET)
+      .update(token)
+      .digest("base64")
+    return `better-auth.session_token=${encodeURIComponent(`${token}.${signature}`)}`
+  }
+  async function fixture(failure: (sql: string) => unknown) {
+    vi.resetModules()
+    Object.entries(runtime).forEach(([key, value]) => vi.stubEnv(key, value))
+    const seen: unknown[][] = []
+    for (const method of [
+      "error",
+      "warn",
+      "log",
+      "info",
+      "debug",
+      "trace",
+      "dir",
+    ] as const)
+      vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+        seen.push(args)
+      })
+    client(failure)
+    const { authentication } = await import("../../lib/server/auth")
+    const { POST } = await import("../../app/api/auth/[...all]/route")
+    const auth = authentication()
+    // Better Auth skips origin checking under NODE_ENV=test by default.
+    ;(await auth.$context).skipOriginCheck = false
+    return { auth, POST, seen }
+  }
   it("never logs SQL/failing rows through HTTP handler or server session API", async () => {
     Object.entries(runtime).forEach(([key, value]) => vi.stubEnv(key, value))
     const seen: unknown[] = []
-    for (const method of ["error", "warn", "log", "info", "debug"] as const)
-      vi.spyOn(console, method).mockImplementation((...args) => {
+    for (const method of [
+      "error",
+      "warn",
+      "log",
+      "info",
+      "debug",
+      "trace",
+      "dir",
+    ] as const)
+      vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
         seen.push(args)
       })
     const queries: string[] = []
@@ -308,25 +372,129 @@ describe("actual Better Auth + Prisma adapter failure logging", () => {
     expect(response.status).toBe(500)
     expect(await response.text()).not.toContain(marker)
     expect(queries.some((sql) => sql.includes('"user"'))).toBe(true)
-    expect(seen).toEqual([])
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toEqual([
+      "AUTHENTICATION_FAILURE",
+      {
+        operation: "http",
+        requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      },
+    ])
+    seen.length = 0
+    const publicResponse = await POST(
+      new Request(`${runtime.APP_ORIGIN}/api/auth/sign-in/email`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: runtime.APP_ORIGIN,
+          "x-request-id": marker,
+        },
+        body: JSON.stringify({
+          email: "specimen@example.test",
+          password: marker,
+        }),
+      })
+    )
+    expect(publicResponse.status).toBe(500)
+    expect(await publicResponse.text()).not.toContain(marker)
+    expect(seen).toHaveLength(1)
+    seen.length = 0
     // A valid signed cookie makes getSession reach the installed Prisma adapter.
     const token = "specimen-session-token"
     const signature = createHmac("sha256", runtime.BETTER_AUTH_SECRET)
       .update(token)
       .digest("base64")
     queries.length = 0
-    await expect(
-      auth.api.getSession({
+    const sessionFailure = await auth.api
+      .getSession({
         headers: new Headers({
           cookie: `better-auth.session_token=${encodeURIComponent(`${token}.${signature}`)}`,
         }),
       })
-    ).rejects.toMatchObject({ statusCode: 500 })
+      .catch((error: unknown) => error)
+    expect(sessionFailure).toMatchObject({ statusCode: 500 })
+    expect(inspect(sessionFailure)).not.toContain(marker)
     expect(queries.some((sql) => sql.includes('"session"'))).toBe(true)
     expect(inspect(seen)).not.toMatch(
       /SQL_DETAIL|Failing row|password|session-token|postgresql:\/\//
     )
+    expect(seen).toHaveLength(1)
+    expect(seen[0]).toEqual([
+      "AUTHENTICATION_FAILURE",
+      {
+        operation: "session",
+        requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      },
+    ])
+  })
+  it("records a swallowed sign-out SQL failure once even when the library returns success", async () => {
+    const queries: string[] = []
+    const { auth, seen } = await fixture((sql) => {
+      queries.push(sql)
+      return pgError("23514")
+    })
+    const input = request("sign-out")
+    input.headers.set("cookie", cookie())
+    const response = await auth.handler(input)
+    expect(response.status).toBe(200)
+    expect(await response.text()).not.toContain(marker)
+    expect(queries.some((sql) => sql.includes('"session"'))).toBe(true)
+    expect(seen).toEqual([
+      [
+        "AUTHENTICATION_FAILURE",
+        {
+          operation: "http",
+          requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        },
+      ],
+    ])
+    expect(inspect(seen)).not.toMatch(/SQL_DETAIL|Failing row|postgresql:\/\//)
+  })
+  it("does not log successful calls, missing sessions, or expected client denials", async () => {
+    const { auth, POST, seen } = await fixture(() => undefined)
+    expect((await POST(request("sign-out"))).status).toBe(200)
+    await expect(
+      auth.api.getSession({ headers: new Headers() })
+    ).resolves.toBeNull()
+    const headers = new Headers({ cookie: cookie() })
+    await expect(auth.api.getSession({ headers })).resolves.toBeNull()
+    expect((await POST(request())).status).toBe(401)
+    const denied = request("sign-out", `https://${marker}.invalid`)
+    denied.headers.set("cookie", cookie())
+    expect((await auth.handler(denied)).status).toBe(403)
+    expect(
+      (await POST(request("sign-out", `https://${marker}.invalid`))).status
+    ).toBe(403)
+    expect((await POST(request("not-allowed"))).status).toBe(404)
     expect(seen).toEqual([])
+  })
+  it("bounds duplicate library/router/boundary reports to one per concurrent call and covers preflight failures", async () => {
+    const { auth, POST, seen } = await fixture(() => pgError("23514"))
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, () => auth.handler(request()))
+    )
+    expect(responses.map((response) => response.status)).toEqual([
+      500, 500, 500, 500, 500,
+    ])
+    expect(seen).toHaveLength(5)
+    const ids = seen.map((entry) => {
+      expect(entry).toEqual([
+        "AUTHENTICATION_FAILURE",
+        {
+          operation: "http",
+          requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        },
+      ])
+      return (entry[1] as { requestId: string }).requestId
+    })
+    expect(new Set(ids).size).toBe(5)
+    seen.length = 0
+    seam.environmentFailure = pgError("23514")
+    const response = await POST(request())
+    expect(response.status).toBe(500)
+    expect(await response.text()).not.toContain(marker)
+    expect(seen).toHaveLength(1)
+    expect(inspect(seen)).not.toMatch(/SQL_DETAIL|Failing row|postgresql:\/\//)
   })
 })
 
