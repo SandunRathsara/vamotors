@@ -109,8 +109,9 @@ build interlock, in every context. It does not retroactively protect the remote
 base branch (which lacks it) or manual artifact uploads.
 
 Intended repository: `SandunRathsara/vamotors`; intended shared-development
-production branch: `integration/full-v1` (not `main`), currently remote SHA equals
-the accepted T00 base. Integration must accept the interlock on that branch before
+production branch: `integration/full-v1` (not `main`). Historically, at T02a author
+inspection, its remote SHA equaled the accepted T00 base; integration has since
+advanced to `81216521917c726df1b93e52b487950a2aeb8b13`. Integration must accept the interlock on that branch before
 T02b considers linking. Final default-branch promotion is integration-owned.
 Do not enable serving until authenticated T03–T05 and the hosting security gate
 are independently accepted. The placeholder is not the G2 working URL.
@@ -118,7 +119,8 @@ are independently accepted. The placeholder is not the G2 working URL.
 ## GitHub integration and CI/preview isolation design
 
 Fresh `gh api repos/SandunRathsara/vamotors` confirms public, active, default `main`,
-admin/maintain/push/pull true. `integration/full-v1` exists remotely at the base.
+admin/maintain/push/pull true. At that historical inspection, `integration/full-v1`
+existed remotely at the T00 base (not a current-revision claim).
 Readiness supplied no protection/rulesets; no governance changes were made.
 `gh api user/installations` returns HTTP 403: current credential is not authorized
 for GitHub App installation enumeration. GitHub push permission does **not** prove

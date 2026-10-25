@@ -1,8 +1,16 @@
-# Full-v1 execution handoff — T00 accepted, contracts/preparation running
+# Full-v1 execution handoff — T02a reviewed, integrated confirmation pending
 
 Updated 2026-10-25. **T00 accepted by orchestrator at `f51b1648bbbda5fb8e37129ba31be0683d63678f` after independent PASS and readiness reconciliation. G0 pending T01. 0/134 feature requirements accepted.** This is baseline/traceability acceptance, not an implemented/deployed v1.
 
-## Current revision and environment
+## Current T02a candidate and next action
+
+- Target `integration/full-v1` is `81216521917c726df1b93e52b487950a2aeb8b13`; latest T00 ledger documents are retained. Candidate branch `t3/integrate-t02a-neon-netlify` in `/Users/alpha/.t3/worktrees/vamotors/t3-c797eb68` brings reviewed source `6b86b0c48cdb690fc79559eb69f1be3d17a33ff4` forward as `880c315`, plus this record and historical-context correction. Exact final head/ordinary PR URL are in the worker return/PR.
+- **T02a review passed pending integrated revision confirmation.** Independent verifier `c153437c-75c2-467d-a117-9c685b0556ec` reports PASS all four source files with no blocking corrections. [Attributed report, boundaries and local checks](evidence/T02a-review-integration.md). No merge authorized yet: obtain fresh verification bound to combined PR head including ledger changes, then orchestrator decision. Full T02 is not accepted.
+- T01 remains running under original task `68e1de75-ae2d-4310-aa99-cd95764da374`; do not duplicate. G0 pending T01; **0/134 feature requirements accepted**.
+- API-read verified reserved site `f69a4d7e-cf97-4933-91d7-aabd4e66616b`: disabled, Free, Ohio `us-east-2`, zero builds/deploys/env, unlinked/unpublished. Its reserved origin is not a working environment. Browser installation, safe linkage and GitHub App authorization, restricted runtime/migration roles, and R2 CORS/privacy/object proof remain pending. Safe CI is a proposal, not installed.
+- No application edits, installs or cloud mutations by this integration worker. No independent reviewer writes/installs reported. Interlock remains exact reviewed code; no enabling flag. Return unmerged ordinary PR to `integration/full-v1`; no main changes/bypass/force-push or watching/polling.
+
+## Historical T00 revision and environment
 
 - Branch: `integration/full-v1`; initial shared checkout `/Users/alpha/Developer/Personal/vamotors` is intentional for T00 only.
 - Original `main`/base: `233249f6e874796df9ee80cd58c6d40040e1f84c`.
@@ -18,7 +26,7 @@ Updated 2026-10-25. **T00 accepted by orchestrator at `f51b1648bbbda5fb8e37129ba
 2. Inspect `git status --short`, branch/head and worktrees. Do not overwrite unrelated edits, reset, clean, or launch duplicate workers. T00 task identity is in the ledger; downstream workers are not dispatched by this worker.
 3. Read [attributed T00 acceptance](evidence/T00-acceptance-attributed.md): reviewer confirmed ancestry, eleven hashes/blobs, exact 134 IDs/owners/scenarios/defaults, eight intended docs, no app/test diff, heuristic secret screen and clean checkout. Orchestrator accepted exact SHA after readiness reconciliation; no self-acceptance by this ledger worker.
 4. Retain [attributed readiness findings](evidence/T00-readiness-attributed.md), supplied by reviewer suffix `72173ee0-5850-4fac-9990-2250ee82e0cb`. This worker did not reproduce cloud findings; readiness is not feature acceptance.
-5. **T01 running** task/thread suffix `68e1de75-ae2d-4310-aa99-cd95764da374`; **T02a running** `9c3eca5b-1f7a-47da-8320-282288cad0e8`, same command above. Both isolated at accepted f51b1648, model `opencode/openai/gpt-6.1-sol`; paths/branches/heads not supplied. Await their artifacts, do not duplicate workers. Dependent runtime/provisioning work waits needed contracts. No integration/default ref update in this record task.
+5. Follow the current T02a candidate section above: fresh integrated revision verification is required before merge. Original T01 remains running; T02a author task was `9c3eca5b-1f7a-47da-8320-282288cad0e8`. Do not duplicate either dispatch or start dependent runtime/provisioning work before needed contracts.
 
 ## Preservation and coverage
 
@@ -48,10 +56,10 @@ No provisioning, SQL writes/migrations/seeding, object PUTs, Netlify linking/dep
 
 ## Remaining blockers and future runbooks
 
-- T00 has no acceptance blockers: independent PASS and orchestrator acceptance at fixed SHA recorded. G0 awaits T01 acceptance; next action is receive already-running T01/T02a artifacts and arrange independent review. Retain **0/134 feature requirements accepted**.
+- T00 has no acceptance blockers. G0 awaits T01 acceptance; next action is fresh integrated T02a candidate verification before merge, while original T01 continues. Retain **0/134 feature requirements accepted**.
 - Attributed readiness: active model and baseline PASS; GitHub public active default main with admin/maintain/push/pull access, unprotected branch/rulesets `[]` (governance finding, no approved mandatory new policy; ordinary PRs/checks required). Netlify API authenticated, Free/credit-free Owner, 300 credits/top-up disabled/no exceeded limits or trials, zero sites/no local link, CLI not PATH. Actual region unverified; retain/verify reported default Ohio cmh, no paid customization.
-- T02/T03: direct read-only PostgreSQL 18.6 transaction PASS with verified TLS 1.3/hostname/certificate/channel binding; pooled connection establishment repeatedly times out despite DNS/TCP success and matching endpoints. Investigate pooled handshake; establish restricted runtime versus owner-named migration role (`neon_superuser`, not PG superuser). Neon management credential unverified; no immediate credential request.
+- T02/T03: independent T02a verifier reports direct/pooled read-only SELECT 1 transactions with SET LOCAL timeout PASS, TLS 1.3 verify-full/channel binding. Startup statement_timeout rejected as unsupported_startup_parameter; earlier readiness timeouts remain unexplained, not retroactively diagnosed. Establish restricted runtime versus migration roles; owner connectivity is not least-privilege proof. Neon management credential unverified; no immediate credential request.
 - T02/T06: signed R2 metadata/location/bounded list pass, APAC empty bucket; CORS AccessDenied, privacy not proven by anonymous HEAD400; object writes/download/isolation untested. Determine existing credential scope and defer exact dashboard CORS action until actual hosted origin exists and access need is established.
 - T18: browser package present but Chromium/Firefox/WebKit binaries absent; built-in browser disconnected. Arrange authorized browser install and real checks, no bypass. Baseline install/lint/style failures and all unimplemented/unverified workflows remain release blockers. No readiness worker installs, writes or mutations occurred.
-- Exact runtime bounds/rounding, lifecycle/DO completion contracts and notification lead-time config belong to T01. Actual Netlify Free behavior/region, CI/deploy/secrets runbooks and backup/recovery procedure belong to T02/T18. Their links do not exist yet; do not fabricate them.
+- Exact runtime bounds/rounding, lifecycle/DO completion contracts and notification lead-time config belong to T01. [T02a preparation runbook](../../docs/operations/T02a-preparation.md) records observed Free/Ohio facts and proposed CI/deploy/secret boundaries, not completed T02 hosting or T18 backup/recovery proof. Historical readiness zero-sites/region-unverified observations above are superseded by current T02a API read evidence.
 - Final user handoff still needs working HTTPS URL/deploy ID/SHA, privately delivered admin access, synthetic notice, run/test/deploy/backup instructions, scheduler proof and isolated DB+object restore. Live-launch policies/legal wording/real lender rates remain separate from full synthetic-v1 functionality.
