@@ -4,7 +4,14 @@ Updated: 2026-10-25. Integration owner: T00 integration/ledger worker. Contract:
 
 ## Current accepted integration and bounded dispatches
 
-### Second T03 review — 2026-10-26 (current; supersedes earlier running statements)
+### Third T03 source review — 2026-10-26 (current)
+
+- **Candidate `ae372a7ecb20bcbc8dcfd926999756f30b050482` FAIL**, independent reviewer `29b748fa-e4ca-4b06-9655-2a3aeec35d23`: **P2** unguarded `console.error` in `auth-failures` lines **16–19** can throw, replacing the prepared 503 / actual public POST sanitized response. Independent **9 PASS / 2 FAIL**, both failures sink-throw cases. Safe-event, secret-redaction, concurrent-dedup and healthy-flow checks passed. [Attributed third review](evidence/T03a-third-source-rejection-attributed.md).
+- Supplied existing **66 unit / 19 contract**, typecheck, build, owned lint/format PASS; full lint **3 errors / 27 warnings**. Reviewer disclosed first pnpm invocation unexpectedly installed dependencies/lifecycle despite local copy; no credentials/DB/cloud writes; subsequent checks used direct tools. Results attributed, not rerun here.
+- **Fresh bounded correction running**, Foundation owner, suffix `4584cdf5-538d-472a-92a1-35647cb190e2`, same command `c7da7ebe-28a5-4c15-983f-3a7a818760fd`: minimal nonthrowing emission plus two regressions. Returned branch/head not supplied; prior diagnostic-running statements below are historical. Reconcile completion, then require fresh independent corrected-head and integrated verification; no duplicate dispatch or inferred success.
+- Pending ledger **`f124204f6fc4299667e841898a39259abc2c6ff5`**, source branch `t3/update-review-ledger`, carried intact by fast-forward into isolated `t3/record-review-ledger`. Preserve all prior history/evidence, matrix and contracts; carry with **next substantive integration**, no separate PR/push/main/integration-ref changes. **G0 accepted; T03/G1 unaccepted; real DB blocked and private key-request timeouts unchanged; 0/134 implemented acceptance.**
+
+### Historical second T03 review — 2026-10-26
 
 - **Corrected source `7ea6064c11d4896cf72d31420eab34cca6010ce0` FAIL**, independent reviewer `d40f3c2a-50da-4579-9a65-1dda6be02317`. Three original non-logging defects closed; auth SQL-detail leak also closed. Residual **P2**: `auth-options` lines 7–15 suppress all logs without a redacted failure event, violating accepted A3 and orchestration observability. Actual Better Auth handler/public POST/signed-cookie session paths with synthetic SQLSTATE `23514` yielded **zero events**. [Attributed second review](evidence/T03a-second-source-rejection-attributed.md).
 - Supplied checks: **39 library / 63 unit / 19 contract**, strict TypeScript/typecheck, build, owned lint/format PASS; full lint **3 errors / 27 warnings**; independent acceptance groups **4 PASS / 1 FAIL**. Real DB **BLOCKED unchanged**. These results were not rerun by this ledger worker and do not advance acceptance.
@@ -54,7 +61,7 @@ The following records describe the earlier source/integration review stage only;
 
 ## Task dependency graph / acceptance ledger
 
-For T03a, the original dispatch row below is historical: **corrected source `7ea6064` failed second review; original workers idle**. The active **focused diagnostic correction** is **running**, owner Foundation/contract, suffix `ddc2e87e-89a2-4be1-9840-74b91c2a576f`, base `7ea6064`; exact returned head pending. Next action is a safe observable auth-failure event and actual-library regressions, then fresh independent source/integrated verification. Real DB remains separately blocked by T02b1. See current second-review update above; all other dependency/acceptance bindings remain unchanged.
+For T03a, the original dispatch row below is historical: **candidate `ae372a7` failed third source review**. Active bounded correction is **running**, Foundation owner, suffix `4584cdf5-538d-472a-92a1-35647cb190e2`; exact returned head pending. Next: minimal nonthrowing emission plus two regressions, then fresh independent corrected-head/integrated verification. Earlier diagnostic-running statements are historical. Real DB remains separately blocked by T02b1; all other dependency/acceptance bindings remain unchanged.
 
 The dependency column is the complete task-level graph. An edge means **accepted** prerequisite, not merely started. All not-yet-dispatched rows have no checkout/base/head/PR/reviewer/evidence; those fields must be filled in at dispatch and review, never guessed from this proposed graph. Shared checkouts are prohibited after initial T00 preservation.
 
