@@ -1,14 +1,16 @@
 # Full-v1 implementation task ledger
 
-Updated: 2026-10-25. Integration owner: T00 integration/ledger worker. Contract: `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md`. States: `ready → running → review → accepted`; `blocked`/`failed` always have owner and next action. **No task is accepted yet.** T00 author completion enters review; independent orchestrator acceptance is still required.
+Updated: 2026-10-25. Integration owner: T00 integration/ledger worker. Contract: `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md`. States: `ready → running → review → accepted`; `blocked`/`failed` always have owner and next action. **T00 accepted by orchestrator at `f51b1648bbbda5fb8e37129ba31be0683d63678f` after independent PASS and readiness reconciliation. G0 pending T01; 0/134 feature requirements accepted.**
 
 ## Checkout and task identity
 
 - Integration branch: `integration/full-v1` in `/Users/alpha/Developer/Personal/vamotors` (initial shared checkout intentionally preserved).
 - Supplied/observed base: `233249f6e874796df9ee80cd58c6d40040e1f84c` on `main`.
 - Original user work preservation head: `8203d2a1dbd9b98c13d3188abf53286f393d98c7`.
-- T00 review head: the commit containing the final T00 ledger/evidence; resolve `git rev-parse integration/full-v1` and bind review to that full SHA (returned in worker handoff). No PR/push has been made; PR = none.
-- Harness task/thread identifier: `thread:delegated-task:command%3Amcp%3Ac7da7ebe-28a5-4c15-983f-3a7a818760fd%3Adelegate-task%3A0874a083-37c4-457a-a2a6-9049ed38f896`. Native OpenCode session ID is not exposed; do not invent it. No downstream/live worker task IDs exist yet.
+- Fixed accepted T00 head: `f51b1648bbbda5fb8e37129ba31be0683d63678f`. No `main`/`integration/full-v1` ref modifications authorized for this documentation task. No PR/push has been made; PR = none.
+- Original T00 author harness task/thread identifier: `thread:delegated-task:command%3Amcp%3Ac7da7ebe-28a5-4c15-983f-3a7a818760fd%3Adelegate-task%3A0874a083-37c4-457a-a2a6-9049ed38f896`. Native OpenCode session ID is not exposed; do not invent it.
+- Under the same command, readiness reviewer suffix `72173ee0-5850-4fac-9990-2250ee82e0cb` supplied its report; T00 acceptance reviewer suffix `427b0f2a-bbcc-4e04-ac65-63f9bdc64df3` returned PASS on fixed candidate. Orchestrator accepted T00; T01 and T02a are running as recorded below. [Attributed acceptance and execution exception](evidence/T00-acceptance-attributed.md).
+- Readiness recording branch `t3/t00-readiness-ledger-handoff`, tool-created checkout `/Users/alpha/.t3/worktrees/vamotors/t3-b3ea0be0`, clean initial HEAD exactly the fixed candidate with ancestry verified. Its documentation commit is for subsequent integration only; [attributed report and exact follow-ups](evidence/T00-readiness-attributed.md).
 - Live identity confirmed: provider instance `opencode`, model `openai/gpt-6.1-sol`, no inherited option overrides. No recursive delegation. GSD unavailable; see evidence.
 
 ## Task dependency graph / acceptance ledger
@@ -17,13 +19,13 @@ The dependency column is the complete task-level graph. An edge means **accepted
 
 | Task | Accountable owner | Accepted dependencies required | State | Checkout/base; task identity; head/PR/reviewer/evidence | Blocker and exact next action |
 | --- | --- | --- | --- | --- | --- |
-| T00 Baseline/traceability | Integration/ledger | None | review | Current shared checkout; supplied base above; task identity above; head resolve branch; PR none; reviewer unassigned; evidence/T00-*.md | Orchestrator assigns independent session to verify preservation hashes, all 134 mappings, checks/decisions and final SHA; do not accept own work. |
-| T01 Domain/API contracts | Foundation/contract | T00 | blocked | Not dispatched; no branch/head/reviewer/evidence | T00 independent acceptance; then dispatch contracts/schema proposals for every lane, numeric bounds, lifecycle, actor, command/query/error/retry contracts. |
-| T02 Hosting preparation | Infrastructure | T00; T01 for runtime details | blocked | Not dispatched | After T00, can prepare access/Free site plan concurrently with T01; defer runtime/credential/deploy decisions requiring accepted T01. |
-| T03 DB/security spine | Foundation/contract | T01 | blocked | Not dispatched | Accept T01; pin backend set, isolated migration/seed, auth/permissions/audit/notifications/idempotency and negative tests. |
+| T00 Baseline/traceability | Integration/ledger | None | accepted | Accepted `f51b1648bbbda5fb8e37129ba31be0683d63678f`; author identity above; PR none; reviewer suffix `427b0f2a-bbcc-4e04-ac65-63f9bdc64df3` PASS; evidence/T00-acceptance-attributed.md | No T00 blockers; orchestrator accepted after readiness reconciliation. Release debt/omissions remain, no feature acceptance. |
+| T01 Domain/API contracts | Foundation/contract | T00 (accepted) | running | Task/thread suffix `68e1de75-ae2d-4310-aa99-cd95764da374`, same command above; isolated accepted base f51b1648; opencode/openai/gpt-6.1-sol; path/branch/head/PR/reviewer not supplied | Await contract/schema proposals for every lane, numeric bounds, lifecycle, actor, command/query/error/retry contracts; independent review before acceptance. Do not duplicate dispatch. |
+| T02 Hosting preparation | Infrastructure | T00 (accepted); T01 for runtime details | running | T02a running suffix `9c3eca5b-1f7a-47da-8320-282288cad0e8`, same command; isolated accepted base f51b1648; opencode/openai/gpt-6.1-sol; path/branch/head/PR/reviewer not supplied; evidence/T00-readiness-attributed.md | Parent not accepted. Await independent prep; diagnose pooled handshake with T03; after dependencies provision/link Free site, verify default cmh (no paid customization), CI/secret/preview isolation. Do not duplicate dispatch. |
+| T03 DB/security spine | Foundation/contract | T01 | blocked | Not dispatched | Accept T01; pin backend set, isolated migration/seed, auth/permissions/audit/notifications/idempotency and negative tests. With T02 establish restricted runtime versus migration role, retest pooled handshake; direct owner-named role is not least-privilege proof. |
 | T04 Parties/settings | Feature: parties | T03 | blocked | Not dispatched | Accept T03; deliver all directory/customer/settings flows and selectable persisted entities. |
 | T05 Purchases/availability | Feature: inventory | T03, T04 | blocked | Not dispatched | Accept both; deliver three channels, identity/cycle, costs/mileage/listed-price/hold/release and atomic payments. |
-| T06 Private documents | Feature: documents; infrastructure contributor | T03; T02 for hosted origins | blocked | Not dispatched | Accept security spine; implement authorized upload-init/complete/download; hosted CORS proof waits T02. |
+| T06 Private documents | Feature: documents; infrastructure contributor | T03; T02 for hosted origins | blocked | Not dispatched | Accept security spine; implement authorized upload-init/complete/download. With T02 determine existing R2 credential scope; after actual origin, configure CORS or request exact dashboard action only if needed; prove privacy/object IO/isolation (HEAD400 is not proof). |
 | T07 Approvals | Feature: approvals | T03, T04 | blocked | Not dispatched | Accept prerequisites; implement four version-bound proposal types, separate reviewers and exactly-once decisions. |
 | T08 Repair/disposal | Feature: operations | T05, T07 | blocked | Not dispatched | Accept cycle and approval contracts; deliver repair dispatch/return/payment + approved disposal. |
 | T09 Immediate sales/trade-in | Feature: sales | T05, T07 | blocked | Not dispatched | Accept stock and approval work; deliver actual completion, inline customers, optional acquisition, concurrency/payment invariants. |
@@ -35,7 +37,7 @@ The dependency column is the complete task-level graph. An edge means **accepted
 | T15 Reports/dashboard/notifications | Feature: reporting | T08, T10, T12, T13; T14 PDF infrastructure | blocked | Not dispatched | Accept authoritative facts/PDF infrastructure; seven reports/full exports/financial views/dashboard/recipient notification UI. |
 | T16 Historical import | Feature: import | T08, T10, T13; stable schema | blocked | Not dispatched | Accept domain/schema; seven entity templates, CSV/Excel preview/revalidation, bounded atomic replay-safe import/provenance. |
 | T17 UX/PWA/fixture removal | Feature: UX integration | Feature tasks integrated | blocked | Not dispatched | Integrate T04–T16; verify responsive/keyboard/errors/form retention/filters/cache/PWA; remove runtime fixtures. |
-| T18 Release verification/recovery | Independent verifier; infrastructure contributor | T02–T17 | blocked | Not dispatched | Fresh integrated and hosted checks, exact deploy SHA, observed scheduler, isolated DB/object recovery, final dossier; never author self-acceptance. |
+| T18 Release verification/recovery | Independent verifier; infrastructure contributor | T02–T17 | blocked | Not dispatched | Arrange browser binary install in authorized test environment; fresh integrated/hosted checks without browser bypass, exact deploy SHA, observed scheduler, isolated DB/object recovery, final dossier; never author self-acceptance. |
 
 ## Ownership and shared-file serialization
 
@@ -68,8 +70,9 @@ Current lint/style debt must be assigned by actual file ownership after T00: cas
 
 ## Gates and current blockers
 
-- G0 pending: T00 and T01 not accepted; model resolved and preservation/matrix authored, not independently certified. No implementation task dispatched by this worker.
+- G0 pending T01: T00 independently reviewed PASS and accepted by orchestrator at fixed candidate. T01/T02a dispatched by orchestrator, not this worker; live identities above.
 - G1–G6 not reached; **0/134 accepted requirements**. No deploy URL/ID, hosted security proof, persistent workflow acceptance or restore evidence.
-- Fresh baseline failures/omissions: offline install missing metadata, lint 3 errors/17 warnings, formatting 272 files, browser setup missing Chromium. See evidence/T00-checks.md. No fixes attempted.
-- Readiness verifier is a separate orchestrator-owned dispatch. T00 does not claim current GitHub/cloud permissions, credential existence/least privilege, Netlify Free entitlement or region are verified.
-- Exact next action: independent read-only T00 review at final returned SHA; then orchestrator acceptance and T01/T02 dispatch. No default merge before that review.
+- Author baseline failures/omissions: offline install missing metadata, lint 3 errors/17 warnings, formatting 272 files at preservation, browser setup missing Chromium. Reviewer confirms typecheck/unit16/build53 pages pass, lint3/17 and formatting **278 at candidate**, including six new T00 docs; not all debt pre-existing. Frozen install/API E2E not independently reproduced. Unexpected pnpm auto-install/metadata/postinstall violated no-install brief; no tracked changes/cloud writes reported. See evidence/T00-acceptance-attributed.md; no fixes in this task.
+- Readiness reviewer report is recorded as attributed evidence, not this worker's reproduction or feature acceptance. Authenticated access/Free entitlement and direct DB connectivity reported; pooled handshake, runtime role, actual host region, R2 CORS/privacy/object IO and browser binaries remain unresolved. No readiness mutations occurred.
+- Governance finding: GitHub branch unprotected and rulesets `[]`; integration owner retains ordinary PRs/checks, no mandatory new protection policy approved or enacted.
+- Exact next action: await already-running T01/T02a artifacts, then independent reviews. Dependent provisioning/runtime work waits prerequisites. Return this documentation branch for inspection; no integration/default ref mutation.
