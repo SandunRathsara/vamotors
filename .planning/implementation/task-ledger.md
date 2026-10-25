@@ -4,6 +4,19 @@ Updated: 2026-10-25. Integration owner: T00 integration/ledger worker. Contract:
 
 ## Current accepted integration and bounded dispatches
 
+### Recovery update — 2026-10-26 (supersedes original T03a running statements below)
+
+- **T03 source `ad314cdbbc8adc2bb86a086449c48c3cc4e0804a6` rejected**, independent verifier `f0300cd4-f056-4a0d-929d-289ca5433d1c`: **P1** Prisma P2010 nested SQLSTATE missed retry/lock mapping; **P1** query role/host/TLS/startup GUC override bypass; **P2** Better Auth SQL detail logging; **P2** inherited state action properties. [New attributed review and check summary](evidence/T03a-source-rejection-attributed.md).
+- Independent frozen offline ignore-scripts install, generated schema, migration diff, typecheck, **24 unit / 19 contract**, build and owned lint/format PASS; full lint **3 errors/27 warnings**. Real DB **BLOCKED**, no isolated resources/restricted credentials; private asks timed out. These are supplied verifier results, not rerun here.
+- **Original T03a state: failed (source rejection), worker `ab83bd6a-9e5d-4d42-b20b-b87552951881` idle.** The dispatch-time running row below is historical, not current. Foundation owns all four corrections. Parent T03 remains running only through fresh correction, not accepted.
+- **T03a correction recovery: running**, fresh suffix **`45799758-6c45-4480-8f32-295b02141367`**, isolated branch, same `opencode` / `openai/gpt-6.1-sol`; branch/head not supplied. Original-author resume **`794a695f-9afc-44a4-9bce-d3b2adfc4155`** and ledger resume **`908c80f4-b416-42b4-8c14-f6b648217500`** failed provider turns; no success inferred. All task suffixes under command `c7da7ebe-28a5-4c15-983f-3a7a818760fd`.
+- **Current next action:** reconcile fresh correction completion, inspect/preserve partial work and returned exact committed head, require regression evidence for all four findings and fresh independent corrected-head/integrated verification. No duplicate dispatch, polling or owner/shared DB use. Infrastructure/user access separately needs private project-scoped key and authorized isolated branch within verified approved free allowance; T02b1 remains blocked. **G0 accepted; T03/G1 unaccepted, G1 real-DB blocked; 0/134 implemented requirements accepted.**
+- Pending ledger `9f4ea66e2ce0419956a88c98769a1dfd8f26fff8` inspected and carried as `ba71500` + `3152b90`, preserving both commits and earlier evidence. Carry this recovery history with **next substantive integration**; no separate PR/push/main/integration ref or app/contracts/cloud changes.
+
+### Prior dispatch/access snapshot — 2026-10-25
+
+Original-worker running descriptions in this snapshot and the original T03a dependency row are superseded by the recovery update above; T02b1 access findings remain current. Earlier evidence is unchanged.
+
 - Accepted integration/base: **`ddd69fb617b4790b3cd64cbf09cb10112d19c281`**, ordinary PR [#4](https://github.com/SandunRathsara/vamotors/pull/4) merged. Tree **`b6a9fef6e146f71e385a36068e10628fe3951a71`** exactly equals reviewed combined candidate **`d2d189928e66269b71a80660d20d756b7c7be2f8`**; orchestrator confirmed empty candidate/merge diff. This recording worker also confirmed local tree equality.
 - Independent combined reviewer **`678697c9-2927-479e-b1c5-194ccf4e8c1b` PASS**; orchestrator accepted **T01/G0**, not implemented features. Supplied checks: 19 contract checks, strict TypeScript, five round trips, 134 IDs, 327 links and 13 source blobs PASS; model and named owner-only secret files mode `0600` verified. [Attributed acceptance, recovery and dispatch report](evidence/T01-G0-acceptance-attributed.md).
 - **T03a still running** independent pins/schema/code, foundation suffix `ab83bd6a-9e5d-4d42-b20b-b87552951881`, explicitly told not to use owner/shared DB. **T02b1 completed blocked**, infrastructure suffix `b4d06816-c159-4649-852e-dd67469ffed6`, returned branch `t3/disposable-db-provision`, commit `bd316be80b73e25837a423d9be5ddf0513c6856a`. Both under command `c7da7ebe-28a5-4c15-983f-3a7a818760fd`, isolated base `ddd69fb`, `openai/gpt-6.1-sol` via `opencode`. Foundation branch/head and independent reviewer not yet supplied; no duplicate dispatch. Parent T03/full T02 not accepted.
@@ -32,6 +45,8 @@ The following records describe the earlier source/integration review stage only;
 - Live identity confirmed: provider instance `opencode`, model `openai/gpt-6.1-sol`, no inherited option overrides. No recursive delegation. GSD unavailable; see evidence.
 
 ## Task dependency graph / acceptance ledger
+
+For T03a, the original dispatch row below is historical: **source state failed/rejected; original worker idle**. The active **T03a correction recovery** is **running**, owner Foundation/contract, suffix `45799758-6c45-4480-8f32-295b02141367`; exact head pending. Its blocker/next action is all four fixes plus fresh independent verification, with real DB separately blocked by T02b1. See recovery update above for failed-resume identities and attribution. All other dependency/acceptance bindings remain unchanged.
 
 The dependency column is the complete task-level graph. An edge means **accepted** prerequisite, not merely started. All not-yet-dispatched rows have no checkout/base/head/PR/reviewer/evidence; those fields must be filled in at dispatch and review, never guessed from this proposed graph. Shared checkouts are prohibited after initial T00 preservation.
 

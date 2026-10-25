@@ -1,5 +1,7 @@
 # Evidence index
 
+Latest update 2026-10-26: [T03 source rejection, independent checks and correction/ledger recovery](T03a-source-rejection-attributed.md), rejected source `ad314cdbbc8adc2bb86a086449c48c3cc4e0804a6`, verifier `f0300cd4-f056-4a0d-929d-289ca5433d1c`. Four findings (two P1/two P2); fresh correction running, original worker idle, failed resumes not success. Supersedes original T03a running statements below without rewriting prior evidence. G0 accepted; T03/G1 unaccepted, real DB blocked; 0/134 implemented acceptance. Attributed only, not reproduced by ledger worker.
+
 | Task | Revision | Artifact | Classification |
 | --- | --- | --- | --- |
 | T00 | `8203d2a1dbd9b98c13d3188abf53286f393d98c7` | [Preservation](T00-preservation.md) | Author inventory, original byte hashes, staging boundary |
