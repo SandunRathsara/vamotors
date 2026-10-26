@@ -2,7 +2,19 @@
 
 Updated 2026-10-26. **T00/T01 accepted by orchestrator; G0 ACCEPTED at `ddd69fb617b4790b3cd64cbf09cb10112d19c281`. Bounded T03-local source+DB independently accepted at d71def0; G1/T03 NOT accepted, G2–G6 pending; 0/134 implemented feature requirements accepted.** Contract readiness/security-spine proof is not whole-app acceptance; full T02 remains unaccepted.
 
-## Current integration candidate — 2026-10-26
+## Current bounded T03b + policy integration candidate — 2026-10-26
+
+Parent explicitly accepts bounded T03b at exact `5520c820c6ff38d59eafa1c5e0eb95c79d1a4c32` after independent **PASS `4cef185d`**. Local candidate branch `t3/integrate-t03b-policy-docs` combines that exact source with accepted-policy documentation `84e45475e57c021328bd5519fde18089b2451be5` on common accepted `95ae8836b61b6901655cc53362292bb27e98fea7`. Source/schema/packages/scripts remain byte-identical to `5520c82`; policy rules/contracts remain byte-identical to `84e4547` (accepted semantics `9090764`). No source conflict or source fix; documentation reconciliation only. [Sanitized FAIL/fix/PASS history and combined checks](evidence/T03b-policy-integration.md).
+
+**This combined candidate still needs parent-bound independent combined verification before integration/dispatch.** [T03c implementation brief](T03c-next-slice.md) is prepared, not dispatched: one security-source/UI owner, separate reviewer, accepted capability/attenuation/reference-replay policy, scoped queries and conservative registry. Administrator-only runtime guards remain until that implementation. Full **G1/T03 unaccepted; 134 U / 0 accepted**, delegated administration and downstream domains pending. Full lint retains three baseline errors and 27 warnings. Earlier broad DB/route/pagination/restart evidence belongs to reviewer `a41035f5`, not a fresh campaign here. No accepted-ref movement, cloud/secrets/push/PR/deploy (including Vercel auto-deploy), or delegation.
+
+## Historical bounded policy acceptance — 2026-10-26
+
+Parent explicitly accepts delegated-admin policy at exact `909076451f7cbdac993ef78324f2c6567746928a`, including source-line63 A3 clarification and lines56–58 receipt identity/revision semantics, after attributed independent **PASS `26b21d2f-2b27-4de8-840e-c08ce6221e61`**. Prior `eefe2d2` review `9eef4df8` remains **FAIL implementation readiness / four findings**; not relabeled or rerun. [Accepted A1D/A3](contracts/access-transactions.md), [retained exact policy/status](delegated-admin-proposal.md), [acceptance attribution and checks](evidence/delegated-admin-acceptance-attributed.md).
+
+**Policy accepted ONLY; implementation pending. G1/T03 unaccepted; 134 U / 0 accepted.** Bounded integration consistency at `95ae883` remains accepted per parent. Current T03b candidate `1fed75ad56fd818268478928c2cff3d0e87365bd` is independently under review `a41035f5` per parent, verdict pending; this worker neither integrates nor edits its code. [Precise future T03c brief](T03c-next-slice.md) requires reviewed parent-integrated T03b as base, sole security-source ownership plus coordinated UI changes and fresh independent review. No dispatch/integration/source/schema/package/service/secret/cloud/push/PR/ref changes here. Earlier pending-policy/combined-foundation next actions below are historical, superseded only within these bounded acceptances. Deployment remains deferred/not passed.
+
+## Historical integration candidate — 2026-10-26
 
 Local branch `t3/integrate-local-security-spine` combines accepted plan `5ed7083fcede77f6218625b7930b717eb146597f` and independently reviewed foundation `d71def0217a17c66b7c5a2162ef06c440b5ea4da`, shared PR5 base `24698af621cc29375598c12fdb6e0c9c0ae70bf4`. No conflicts/application edits. Accepted `integration/full-v1` stays at historical G0 `ddd69fb`; **parent independent final combined verification required before ref update**. [Attributed reviewer evidence](evidence/T03-local-independent-attributed.md), [fresh integration evidence](evidence/T03-local-integration-candidate.md), [dependency-ready T03b brief/ownership](T03b-next-slice.md).
 
