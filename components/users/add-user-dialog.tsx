@@ -18,21 +18,69 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { allRoles, type QueryResult } from "./users-table"
 import { useAdminCommand } from "./use-admin-command"
+import { useCapabilities } from "./use-capabilities"
+import { attenuation } from "@/lib/server/permissions"
 
 export function AddUserDialog({
   user,
   onClose,
 }: {
-  user: UserAdminDTO | "new"
+  user: (UserAdminDTO & { redactedFields?: string[] }) | "new"
   onClose: () => void
 }) {
   const existing = user === "new" ? null : user
+  const { can, actor, administrator } = useCapabilities()
+  const action = existing ? "update" : "create"
+  const editable = (field: string) =>
+    can("User", action, [field], existing ?? {})
+  const complete =
+    !existing ||
+    (typeof existing.name === "string" &&
+      typeof existing.active === "boolean" &&
+      !!existing.id &&
+      !!existing.revision &&
+      Array.isArray(existing.roles) &&
+      !existing.redactedFields?.some(
+        (f) => f === "roles" || f.startsWith("roles.")
+      ) &&
+      existing.roles.every((r) => r.id && r.revision))
   const [name, setName] = useState(existing?.name ?? "")
   const [active, setActive] = useState(existing?.active ?? true)
-  const [roleIds, setRoleIds] = useState(existing?.roles.map((r) => r.id) ?? [])
+  const [roleIds, setRoleIds] = useState(
+    existing?.roles?.map((r) => r.id) ?? []
+  )
   const [expected, setExpected] = useState<Dependency[] | null>(null)
   const [key, setKey] = useState(crypto.randomUUID())
-  const roles = useQuery({ queryKey: ["role-options"], queryFn: allRoles })
+  const roles = useQuery({
+    queryKey: ["role-options"],
+    queryFn: allRoles,
+    enabled: can("Role", "read", ["id", "revision"]),
+  })
+  const assignable = (r: NonNullable<typeof roles.data>[number]) =>
+    administrator ||
+    (r.systemKey === null &&
+      Array.isArray(r.grants) &&
+      attenuation(
+        actor.presentationGrants,
+        [],
+        r.grants,
+        actor.user.id,
+        existing?.id
+      ).covered)
+  const protectedAccount =
+    !administrator &&
+    (existing?.adminProtection?.isAdministrator ||
+      existing?.roles?.some(
+        (assigned) =>
+          roles.data?.find((r) => r.id === assigned.id)?.systemKey !== null
+      ))
+  const reactivationCovered =
+    administrator ||
+    existing?.active !== false ||
+    roleIds.every((id) => {
+      const r = roles.data?.find((r) => r.id === id)
+      return r && assignable(r)
+    })
   const command = useAdminCommand()
   async function refreshRevisions() {
     const rows = await roles.refetch()
@@ -67,6 +115,7 @@ export function AddUserDialog({
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!complete || !can("User", action)) return
     const form = event.currentTarget
     const fields = new FormData(form)
     const refs = expected ?? [
@@ -145,6 +194,7 @@ export function AddUserDialog({
               <Label htmlFor="user-name">Name</Label>
               <Input
                 id="user-name"
+                disabled={!editable("name") || !complete}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -180,14 +230,23 @@ export function AddUserDialog({
             {existing && (
               <>
                 <p className="text-sm">{existing.email}</p>
-                <Label>
-                  <input
-                    type="checkbox"
-                    checked={active}
-                    onChange={(e) => setActive(e.target.checked)}
-                  />{" "}
-                  Active account
-                </Label>
+                {typeof existing.active === "boolean" ? (
+                  <Label>
+                    <input
+                      type="checkbox"
+                      disabled={
+                        !editable("active") ||
+                        !!protectedAccount ||
+                        !reactivationCovered
+                      }
+                      checked={active}
+                      onChange={(e) => setActive(e.target.checked)}
+                    />{" "}
+                    Active account
+                  </Label>
+                ) : (
+                  <p>Access state unavailable.</p>
+                )}
                 {existing.adminProtection?.lastActiveAdministrator && (
                   <p className="text-sm">
                     Last active administrator: removal or deactivation is
@@ -205,30 +264,45 @@ export function AddUserDialog({
                 </div>
               </>
             )}
-            <fieldset className="space-y-2">
+            <fieldset
+              className="space-y-2"
+              disabled={!editable("roleIds") || !complete}
+            >
               <legend className="mb-2 text-sm font-medium">
                 Roles (select at least one)
               </legend>
-              {roles.data?.map((r) => (
-                <Label key={r.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={roleIds.includes(r.id)}
-                    disabled={!r.active && !roleIds.includes(r.id)}
-                    onChange={(e) =>
-                      setRoleIds(
-                        e.target.checked
-                          ? [...roleIds, r.id]
-                          : roleIds.filter((id) => id !== r.id)
-                      )
-                    }
-                  />
-                  {r.name}
-                  {!r.active && " (archived)"}
-                </Label>
-              ))}
+              {roles.data
+                ?.filter((r) => r.id && r.revision && r.name !== undefined)
+                .map((r) => (
+                  <Label key={r.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={roleIds.includes(r.id)}
+                      disabled={
+                        (!r.active && !roleIds.includes(r.id)) ||
+                        (!administrator && r.systemKey !== null) ||
+                        (!roleIds.includes(r.id) && !assignable(r))
+                      }
+                      onChange={(e) =>
+                        setRoleIds(
+                          e.target.checked
+                            ? [...roleIds, r.id]
+                            : roleIds.filter((id) => id !== r.id)
+                        )
+                      }
+                    />
+                    {r.name}
+                    {!r.active && " (archived)"}
+                  </Label>
+                ))}
             </fieldset>
             {roles.isError && <p role="alert">Unable to load roles.</p>}
+            {!complete && (
+              <p>
+                Required fields or role references are unavailable. This record
+                cannot be replaced safely.
+              </p>
+            )}
             {command.error && (
               <p role="alert" className="text-sm text-destructive">
                 {command.error}
@@ -249,7 +323,13 @@ export function AddUserDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={command.stale || !roles.data || roleIds.length === 0}
+                disabled={
+                  command.stale ||
+                  !complete ||
+                  !can("User", action) ||
+                  !roles.data ||
+                  roleIds.length === 0
+                }
               >
                 {command.pending ? "Saving…" : "Save User"}
               </Button>

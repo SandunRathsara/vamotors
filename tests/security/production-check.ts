@@ -1113,9 +1113,13 @@ async function main() {
           { type: "User", id: target.id, revision: target.revision },
           {
             type: "Role",
-            id: role.id,
+            id: archivedRoleId,
             revision: (
-              await query<RoleDTO>(admin.request, "role", `?id=${role.id}`)
+              await query<RoleDTO>(
+                admin.request,
+                "role",
+                `?id=${archivedRoleId}`
+              )
             ).revision,
           },
         ]
@@ -1128,7 +1132,9 @@ async function main() {
                 id: target.id,
                 name: target.name,
                 active: true,
-                roleIds: [role.id],
+                // Remove all administrative capabilities, not merely protected
+                // membership: a remaining User.read/id grant now permits reads.
+                roleIds: [archivedRoleId],
                 reason: "Bounded revocation check",
               },
               assignment
@@ -1146,11 +1152,11 @@ async function main() {
           ])
             assert.equal(
               (await other.request.get(`/api/v1/queries/${name}`)).status(),
-              403
+              name === "permissionRegistry" ? 403 : 404
             )
           assert.equal(
             (await post(other.request, "saveRole", {})).status(),
-            403
+            422
           )
           const response = await other.request.get("/users", {
             headers: { RSC: "1" },
@@ -1244,9 +1250,17 @@ async function main() {
         )
         assert.equal(current.user.id, user.id)
         assert.equal(current.roles.length, 2)
-        assert.equal(
-          (await other.request.get("/api/v1/queries/users")).status(),
-          403
+        const idOnly = await query<{ data: Record<string, unknown>[] }>(
+          other.request,
+          "users"
+        )
+        assert.ok(idOnly.data.length > 0)
+        assert.ok(
+          idOnly.data.every((row) =>
+            Object.keys(row).every((key) =>
+              ["id", "redactedFields"].includes(key)
+            )
+          )
         )
         await a.goto("/users")
         await a.getByRole("button", { name: "Roles", exact: true }).click()
@@ -1318,7 +1332,7 @@ async function main() {
         for (const name of queryNames.filter((n) => n !== "currentActor"))
           assert.equal(
             (await admin.request.get(`/api/v1/queries/${name}`)).status(),
-            403
+            name === "permissionRegistry" ? 403 : 404
           )
         assert.equal(
           (
@@ -1326,7 +1340,7 @@ async function main() {
               `/api/v1/queries/audit?type=User&id=${user.id}`
             )
           ).status(),
-          403
+          404
         )
         await a.goto("/users")
         await a.waitForURL("**/login?reason=forbidden")

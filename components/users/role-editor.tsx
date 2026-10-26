@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAdminCommand } from "./use-admin-command"
 import type { QueryResult } from "./users-table"
+import { useCapabilities } from "./use-capabilities"
 
 export function RoleEditor({
   role,
@@ -28,15 +29,32 @@ export function RoleEditor({
   onClose: () => void
 }) {
   const existing = role === "new" ? null : role
+  const { can } = useCapabilities()
+  const action = existing ? "update" : "create"
+  const editable = (field: string) =>
+    can("Role", action, [field], existing ?? {})
+  const complete =
+    !existing ||
+    (typeof existing.name === "string" &&
+      Array.isArray(existing.grants) &&
+      !!existing.id &&
+      !!existing.revision)
+  const registryAllowed =
+    (can("Role", "read") && can("Role", "update")) ||
+    can("User", "create") ||
+    can("User", "update")
   const [name, setName] = useState(existing?.name ?? "")
   const [grants, setGrants] = useState(
-    JSON.stringify(existing?.grants ?? [], null, 2)
+    existing && !Array.isArray(existing.grants)
+      ? ""
+      : JSON.stringify(existing?.grants ?? [], null, 2)
   )
   const [revision, setRevision] = useState(existing?.revision)
   const [key, setKey] = useState(crypto.randomUUID())
   const [parseError, setParseError] = useState("")
   const command = useAdminCommand()
   const registry = useQuery({
+    enabled: registryAllowed,
     queryKey: ["permissionRegistry"],
     queryFn: () =>
       privateRequest<QueryResult<PermissionRegistryDTO>>(
@@ -48,6 +66,17 @@ export function RoleEditor({
     archive: boolean
   ) {
     event.preventDefault()
+    if (!archive && (!complete || !can("Role", action))) return
+    if (
+      archive &&
+      !can(
+        "Role",
+        "archive",
+        existing?.active ? ["active"] : [],
+        existing ?? {}
+      )
+    )
+      return
     const reason = String(new FormData(event.currentTarget).get("reason"))
     const envelope = {
       schemaVersion: 1 as const,
@@ -59,7 +88,7 @@ export function RoleEditor({
     }
     let parsed: Grant[]
     try {
-      parsed = JSON.parse(grants) as Grant[]
+      parsed = archive ? [] : (JSON.parse(grants) as Grant[])
     } catch {
       setParseError("Grants must be valid JSON.")
       return
@@ -105,8 +134,9 @@ export function RoleEditor({
         <SheetHeader>
           <SheetTitle>{existing ? "Edit Role" : "Add Role"}</SheetTitle>
           <SheetDescription>
-            Administrator-only. Domain capabilities outside User/Role
-            administration and bounded audit are not implemented.
+            Only authorized changed fields may be saved. Hidden grants are never
+            replaced. Domain services outside this bounded administration remain
+            unavailable.
           </SheetDescription>
         </SheetHeader>
         <form
@@ -122,17 +152,14 @@ export function RoleEditor({
           }
         >
           <fieldset
-            disabled={
-              command.pending ||
-              !!existing?.systemKey ||
-              existing?.active === false
-            }
+            disabled={command.pending || !!existing?.systemKey}
             className="space-y-4"
           >
             <div className="space-y-2">
               <Label htmlFor="role-name">Role name</Label>
               <Input
                 id="role-name"
+                disabled={!editable("name")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -143,6 +170,7 @@ export function RoleEditor({
               <Label htmlFor="role-grants">Grants (JSON array)</Label>
               <textarea
                 id="role-grants"
+                readOnly={!editable("grants") || !complete}
                 className="min-h-48 w-full rounded-md border bg-background p-3 font-mono text-sm"
                 value={grants}
                 onChange={(e) => setGrants(e.target.value)}
@@ -169,23 +197,39 @@ export function RoleEditor({
               </Button>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={command.stale}>
+              <Button
+                type="submit"
+                disabled={command.stale || !complete || !can("Role", action)}
+              >
                 {command.pending ? "Saving…" : "Save Role"}
               </Button>
-              {existing && (
-                <Button
-                  type="submit"
-                  value="archive"
-                  variant="destructive"
-                  disabled={command.stale}
-                >
-                  Archive Role
-                </Button>
-              )}
+              {existing &&
+                can(
+                  "Role",
+                  "archive",
+                  existing.active ? ["active"] : [],
+                  existing
+                ) && (
+                  <Button
+                    type="submit"
+                    value="archive"
+                    variant="destructive"
+                    disabled={command.stale}
+                  >
+                    Archive Role
+                  </Button>
+                )}
             </div>
           </fieldset>
           {existing?.systemKey && (
             <p>This system role is protected and cannot be changed.</p>
+          )}
+          {!complete && (
+            <p>
+              Grants or required references are unavailable. Save is disabled to
+              avoid replacing hidden authority; authorized archive remains
+              independent.
+            </p>
           )}
           {existing?.active === false && (
             <p>This role is archived and cannot be assigned.</p>
@@ -207,8 +251,10 @@ export function RoleEditor({
               {JSON.stringify([
                 { subject: "User", action: "read", fields: ["name"] },
               ])}
-              . A custom role does not grant delegated administration in this
-              slice.
+              . This registry is a conservative subset: conditional-only fields
+              and choices that cannot safely be represented are omitted.
+              Existing authorized grants remain viewable; every save is
+              revalidated by the server.
             </p>
             {registry.data?.data.subjects.map((s) => (
               <div key={s.subject} className="my-3">

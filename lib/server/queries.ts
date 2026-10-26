@@ -1,24 +1,79 @@
 import "server-only"
 import { z } from "zod"
 import { database, assertEnvironment } from "./db"
-import { currentActor, actorDTO, type Identity } from "./actor"
+import { currentActor, actorDTO, type Identity, type Actor } from "./actor"
 import { fail } from "./errors"
-import {
-  requireAdministrator,
-  userDTO,
-  roleDTO,
-  userInclude,
-  roleInclude,
-} from "./admin"
+import { userDTO, roleDTO, userInclude, roleInclude } from "./admin"
 import {
   project,
   readScope,
   requireFields,
-  permissionRegistryDTO,
+  configurableRegistry,
   type EnabledSubject,
 } from "./permissions"
 import { id, listParams } from "./validators"
 import { adminList } from "./admin-list"
+import { subject } from "@casl/ability"
+import type { Tx } from "./db"
+
+const canAdminister = (actor: Actor) =>
+  ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
+function visibleRoleLink(
+  actor: Actor,
+  row: object | undefined,
+  link: Record<string, unknown>,
+  redactions: string[],
+  prefix: string
+) {
+  if (!row || !actor.ability.can("read", subject("Role", row))) {
+    redactions.push(prefix)
+    return []
+  }
+  return [
+    Object.fromEntries(
+      ["id", "revision", "name"]
+        .filter((field) => {
+          const allowed = actor.ability.can("read", subject("Role", row), field)
+          if (!allowed) redactions.push(`${prefix}.${field}`)
+          return allowed
+        })
+        .map((field) => [field, link[field]])
+    ),
+  ]
+}
+async function visibleUser(
+  tx: Tx,
+  actor: Actor,
+  row: Parameters<typeof userDTO>[0]
+) {
+  const dto = userDTO(row)
+  const projected = project(actor.ability, "User", dto)
+  if ("roles" in projected) {
+    projected.roles = row.roles.flatMap(({ role }) =>
+      visibleRoleLink(actor, role, role, projected.redactedFields, "roles")
+    )
+  }
+  if (
+    canAdminister(actor) &&
+    actor.ability.can("read", subject("User", dto), "adminProtection")
+  ) {
+    const isAdministrator = row.roles.some(
+      (m) => m.role.systemKey === "ADMINISTRATOR" && m.role.active
+    )
+    const activeAdmins = await tx.user.count({
+      where: {
+        active: true,
+        roles: { some: { role: { systemKey: "ADMINISTRATOR", active: true } } },
+      },
+    })
+    projected.adminProtection = {
+      isAdministrator,
+      lastActiveAdministrator:
+        isAdministrator && row.active && activeAdmins === 1,
+    }
+  } else projected.redactedFields.push("adminProtection")
+  return projected
+}
 
 export async function securityQuery(
   identity: Identity,
@@ -38,20 +93,23 @@ export async function securityQuery(
       }
       if (name === "permissionRegistry") {
         if (params.size) fail("INVALID_INPUT", 422)
-        requireAdministrator(actor)
-        const registry = permissionRegistryDTO()
-        // This endpoint advertises implemented administration/audit capabilities
-        // only; other foundation policy primitives are not live domain services.
-        return {
-          ...registry,
-          subjects: registry.subjects.filter((s) =>
-            ["User", "Role", "AuditLog"].includes(s.subject)
-          ),
-        }
+        const roleConfiguration =
+          actor.ability.can("read", subject("Role", {})) &&
+          actor.ability.can("update", subject("Role", {}))
+        if (!roleConfiguration && !canAdminister(actor)) fail("FORBIDDEN", 403)
+        const registry = configurableRegistry(
+          actor.grants,
+          actor.userId,
+          actor.administrator
+        )
+        return canAdminister(actor) ||
+          actor.ability.can("update", subject("Role", {}), "grants")
+          ? registry
+          : { ...registry, subjects: [] }
       }
       if (["users", "roles", "user", "role"].includes(name)) {
-        requireAdministrator(actor)
         const type = name.startsWith("user") ? "User" : "Role"
+        requireFields(actor.ability, type, "read", {}, [])
         if (name === "user" || name === "role") {
           const input = z.object({ id }).strict().safeParse(args)
           if (!input.success) fail("INVALID_INPUT", 422)
@@ -66,25 +124,7 @@ export async function securityQuery(
               include: userInclude,
             })
             if (!row) fail("NOT_FOUND", 404)
-            const isAdministrator = row.roles.some(
-              (m) => m.role.systemKey === "ADMINISTRATOR" && m.role.active
-            )
-            const activeAdmins = await tx.user.count({
-              where: {
-                active: true,
-                roles: {
-                  some: { role: { systemKey: "ADMINISTRATOR", active: true } },
-                },
-              },
-            })
-            return project(actor.ability, "User", {
-              ...userDTO(row),
-              adminProtection: {
-                isAdministrator,
-                lastActiveAdministrator:
-                  isAdministrator && row.active && activeAdmins === 1,
-              },
-            })
+            return visibleUser(tx, actor, row)
           }
           const row = await tx.role.findFirst({
             where: {
@@ -99,36 +139,19 @@ export async function securityQuery(
           return project(actor.ability, "Role", roleDTO(row))
         }
         const { page, pageSize, paging, where } = adminList(actor, type, args)
+        if (type === "User" && args.roleId) {
+          const role = await tx.role.findUnique({ where: { id: args.roleId } })
+          if (!role) fail("NOT_FOUND", 404)
+          requireFields(actor.ability, "Role", "read", role, ["id"])
+        }
         if (type === "User") {
-          const [rows, total, activeAdministrators] = await Promise.all([
+          const [rows, total] = await Promise.all([
             tx.user.findMany({ where, ...paging, include: userInclude }),
             tx.user.count({ where }),
-            tx.user.count({
-              where: {
-                active: true,
-                roles: {
-                  some: { role: { systemKey: "ADMINISTRATOR", active: true } },
-                },
-              },
-            }),
           ])
           return {
             ok: true,
-            data: rows.map((r) => {
-              const isAdministrator = r.roles.some(
-                (membership) =>
-                  membership.role.systemKey === "ADMINISTRATOR" &&
-                  membership.role.active
-              )
-              return project(actor.ability, "User", {
-                ...userDTO(r),
-                adminProtection: {
-                  isAdministrator,
-                  lastActiveAdministrator:
-                    isAdministrator && r.active && activeAdministrators === 1,
-                },
-              })
-            }),
+            data: await Promise.all(rows.map((r) => visibleUser(tx, actor, r))),
             total,
             page,
             pageSize,
@@ -151,7 +174,7 @@ export async function securityQuery(
         }
       }
       if (name === "audit") {
-        requireAdministrator(actor)
+        requireFields(actor.ability, "AuditLog", "read", {}, [])
         const parsed = listParams
           .extend({ type: z.enum(["User", "Role"]), id })
           .strict()
@@ -170,7 +193,12 @@ export async function securityQuery(
               })
         if (!row) fail("NOT_FOUND", 404)
         requireFields(actor.ability, entityType, "read", row, ["id"])
-        const where = { entityType, entityId }
+        // at is recordedAt in SQL; both ordering fields need unconditional read.
+        const scope = readScope(actor.grants, actor.userId, "AuditLog", [
+          "id",
+          "at",
+        ])
+        const where = { AND: [{ entityType, entityId }, scope] }
         const [entries, total] = await Promise.all([
           tx.auditEntry.findMany({
             where,
@@ -180,38 +208,89 @@ export async function securityQuery(
           }),
           tx.auditEntry.count({ where }),
         ])
-        const data = entries.map((entry) => {
-          const fields = entry.fieldDiff as Record<string, unknown>
-          const diff = Object.entries(fields)
-            .filter(([key]) => {
-              try {
-                requireFields(
-                  actor.ability,
-                  entityType as EnabledSubject,
-                  "read",
-                  row,
-                  [key]
+        const data = await Promise.all(
+          entries.map(async (entry) => {
+            const fields = entry.fieldDiff as Record<string, unknown>
+            const redactions: string[] = []
+            const diff = Object.entries(fields)
+              .filter(([key]) => {
+                try {
+                  requireFields(
+                    actor.ability,
+                    entityType as EnabledSubject,
+                    "read",
+                    row,
+                    [key]
+                  )
+                  return true
+                } catch {
+                  redactions.push(`fields.${key}`)
+                  return false
+                }
+              })
+              .map(([path, value]) => ({
+                path,
+                ...(value as { before: unknown; after: unknown }),
+              }))
+            for (const change of diff) {
+              if (entityType !== "User" || change.path !== "roles") continue
+              for (const side of ["before", "after"] as const) {
+                const value = change[side]
+                if (value === null) continue
+                const links = z
+                  .array(
+                    z
+                      .object({
+                        id,
+                        name: z.string(),
+                        revision: z.number().int(),
+                      })
+                      .strict()
+                  )
+                  .safeParse(value)
+                if (!links.success) {
+                  change[side] = []
+                  redactions.push("fields.roles")
+                  continue
+                }
+                const targets = await tx.role.findMany({
+                  where: { id: { in: links.data.map((link) => link.id) } },
+                })
+                change[side] = links.data.flatMap((link) =>
+                  visibleRoleLink(
+                    actor,
+                    targets.find((r) => r.id === link.id),
+                    link,
+                    redactions,
+                    "fields.roles"
+                  )
                 )
-                return true
-              } catch {
-                return false
               }
+            }
+            const auditActor = entry.userId
+              ? await tx.user.findUnique({ where: { id: entry.userId } })
+              : null
+            const visibleActor =
+              auditActor &&
+              actor.ability.can("read", subject("User", auditActor), "id")
+            if (entry.userId && !visibleActor) redactions.push("actor.userId")
+            const projected = project(actor.ability, "AuditLog", {
+              id: entry.id,
+              entityType,
+              entityId,
+              action: entry.action,
+              at: entry.recordedAt.toISOString(),
+              actor: {
+                kind: entry.actorKind,
+                ...(visibleActor ? { userId: entry.userId } : {}),
+              },
+              reason: entry.reason,
+              fields: diff,
             })
-            .map(([path, value]) => ({
-              path,
-              ...(value as { before: unknown; after: unknown }),
-            }))
-          return project(actor.ability, "AuditLog", {
-            id: entry.id,
-            entityType,
-            entityId,
-            action: entry.action,
-            at: entry.recordedAt.toISOString(),
-            actor: { kind: entry.actorKind, userId: entry.userId },
-            reason: entry.reason,
-            fields: diff,
+            projected.redactedFields.push(...redactions)
+            return projected
           })
-        })
+        )
         return {
           ok: true,
           data,

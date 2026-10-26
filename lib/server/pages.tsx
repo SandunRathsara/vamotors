@@ -4,16 +4,25 @@ import { redirect } from "next/navigation"
 import { authenticate, actorDTO, currentActor } from "./actor"
 import { assertEnvironment, database } from "./db"
 import { CommandError } from "./errors"
-import { requireAdministrator } from "./admin"
+import { fail } from "./errors"
+import { subject } from "@casl/ability"
 
 // No React/cache wrapper: every page/RSC entry rechecks the live session/grants.
-export async function pageActor(administrator = false) {
+export async function pageActor(administrativeSurface = false) {
   try {
     const identity = await authenticate(await headers())
     return await database().$transaction(async (tx) => {
       await assertEnvironment(tx)
       const actor = await currentActor(tx, identity)
-      if (administrator) requireAdministrator(actor)
+      if (
+        administrativeSurface &&
+        !["User", "Role"].some((type) =>
+          ["read", "create", "update", "archive"].some((action) =>
+            actor.ability.can(action, subject(type, {}))
+          )
+        )
+      )
+        fail("FORBIDDEN", 403)
       return { actor: actorDTO(actor), administrator: actor.administrator }
     })
   } catch (error) {

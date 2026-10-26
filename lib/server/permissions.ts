@@ -151,13 +151,127 @@ export function fieldsFor(
 ): readonly string[] {
   return (registry[type] as Record<string, readonly string[]>)[action] ?? []
 }
-function expanded(grant: Grant) {
+export function expanded(grant: Grant) {
   const universe = fieldsFor(grant.subject as EnabledSubject, grant.action)
   return universe.filter(
     (f) =>
       grant.fields.includes("*") ||
       grant.fields.some((parent) => f === parent || f.startsWith(`${parent}.`))
   )
+}
+
+/** One conjunction witness per field. Symbols keep eventual holders distinct
+ * from the grantor; textual $actor.id equality is not transferable authority.
+ * Registry expansion changes require stored-grant revalidation/migration. */
+export function attenuation(
+  ceiling: readonly Grant[],
+  before: readonly Grant[],
+  proposed: readonly Grant[],
+  grantorId: string,
+  recipientId?: string,
+  universe: (
+    type: EnabledSubject,
+    action: string
+  ) => readonly string[] = fieldsFor
+) {
+  const holder = Symbol("arbitrary eventual holder")
+  const atoms = (grants: readonly Grant[], identity: string | symbol) =>
+    grants.flatMap((g) =>
+      universe(g.subject as EnabledSubject, g.action)
+        .filter((field) =>
+          g.fields.some(
+            (p) => p === "*" || field === p || field.startsWith(`${p}.`)
+          )
+        )
+        .map((field) => ({
+          subject: g.subject,
+          action: g.action,
+          field,
+          conditions: Object.fromEntries(
+            Object.entries(g.conditions ?? {}).map(([k, v]) => [
+              k,
+              v === "$actor.id" ? identity : v,
+            ])
+          ),
+        }))
+    )
+  type Atom = ReturnType<typeof atoms>[number]
+  const same = (a: Atom, b: Atom) =>
+    a.subject === b.subject && a.action === b.action && a.field === b.field
+  const covered = (a: Atom, witnesses: Atom[]) =>
+    witnesses.some(
+      (b) =>
+        same(a, b) &&
+        Object.entries(b.conditions).every(([k, v]) => a.conditions[k] === v)
+    )
+  const old = atoms(before, holder)
+  const next = atoms(proposed, holder)
+  const changed = next.filter((a) => {
+    const oldScope = old.filter((b) => same(a, b))
+    const nextScope = next.filter((b) => same(a, b))
+    return !nextScope.every((b) => covered(b, oldScope))
+  })
+  const authority = atoms(ceiling, grantorId)
+  return {
+    reduction: next.every((a) => covered(a, old)),
+    covered:
+      changed.every((a) => covered(a, authority)) &&
+      (recipientId === undefined ||
+        atoms(proposed, recipientId)
+          .filter((a) => changed.some((b) => same(a, b)))
+          .every((a) => covered(a, authority))),
+  }
+}
+
+/** Canonical positive sets; rule/field order and duplicate rules confer no change. */
+export function normalizedGrants(grants: readonly Grant[]) {
+  return [
+    ...new Set(
+      grants
+        .filter((g) => g.fields.length)
+        .map((g) =>
+          JSON.stringify([
+            g.subject,
+            g.action,
+            [...new Set(expanded(g))].sort(),
+            Object.entries(g.conditions ?? {}).sort(([a], [b]) =>
+              a.localeCompare(b)
+            ),
+          ])
+        )
+    ),
+  ]
+    .sort()
+    .join("\n")
+}
+
+export function configurableRegistry(
+  grants: readonly Grant[],
+  userId: string,
+  administrator: boolean
+) {
+  const dto = permissionRegistryDTO()
+  if (administrator) return dto
+  return {
+    ...dto,
+    subjects: dto.subjects.flatMap((s) => {
+      const actions = s.actions.flatMap((a) => {
+        // The existing DTO cannot couple predicates to fields. Only advertise
+        // unconditional field coverage; all advertised conditions then narrow it.
+        const fields = a.fields.filter(
+          (f) =>
+            attenuation(
+              grants,
+              [],
+              [{ subject: s.subject, action: a.action, fields: [f.path] }],
+              userId
+            ).covered
+        )
+        return fields.length ? [{ ...a, fields }] : []
+      })
+      return actions.length ? [{ ...s, actions }] : []
+    }),
+  }
 }
 export function abilityFor(grants: readonly Grant[], userId: string) {
   return createMongoAbility(

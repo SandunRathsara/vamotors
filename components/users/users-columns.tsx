@@ -8,11 +8,18 @@ export const usersColumns: ColumnDef<UserAdminDTO>[] = [
   {
     id: "roles",
     header: "Roles",
-    cell: ({ row }) => row.original.roles.map((r) => r.name).join(", "),
+    cell: ({ row }) =>
+      row.original.roles?.map((r) => r.name ?? "Unavailable").join(", ") ||
+      "Unavailable",
   },
   {
     id: "active",
     header: "Access",
-    cell: ({ row }) => (row.original.active ? "Active" : "Inactive"),
+    cell: ({ row }) =>
+      row.original.active === undefined
+        ? "Unavailable"
+        : row.original.active
+          ? "Active"
+          : "Inactive",
   },
 ]

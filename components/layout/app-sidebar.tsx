@@ -8,10 +8,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { useActor } from "@/components/providers/auth-boundary"
+import { useCapabilities } from "@/components/users/use-capabilities"
 
 export function AppSidebar() {
-  const { administrator } = useActor()
+  const { can } = useCapabilities()
+  const administration = (["User", "Role"] as const).some((t) =>
+    ["read", "create", "update", "archive"].some((a) => can(t, a))
+  )
   return (
     <Sidebar>
       <SidebarHeader>
@@ -30,7 +33,7 @@ export function AppSidebar() {
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {administrator && (
+          {administration && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/users">

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AddUserDialog } from "./add-user-dialog"
 import { RoleEditor } from "./role-editor"
+import { useCapabilities } from "./use-capabilities"
 
 export type QueryResult<T> = { ok: true; data: T }
 export async function allRoles() {
@@ -26,7 +27,28 @@ export async function allRoles() {
 }
 
 export function UsersTable() {
-  const [kind, setKind] = useState<"users" | "roles">("users")
+  const { can } = useCapabilities()
+  const [kind, setKind] = useState<"users" | "roles">(
+    can("User", "read") || can("User", "create") ? "users" : "roles"
+  )
+  const type = kind === "users" ? "User" : "Role"
+  const readable = can(type, "read", ["id"])
+  const searchable = can(
+    type,
+    "read",
+    kind === "users" ? ["name", "email"] : ["name"]
+  )
+  const nameSort = can(type, "read", ["name"])
+  const canCreate =
+    can(
+      type,
+      "create",
+      type === "User"
+        ? ["name", "email", "password", "roleIds"]
+        : ["name", "grants"]
+    ) &&
+    can(type, "read", ["id", "revision"]) &&
+    (type !== "User" || can("Role", "read", ["id", "revision", "grants"]))
   const [q, setQ] = useState("")
   const [active, setActive] = useState("")
   const [roleId, setRoleId] = useState("")
@@ -35,16 +57,21 @@ export function UsersTable() {
   const [user, setUser] = useState<UserAdminDTO | "new" | null>(null)
   const [role, setRole] = useState<RoleDTO | "new" | null>(null)
   const [error, setError] = useState("")
-  const options = useQuery({ queryKey: ["role-options"], queryFn: allRoles })
+  const options = useQuery({
+    queryKey: ["role-options"],
+    queryFn: allRoles,
+    enabled: can("Role", "read", ["id"]),
+  })
   const params = new URLSearchParams({
     page: String(page),
     pageSize: "20",
-    q,
-    sort: JSON.stringify([{ field: "name", direction }]),
-    ...(active ? { active } : {}),
+    ...(searchable && q ? { q } : {}),
+    sort: JSON.stringify([{ field: nameSort ? "name" : "id", direction }]),
+    ...(can(type, "read", ["active"]) && active ? { active } : {}),
     ...(kind === "users" && roleId ? { roleId } : {}),
   })
   const list = useQuery({
+    enabled: readable,
     queryKey: [kind, params.toString()],
     queryFn: ({ signal }) =>
       privateRequest<QueryResult<Page<UserAdminDTO | RoleDTO>>>(
@@ -79,17 +106,22 @@ export function UsersTable() {
     <div className="space-y-6">
       <PageHeader
         title="Users & Roles"
-        description="Administrator-only account and multirole management. Delegated administration is not yet implemented."
+        description="Account and multirole management within your current capabilities."
         actions={
-          <Button
-            onClick={() => (kind === "users" ? setUser("new") : setRole("new"))}
-          >
-            {kind === "users" ? "Add User" : "Add Role"}
-          </Button>
+          canCreate ? (
+            <Button
+              onClick={() =>
+                kind === "users" ? setUser("new") : setRole("new")
+              }
+            >
+              {kind === "users" ? "Add User" : "Add Role"}
+            </Button>
+          ) : null
         }
       />
       <div className="flex flex-wrap gap-3">
         <Button
+          disabled={!can("User", "read") && !can("User", "create")}
           variant={kind === "users" ? "default" : "outline"}
           onClick={() => {
             setKind("users")
@@ -99,6 +131,7 @@ export function UsersTable() {
           Users
         </Button>
         <Button
+          disabled={!can("Role", "read") && !can("Role", "create")}
           variant={kind === "roles" ? "default" : "outline"}
           onClick={() => {
             setKind("roles")
@@ -108,6 +141,7 @@ export function UsersTable() {
           Roles
         </Button>
         <Input
+          disabled={!searchable}
           className="max-w-xs"
           aria-label="Search accounts or roles"
           value={q}
@@ -118,6 +152,7 @@ export function UsersTable() {
           placeholder="Search name or email…"
         />
         <select
+          disabled={!can(type, "read", ["active"])}
           className="rounded-md border bg-background p-2 text-sm"
           aria-label="Filter access"
           value={active}
@@ -130,25 +165,28 @@ export function UsersTable() {
           <option value="true">Active</option>
           <option value="false">Inactive</option>
         </select>
-        {kind === "users" && (
-          <select
-            className="max-w-xs rounded-md border bg-background p-2 text-sm"
-            aria-label="Filter role"
-            value={roleId}
-            onChange={(e) => {
-              setRoleId(e.target.value)
-              setPage(1)
-            }}
-          >
-            <option value="">All roles</option>
-            {options.data?.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-        )}
+        {kind === "users" &&
+          can("User", "read", ["roles"]) &&
+          can("Role", "read", ["id", "name"]) && (
+            <select
+              className="max-w-xs rounded-md border bg-background p-2 text-sm"
+              aria-label="Filter role"
+              value={roleId}
+              onChange={(e) => {
+                setRoleId(e.target.value)
+                setPage(1)
+              }}
+            >
+              <option value="">All roles</option>
+              {options.data?.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          )}
         <Button
+          disabled={!nameSort}
           variant="outline"
           onClick={() => {
             setDirection(direction === "asc" ? "desc" : "asc")
@@ -170,7 +208,9 @@ export function UsersTable() {
       {(error || list.isError || options.isError) && (
         <p role="alert">{error || "Unable to load administration data."}</p>
       )}
-      {list.isPending ? (
+      {!readable ? (
+        <p>List unavailable with your current read capabilities.</p>
+      ) : list.isPending ? (
         <p role="status">Loading…</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
@@ -188,22 +228,34 @@ export function UsersTable() {
             <tbody>
               {list.data?.data.data.map((row) => (
                 <tr key={row.id} className="border-t">
-                  <td className="p-3">{row.name}</td>
+                  <td className="p-3">{row.name ?? "Unavailable"}</td>
                   <td className="p-3">
-                    {"roles" in row ? (
+                    {kind === "users" ? (
                       <>
-                        {row.email}
+                        {("email" in row && row.email) || "Unavailable"}
                         <div className="text-muted-foreground">
-                          {row.roles.map((r) => r.name).join(", ")}
+                          {("roles" in row &&
+                            row.roles
+                              ?.map((r) => r.name ?? "Unavailable")
+                              .join(", ")) ||
+                            "Unavailable"}
                         </div>
                       </>
-                    ) : row.systemKey ? (
+                    ) : "systemKey" in row && row.systemKey ? (
                       "Protected system role"
-                    ) : (
+                    ) : "systemKey" in row ? (
                       "Custom role"
+                    ) : (
+                      "Unavailable"
                     )}
                   </td>
-                  <td className="p-3">{row.active ? "Active" : "Inactive"}</td>
+                  <td className="p-3">
+                    {row.active === undefined
+                      ? "Unavailable"
+                      : row.active
+                        ? "Active"
+                        : "Inactive"}
+                  </td>
                   <td className="p-3">
                     <Button variant="outline" onClick={() => void edit(row.id)}>
                       Edit {row.name}
