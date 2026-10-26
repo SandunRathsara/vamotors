@@ -1,0 +1,19 @@
+# T04b docs-only checkpoint checks
+
+2026-10-26. Exact direct parent/source **`dda76e3f9c078360118722feee1f14f23fdd7fa3`**. Containing local checkpoint SHA is returned in handback, not embedded recursively here. Integration-owner checks below are fresh pure-specification/record checks, **not** independent runtime acceptance. [Parent acceptance and independent evidence attribution](T04b-acceptance-attributed.md).
+
+## Fresh checks
+
+- `node .planning/implementation/contracts/check.mjs`: **19 PASS**, including exact 134-ID contract-seam coverage; pure specification only.
+- Installed TypeScript strict compile of `api.ts`, `api-check.ts`, `roundtrip-check.ts`, with `--noEmit --strict --module esnext --moduleResolution bundler --target ES2020 --skipLibCheck`: **PASS**.
+- Installed tsx execution of `roundtrip-check.ts`: **5 PASS**, typed specification/provenance/authorization only, not DB/HTTP evidence.
+- Relative Markdown file targets in all five changed records resolve in the complete candidate snapshot. First draft link check correctly stopped at this not-yet-created checks file; final complete-snapshot check passes. Exact 134 unique requirement matrix rows retain `U`, including existing partial/excluded CUST evidence text; matrix, requirement catalog, owners and scenarios are byte-identical to source. An initial overstrict checker expected every result cell to equal `U / — / —`; it was corrected to recognize the existing partial-evidence text, without changing the matrix or claiming a product defect.
+- Candidate diff is confined to the five-record allowlist below; whitespace check passes. Source-binding verification compares every other tracked tree entry (mode, object type and blob SHA), not just selected source directories. **634 nonrecord tracked blobs identical**; all contracts, application/test/script/schema/package/lockfile bytes, four prior migrations plus new fifth migration, infrastructure interlocks and previous evidence preserved. No proposal files added.
+
+## Exact preservation and execution boundary
+
+Only `.planning/implementation/HANDOFF.md`, `.planning/implementation/task-ledger.md`, `.planning/implementation/evidence/README.md`, `.planning/implementation/evidence/T04b-acceptance-attributed.md`, and this file may differ from the exact parent. Manifest SHA-256 **`6ef7a66294d20f11a96111266a6830ab3519a6208a4012e6644a9860bd27099b`** over newline-terminated `git ls-tree -r dda76e3f9c078360118722feee1f14f23fdd7fa3` lines excluding those five paths binds the 634 unchanged entries. Candidate must reproduce that exact manifest.
+
+The assigned checkout is an older source (`ddd69fb`); no checkout/reset, index update, branch update or accepted-ref movement is performed. A temporary exact-parent snapshot and isolated temporary Git index construct a local commit object using `git commit-tree -p dda76e3…`; checkpoint is returned by SHA with no ref attached or advanced. Installed reviewer TypeScript/tsx tools are reused directly; no install, package/lifecycle command, generated client or source changes. No application typecheck/build/unit campaign is claimed freshly here: **98 units / 19 contracts / types/build/owned lint+format PASS** belong to independent `6056e94c`; baseline **3 lint errors / 27 warnings** remains unresolved.
+
+No DB/browser repeat, service start, environment/secret reads, cloud, delegation, push/PR/deploy or ref movement. Proposal `da040cf9d1da91c1885326b0edcccae8b48e0f96` remains outside this tree, under separate independent review `433aae87` with pending verdict; no policy promotion or accepted-contract edits. Next dependency is that verdict and explicit parent policy acceptance before later combined policy/runtime integration verification. G1 and bounded T04a/T04b accepted only; **full T04/G2/T05 NOT accepted; 134 U / 0 whole IDs accepted**.
