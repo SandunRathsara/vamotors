@@ -1,8 +1,16 @@
 # Full-v1 execution handoff — LOCAL implementation; deployment deferred
 
-Updated 2026-10-26. **T00/T01 accepted by orchestrator; G0 ACCEPTED at `ddd69fb617b4790b3cd64cbf09cb10112d19c281`. Bounded T03-local source+DB independently accepted at d71def0; G1/T03 NOT accepted, G2–G6 pending; 0/134 implemented feature requirements accepted.** Contract readiness/security-spine proof is not whole-app acceptance; full T02 remains unaccepted.
+Updated 2026-10-26. **T00/T01/G0 accepted; G1/T03 foundational prerequisite parent-accepted at `7e89641` after `bda72a63` PASS. Bounded T04a parent-accepted at exact `4c430863` after `a4f4cb57` PASS. Whole T04 and G2–G6 pending; 134 U / 0 whole feature IDs accepted.** Foundation and bounded-directory acceptance are not whole-app acceptance; full T02 remains unaccepted.
 
-## Current bounded T03c accepted / next feature-enabling decision — 2026-10-26
+## Current exact-source T04a integration candidate / next implementation
+
+This local docs-only candidate starts at **`4c430863de3984fdb9fe5fbfb90f0c19f99ac58a`**, preserving every source/contract blob. Parent acceptance: bounded T04a after independent `a4f4cb57` PASS; underlying `8525429` reviewed `bd453397`. G1/T03 foundation was explicitly accepted at **`7e89641df6cd5db8dd2fffad9daaf69ef2310fda`** after `bda72a63` PASS. Pending foundation-decision/T04a-dispatch instructions below are historical, not current blockers.
+
+[Sanitized evidence and exact CUST adjudication](evidence/T04a-acceptance-attributed.md): correction6, independent7, customer15, units95/contracts19, types/build/owned lint+format PASS. Prior genuine parent upgrade/grants/lock order and DB10/production10/delegated14/mobile12/redacted7 are attributed, not new integration execution. Earlier UI retry P2 FAIL remains historical and independently resolved. Full lint3/27 remains G6 debt. **CUST-01/02 stay U with partial evidence and exact gaps; CUST-03 sale-inline and full CUST-04 lawful purchase/sale/brokerage histories excluded, not waived. All134 remain in scope; no whole T04/G2 claim.**
+
+**Next author brief: [T04b supplier / repair vendor / finance company directories and contacts](T04b-next-slice.md).** Implement persisted supplier vertical first for bounded purchases, not more general planning. Sole serialized foundation writer owns migrations/registry/revalidation/grants; reuse accepted DTOs/dispatch/routes. Minimal versioned Settings/current revision is a finance-command prerequisite; full settings UI may be separate T04c. Parent supplies candidate SHA/author/reviewer at dispatch. No source fixes/services/cloud/secret/push/PR/deploy or accepted-ref movement in this integration task. [Fresh local preservation/contracts/types/links checks](evidence/T04a-integration-checks.md).
+
+## Historical bounded T03c accepted / next feature-enabling decision — 2026-10-26
 
 Parent accepts exact **`5cf5c312eee2de18e467b85b304bac7c1e679472`** after independent **PASS `81522ea3`**. It descends from accepted base `61c0583c3a452073d946053fccbd3b8431fcca91` through `e347827`. This detached local candidate retains every application/test/schema/package/script/contract blob from that exact source; only integration records change. Shared refs remain unchanged. [Sanitized independent correction PASS, original FAIL and evidence attribution](evidence/T03c-acceptance-attributed.md).
 
@@ -120,7 +128,7 @@ The following snapshot retains the earlier pending review/dispatch state; curren
 2. Inspect `git status --short`, branch/head and worktrees. Do not overwrite unrelated edits, reset, clean, or launch duplicate workers. T00 task identity is in the ledger; downstream workers are not dispatched by this worker.
 3. Read [attributed T00 acceptance](evidence/T00-acceptance-attributed.md): reviewer confirmed ancestry, eleven hashes/blobs, exact 134 IDs/owners/scenarios/defaults, eight intended docs, no app/test diff, heuristic secret screen and clean checkout. Orchestrator accepted exact SHA after readiness reconciliation; no self-acceptance by this ledger worker.
 4. Retain [attributed readiness findings](evidence/T00-readiness-attributed.md), supplied by reviewer suffix `72173ee0-5850-4fac-9990-2250ee82e0cb`. This worker did not reproduce cloud findings; readiness is not feature acceptance.
-5. Follow the current bounded T03c acceptance at the top, [local completion mapping](local-completion.md) and [T03d/T04a brief](T03-G1-closure-next-slice.md). T03a/b/c bounded source is delivered/reviewed, not awaiting duplicate implementation. Parent needs explicit G1/T03 foundational criterion adjudication, then the first customer vertical; whole downstream domains are not a new foundation prerequisite. Do not open cloud secrets, contact provider, deploy/push/modify PR/merge, duplicate workers or infer whole-ID acceptance. All 134 remain unaccepted; hosted subcriteria remain deferred/not passed.
+5. Follow current G1/T03 foundation and bounded T04a acceptance at the top, [local mapping](local-completion.md), [evidence](evidence/T04a-acceptance-attributed.md) and [T04b author brief](T04b-next-slice.md). No duplicate T03d/T04a dispatch. Implement the next persisted party vertical with serialized foundation ownership; whole downstream domains are not foundation prerequisites. Do not open cloud secrets, contact provider, deploy/push/modify PR/merge, duplicate workers or infer whole-ID acceptance. All 134 remain unaccepted; hosted subcriteria remain deferred/not passed.
 
 ## Preservation and coverage
 

@@ -1,5 +1,7 @@
 # T03/G1 closure assessment and next implementation slice
 
+**Supersession 2026-10-26:** parent explicitly accepted G1/T03 foundational prerequisite at exact `7e89641df6cd5db8dd2fffad9daaf69ef2310fda` after `bda72a63` PASS, and subsequently bounded T04a at `4c430863` after `a4f4cb57` PASS. The pending T03d/T04a dispatch below is historical; original criterion mapping and outstanding whole-ID contributions remain intact. [Current attribution](evidence/T04a-acceptance-attributed.md), [next T04b implementation brief](T04b-next-slice.md). No whole T04/G2/ID acceptance.
+
 2026-10-26. Assessment only: **G1/T03 not marked accepted; all 134 IDs remain U**. Bounded T03c is parent-accepted at `5cf5c312eee2de18e467b85b304bac7c1e679472` after independent `81522ea3` PASS. [Exact acceptance/evidence attribution](evidence/T03c-acceptance-attributed.md).
 
 ## Original criteria, not a new whole-domain gate
