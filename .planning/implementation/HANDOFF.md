@@ -2,7 +2,13 @@
 
 Updated 2026-10-26. **T00/T01 accepted by orchestrator; G0 ACCEPTED at `ddd69fb617b4790b3cd64cbf09cb10112d19c281`. Bounded T03-local source+DB independently accepted at d71def0; G1/T03 NOT accepted, G2–G6 pending; 0/134 implemented feature requirements accepted.** Contract readiness/security-spine proof is not whole-app acceptance; full T02 remains unaccepted.
 
-## Current integration candidate — 2026-10-26
+## Current bounded policy acceptance — 2026-10-26
+
+Parent explicitly accepts delegated-admin policy at exact `909076451f7cbdac993ef78324f2c6567746928a`, including source-line63 A3 clarification and lines56–58 receipt identity/revision semantics, after attributed independent **PASS `26b21d2f-2b27-4de8-840e-c08ce6221e61`**. Prior `eefe2d2` review `9eef4df8` remains **FAIL implementation readiness / four findings**; not relabeled or rerun. [Accepted A1D/A3](contracts/access-transactions.md), [retained exact policy/status](delegated-admin-proposal.md), [acceptance attribution and checks](evidence/delegated-admin-acceptance-attributed.md).
+
+**Policy accepted ONLY; implementation pending. G1/T03 unaccepted; 134 U / 0 accepted.** Bounded integration consistency at `95ae883` remains accepted per parent. Current T03b candidate `1fed75ad56fd818268478928c2cff3d0e87365bd` is independently under review `a41035f5` per parent, verdict pending; this worker neither integrates nor edits its code. [Precise future T03c brief](T03c-next-slice.md) requires reviewed parent-integrated T03b as base, sole security-source ownership plus coordinated UI changes and fresh independent review. No dispatch/integration/source/schema/package/service/secret/cloud/push/PR/ref changes here. Earlier pending-policy/combined-foundation next actions below are historical, superseded only within these bounded acceptances. Deployment remains deferred/not passed.
+
+## Historical integration candidate — 2026-10-26
 
 Local branch `t3/integrate-local-security-spine` combines accepted plan `5ed7083fcede77f6218625b7930b717eb146597f` and independently reviewed foundation `d71def0217a17c66b7c5a2162ef06c440b5ea4da`, shared PR5 base `24698af621cc29375598c12fdb6e0c9c0ae70bf4`. No conflicts/application edits. Accepted `integration/full-v1` stays at historical G0 `ddd69fb`; **parent independent final combined verification required before ref update**. [Attributed reviewer evidence](evidence/T03-local-independent-attributed.md), [fresh integration evidence](evidence/T03-local-integration-candidate.md), [dependency-ready T03b brief/ownership](T03b-next-slice.md).
 

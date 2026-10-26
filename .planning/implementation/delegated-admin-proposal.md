@@ -1,4 +1,10 @@
-# Delegated administration — bounded policy proposal
+# Delegated administration — accepted bounded policy (proposal record retained)
+
+Current status: **POLICY ACCEPTED / IMPLEMENTATION PENDING**. Parent explicitly accepts exact source `909076451f7cbdac993ef78324f2c6567746928a`, including source line63's A3 clarification and lines56–58's receipt identity/revision semantics, following attributed independent **PASS `26b21d2f-2b27-4de8-840e-c08ce6221e61`**. This is supplied review/acceptance attribution, not a rerun. Prior review `9eef4df8` remains **FAIL implementation readiness / four findings** on the earlier proposal, not relabeled PASS. Accepted contract [A1D/A3](contracts/access-transactions.md) incorporates the exact reviewed rules; [T03c](T03c-next-slice.md) is future implementation on reviewed T03b integration, not implemented work. G1/T03 unaccepted; 134 U / 0 accepted.
+
+## Historical corrected-proposal snapshot — exact reviewed text below
+
+The remainder is retained byte-for-byte from `9090764` after its title, including historical pending/not-accepted prose and author checks. Those status statements describe the proposal stage and are superseded ONLY by the acceptance above. Execution/replay/ceiling/protection/read rules are unchanged; the quoted source-line63 clarification is now normative in A3. Source references to unchanged accepted contracts describe that historical correction, not this promotion. No code is integrated or guard removed by this docs record.
 
 Status: **CORRECTED PROPOSAL / NOT ACCEPTED / NO AUTHORIZATION TO LOOSEN CODE**. Revision of `eefe2d2220fc682b29fa88f929b7356ab95881d6`, accepted bounded base `95ae8836b61b6901655cc53362292bb27e98fea7`. Parent reports independent review `9eef4df8`: **FAIL implementation readiness, four findings**; the review identifier is not locally resolvable, so this records the supplied verdict/decisions, not a rerun or invented full reviewer SHA. Fresh independent review and explicit parent final acceptance remain required. T03b continues separately with `requireAdministrator` retained. No app, package, schema or accepted contract changes accompany this correction.
 

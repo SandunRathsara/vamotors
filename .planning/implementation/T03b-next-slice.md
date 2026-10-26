@@ -1,5 +1,7 @@
 # T03b — real login/admin UI and global access boundary
 
+**Current coordination (2026-10-26):** This is the historical dispatch brief, not a current instruction to edit the candidate. Parent reports candidate `1fed75ad56fd818268478928c2cff3d0e87365bd` under independent review `a41035f5`, verdict pending. Exact delegated policy `9090764` is now explicitly parent-accepted after independent PASS `26b21d2f-2b27-4de8-840e-c08ce6221e61`; policy implementation remains pending separately under [future T03c brief](T03c-next-slice.md) on reviewed parent-integrated T03b. Historical missing-policy-decision language below is superseded only for policy acceptance, not implementation or T03b acceptance. No candidate integration/code changes by this docs owner; T03/G1 and 134 features unaccepted.
+
 Dependency-ready **for parent dispatch after independent combined-candidate verification**, not dispatched by this integration worker. Bounded T03-local source+DB is accepted from independent review at `d71def0217a17c66b7c5a2162ef06c440b5ea4da`; full T03/G1 remain unaccepted. No T04+ feature dependencies unlocked, 134 U / 0 accepted. One T03b implementation owner avoids overlapping security/UI edits; parent supplies a distinct fresh reviewer.
 
 ## Inspected seams and ownership
