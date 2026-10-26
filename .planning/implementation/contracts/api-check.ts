@@ -2,6 +2,9 @@
 import type { Commands, Dependency, Queries, QueryData, PurchaseCycleDTO, ImportRowInput,
   CurrentActorDTO, UserAdminDTO, RoleDTO, PermissionRegistryDTO, ExportManifestDTO,
   ApprovalProvenance, ImportPayloads, Grant } from "./api";
+import type { PartyContribution, PartyDetailDTO, PartyHistoryLink } from "./api";
+import type { PartyContribution as ReviewedContribution, PartyDetailDTO as ReviewedDetail,
+  PartyHistoryLink as ReviewedLink, ProposedQueries, ProposedQueryData } from "./party-detail-settings.proposal";
 
 const omittedDependencies: Dependency[] = [
   { type: "Customer", id: "customer", revision: 1 },
@@ -39,6 +42,14 @@ const serverOnlyExportTarget: Commands["initUpload"]["target"] = {
   type: "EXPORT_JOB", id: "export"
 };
 type Assert<T extends true> = T;
+// Bind the preserved reviewed specimens to the promoted API, not a parallel proposal-only seam.
+type Same<T, U> = (<V>() => V extends T ? 1 : 2) extends
+  (<V>() => V extends U ? 1 : 2) ? true : false;
+type ReviewedPartyQuery = Assert<Same<Queries["party"], ProposedQueries["party"]>>;
+type ReviewedPartyData = Assert<Same<QueryData["party"], ProposedQueryData["party"]>>;
+type ReviewedPartyDetail = Assert<Same<PartyDetailDTO, ReviewedDetail>>;
+type ReviewedPartyContribution = Assert<Same<PartyContribution<"PURCHASE">, ReviewedContribution<"PURCHASE">>>;
+type ReviewedPartyLink = Assert<Same<PartyHistoryLink<"REPAIR">, ReviewedLink<"REPAIR">>>;
 type NoCredentials<T> = Extract<keyof T, "password" | "passwordHash" | "token" | "sessionToken" | "account"> extends never ? true : false;
 type SafeActor = Assert<NoCredentials<CurrentActorDTO>>;
 type SafeUsers = Assert<NoCredentials<UserAdminDTO>>;
