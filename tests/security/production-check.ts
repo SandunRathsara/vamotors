@@ -14,6 +14,7 @@ import {
 } from "@playwright/test"
 import { privateEnvironment } from "../../scripts/private-environment"
 import { runtimeConfig } from "../../lib/server/config"
+import pg from "pg"
 import {
   legacyAPIs,
   unavailablePages,
@@ -184,6 +185,467 @@ async function main() {
         }
       })
     })
+    if (process.argv[3] === "--portals") {
+      const accessibilityErrors: string[] = []
+      let transitionLeaks = 0
+      await b.exposeFunction("recordPrivatePortalLeak", () => {
+        transitionLeaks++
+      })
+      b.on("console", (message) => {
+        if (/flushSync|aria-hidden|focus trap/i.test(message.text()))
+          accessibilityErrors.push(message.type())
+      })
+      // Own isolated cluster only; never use an author's/reviewer's database.
+      const cluster = await privateEnvironment(join(directory, "cluster.env"))
+      assert.equal(cluster.PROJECT, process.cwd())
+      const owner = await privateEnvironment(join(directory, "admin.env"))
+      const url = new URL(owner.ADMIN_URL!)
+      assert.equal(url.hostname, "127.0.0.1")
+      assert.equal(url.port, cluster.PORT)
+      url.pathname = new URL(runtime.DATABASE_URL).pathname
+      const lock = new pg.Client({ connectionString: url.href })
+      const observer = new pg.Client({ connectionString: url.href })
+      await lock.connect()
+      await observer.connect()
+      try {
+        await login(a, credential("ADMIN_EMAIL"), credential("ADMIN_PASSWORD"))
+        await login(
+          b,
+          credential("SECOND_EMAIL"),
+          credential("SECOND_PASSWORD")
+        )
+        const actor = await query<CurrentActorDTO>(
+          other.request,
+          "currentActor"
+        )
+        const target = await query<UserAdminDTO>(
+          admin.request,
+          "user",
+          `?id=${actor.user.id}`
+        )
+        const privateEmail = target.email!
+        assert.ok(privateEmail)
+        const roles = await query<{ data: RoleDTO[] }>(admin.request, "roles")
+        const protectedRole = roles.data.find(
+          (r) => r.systemKey === "ADMINISTRATOR"
+        )!
+        assert.ok(protectedRole)
+        const customResponse = await post(admin.request, "saveRole", {
+          name: roleName,
+          grants: [],
+          reason: "Portal regression fixture",
+        })
+        assert.equal(customResponse.status(), 201)
+        const custom = (
+          await query<{ data: RoleDTO[] }>(
+            admin.request,
+            "roles",
+            `?q=${suffix}`
+          )
+        ).data[0]
+        roles.data.push(custom)
+        async function open(kind: "user" | "role", fresh = false) {
+          await b.goto("/users")
+          if (kind === "role")
+            await b.getByRole("button", { name: "Roles", exact: true }).click()
+          if (fresh)
+            await b
+              .getByRole("button", {
+                name: kind === "user" ? "Add User" : "Add Role",
+                exact: true,
+              })
+              .click()
+          else
+            await b
+              .getByRole("button", {
+                name: `Edit ${kind === "user" ? target.name : custom.name}`,
+                exact: true,
+              })
+              .click()
+          await expect(b.getByRole("dialog")).toBeVisible()
+          await b
+            .getByLabel(kind === "user" ? "Name" : "Role name", { exact: true })
+            .fill("Private retained draft")
+          if (!fresh || kind === "role")
+            await b
+              .getByLabel("Reason", { exact: true })
+              .fill("Uncontrolled private reason")
+          if (kind === "role")
+            await b
+              .getByLabel("Grants (JSON array)")
+              .fill('[{"subject":"User","action":"read","fields":["id"]}]')
+          if (kind === "user" && fresh) {
+            await b
+              .getByLabel("Email", { exact: true })
+              .fill("private-draft@example.test")
+            await b
+              .getByLabel("Initial password")
+              .fill("PrivateUnsavedPassword123!")
+          }
+        }
+        async function hidden() {
+          await expect(b.getByRole("dialog")).toHaveCount(0)
+          await expect(b.locator('[data-slot="sheet-overlay"]')).toBeHidden()
+          await expect(
+            b.getByRole("status").filter({ hasText: "Checking access" })
+          ).toBeVisible()
+          assert.ok(
+            !(await b.locator("body").innerText()).includes(privateEmail)
+          )
+          assert.ok(
+            !(await b.locator("body").ariaSnapshot()).includes(
+              "Private retained draft"
+            )
+          )
+          await b.keyboard.press("Tab")
+          assert.equal(
+            await b.evaluate(() => {
+              const el = document.activeElement
+              return (
+                el instanceof HTMLElement && !!el.closest('[role="dialog"]')
+              )
+            }),
+            false,
+            "HIDDEN_DIALOG_MUST_NOT_TRAP_FOCUS"
+          )
+        }
+        async function hold(run: () => Promise<void>) {
+          await lock.query("BEGIN")
+          await lock.query(
+            "SET LOCAL idle_in_transaction_session_timeout = '20s'"
+          )
+          await lock.query(
+            'LOCK TABLE vamotors."user" IN ACCESS EXCLUSIVE MODE'
+          )
+          try {
+            await run()
+          } finally {
+            await lock.query("ROLLBACK")
+          }
+        }
+        for (const kind of ["user", "role"] as const)
+          for (const fresh of [false, true]) {
+            await group(
+              `${fresh ? "new" : "existing"} ${kind}: blur + real DB-blocked focus hides all portals; same identity restores draft and keyboard focus`,
+              async () => {
+                await open(kind, fresh)
+                const identityResponse = b.waitForResponse((r) =>
+                  r.url().endsWith("/api/v1/queries/currentActor")
+                )
+                await hold(async () => {
+                  await b.evaluate(() =>
+                    window.dispatchEvent(new Event("blur"))
+                  )
+                  await hidden()
+                  await b.evaluate(() =>
+                    window.dispatchEvent(new Event("focus"))
+                  )
+                  await expect
+                    .poll(async () =>
+                      Number(
+                        (
+                          await observer.query(
+                            "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'"
+                          )
+                        ).rows[0].count
+                      )
+                    )
+                    .toBeGreaterThan(0)
+                  await hidden()
+                  // Several paints with a real unresolved currentActor query, not an HTTP mock.
+                  await b.evaluate(
+                    () =>
+                      new Promise<void>((resolve) =>
+                        requestAnimationFrame(() =>
+                          requestAnimationFrame(() => resolve())
+                        )
+                      )
+                  )
+                  await hidden()
+                  // A response that finishes after a later blur must not reveal old UI.
+                  await b.evaluate(() =>
+                    window.dispatchEvent(new Event("blur"))
+                  )
+                })
+                await (await identityResponse).finished()
+                await b.evaluate(
+                  () =>
+                    new Promise<void>((resolve) =>
+                      requestAnimationFrame(() =>
+                        requestAnimationFrame(() => resolve())
+                      )
+                    )
+                )
+                await hidden()
+                await b.evaluate(() =>
+                  window.dispatchEvent(new Event("auth-check"))
+                )
+                await hidden()
+                await b.evaluate(() => window.dispatchEvent(new Event("focus")))
+                const field = b.getByLabel(
+                  kind === "user" ? "Name" : "Role name",
+                  { exact: true }
+                )
+                await expect(field).toBeVisible()
+                await expect(field).toHaveValue("Private retained draft")
+                if (!fresh || kind === "role")
+                  await expect(
+                    b.getByLabel("Reason", { exact: true })
+                  ).toHaveValue("Uncontrolled private reason")
+                if (kind === "role")
+                  await expect(b.getByLabel("Grants (JSON array)")).toHaveValue(
+                    '[{"subject":"User","action":"read","fields":["id"]}]'
+                  )
+                if (kind === "user" && fresh) {
+                  await expect(
+                    b.getByLabel("Email", { exact: true })
+                  ).toHaveValue("private-draft@example.test")
+                  await expect(b.getByLabel("Initial password")).toHaveValue(
+                    "PrivateUnsavedPassword123!"
+                  )
+                }
+                await expect
+                  .poll(() =>
+                    b.evaluate(
+                      () => !!document.activeElement?.closest('[role="dialog"]')
+                    )
+                  )
+                  .toBe(true)
+                await field.focus()
+                await b.keyboard.press("Tab")
+                assert.equal(
+                  await b.evaluate(
+                    () => !!document.activeElement?.closest('[role="dialog"]')
+                  ),
+                  true
+                )
+                await b.keyboard.press("Escape")
+                await expect(b.getByRole("dialog")).toHaveCount(0)
+              }
+            )
+          }
+        await group(
+          "mobile private sidebar portal hides during real DB-blocked focus and restores keyboard access",
+          async () => {
+            await b.goto("/users")
+            await b.setViewportSize({ width: 375, height: 812 })
+            await b
+              .getByRole("button", { name: "Toggle Sidebar", exact: true })
+              .click()
+            await expect(b.getByRole("dialog")).toBeVisible()
+            await hold(async () => {
+              await b.evaluate(() => window.dispatchEvent(new Event("blur")))
+              await hidden()
+              await b.evaluate(() => window.dispatchEvent(new Event("focus")))
+              await expect
+                .poll(async () =>
+                  Number(
+                    (
+                      await observer.query(
+                        "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'"
+                      )
+                    ).rows[0].count
+                  )
+                )
+                .toBeGreaterThan(0)
+              await hidden()
+            })
+            await expect(b.getByRole("dialog")).toBeVisible()
+            await b.keyboard.press("Escape")
+            await expect(b.getByRole("dialog")).toHaveCount(0)
+            await b.setViewportSize({ width: 1280, height: 900 })
+          }
+        )
+        async function change(active: boolean, roleIds: string[]) {
+          const current = await query<UserAdminDTO>(
+            admin.request,
+            "user",
+            `?id=${target.id}`
+          )
+          assert.equal(
+            (
+              await post(
+                admin.request,
+                "updateUser",
+                {
+                  id: target.id,
+                  name: target.name,
+                  active,
+                  roleIds,
+                  reason: "Isolated portal access-loss regression",
+                },
+                [
+                  { type: "User", id: target.id, revision: current.revision },
+                  ...roles.data
+                    .filter((r) => roleIds.includes(r.id))
+                    .map((r) => ({
+                      type: "Role",
+                      id: r.id,
+                      revision: r.revision,
+                    })),
+                ]
+              )
+            ).status(),
+            200
+          )
+        }
+        async function gone() {
+          await expect(b.locator('[data-slot="sheet-content"]')).toHaveCount(0)
+          assert.ok(
+            !(await b.locator("body").innerText()).includes(
+              "Private retained draft"
+            )
+          )
+          assert.ok(
+            !(await b.locator("body").innerText()).includes(privateEmail)
+          )
+        }
+        for (const kind of ["user", "role"] as const) {
+          for (const loss of [
+            "permission",
+            "deactivation",
+            "logout",
+            "account switch",
+          ] as const) {
+            await group(
+              `${kind} dialog: confirmed ${loss} removes old identity private state`,
+              async () => {
+                await open(kind)
+                await b.evaluate(() => window.dispatchEvent(new Event("blur")))
+                await hidden()
+                // Raw browser JS avoids tsx's Node-only function-name helper.
+                await b.evaluate(`requestAnimationFrame(function watch() {
+                  if ([...document.querySelectorAll('[data-slot="sheet-content"], [data-slot="sheet-overlay"]')].some(node => node.checkVisibility())) {
+                    void window.recordPrivatePortalLeak()
+                  }
+                  requestAnimationFrame(watch)
+                })`)
+                try {
+                  if (loss === "permission") await change(true, [custom.id])
+                  if (loss === "deactivation")
+                    await change(
+                      false,
+                      target.roles.map((r) => r.id)
+                    )
+                  if (loss === "logout" || loss === "account switch") {
+                    assert.equal(
+                      (
+                        await other.request.post("/api/auth/sign-out", {
+                          headers: { origin },
+                          data: {},
+                        })
+                      ).status(),
+                      200
+                    )
+                    if (loss === "account switch") {
+                      const response = await other.request.post(
+                        "/api/auth/sign-in/email",
+                        {
+                          headers: { origin },
+                          data: {
+                            email: credential("STAFF_EMAIL"),
+                            password: credential("STAFF_PASSWORD"),
+                          },
+                        }
+                      )
+                      assert.equal(response.status(), 200)
+                    }
+                  }
+                  await b.evaluate(() =>
+                    window.dispatchEvent(new Event("focus"))
+                  )
+                  await b.waitForURL(/\/login(?:\?|$)/)
+                  await gone()
+                  assert.equal(
+                    transitionLeaks,
+                    0,
+                    "NO_PRIVATE_PORTAL_PAINT_DURING_ACCESS_LOSS"
+                  )
+                  await b.goBack()
+                  await b.waitForURL(/\/(?:login(?:\?|$)|dashboard$)/)
+                  await gone()
+                } finally {
+                  // Unload any history-restored auth boundary before signing out;
+                  // its in-flight check must not race the next fixture login.
+                  await b.goto("/login")
+                  await expect(
+                    b.getByRole("button", { name: "Sign In", exact: true })
+                  ).toBeVisible()
+                  if (loss === "permission" || loss === "deactivation")
+                    await change(
+                      true,
+                      target.roles.map((r) => r.id)
+                    )
+                  await other.request.post("/api/auth/sign-out", {
+                    headers: { origin },
+                    data: {},
+                  })
+                  await login(
+                    b,
+                    credential("SECOND_EMAIL"),
+                    credential("SECOND_PASSWORD")
+                  )
+                }
+                await b.goto("/users")
+                await expect(
+                  b.getByRole("heading", { name: "Users & Roles", exact: true })
+                ).toBeVisible()
+                await expect(b.getByRole("dialog")).toHaveCount(0)
+              }
+            )
+          }
+        }
+        for (const kind of ["user", "role"] as const)
+          await group(
+            `${kind} dialog: another tab's real UI logout broadcasts immediate discard`,
+            async () => {
+              await open(kind)
+              const tab = await other.newPage()
+              try {
+                await tab.goto("/dashboard")
+                await logout(tab)
+                await b.waitForURL(/\/login(?:\?|$)/)
+                await gone()
+              } finally {
+                await tab.close()
+              }
+              await login(
+                b,
+                credential("SECOND_EMAIL"),
+                credential("SECOND_PASSWORD")
+              )
+            }
+          )
+        assert.deepEqual(
+          accessibilityErrors,
+          [],
+          "NO_FOCUS_OR_FLUSHSYNC_WARNINGS"
+        )
+        await writeFile(
+          join(directory, "t03b-portals-evidence.json"),
+          JSON.stringify(
+            {
+              sha: execFileSync("git", ["rev-parse", "HEAD"], {
+                encoding: "utf8",
+              }).trim(),
+              dirty: !!execFileSync("git", ["status", "--porcelain"], {
+                encoding: "utf8",
+              }).trim(),
+              passed,
+              transport:
+                "production Next; isolated Chromium; owned PostgreSQL ACCESS EXCLUSIVE lock; no HTTP mocks",
+            },
+            null,
+            2
+          ),
+          { mode: 0o600 }
+        )
+      } finally {
+        await lock.end()
+        await observer.end()
+      }
+      return
+    }
     if (process.argv[3] === "--verify-retained") {
       const evidence = JSON.parse(
         await readFile(join(directory, "t03b-production-evidence.json"), "utf8")

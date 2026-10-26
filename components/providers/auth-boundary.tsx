@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { Activity, createContext, useContext, useEffect, useState } from "react"
+import { flushSync } from "react-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import type { CurrentActorDTO } from "@/.planning/implementation/contracts/api"
 import { privateRequest } from "@/lib/security-client"
@@ -21,22 +22,32 @@ export function AuthBoundary({
   children: React.ReactNode
 }) {
   const queries = useQueryClient()
-  const root = useRef<HTMLDivElement>(null)
   const [ready, setReady] = useState(false)
   const [verified, setVerified] = useState(false)
   useEffect(() => {
     let alive = true
     let checking = false
+    let obscured = document.hidden
     const channel = new BroadcastChannel("vamotors-auth")
     const hide = () => {
-      if (root.current) root.current.hidden = true
-      setReady(false)
+      // Flush before the browser can paint or move focus into a private portal.
+      flushSync(() => setReady(false))
     }
-    const leave = () => {
+    const obscure = () => {
+      obscured = true
       hide()
-      setVerified(false)
+    }
+    const discard = () => {
+      alive = false
+      flushSync(() => {
+        setReady(false)
+        setVerified(false)
+      })
       void queries.cancelQueries()
       queries.clear()
+    }
+    const leave = () => {
+      discard()
       window.location.replace("/login?reason=access-changed")
     }
     const check = async () => {
@@ -51,15 +62,12 @@ export function AuthBoundary({
           data.user.id !== initial.actor.user.id ||
           data.authzRevision !== initial.actor.authzRevision
         ) {
-          hide()
-          void queries.cancelQueries()
-          queries.clear()
+          discard()
           window.location.reload()
           return
         }
-        setReady(true)
+        setReady(!obscured)
         setVerified(true)
-        if (root.current) root.current.hidden = false
       } catch {
         if (alive) leave()
       } finally {
@@ -68,7 +76,8 @@ export function AuthBoundary({
     }
     const visible = () => {
       hide()
-      if (!document.hidden) void check()
+      obscured = document.hidden
+      if (!obscured) void check()
     }
     const pageShow = (event: PageTransitionEvent) => {
       if (event.persisted) {
@@ -83,10 +92,10 @@ export function AuthBoundary({
       void check()
     }
     window.addEventListener("auth-check", recheck)
-    window.addEventListener("pagehide", hide)
+    window.addEventListener("pagehide", obscure)
     window.addEventListener("pageshow", pageShow)
     window.addEventListener("focus", visible)
-    window.addEventListener("blur", hide)
+    window.addEventListener("blur", obscure)
     document.addEventListener("visibilitychange", visible)
     const timer = window.setInterval(() => {
       if (!document.hidden) void check()
@@ -98,10 +107,10 @@ export function AuthBoundary({
       channel.close()
       window.removeEventListener("access-lost", leave)
       window.removeEventListener("auth-check", recheck)
-      window.removeEventListener("pagehide", hide)
+      window.removeEventListener("pagehide", obscure)
       window.removeEventListener("pageshow", pageShow)
       window.removeEventListener("focus", visible)
-      window.removeEventListener("blur", hide)
+      window.removeEventListener("blur", obscure)
       document.removeEventListener("visibilitychange", visible)
     }
   }, [initial, queries])
@@ -112,9 +121,10 @@ export function AuthBoundary({
           Checking access…
         </p>
       )}
-      <div ref={root} hidden={!ready}>
+      {/* Activity preserves drafts while cleaning up portaled DOM/focus scopes. */}
+      <Activity mode={ready ? "visible" : "hidden"}>
         {verified ? children : null}
-      </div>
+      </Activity>
     </AuthContext.Provider>
   )
 }
