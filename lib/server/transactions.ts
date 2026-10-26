@@ -36,7 +36,12 @@ export async function transaction<T>(run: (tx: Tx) => Promise<T>) {
           await tx.$executeRawUnsafe("SET LOCAL lock_timeout = '1500ms'")
           await tx.$executeRawUnsafe("SET LOCAL statement_timeout = '5000ms'")
           await assertEnvironment(tx, true)
-          return run(tx)
+          const result = await run(tx)
+          // Validate the final graph inside the callback. The pinned Prisma 6
+          // client engine retains a pg connection when a deferred COMMIT fails;
+          // callback failure takes its working rollback/release path instead.
+          await tx.$executeRawUnsafe("SET CONSTRAINTS ALL IMMEDIATE")
+          return result
         },
         {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

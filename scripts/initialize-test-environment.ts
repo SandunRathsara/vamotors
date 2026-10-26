@@ -18,16 +18,14 @@ async function main() {
       data: {
         singleton: 1,
         id,
-        name: "disposable-test",
-        disposableTest: true,
+        name: migration.APP_ENV!,
+        disposableTest: migration.APP_ENV === "disposable-test",
         allowBusinessWrites: true,
         bootstrapTokenHash: createHash("sha256").update(token).digest("hex"),
         bootstrapExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
       },
     })
-    console.log(
-      "Disposable Environment initialized; bootstrap expires within 30 minutes."
-    )
+    console.log("Environment initialized; bootstrap expires within 30 minutes.")
   } finally {
     await db.$disconnect()
   }

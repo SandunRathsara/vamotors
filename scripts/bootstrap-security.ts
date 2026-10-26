@@ -101,8 +101,9 @@ async function main() {
         if (
           !environment ||
           environment.id !== migration.ENVIRONMENT_ID ||
-          environment.name !== "disposable-test" ||
-          !environment.disposableTest ||
+          environment.name !== migration.APP_ENV ||
+          (migration.APP_ENV === "disposable-test" &&
+            !environment.disposableTest) ||
           environment.bootstrappedAt ||
           !environment.bootstrapExpiresAt ||
           environment.bootstrapExpiresAt <= new Date() ||

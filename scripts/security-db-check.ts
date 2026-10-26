@@ -16,6 +16,7 @@ import { POST as resetPOST } from "../app/api/test/reset/route"
 import { CommandError } from "../lib/server/errors"
 import { runtimeConfig } from "../lib/server/config"
 import { z } from "zod"
+import { verifyPassword } from "better-auth/crypto"
 
 async function main() {
   const privateRuntime = await privateEnvironment(process.argv[2] ?? "")
@@ -34,7 +35,7 @@ async function main() {
   if (
     privateRuntime.DIRECT_URL ||
     process.env.DIRECT_URL ||
-    runtime.APP_ENV !== "disposable-test" ||
+    !["local", "disposable-test"].includes(runtime.APP_ENV) ||
     runtime.ENVIRONMENT_ID !== migration.ENVIRONMENT_ID
   )
     throw new Error("ISOLATION_REQUIRED")
@@ -43,6 +44,7 @@ async function main() {
   const db = database()
   const migrator = createDatabase(migrationURL)
   async function check(label: string, run: () => Promise<void>) {
+    console.log(`CHECK ${label}`)
     await run()
     console.log(`PASS ${label}`)
   }
@@ -58,6 +60,8 @@ async function main() {
     const response = await authPOST(
       request("/api/auth/sign-in/email", { email, password })
     )
+    if (response.status !== 200)
+      console.error(`Credential login failed with HTTP ${response.status}`)
     assert.equal(response.status, 200)
     const body = await response.json()
     assert.deepEqual(body, { ok: true })
@@ -81,10 +85,20 @@ async function main() {
       "restricted adapter + transaction-local settings + environment identity",
       async () => {
         await assertEnvironment(db, true)
+        const id = process.env.ENVIRONMENT_ID
+        try {
+          process.env.ENVIRONMENT_ID = randomUUID()
+          await assert.rejects(
+            assertEnvironment(db, true),
+            rejectsCode("ENVIRONMENT_UNAVAILABLE")
+          )
+        } finally {
+          process.env.ENVIRONMENT_ID = id
+        }
         const result = await transaction(async (tx) => {
           const [row] = await tx.$queryRaw<
             { actor: string; isolation: string; timeout: string }[]
-          >`SELECT current_user AS actor, current_setting('transaction_isolation') AS isolation, current_setting('statement_timeout') AS timeout`
+          >`SELECT current_user::text AS actor, current_setting('transaction_isolation') AS isolation, current_setting('statement_timeout') AS timeout`
           return row
         })
         assert.equal(result.actor, "vamotors_runtime")
@@ -170,6 +184,50 @@ async function main() {
       }
     )
     await check(
+      "runtime administrator creates real private credential account without credential disclosure",
+      async () => {
+        const role = await db.role.findUniqueOrThrow({
+          where: { id: seedIds.readerRole },
+        })
+        const password = `${randomUUID()}${randomUUID()}`
+        const email = `security-${randomUUID()}@example.test`
+        const input = envelope(
+          {
+            name: "Synthetic Created Staff",
+            email,
+            password,
+            roleIds: [role.id],
+          },
+          [{ type: "Role", id: role.id, revision: role.revision }]
+        )
+        const result = await executeAdmin(a.identity, "createUser", input)
+        const serialized = JSON.stringify(result)
+        assert.ok(
+          !serialized.includes(password) && !serialized.includes('"password"')
+        )
+        const history = JSON.stringify(
+          await db.auditEntry.findMany({
+            where: { commandId: result.commandId },
+          })
+        )
+        assert.ok(
+          !history.includes(password) && !history.includes('"password"')
+        )
+        const credential = await db.account.findFirstOrThrow({
+          where: { userId: result.result.id, providerId: "credential" },
+        })
+        assert.equal(credential.accountId, result.result.id)
+        assert.ok(credential.password)
+        assert.ok(await verifyPassword({ hash: credential.password, password }))
+        assert.ok(
+          !(await verifyPassword({
+            hash: credential.password,
+            password: `${password}wrong`,
+          }))
+        )
+      }
+    )
+    await check(
       "actual grants union, record/field denial and next-request revocation",
       async () => {
         const before = await currentActor(db, staff.identity)
@@ -187,6 +245,9 @@ async function main() {
           const token = randomUUID().toUpperCase()
           const vehicle = await tx.vehicle.create({
             data: {
+              // The deferred active-cycle composite relation shares this PK.
+              // Assign it before constructing the circular graph.
+              id: randomUUID(),
               engineNumber: `E-${token}`,
               chassisNumber: `C-${token}`,
               normalizedEngine: `E-${token}`,
@@ -360,9 +421,12 @@ async function main() {
           })
         )
         await assert.rejects(
-          migrator.vehicle.update({
-            where: { id: fixture.vehicle.id },
-            data: { activePurchaseId: null },
+          migrator.$transaction(async (tx) => {
+            await tx.vehicle.update({
+              where: { id: fixture.vehicle.id },
+              data: { activePurchaseId: null },
+            })
+            await tx.$executeRawUnsafe("SET CONSTRAINTS ALL IMMEDIATE")
           })
         )
       }
@@ -504,11 +568,22 @@ async function main() {
             rejectsCode("ACCOUNT_INACTIVE")
           )
           // Direct SQL cannot remove final admin either (DB trigger, not service).
-          await assert.rejects(
-            db.user.updateMany({
+          // More failures than the bounded pool size: deferred checks must
+          // rollback/release, not strand a connection after failed COMMIT.
+          for (let attempt = 0; attempt < 6; attempt++)
+            await assert.rejects(
+              transaction((tx) =>
+                tx.user.updateMany({
+                  where: { active: true, id: { in: [ua.id, ub.id] } },
+                  data: { active: false },
+                })
+              )
+            )
+          assert.equal(
+            await db.user.count({
               where: { active: true, id: { in: [ua.id, ub.id] } },
-              data: { active: false },
-            })
+            }),
+            1
           )
         } finally {
           await executeAdmin(
@@ -540,6 +615,10 @@ async function main() {
       async () => {
         const denied = [
           "CREATE TABLE vamotors.t03_forbidden_ddl (id integer)",
+          "CREATE TABLE public.t03_forbidden_ddl (id integer)",
+          "CREATE TEMP TABLE t03_forbidden_ddl (id integer)",
+          "CREATE SCHEMA t03_forbidden_schema",
+          "CREATE ROLE t03_forbidden_role",
           'UPDATE vamotors."Environment" SET "allowBusinessWrites" = false',
           'UPDATE vamotors."AdminGuard" SET id = 2',
           'UPDATE vamotors."AuditEntry" SET action = action',
@@ -549,12 +628,49 @@ async function main() {
         ]
         for (const sql of denied)
           await assert.rejects(db.$executeRawUnsafe(sql))
+        const [privileges] = await db.$queryRaw<
+          { elevated: boolean }[]
+        >`SELECT (rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls) AS elevated FROM pg_roles WHERE rolname = current_user`
+        assert.equal(privileges.elevated, false)
+        // Append-only trigger still protects against accidental wider ACLs.
+        await assert.rejects(
+          migrator.$executeRawUnsafe(
+            'UPDATE vamotors."AuditEntry" SET action = action'
+          )
+        )
+        await assert.rejects(
+          migrator.$executeRawUnsafe('DELETE FROM vamotors."AuditEntry"')
+        )
         await assert.rejects(
           db.role.update({
             where: { id: seedIds.administratorRole },
             data: { active: false },
           })
         )
+      }
+    )
+    await check(
+      "logout deletes real sessions; retained cookies and identities no longer authorize",
+      async () => {
+        for (const session of [a, b, staff]) {
+          const response = await authPOST(
+            request("/api/auth/sign-out", {}, session.cookie)
+          )
+          assert.equal(response.status, 200)
+          assert.equal(
+            response.headers.get("cache-control"),
+            "private,no-store"
+          )
+          assert.ok(response.headers.getSetCookie().length)
+          await assert.rejects(
+            authenticate(new Headers({ cookie: session.cookie })),
+            rejectsCode("UNAUTHENTICATED")
+          )
+          await assert.rejects(
+            currentActor(db, session.identity),
+            rejectsCode("UNAUTHENTICATED")
+          )
+        }
       }
     )
     console.log(
@@ -564,7 +680,27 @@ async function main() {
     await Promise.all([db.$disconnect(), migrator.$disconnect()])
   }
 }
-main().catch(() => {
+main().catch((error) => {
+  if (error instanceof CommandError)
+    console.error(`Command failure code: ${error.code}`)
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    /^P\d{4}$/.test(String(error.code))
+  )
+    console.error(`Prisma failure code: ${error.code}`)
+  if (error && typeof error === "object" && "meta" in error) {
+    const meta = error.meta as { modelName?: string; constraint?: unknown }
+    if (meta.modelName && /^[A-Za-z]+$/.test(meta.modelName))
+      console.error(`Failing model: ${meta.modelName}`)
+  }
+  if (error instanceof Error) {
+    const source = error.stack
+      ?.split("\n")
+      .find((line) => line.includes("scripts/security-db-check.ts:"))
+    if (source) console.error(source.trim())
+  }
   console.error(
     "Real-DB security checks blocked or failed; no secret-bearing errors emitted. No mock fallback."
   )
