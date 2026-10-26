@@ -99,13 +99,13 @@ git diff --check
 
 Current docs were fetched through ctx7: PostgreSQL18 cluster creation/SCRAM/schema ACLs `/websites/postgresql_18`; Prisma6 migration URL/schema/history `/websites/prisma_io`; effective pg `sslmode=disable`/URL override precedence `/brianc/node-postgres`; Better Auth password verification `/better-auth/better-auth/v1.6.23`, with installed crypto exports checked. The unit suite's existing pg TLS-alias future-version warning remains; installed versions are unchanged and hosted URLs should continue preferring `verify-full`.
 
-## Contract deltas for the contract/ledger owner (not edited here)
+## Reconciled contract deltas
 
-1. R02: accept explicitly configured loopback-only local PostgreSQL without TLS/Neon, private local role files and local Environment bootstrap; hosted TLS/isolation requirements unchanged. Record local runtime/migrator/admin split and `LOCAL_DATABASE_AUTHORIZATION` as an operator-only target acknowledgement, not production authority.
+1. R02: loopback-only local PostgreSQL without TLS/Neon is allowed only for numeric `127.0.0.1`; hosted TLS, URL safeguards and remote-host rejection remain. Private local role files and local Environment bootstrap are documented; runtime/migrator/admin separation and `LOCAL_DATABASE_AUTHORIZATION` remain operator-target constraints, not production authority.
 2. A2/schema ordering: deferred final-graph checks run before leaving the shared transaction callback; allocate circular-graph UUIDs before linking. Current schema/migration content is unchanged.
-3. Evidence/gates: replace the earlier **unavailable real-DB access** blocker for this local spine with this author evidence plus pending independent local verification. Do not infer hosted verification or full T03 completion, and do not change accepted requirement counts from an author report.
+3. Evidence/gates: independent bounded review is attributed in [T03 local spine review](../../.planning/implementation/evidence/T03-local-spine-review-attributed.md). It supersedes the unavailable-local-DB blocker only for the tested security spine, pending fresh verification of the combined SHA. It does not accept full T03/G1, login/admin UI, global RSC/legacy API boundaries or hosted behavior, and does not change requirement acceptance counts.
 
-## Remaining T03 / next slice
+## Remaining T03 / next slice: T03b
 
 No cloud access blocker remains for local spine review. Independent reviewer must reproduce on its own directory and bind results to the committed candidate before integration/acceptance.
 
