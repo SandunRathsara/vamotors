@@ -392,6 +392,7 @@ export interface Queries {
   role: { id: Id };
   permissionRegistry: { subject?: Subject; action?: Grant["action"] };
   parties: ListParams & { type: "SUPPLIER" | "REPAIR_VENDOR" | "FINANCE_COMPANY"; active?: boolean };
+  party: { type: PartyDTO["type"]; id: Id };
   customers: ListParams;
   customer: { id: Id };
   inventory: ListParams & { statuses?: State[]; available?: boolean; make?: string; model?: string };
@@ -483,6 +484,30 @@ export type DownloadDTO = { ok: true; attachmentId: Id; url: string; expiresAt: 
 export type PartyDTO = { id: Id; revision: Revision; type: "SUPPLIER" | "REPAIR_VENDOR" |
   "FINANCE_COMPANY"; name: string; active: boolean; contacts: (Contact & { id: Id })[];
   directory?: DirectoryInput; policy?: FinancePolicy; provenance: Provenance };
+/** Navigation only; see party-detail-settings.md for independent target/field authorization. */
+export type PartyHistoryLink<K extends string> = {
+  type: K; id: Id; date: DateOnly; status: string;
+};
+/** Static domain capability, never per-record existence. READY is exhaustive at response asOf. */
+export type PartyContribution<K extends string> = {
+  state: "PENDING_DOMAIN" | "READY";
+  links: PartyHistoryLink<K>[];
+};
+export type PartyDetailDTO = PartyDTO & (
+  { type: "SUPPLIER"; contributions: {
+    purchases: PartyContribution<"PURCHASE">;
+  } } |
+  { type: "REPAIR_VENDOR"; contributions: {
+    repairs: PartyContribution<"REPAIR">;
+  } } |
+  { type: "FINANCE_COMPANY"; contributions: {
+    settlementPurchases: PartyContribution<"PURCHASE">;
+    leaseSales: PartyContribution<"SALE">;
+    brokerage: PartyContribution<"BROKERAGE">;
+    entitlements: PartyContribution<"ENTITLEMENT">;
+    remittances: PartyContribution<"REMITTANCE">;
+  } }
+);
 export type CustomerDTO = CustomerInput & { id: Id; revision: Revision; active: boolean;
   provenance: Provenance; links: { type: "PURCHASE" | "SALE" | "BROKERAGE";
     id: Id; date: DateOnly; status: string; amount?: Money }[] };
@@ -608,6 +633,7 @@ export interface QueryData {
   role: RoleDTO;
   permissionRegistry: PermissionRegistryDTO;
   parties: Page<PartyDTO>;
+  party: PartyDetailDTO;
   customers: Page<CustomerDTO>;
   customer: CustomerDTO;
   inventory: Page<VehicleDTO>;

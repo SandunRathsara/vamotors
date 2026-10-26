@@ -4,7 +4,14 @@ Updated: 2026-10-26. Integration owner: sole local integration worker. Contract:
 
 ## Current accepted integration and bounded dispatches
 
-### Current bounded T04b acceptance / pending separate policy review — 2026-10-26
+### Current combined candidate / T04c readiness — 2026-10-26
+
+- Integrate records `b08eb0461933d0cfca789e7392078f9032c66fee` with contract promotion `f2b1287e7a6bbc5333a8d7fd802e18820556cb5c` on common accepted runtime `dda76e3f9c078360118722feee1f14f23fdd7fa3`. Runtime/source exact `dda76e3`; contracts and original T04c brief exact `f2b1287`; reviewed proposal artifacts exact `da040cf`. Only necessary integration records reconciled. [Source binding and fresh specification/type/link checks](evidence/T04b-contract-combined-checks.md).
+- Parent accepted proposal `da040cf9d1da91c1885326b0edcccae8b48e0f96` after independent `433aae87` PASS (dispatch attribution, not a Git revision). Records input's pending review is resolved; preserved historical pending labels are superseded, not a new blocker. Accepted contract is not implemented runtime acceptance.
+- **Next owner/action:** parent requests independent combined verification at the returned exact candidate SHA, then dispatches [T04c](T04c-next-slice.md) to one serialized foundation-capable author and separate verifier with explicit local environment authority. Settings persisted read first, typed detail next, finance directory thereafter; full Settings writes/UI remain a bounded continuation if not included. This worker prepares, does not dispatch or self-accept. No repeated accepted T04b work or T05 dispatch.
+- G1/T03 and bounded T04a/T04b remain accepted; full T04/G2/T05 remain unaccepted; **134 U / 0 whole IDs accepted**. Matrix/catalog/owners/scenarios and all partial/excluded evidence gaps unchanged. Baseline full lint **3 errors / 27 warnings** remains G6 debt. No DB/browser repeat, app/schema/package edits, services, secrets/cloud, push/PR/deploy or accepted-ref movement.
+
+### Historical bounded T04b acceptance / then-pending separate policy review — 2026-10-26
 
 - Explicit parent acceptance: exact **`dda76e3f9c078360118722feee1f14f23fdd7fa3`**, independent **`6056e94c` PASS**, limited to persisted supplier/vendor CRUD, contacts and archive/reactivate. [Sanitized exact 17 party / 6 reviewer groups and harness retry history](evidence/T04b-acceptance-attributed.md). Reviewer identifiers are parent-supplied review identifiers, not locally resolvable Git revisions or invented SHAs.
 - Genuine exact-parent **`373745a6618772a9bd8c135673c2eed91e2ef566`** upgrade: 21 original grants unchanged, 30 revalidated, 4 role revisions; old wildcard/parent-field coverage frozen, protected Administrator-only expansion, four prior applied migrations unchanged. Least-privilege runtime: no business DELETE, ownership updates or future-table defaults. Customer15/retry6/DB10/production10/delegated14/mobile12/redacted7, units98/contracts19/types/build/owned lint+format PASS are independent attribution, not integration runtime reruns. Full lint remains baseline **3 errors / 27 warnings**.
