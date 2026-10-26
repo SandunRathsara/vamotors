@@ -64,8 +64,33 @@ export const registry = {
       "drivingLicence",
       "notes",
       "active",
+      "provenance",
+      "links",
     ],
+    create: [
+      "fullName",
+      "callingName",
+      "nicOrPassport",
+      "address",
+      "phone",
+      "email",
+      "drivingLicence",
+      "notes",
+    ],
+    update: [
+      "fullName",
+      "callingName",
+      "nicOrPassport",
+      "address",
+      "phone",
+      "email",
+      "drivingLicence",
+      "notes",
+    ],
+    archive: ["active"],
   },
+  // Customer history links only; no purchase lifecycle command/query enabled.
+  PurchaseRecord: { read: ["id", "purchaseDate", "status", "purchasePrice"] },
   Supplier: {
     read: ["id", "revision", "name", "category", "active", "contacts"],
   },
@@ -86,12 +111,14 @@ export const registry = {
     ],
   },
 } as const
+export const registryVersion = 2
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
   Role: [],
   Vehicle: ["createdBy", "status"],
   Customer: ["createdBy"],
+  PurchaseRecord: ["createdBy"],
   Supplier: ["createdBy"],
   Notification: ["recipientUserId"],
   AuditLog: [],
@@ -400,7 +427,7 @@ export const administratorGrants: Grant[] = Object.entries(registry).flatMap(
 
 export function permissionRegistryDTO(): PermissionRegistryDTO {
   return {
-    version: 1,
+    version: registryVersion,
     subjects: Object.entries(registry).map(([type, actions]) => ({
       subject: type as Subject,
       actions: Object.entries(actions).map(([action, fields]) => ({
@@ -409,7 +436,9 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
           path,
           readable: action === "read",
           writable: action !== "read",
-          dataType: ["roles", "roleIds", "grants", "fields"].includes(path)
+          dataType: ["roles", "roleIds", "grants", "fields", "links"].includes(
+            path
+          )
             ? "ARRAY"
             : ["active", "available"].includes(path)
               ? "BOOLEAN"
@@ -421,11 +450,20 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
                       "adminProtection",
                       "actor",
                       "target",
+                      "provenance",
                     ].includes(path)
                   ? "OBJECT"
-                  : path === "listedPrice" || path.startsWith("financial.")
+                  : path === "listedPrice" ||
+                      path === "purchasePrice" ||
+                      path.startsWith("financial.")
                     ? "MONEY"
-                    : ["createdAt", "updatedAt", "readAt", "at"].includes(path)
+                    : [
+                          "createdAt",
+                          "updatedAt",
+                          "readAt",
+                          "at",
+                          "purchaseDate",
+                        ].includes(path)
                       ? "DATE"
                       : "STRING",
         })),

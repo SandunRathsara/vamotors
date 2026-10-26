@@ -33,8 +33,6 @@ export const legacyAPIs = [
 export const unavailablePages = [
   "/approvals",
   "/cash-flow",
-  "/customers",
-  "/customers/[id]",
   "/dashboard",
   "/lease-comparison",
   "/lease-deals",
@@ -70,6 +68,8 @@ export const methods = [
   "DELETE",
 ] as const
 export const queryNames = [
+  "customers",
+  "customer",
   "currentActor",
   "users",
   "user",
@@ -79,6 +79,9 @@ export const queryNames = [
   "audit",
 ]
 export const commandNames = [
+  "createCustomer",
+  "updateCustomer",
+  "archiveParty",
   "createUser",
   "updateUser",
   "saveRole",

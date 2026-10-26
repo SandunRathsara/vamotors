@@ -3,7 +3,7 @@ import { createHash } from "node:crypto"
 import type { Grant } from "../../.planning/implementation/contracts/api"
 import { authentication } from "./auth"
 import { assertEnvironment, database, type Tx } from "./db"
-import { abilityFor, grantSchema } from "./permissions"
+import { abilityFor, grantSchema, registryVersion } from "./permissions"
 import { fail } from "./errors"
 
 const trusted = Symbol("server identity")
@@ -92,7 +92,7 @@ export function actorDTO(actor: Actor) {
     })),
     authzRevision: actor.authzRevision,
     presentationGrants: actor.grants,
-    registryVersion: 1,
+    registryVersion,
     serverTime: new Date().toISOString(),
   }
 }

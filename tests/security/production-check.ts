@@ -1332,7 +1332,7 @@ async function main() {
         for (const name of queryNames.filter((n) => n !== "currentActor"))
           assert.equal(
             (await admin.request.get(`/api/v1/queries/${name}`)).status(),
-            name === "permissionRegistry" ? 403 : 404
+            ["permissionRegistry", "customers"].includes(name) ? 403 : 404
           )
         assert.equal(
           (

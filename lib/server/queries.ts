@@ -15,6 +15,7 @@ import { id, listParams } from "./validators"
 import { adminList } from "./admin-list"
 import { subject } from "@casl/ability"
 import type { Tx } from "./db"
+import { customerQuery } from "./customers"
 
 const canAdminister = (actor: Actor) =>
   ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
@@ -87,6 +88,8 @@ export async function securityQuery(
       await assertEnvironment(tx)
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
+      if (name === "customers" || name === "customer")
+        return customerQuery(tx, actor, name, args)
       if (name === "currentActor") {
         if (params.size) fail("INVALID_INPUT", 422)
         return actorDTO(actor)
@@ -176,7 +179,7 @@ export async function securityQuery(
       if (name === "audit") {
         requireFields(actor.ability, "AuditLog", "read", {}, [])
         const parsed = listParams
-          .extend({ type: z.enum(["User", "Role"]), id })
+          .extend({ type: z.enum(["User", "Role", "Customer"]), id })
           .strict()
           .safeParse(args)
         if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -187,10 +190,12 @@ export async function securityQuery(
                 where: { id: entityId },
                 include: userInclude,
               })
-            : await tx.role.findUnique({
-                where: { id: entityId },
-                include: roleInclude,
-              })
+            : entityType === "Customer"
+              ? await tx.customer.findUnique({ where: { id: entityId } })
+              : await tx.role.findUnique({
+                  where: { id: entityId },
+                  include: roleInclude,
+                })
         if (!row) fail("NOT_FOUND", 404)
         requireFields(actor.ability, entityType, "read", row, ["id"])
         // at is recordedAt in SQL; both ordering fields need unconditional read.

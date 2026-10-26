@@ -1,8 +1,10 @@
+import type { Dependency } from "../../.planning/implementation/contracts/api"
 export class CommandError extends Error {
   constructor(
     public code: string,
     public status: number,
-    public retryable = false
+    public retryable = false,
+    public current?: Dependency[]
   ) {
     super(code)
   }
@@ -22,6 +24,7 @@ export function publicError(error: unknown, requestId: string) {
         requestId,
         message: known ? error.code : "Request failed",
         retryable: known && error.retryable,
+        ...(known && error.current ? { current: error.current } : {}),
       },
     },
     {

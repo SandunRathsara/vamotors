@@ -4,6 +4,88 @@ export const id = z.string().uuid()
 export const revision = z.number().int().min(1).max(2147483647)
 const text = z.string().trim().min(1).max(2000)
 const name = text.max(200)
+export const customerInput = z
+  .object({
+    fullName: name,
+    callingName: name,
+    nicOrPassport: text.max(100),
+    address: text,
+    phone: z
+      .string()
+      .trim()
+      .min(3)
+      .max(30)
+      .regex(/^\+?[0-9][0-9 ()-]*[0-9]$/),
+    email: z.string().trim().email().max(254).optional(),
+    drivingLicence: text.max(100).optional(),
+    notes: text.optional(),
+  })
+  .strict()
+export const customerCommands = {
+  createCustomer: customerInput,
+  updateCustomer: z
+    .object({ id, values: customerInput, reason: text.optional() })
+    .strict(),
+  archiveParty: z
+    .object({
+      type: z.literal("CUSTOMER"),
+      id,
+      active: z.boolean(),
+      reason: text,
+    })
+    .strict(),
+} as const
+export type CustomerCommandName = keyof typeof customerCommands
+export function customerEnvelope(name: CustomerCommandName) {
+  return z
+    .object({
+      schemaVersion: z.literal(1),
+      idempotencyKey: id,
+      expected: z
+        .array(
+          z
+            .object({
+              type: z.enum([
+                "Vehicle",
+                "PurchaseRecord",
+                "SaleCase",
+                "Reservation",
+                "BrokerageDeal",
+                "FinanceCompany",
+                "Settings",
+                "Remittance",
+                "CommissionEntitlement",
+                "RepairRecord",
+                "VehicleCost",
+                "ApprovalRequest",
+                "ImportBatch",
+                "Role",
+                "User",
+                "Customer",
+                "Supplier",
+                "RepairVendor",
+                "CashFacility",
+                "UploadIntent",
+                "RateSheet",
+                "Quote",
+                "Notification",
+                "InvoiceVersion",
+                "ExportJob",
+              ]),
+              id,
+              revision,
+            })
+            .strict()
+        )
+        .max(1000)
+        .refine(
+          (refs) =>
+            new Set(refs.map((r) => `${r.type}:${r.id}`)).size === refs.length
+        ),
+      input: customerCommands[name],
+    })
+    .strict()
+}
 const roleIds = z
   .array(id)
   .min(1)

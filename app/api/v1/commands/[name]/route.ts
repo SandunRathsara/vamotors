@@ -8,6 +8,11 @@ import {
   noStoreJSON,
 } from "@/lib/server/http"
 import { fail } from "@/lib/server/errors"
+import { executeCustomer } from "@/lib/server/customers"
+import {
+  customerCommands,
+  type CustomerCommandName,
+} from "@/lib/server/validators"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export async function POST(
@@ -18,11 +23,15 @@ export async function POST(
     const identity = await authenticate(request.headers)
     sameOrigin(request)
     const { name } = await context.params
-    if (!Object.hasOwn(commandInputs, name)) fail("NOT_FOUND", 404)
+    const customer = Object.hasOwn(customerCommands, name)
+    if (!customer && !Object.hasOwn(commandInputs, name)) fail("NOT_FOUND", 404)
     const raw = await boundedJSON(request)
-    const result = await executeAdmin(identity, name as CommandName, raw)
+    const result = customer
+      ? await executeCustomer(identity, name as CustomerCommandName, raw)
+      : await executeAdmin(identity, name as CommandName, raw)
     const created =
       name === "createUser" ||
+      name === "createCustomer" ||
       (name === "saveRole" && !(raw as { input: { id?: string } }).input.id)
     return noStoreJSON(result, !result.replayed && created ? 201 : 200)
   })

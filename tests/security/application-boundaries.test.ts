@@ -40,7 +40,9 @@ describe("global entry-point inventory", () => {
       .filter((p) => p.endsWith("/page.tsx"))
       .map((p) => p.slice(9, -9))
       .sort()
-    expect(actual).toEqual([...unavailablePages, "/users"].sort())
+    expect(actual).toEqual(
+      [...unavailablePages, "/users", "/customers", "/customers/[id]"].sort()
+    )
     for (const path of unavailablePages)
       expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8").trim()).toBe(
         'export { UnavailablePage as default } from "@/lib/server/pages"'
@@ -48,6 +50,10 @@ describe("global entry-point inventory", () => {
     expect(readFileSync("app/(app)/users/page.tsx", "utf8")).toContain(
       "await pageActor(true)"
     )
+    for (const path of ["/customers", "/customers/[id]"])
+      expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8")).toContain(
+        "await pageActor()"
+      )
     expect(readFileSync("app/page.tsx", "utf8")).toContain("await pageActor()")
     expect(readFileSync("lib/server/pages.tsx", "utf8")).not.toMatch(
       /\bcache\(/

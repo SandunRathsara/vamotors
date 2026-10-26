@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 import { Car, LayoutDashboard, Users } from "lucide-react"
 import {
   Sidebar,
@@ -9,9 +10,14 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useCapabilities } from "@/components/users/use-capabilities"
+import { abilityFor } from "@/lib/server/permissions"
 
 export function AppSidebar() {
-  const { can } = useCapabilities()
+  const { can, actor } = useCapabilities()
+  const customer = abilityFor(actor.presentationGrants, actor.user.id).can(
+    "read",
+    "Customer"
+  )
   const administration = (["User", "Role"] as const).some((t) =>
     ["read", "create", "update", "archive"].some((a) => can(t, a))
   )
@@ -25,6 +31,16 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
+          {customer && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/customers" prefetch={false}>
+                  <Users />
+                  Customers
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <a href="/dashboard">
