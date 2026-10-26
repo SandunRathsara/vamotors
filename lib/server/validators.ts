@@ -35,6 +35,60 @@ export const customerCommands = {
     })
     .strict(),
 } as const
+export const contactInput = z
+  .object({
+    name,
+    phone: customerInput.shape.phone,
+    email: customerInput.shape.email,
+    role: name,
+    primary: z.boolean(),
+  })
+  .strict()
+export const directoryInput = z
+  .object({
+    name,
+    category: z.enum(["INDIVIDUAL", "COMPANY"]),
+    nicOrRegNumber: text.max(100).optional(),
+    address: text.optional(),
+    phone: customerInput.shape.phone.optional(),
+    hotline: customerInput.shape.phone.optional(),
+    recurring: z.boolean().optional(),
+    specialisation: text.optional(),
+    notes: text.optional(),
+    contacts: z
+      .array(contactInput)
+      .max(100)
+      .refine(
+        (contacts) =>
+          contacts.filter((c) => c.primary).length <= 1 &&
+          new Set(contacts.map((c) => JSON.stringify(c))).size ===
+            contacts.length
+      ),
+  })
+  .strict()
+const directoryType = z.enum(["SUPPLIER", "REPAIR_VENDOR"])
+export const partyCommands = {
+  createDirectoryParty: z
+    .object({ type: directoryType, values: directoryInput })
+    .strict(),
+  updateDirectoryParty: z
+    .object({
+      type: directoryType,
+      id,
+      values: directoryInput,
+      reason: text.optional(),
+    })
+    .strict(),
+  archiveParty: z
+    .object({ type: directoryType, id, active: z.boolean(), reason: text })
+    .strict(),
+} as const
+export type PartyCommandName = keyof typeof partyCommands
+export function partyEnvelope(name: PartyCommandName) {
+  return customerEnvelope("createCustomer").extend({
+    input: partyCommands[name],
+  })
+}
 export type CustomerCommandName = keyof typeof customerCommands
 export function customerEnvelope(name: CustomerCommandName) {
   return z

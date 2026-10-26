@@ -1331,8 +1331,14 @@ async function main() {
         ).toBeHidden()
         for (const name of queryNames.filter((n) => n !== "currentActor"))
           assert.equal(
-            (await admin.request.get(`/api/v1/queries/${name}`)).status(),
-            ["permissionRegistry", "customers"].includes(name) ? 403 : 404
+            (
+              await admin.request.get(
+                `/api/v1/queries/${name}${name === "parties" ? "?type=SUPPLIER" : ""}`
+              )
+            ).status(),
+            ["permissionRegistry", "customers", "parties"].includes(name)
+              ? 403
+              : 404
           )
         assert.equal(
           (

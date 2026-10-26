@@ -92,7 +92,96 @@ export const registry = {
   // Customer history links only; no purchase lifecycle command/query enabled.
   PurchaseRecord: { read: ["id", "purchaseDate", "status", "purchasePrice"] },
   Supplier: {
-    read: ["id", "revision", "name", "category", "active", "contacts"],
+    // category is retained only to validate immutable legacy permissions. The
+    // wire DTO exposes it at directory.category, never as an extra DTO key.
+    read: [
+      "id",
+      "revision",
+      "type",
+      "name",
+      "category",
+      "active",
+      "contacts",
+      "provenance",
+      "directory.name",
+      "directory.category",
+      "directory.nicOrRegNumber",
+      "directory.address",
+      "directory.phone",
+      "directory.hotline",
+      "directory.recurring",
+      "directory.notes",
+      "directory.contacts",
+    ],
+    create: [
+      "name",
+      "category",
+      "nicOrRegNumber",
+      "address",
+      "phone",
+      "hotline",
+      "recurring",
+      "notes",
+      "contacts",
+    ],
+    update: [
+      "name",
+      "category",
+      "nicOrRegNumber",
+      "address",
+      "phone",
+      "hotline",
+      "recurring",
+      "notes",
+      "contacts",
+    ],
+    archive: ["active"],
+  },
+  RepairVendor: {
+    read: [
+      "id",
+      "revision",
+      "type",
+      "name",
+      "active",
+      "contacts",
+      "provenance",
+      "directory.name",
+      "directory.category",
+      "directory.nicOrRegNumber",
+      "directory.address",
+      "directory.phone",
+      "directory.hotline",
+      "directory.recurring",
+      "directory.specialisation",
+      "directory.notes",
+      "directory.contacts",
+    ],
+    create: [
+      "name",
+      "category",
+      "nicOrRegNumber",
+      "address",
+      "phone",
+      "hotline",
+      "recurring",
+      "specialisation",
+      "notes",
+      "contacts",
+    ],
+    update: [
+      "name",
+      "category",
+      "nicOrRegNumber",
+      "address",
+      "phone",
+      "hotline",
+      "recurring",
+      "specialisation",
+      "notes",
+      "contacts",
+    ],
+    archive: ["active"],
   },
   Notification: {
     read: ["id", "revision", "kind", "target", "createdAt", "readAt"],
@@ -111,7 +200,7 @@ export const registry = {
     ],
   },
 } as const
-export const registryVersion = 2
+export const registryVersion = 3
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
@@ -120,6 +209,7 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   Customer: ["createdBy"],
   PurchaseRecord: ["createdBy"],
   Supplier: ["createdBy"],
+  RepairVendor: ["createdBy"],
   Notification: ["recipientUserId"],
   AuditLog: [],
 }
@@ -436,11 +526,22 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
           path,
           readable: action === "read",
           writable: action !== "read",
-          dataType: ["roles", "roleIds", "grants", "fields", "links"].includes(
-            path
-          )
+          dataType: [
+            "roles",
+            "roleIds",
+            "grants",
+            "fields",
+            "links",
+            "contacts",
+            "directory.contacts",
+          ].includes(path)
             ? "ARRAY"
-            : ["active", "available"].includes(path)
+            : [
+                  "active",
+                  "available",
+                  "recurring",
+                  "directory.recurring",
+                ].includes(path)
               ? "BOOLEAN"
               : ["revision"].includes(path)
                 ? "NUMBER"

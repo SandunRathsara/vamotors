@@ -21,6 +21,9 @@ export function AppSidebar() {
   const administration = (["User", "Role"] as const).some((t) =>
     ["read", "create", "update", "archive"].some((a) => can(t, a))
   )
+  const parties = ["Supplier", "RepairVendor"].some((type) =>
+    abilityFor(actor.presentationGrants, actor.user.id).can("read", type)
+  )
   return (
     <Sidebar>
       <SidebarHeader>
@@ -31,6 +34,16 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
+          {parties && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/third-parties" prefetch={false}>
+                  <Users />
+                  Third parties
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           {customer && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>

@@ -299,6 +299,7 @@ async function main() {
         script("initialize-test-environment", [migrationFile, accountFile])
       if (!initialized.rows[0]?.bootstrappedAt)
         script("bootstrap-security", [migrationFile, accountFile])
+      script("revalidate-permissions", [migrationFile])
       await owner.query(
         await readFile(join(cwd, "scripts/local-runtime-grants.sql"), "utf8")
       )

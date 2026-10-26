@@ -81,14 +81,20 @@ export async function writeReadVersion(
   input: {
     commandId: string
     sequence: bigint
-    entityType: "Vehicle" | "Customer" | "Supplier"
+    entityType: "Vehicle" | "Customer" | "Supplier" | "RepairVendor"
     entityId: string
     revision: number
     payload: Record<string, unknown>
   }
 ) {
   const allowed = fieldsFor(input.entityType, "read")
-  if (Object.keys(input.payload).some((k) => !allowed.includes(k)))
+  if (
+    Object.keys(input.payload).some(
+      (k) =>
+        !allowed.includes(k) &&
+        !allowed.some((path) => path.startsWith(`${k}.`))
+    )
+  )
     fail("INVALID_INPUT", 422)
   return tx.entityReadVersion.create({
     data: { ...input, payload: input.payload as Prisma.InputJsonObject },

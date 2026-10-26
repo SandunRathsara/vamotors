@@ -23,3 +23,9 @@ GRANT SELECT, INSERT ON vamotors."Customer" TO vamotors_runtime;
 GRANT UPDATE ("fullName", "callingName", "nicOrPassport", "normalizedIdentity", address, phone, email, "drivingLicence", notes, active, revision, "updatedAt") ON vamotors."Customer" TO vamotors_runtime;
 -- Read-only, exact source columns for independently authorized customer links.
 GRANT SELECT (id, "sellerCustomerId", "createdBy", "purchaseDate", status, "purchasePrice") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."Supplier", vamotors."SupplierContact", vamotors."RepairVendor", vamotors."VendorContact" TO vamotors_runtime;
+GRANT UPDATE (name, category, "nicOrRegNumber", address, phone, hotline, notes, recurring, active, revision, "updatedAt") ON vamotors."Supplier" TO vamotors_runtime;
+GRANT UPDATE (name, category, "nicOrRegNumber", address, phone, hotline, notes, recurring, specialisation, active, revision, "updatedAt") ON vamotors."RepairVendor" TO vamotors_runtime;
+-- Contacts are immutable identities. Replacement only archives; no DELETE or
+-- owner/content UPDATE can invalidate historical references.
+GRANT UPDATE (active) ON vamotors."SupplierContact", vamotors."VendorContact" TO vamotors_runtime;

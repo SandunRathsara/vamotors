@@ -285,6 +285,41 @@ model SupplierContact {
   @@schema("vamotors")
 }
 
+model RepairVendor {
+  id             String          @id @default(uuid()) @db.Uuid
+  name           String
+  category       String
+  nicOrRegNumber String?
+  address        String?
+  phone          String?
+  hotline        String?
+  notes          String?
+  recurring      Boolean         @default(false)
+  specialisation String?
+  active         Boolean         @default(true)
+  revision       Int             @default(1)
+  createdBy      String          @db.Uuid
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  contacts       VendorContact[]
+
+  @@schema("vamotors")
+}
+
+model VendorContact {
+  id        String       @id @default(uuid()) @db.Uuid
+  vendorId  String       @db.Uuid
+  vendor    RepairVendor @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  name      String
+  phone     String
+  email     String?
+  role      String
+  isPrimary Boolean      @default(false)
+  active    Boolean      @default(true)
+
+  @@schema("vamotors")
+}
+
 enum VehicleStatus {
   PURCHASED
   IN_STOCK
