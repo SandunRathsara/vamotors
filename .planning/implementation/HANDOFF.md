@@ -1,8 +1,22 @@
-# Full-v1 execution handoff — T03a source/local PASS, acceptance BLOCKED
+# Full-v1 execution handoff — LOCAL implementation; deployment deferred
 
 Updated 2026-10-26. **T00/T01 accepted by orchestrator; G0 ACCEPTED at `ddd69fb617b4790b3cd64cbf09cb10112d19c281`. G1 real-DB acceptance blocked; G2–G6 pending; 0/134 implemented feature requirements accepted.** Contract readiness is not an implemented/deployed v1; full T02 and parent T03 remain unaccepted.
 
-## Infrastructure reconciliation — current, 2026-10-26
+## Current LOCAL scope and next action — 2026-10-26
+
+User supersedes hosted delivery: “do not try to do the deployment now. I will handle the deployment later. Just focus on implementing the whole application and working locally”. Read [local completion/deferred deployment contract](local-completion.md) and updated [orchestration](../FULL-IMPLEMENTATION-ORCHESTRATION.md) first. Preserve all **134 IDs / 134 U / 0 accepted**, full v1 functionality, delegated implementation and fresh independent review. G0 remains accepted; G1 awaits real local PostgreSQL/auth independent verification; G2–G6 LOCAL pending. Hosted HTTPS/cloud/provider acceptance is **DEFERRED DEPLOYMENT / NOT PASSED**.
+
+This docs checkpoint starts at verified exact `28b676bf80c538de33b1be2d7ea6e8c59e92b735`; PR5 source `24698af621cc29375598c12fdb6e0c9c0ae70bf4` is its ancestor. Historical source/local PASS applies only to that earlier SHA, not adapted local services. No application/package/script edits or application checks by this ledger worker.
+
+**Concurrent owner:** foundation worker owns all code/packages/local runtime scripts and PR5 local adaptation per parent dispatch; no new head/session identity supplied here. Coordinate through parent, never duplicate its work. Next: foundation returns real local PostgreSQL/migrations/auth/roles/private runtime configuration and durable file/runtime setup; parent arranges fresh independent local DB/auth/rollback/revocation/race verification at combined SHA. T02b1 provider remedy/key/quota review is not a local prerequisite. Preserve quarantined hosted resources untouched.
+
+**Operational completion:** T02 local setup and isolation; T06 private durable local file root or compatible object service with actual authorized IO; T10 real local scheduled invocation plus manual catch-up; T18 full authenticated multi-browser/end-to-end/security/financial checks, app/DB/storage restart proof, isolated DB+file restore and run handoff. Runtime/migration/bootstrap secrets stay separate and private. Maintain actual app authorization/least privilege/audit, without new global PG lockdown demands.
+
+**Run handoff not yet delivered:** local URL/port, actual setup/start/stop/restart/test/timer/catch-up/backup/restore commands and private account/config delivery must be supplied and independently exercised from foundation's actual scripts. Do not invent runnable commands or passwords in these docs. Final dossier names verified SHA, synthetic notice, evidence index, retained volumes/root, distinct restore DB/root and hash/count/financial checks. Local G6 can pass only after that proof; no working local URL or restore is claimed now.
+
+**Hard boundary:** local docs commit only; no cloud operations, secret reads, deploy, push (Vercel auto-deploy), PR changes or merges. Parent retains delegated implementation/review; this worker delegates nothing. Historical cloud resume instructions below are superseded and authorize no current execution.
+
+## Historical infrastructure reconciliation — 2026-10-26
 
 Local documentation-only checkpoint on `t3/reconcile-infrastructure-handoff`, based on `b0e0d2a76b72f3c864a6ca0d479b7de6bc6f9a3e`; source/local PASS still binds PR5 head `24698af621cc29375598c12fdb6e0c9c0ae70bf4`, not this checkpoint. PR5 remains DRAFT / DO NOT MERGE, real DB BLOCKED; watch stopped (parent supplied, not queried). G0 accepted; G1–G6 pending, **134 unverified / 0 accepted**.
 
@@ -70,13 +84,13 @@ The following snapshot retains the earlier pending review/dispatch state; curren
 - No push or PR made. No cloud mutations. Deployment URL / deploy ID / deployed SHA: **none verified**.
 - Live model: `openai/gpt-6.1-sol` on provider instance `opencode`, confirmed by live catalog and harness; no option override, no recursive delegation.
 
-## Start/resume here
+## Start/resume here — current local path
 
 1. Read the full `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md`, `CLAUDE.md`, v1 `.planning/REQUIREMENTS.md`, C4 decisions, then [ledger](task-ledger.md), [matrix](requirements-matrix.md), [decisions](decisions.md), [evidence index](evidence/README.md).
 2. Inspect `git status --short`, branch/head and worktrees. Do not overwrite unrelated edits, reset, clean, or launch duplicate workers. T00 task identity is in the ledger; downstream workers are not dispatched by this worker.
 3. Read [attributed T00 acceptance](evidence/T00-acceptance-attributed.md): reviewer confirmed ancestry, eleven hashes/blobs, exact 134 IDs/owners/scenarios/defaults, eight intended docs, no app/test diff, heuristic secret screen and clean checkout. Orchestrator accepted exact SHA after readiness reconciliation; no self-acceptance by this ledger worker.
 4. Retain [attributed readiness findings](evidence/T00-readiness-attributed.md), supplied by reviewer suffix `72173ee0-5850-4fac-9990-2250ee82e0cb`. This worker did not reproduce cloud findings; readiness is not feature acceptance.
-5. Follow the current infrastructure reconciliation above and its attributed evidence: key delivered, isolated scaffold quarantined. Operator/provider branch-local restriction request and quota/bounded-budget review come next; keep both roles NOLOGIN, no migrations or delivery. Source/local PASS still binds exact `24698af`; no owner/shared DB fallback, duplicate dispatch, merge, watch or polling. Full T02/T03 unaccepted, G1–G6 pending, 0/134 accepted.
+5. Follow current LOCAL scope above, [local completion mapping](local-completion.md) and active ledger dependency rows. Reconcile concurrent foundation delivery through parent; inspect new local SHA/artifacts and commission independent verification, not cloud setup. Do not open historical cloud secret files, contact provider, deploy/push/modify PR/merge, duplicate workers or infer G1 from source tests. All 134 remain unverified until actual local evidence; hosted subcriteria remain deferred/not passed.
 
 ## Preservation and coverage
 
@@ -93,7 +107,9 @@ GSD commands/tools were not available; explicit dispatch says “if available.�
 
 Independent T00 reviewer reports typecheck/unit16/build53 pages PASS; lint 3 errors/17 warnings; Prettier **278 files at candidate**, versus author's 272 at preservation (six new T00 docs contribute, not all pre-existing debt). Chromium missing; frozen install/API E2E not independently reproduced. **Execution exception:** pnpm scripts unexpectedly auto-installed dependencies/metadata/postinstall despite no-install brief; no tracked changes/cloud writes reported. This exception belongs to acceptance review, not the separate no-mutation readiness report.
 
-## Private configuration and safety boundary
+## Historical private cloud configuration and safety boundary
+
+Current local configuration is foundation-owned and delivered privately via local runbook; paths below are historical cloud inventory, not local inputs or authorization to read secrets.
 
 Private paths (values not opened by this recording worker; readiness reviewer reports current-user ownership, mode `0600` and required nonempty names):
 
@@ -104,7 +120,9 @@ Keep files off-Git and owner-only; never print values/URLs/tokens or attach brow
 
 No provisioning, SQL writes/migrations/seeding, object PUTs, Netlify linking/deploy, billing changes or Vercel changes occurred in T00. All data for later development is synthetic; no public default password. Quota exhaustion stops/escalates, never silently deletes retained records or spends money.
 
-## Remaining blockers and future runbooks
+## Historical blockers and future hosted runbooks
+
+The LOCAL path above supersedes cloud/provider next actions in these retained records. No hosted result is upgraded; user's later deployment checklist is in local-completion.md.
 
 - T00/T01/G0 and bounded T02a accepted; browser readiness environment-only accepted at merged PR #3. [T03a source/local PASS and combined DRAFT](evidence/T03a-source-combined-draft.md) supersedes prior rejection/running descriptions without changing historical reports. T02b1 completed blocked. T03/G1 unaccepted, G1 real-DB blocked; full T02 and G2–G6 pending; **0/134 implemented feature requirements accepted**. No working HTTPS deployment or runtime security/persistence acceptance follows from G0.
 - Attributed readiness: active model and baseline PASS; GitHub public active default main with admin/maintain/push/pull access, unprotected branch/rulesets `[]` (governance finding, no approved mandatory new policy; ordinary PRs/checks required). Netlify API authenticated, Free/credit-free Owner, 300 credits/top-up disabled/no exceeded limits or trials, zero sites/no local link, CLI not PATH. Actual region unverified; retain/verify reported default Ohio cmh, no paid customization.

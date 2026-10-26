@@ -1,6 +1,10 @@
 # Evidence index
 
-## Current infrastructure reconciliation — 2026-10-26
+## Current LOCAL scope — 2026-10-26
+
+[Local completion documentation validation](local-completion-docs-validation.md) records docs-only preservation/coverage checks, not runtime acceptance. [Local completion contract](../local-completion.md) supersedes provider next actions below. Foundation concurrently owns local implementation; fresh independent real local DB proof remains required for G1. G0 accepted, 134 U/0 accepted; hosted acceptance DEFERRED DEPLOYMENT / NOT PASSED. Historical reports remain unchanged; no cloud/secret/deploy/push/PR/merge actions authorized.
+
+## Historical infrastructure reconciliation — 2026-10-26
 
 [Attributed reconciliation and precise operator action](T02b1-reconciliation-attributed.md): key privately delivered; isolated scaffold provisioned, exact roles NOLOGIN, no migrations/tables/bootstrap/env delivery. System CONNECT/TEMP and target/system LO boundary unresolved; TEMP-only exception rejected. Provider remedy and exact quota headroom unconfirmed. Next: operator/provider branch-local restriction request plus quota/bounded-budget review; no LOGIN/migration authorization. Exact documents from `18aa0e0`, `91c6e1b`, `0855d92` carried unchanged. Findings attributed, not cloud-verified here. G0 accepted; G1–G6 pending, 134 U/0 accepted. PR5 DRAFT, source/local PASS at `24698af`, DB BLOCKED, watch stopped (supplied). The earlier checkpoint below is historical; its key-timeout/no-resources/next-access-request state is superseded, not current.
 

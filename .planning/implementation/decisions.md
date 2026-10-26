@@ -2,6 +2,12 @@
 
 Recorded 2026-10-25 by T00 integration/ledger worker. Authority: `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md` explicit decisions and user dispatch. These are **approved development direction**, not proof of implementation, independent acceptance, legal wording approval or live-launch authorization. C4 recommendations are only adopted where the orchestration contract adopts them. No new cloud action is authorized by this record.
 
+## D32 — Superseding local delivery scope (2026-10-26, current)
+
+User defers deployment to their later work and requests the whole application working locally. [Local completion contract](local-completion.md) supersedes hosted prerequisites in D01/D02/D20/D31 and historical operational next actions: real local PostgreSQL/auth, private durable local files or local object service, observed local scheduling/manual catch-up, restart durability, isolated DB+file restore and full independent v1 tests/run handoff. All 134 IDs/owners/application semantics remain; hosted-only subcriteria explicitly deferred/not passed. G0 accepted; G1 requires fresh local real-DB independent verification; 0/134 accepted now. App authorization/least privilege/audit/secret separation remain mandatory; speculative global PG lockdown is not added. Foundation owns concurrent code/packages/local scripts; ledger scope is docs only. No cloud/secret reads/deploy/push/PR/merge actions. Historical decisions/evidence below are retained, not current provider-work authorization.
+
+## Historical decisions D01–D31
+
 | Decision | Development rule and rationale | Affected requirements / owner |
 | --- | --- | --- |
 | D01 Stack | Keep existing Next.js monolith, pnpm and UI; retain Prisma/Neon, Better Auth/CASL, private R2, server PDFs as target. Pin verified compatible backend versions before installation; no framework/directory rewrite. Installed Next is 16.1.7, not old 15.x prescriptions. | FNDN-01–08, INVC-01, SLLS-04; T01/T03 |
