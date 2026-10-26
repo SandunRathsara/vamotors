@@ -1,5 +1,8 @@
-import { redirect } from 'next/navigation'
+import { redirect } from "next/navigation"
+import { pageActor } from "@/lib/server/pages"
 
-export default function Page() {
-  redirect('/dashboard')
+export const dynamic = "force-dynamic"
+export default async function Page() {
+  await pageActor()
+  redirect("/dashboard")
 }

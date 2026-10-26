@@ -10,7 +10,10 @@ export async function POST(request: Request) {
   // No signup/reset/bootstrap/get-session token transport, regardless of flags.
   const path = new URL(request.url).pathname
   if (!["/api/auth/sign-in/email", "/api/auth/sign-out"].includes(path))
-    return new Response(null, { status: 404 })
+    return new Response(null, {
+      status: 404,
+      headers: { "Cache-Control": "private,no-store" },
+    })
   return authCall("http", () =>
     endpoint(async () => {
       sameOrigin(request)
@@ -51,5 +54,9 @@ export async function POST(request: Request) {
   )
 }
 export async function GET() {
-  return new Response(null, { status: 404 })
+  return new Response(null, {
+    status: 404,
+    headers: { "Cache-Control": "private,no-store" },
+  })
 }
+export { GET as PUT, GET as PATCH, GET as DELETE, GET as OPTIONS, GET as HEAD }

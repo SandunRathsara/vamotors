@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { privateRequest } from "@/lib/security-client"
 
 // ── useEntityQuery ────────────────────────────────────────────────────────────
 
@@ -9,25 +10,24 @@ import { useQuery } from "@tanstack/react-query"
 export function useEntityQuery<T>(
   entityKey: string,
   endpoint: string,
-  params: Record<string, string | number | undefined | null>,
+  params: Record<string, string | number | undefined | null>
 ) {
   const queryString = Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== ""
+    )
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`
+    )
     .join("&")
 
   const url = queryString ? `${endpoint}?${queryString}` : endpoint
 
   return useQuery<T>({
     queryKey: [entityKey, params],
-    queryFn: async () => {
-      const res = await fetch(url)
-      if (!res.ok) {
-        throw new Error(`Failed to fetch ${entityKey}: ${res.status} ${res.statusText}`)
-      }
-      return res.json() as Promise<T>
-    },
-    staleTime: 30_000,
+    queryFn: ({ signal }) => privateRequest<T>(url, { signal }),
+    staleTime: 0,
   })
 }
 
@@ -39,20 +39,12 @@ export function useEntityQuery<T>(
 export function useEntityDetail<T>(
   entityKey: string,
   endpoint: string,
-  id: string,
+  id: string
 ) {
   return useQuery<T>({
     queryKey: [entityKey, id],
-    queryFn: async () => {
-      const res = await fetch(`${endpoint}/${id}`)
-      if (!res.ok) {
-        throw new Error(
-          `Failed to fetch ${entityKey} (id: ${id}): ${res.status} ${res.statusText}`,
-        )
-      }
-      return res.json() as Promise<T>
-    },
-    staleTime: 30_000,
+    queryFn: ({ signal }) => privateRequest<T>(`${endpoint}/${id}`, { signal }),
+    staleTime: 0,
     enabled: Boolean(id),
   })
 }

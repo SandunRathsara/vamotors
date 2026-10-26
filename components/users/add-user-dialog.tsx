@@ -1,8 +1,11 @@
 "use client"
-
-import * as React from "react"
-
-import { useEntityMutation } from "@/hooks/use-entity-mutation"
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import type {
+  Dependency,
+  UserAdminDTO,
+} from "@/.planning/implementation/contracts/api"
+import { privateRequest } from "@/lib/security-client"
 import {
   Sheet,
   SheetContent,
@@ -13,138 +16,246 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { allRoles, type QueryResult } from "./users-table"
+import { useAdminCommand } from "./use-admin-command"
 
-interface AddUserDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function AddUserDialog({ open, onOpenChange }: AddUserDialogProps) {
-  const [name, setName] = React.useState("")
-  const [email, setEmail] = React.useState("")
-  const [role, setRole] = React.useState("")
-  const [password, setPassword] = React.useState("")
-
-  const { mutate, isPending } = useEntityMutation({
-    entityKey: "users",
-    endpoint: "/api/users",
-    method: "POST",
-    successMessage: "User added.",
-  })
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!name.trim() || !email.trim() || !role || !password.trim()) return
-
-    mutate(
-      { name: name.trim(), email: email.trim(), role, password: password.trim() } as Parameters<typeof mutate>[0],
-      {
-        onSuccess: () => {
-          onOpenChange(false)
-          resetForm()
-        },
-      },
-    )
+export function AddUserDialog({
+  user,
+  onClose,
+}: {
+  user: UserAdminDTO | "new"
+  onClose: () => void
+}) {
+  const existing = user === "new" ? null : user
+  const [name, setName] = useState(existing?.name ?? "")
+  const [active, setActive] = useState(existing?.active ?? true)
+  const [roleIds, setRoleIds] = useState(existing?.roles.map((r) => r.id) ?? [])
+  const [expected, setExpected] = useState<Dependency[] | null>(null)
+  const [key, setKey] = useState(crypto.randomUUID())
+  const roles = useQuery({ queryKey: ["role-options"], queryFn: allRoles })
+  const command = useAdminCommand()
+  async function refreshRevisions() {
+    const rows = await roles.refetch()
+    if (!rows.data) return
+    const current = existing
+      ? (
+          await privateRequest<QueryResult<UserAdminDTO>>(
+            `/api/v1/queries/user?id=${existing.id}`
+          )
+        ).data
+      : null
+    setExpected([
+      ...(current
+        ? [
+            {
+              type: "User" as const,
+              id: current.id,
+              revision: current.revision,
+            },
+          ]
+        : []),
+      ...rows.data
+        .filter((r) => roleIds.includes(r.id))
+        .map((r) => ({
+          type: "Role" as const,
+          id: r.id,
+          revision: r.revision,
+        })),
+    ])
+    setKey(crypto.randomUUID())
+    command.reconfirm()
   }
-
-  function resetForm() {
-    setName("")
-    setEmail("")
-    setRole("")
-    setPassword("")
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const fields = new FormData(form)
+    const refs = expected ?? [
+      ...(existing
+        ? [
+            {
+              type: "User" as const,
+              id: existing.id,
+              revision: existing.revision,
+            },
+          ]
+        : []),
+      ...(roles.data ?? [])
+        .filter((r) => roleIds.includes(r.id))
+        .map((r) => ({
+          type: "Role" as const,
+          id: r.id,
+          revision: r.revision,
+        })),
+    ]
+    setExpected(refs)
+    const envelope = {
+      schemaVersion: 1 as const,
+      idempotencyKey: key,
+      expected: refs,
+    }
+    const ok = existing
+      ? await command.run("updateUser", {
+          ...envelope,
+          input: {
+            id: existing.id,
+            name,
+            active,
+            roleIds,
+            reason: String(fields.get("reason")),
+          },
+        })
+      : await command.run("createUser", {
+          ...envelope,
+          input: {
+            name,
+            email: String(fields.get("email")),
+            password: String(fields.get("password")),
+            roleIds,
+          },
+        })
+    if (ok) {
+      form.reset()
+      onClose()
+    }
   }
-
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
+    <Sheet
+      open
+      onOpenChange={(open) => {
+        if (!open && !command.pending) onClose()
+      }}
+    >
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>Add User</SheetTitle>
-          <SheetDescription>Create a new user account and assign a role</SheetDescription>
+          <SheetTitle>{existing ? "Edit User" : "Add User"}</SheetTitle>
+          <SheetDescription>
+            Assign one or more active roles. Passwords are creation-only.
+          </SheetDescription>
         </SheetHeader>
-        <div className="px-1 pb-4">
-          <form id="add-user-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="user-name" className="text-xs">
-                Name <span className="text-destructive">*</span>
-              </Label>
+        <form
+          className="space-y-4 p-4"
+          onSubmit={(e) => void submit(e)}
+          onChange={() => {
+            setKey(crypto.randomUUID())
+            setExpected(null)
+          }}
+        >
+          <fieldset disabled={command.pending} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-name">Name</Label>
               <Input
                 id="user-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Full name"
                 required
+                maxLength={200}
               />
             </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="user-email" className="text-xs">
-                Email <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="user-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@vamotors.lk"
-                required
-              />
+            {!existing && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="user-email">Email</Label>
+                  <Input
+                    id="user-email"
+                    name="email"
+                    type="email"
+                    required
+                    maxLength={254}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="user-password">Initial password</Label>
+                  <Input
+                    id="user-password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={12}
+                    maxLength={128}
+                    required
+                  />
+                </div>
+              </>
+            )}
+            {existing && (
+              <>
+                <p className="text-sm">{existing.email}</p>
+                <Label>
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={(e) => setActive(e.target.checked)}
+                  />{" "}
+                  Active account
+                </Label>
+                {existing.adminProtection?.lastActiveAdministrator && (
+                  <p className="text-sm">
+                    Last active administrator: removal or deactivation is
+                    protected.
+                  </p>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="user-reason">Reason</Label>
+                  <Input
+                    id="user-reason"
+                    name="reason"
+                    required
+                    maxLength={2000}
+                  />
+                </div>
+              </>
+            )}
+            <fieldset className="space-y-2">
+              <legend className="mb-2 text-sm font-medium">
+                Roles (select at least one)
+              </legend>
+              {roles.data?.map((r) => (
+                <Label key={r.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={roleIds.includes(r.id)}
+                    disabled={!r.active && !roleIds.includes(r.id)}
+                    onChange={(e) =>
+                      setRoleIds(
+                        e.target.checked
+                          ? [...roleIds, r.id]
+                          : roleIds.filter((id) => id !== r.id)
+                      )
+                    }
+                  />
+                  {r.name}
+                  {!r.active && " (archived)"}
+                </Label>
+              ))}
+            </fieldset>
+            {roles.isError && <p role="alert">Unable to load roles.</p>}
+            {command.error && (
+              <p role="alert" className="text-sm text-destructive">
+                {command.error}
+              </p>
+            )}
+            {command.stale && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void refreshRevisions().catch(() => undefined)}
+              >
+                Refresh revisions and reconfirm
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={command.stale || !roles.data || roleIds.length === 0}
+              >
+                {command.pending ? "Saving…" : "Save User"}
+              </Button>
             </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="user-role" className="text-xs">
-                Role <span className="text-destructive">*</span>
-              </Label>
-              <Select value={role} onValueChange={setRole} required>
-                <SelectTrigger id="user-role">
-                  <SelectValue placeholder="Select role..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Administrator">Administrator</SelectItem>
-                  <SelectItem value="Manager">Manager</SelectItem>
-                  <SelectItem value="SalesExecutive">Sales Executive</SelectItem>
-                  <SelectItem value="FinanceOfficer">Finance Officer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="user-password" className="text-xs">
-                Password <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="user-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Set initial password"
-                required
-              />
-            </div>
-          </form>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                onOpenChange(false)
-                resetForm()
-              }}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" form="add-user-form" disabled={isPending || !name || !email || !role || !password}>
-              {isPending ? "Adding..." : "Add User"}
-            </Button>
-          </div>
-        </div>
+          </fieldset>
+        </form>
       </SheetContent>
     </Sheet>
   )

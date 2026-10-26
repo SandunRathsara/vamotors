@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { privateRequest } from "@/lib/security-client"
 
 // ── Options ───────────────────────────────────────────────────────────────────
 
@@ -45,35 +46,17 @@ export function useEntityMutation<TData = unknown, TVariables = unknown>({
 
   return useMutation<TData, Error, TVariables>({
     mutationFn: async (variables: TVariables) => {
-      const res = await fetch(endpoint, {
+      return privateRequest<TData>(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
         body: method !== "DELETE" ? JSON.stringify(variables) : undefined,
       })
-
-      if (!res.ok) {
-        let detail = res.statusText
-        try {
-          const json = (await res.json()) as { error?: string }
-          if (json.error) detail = json.error
-        } catch {
-          // ignore parse error — use statusText
-        }
-        throw new Error(detail)
-      }
-
-      if (res.status === 204) {
-        return undefined as TData
-      }
-
-      return res.json() as Promise<TData>
     },
     onSuccess: () => {
       toast.success(successMessage)
       void queryClient.invalidateQueries({ queryKey: [entityKey] })
     },
-    onError: (error: Error) => {
-      console.error(`[${entityKey}] mutation error:`, error)
+    onError: () => {
       toast.error(errorMessage)
     },
   })

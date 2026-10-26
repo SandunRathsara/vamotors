@@ -1,8 +1,11 @@
-'use client'
+"use client"
 
-import { QueryClient, QueryClientProvider, isServer } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import {
+  QueryClient,
+  QueryClientProvider,
+  isServer,
+} from "@tanstack/react-query"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 let browserQueryClient: QueryClient | undefined
 
@@ -11,7 +14,9 @@ function getQueryClient() {
     return new QueryClient({
       defaultOptions: {
         queries: {
-          staleTime: 60_000,
+          staleTime: 0,
+          gcTime: 0,
+          retry: false,
         },
       },
     })
@@ -20,7 +25,9 @@ function getQueryClient() {
     browserQueryClient = new QueryClient({
       defaultOptions: {
         queries: {
-          staleTime: 60_000,
+          staleTime: 0,
+          gcTime: 0,
+          retry: false,
         },
       },
     })
@@ -34,7 +41,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <NuqsAdapter>{children}</NuqsAdapter>
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )
 }

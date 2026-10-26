@@ -18,6 +18,7 @@ import {
   type EnabledSubject,
 } from "./permissions"
 import { id, listParams } from "./validators"
+import { adminList } from "./admin-list"
 
 export async function securityQuery(
   identity: Identity,
@@ -38,7 +39,15 @@ export async function securityQuery(
       if (name === "permissionRegistry") {
         if (params.size) fail("INVALID_INPUT", 422)
         requireAdministrator(actor)
-        return permissionRegistryDTO()
+        const registry = permissionRegistryDTO()
+        // This endpoint advertises implemented administration/audit capabilities
+        // only; other foundation policy primitives are not live domain services.
+        return {
+          ...registry,
+          subjects: registry.subjects.filter((s) =>
+            ["User", "Role", "AuditLog"].includes(s.subject)
+          ),
+        }
       }
       if (["users", "roles", "user", "role"].includes(name)) {
         requireAdministrator(actor)
@@ -89,23 +98,37 @@ export async function securityQuery(
           if (!row) fail("NOT_FOUND", 404)
           return project(actor.ability, "Role", roleDTO(row))
         }
-        const parsed = listParams.safeParse(args)
-        if (!parsed.success) fail("INVALID_INPUT", 422)
-        const { page, pageSize } = parsed.data
-        const paging = {
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-          orderBy: { id: "asc" as const },
-        }
+        const { page, pageSize, paging, where } = adminList(actor, type, args)
         if (type === "User") {
-          const where = readScope(actor.grants, actor.userId, "User")
-          const [rows, total] = await Promise.all([
+          const [rows, total, activeAdministrators] = await Promise.all([
             tx.user.findMany({ where, ...paging, include: userInclude }),
             tx.user.count({ where }),
+            tx.user.count({
+              where: {
+                active: true,
+                roles: {
+                  some: { role: { systemKey: "ADMINISTRATOR", active: true } },
+                },
+              },
+            }),
           ])
           return {
             ok: true,
-            data: rows.map((r) => project(actor.ability, "User", userDTO(r))),
+            data: rows.map((r) => {
+              const isAdministrator = r.roles.some(
+                (membership) =>
+                  membership.role.systemKey === "ADMINISTRATOR" &&
+                  membership.role.active
+              )
+              return project(actor.ability, "User", {
+                ...userDTO(r),
+                adminProtection: {
+                  isAdministrator,
+                  lastActiveAdministrator:
+                    isAdministrator && r.active && activeAdministrators === 1,
+                },
+              })
+            }),
             total,
             page,
             pageSize,
@@ -113,7 +136,6 @@ export async function securityQuery(
             redactedFields: [],
           }
         }
-        const where = readScope(actor.grants, actor.userId, "Role")
         const [rows, total] = await Promise.all([
           tx.role.findMany({ where, ...paging, include: roleInclude }),
           tx.role.count({ where }),
@@ -129,12 +151,12 @@ export async function securityQuery(
         }
       }
       if (name === "audit") {
+        requireAdministrator(actor)
         const parsed = listParams
           .extend({ type: z.enum(["User", "Role"]), id })
           .strict()
           .safeParse(args)
         if (!parsed.success) fail("INVALID_INPUT", 422)
-        requireAdministrator(actor)
         const { type: entityType, id: entityId, page, pageSize } = parsed.data
         const row =
           entityType === "User"
