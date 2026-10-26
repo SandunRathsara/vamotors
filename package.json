@@ -15,9 +15,18 @@
     "test:unit": "vitest run",
     "test:api": "playwright test --project=api",
     "test:e2e": "playwright test --project=e2e",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "db:generate": "prisma generate",
+    "test:security": "vitest run tests/security",
+    "test:security:db": "node --conditions=react-server --import tsx scripts/security-db-check.ts"
   },
   "dependencies": {
+    "@casl/ability": "6.8.0",
+    "@prisma/adapter-pg": "6.19.0",
+    "@prisma/client": "6.19.0",
+    "better-auth": "1.6.23",
+    "pg": "8.16.3",
+    "server-only": "0.0.1",
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/modifiers": "9.0.0",
     "@dnd-kit/sortable": "10.0.0",
@@ -49,6 +58,9 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@types/pg": "8.15.6",
+    "prisma": "6.19.0",
+    "tsx": "4.20.6",
     "@eslint/eslintrc": "3.3.5",
     "@playwright/test": "1.59.1",
     "@tailwindcss/postcss": "4.2.2",
