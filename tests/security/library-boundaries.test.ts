@@ -85,6 +85,82 @@ afterEach(async () => {
 })
 
 describe("effective pinned pg configuration, no database", () => {
+  it("allows cleartext only for explicitly local numeric loopback, including operator path", () => {
+    const url = runtimeURL
+      .replace("db.example.test", "127.0.0.1")
+      .replace("isolated", "vamotors_local")
+      .replace("verify-full", "disable")
+    const config = runtimeConfig({
+      ...runtime,
+      APP_ENV: "local",
+      DATABASE_URL: url,
+    })
+    const parameters = (
+      new pg.Client({ connectionString: config.DATABASE_URL }) as unknown as {
+        connectionParameters: pg.ClientConfig
+      }
+    ).connectionParameters
+    expect(parameters).toMatchObject({
+      host: "127.0.0.1",
+      ssl: false,
+      user: "vamotors_runtime",
+      database: "vamotors_local",
+    })
+    expect(
+      authorizedMigration({
+        APP_ENV: "local",
+        ENVIRONMENT_ID: uid,
+        LOCAL_DATABASE_AUTHORIZATION: uid,
+        DIRECT_URL: url.replace("vamotors_runtime", "vamotors_migrator"),
+      })
+    ).toContain("127.0.0.1")
+    for (const host of ["localhost", "db.example.test", "127.0.0.2", "[::1]"])
+      expect(() =>
+        runtimeConfig({
+          ...runtime,
+          APP_ENV: "local",
+          DATABASE_URL: url.replace("127.0.0.1", host),
+        })
+      ).toThrow("ENVIRONMENT_UNAVAILABLE")
+    for (const APP_ENV of ["shared-dev", "disposable-test", "preview"])
+      expect(() =>
+        runtimeConfig({ ...runtime, APP_ENV, DATABASE_URL: url })
+      ).toThrow("ENVIRONMENT_UNAVAILABLE")
+    for (const APP_ORIGIN of [
+      "ftp://localhost",
+      "https://foreign.example.test",
+    ])
+      expect(() =>
+        runtimeConfig({
+          ...runtime,
+          APP_ENV: "local",
+          DATABASE_URL: url,
+          APP_ORIGIN,
+          BETTER_AUTH_URL: APP_ORIGIN,
+        })
+      ).toThrow("ENVIRONMENT_UNAVAILABLE")
+    expect(() =>
+      authorizedMigration({
+        APP_ENV: "local",
+        ENVIRONMENT_ID: uid,
+        LOCAL_DATABASE_AUTHORIZATION: "wrong",
+        DIRECT_URL: url.replace("vamotors_runtime", "vamotors_migrator"),
+      })
+    ).toThrow("LOCAL_AUTHORIZATION_REQUIRED")
+    for (const option of [
+      "host=remote.example.test",
+      "sslmode=verify-full",
+      "user=owner",
+      "options=-c%20role%3Downer",
+    ])
+      expect(() =>
+        runtimeConfig({
+          ...runtime,
+          APP_ENV: "local",
+          DATABASE_URL: `${url}&${option}`,
+        })
+      ).toThrow("ENVIRONMENT_UNAVAILABLE")
+  })
   it.each(["require", "verify-full"])(
     "retains target/role and certificate verification for %s",
     (mode) => {

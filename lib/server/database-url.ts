@@ -1,5 +1,9 @@
 /** Shared runtime/operator boundary. No driver query options except TLS mode. */
-export function databaseURL(input: string, role: string): URL | undefined {
+export function databaseURL(
+  input: string,
+  role: string,
+  local = false
+): URL | undefined {
   try {
     const url = new URL(input)
     if (
@@ -12,9 +16,15 @@ export function databaseURL(input: string, role: string): URL | undefined {
       url.hash ||
       [...url.searchParams.keys()].some((key) => key !== "sslmode") ||
       url.searchParams.getAll("sslmode").length !== 1 ||
-      !["require", "verify-full"].includes(
-        url.searchParams.get("sslmode") ?? ""
-      )
+      !(
+        ["require", "verify-full"].includes(
+          url.searchParams.get("sslmode") ?? ""
+        ) ||
+        (local &&
+          url.hostname === "127.0.0.1" &&
+          url.searchParams.get("sslmode") === "disable")
+      ) ||
+      (local && url.hostname !== "127.0.0.1")
     )
       return
     return url

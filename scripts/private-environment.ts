@@ -14,6 +14,18 @@ export async function privateEnvironment(path: string) {
   return parseEnv(await readFile(path, "utf8"))
 }
 export function authorizedMigration(env: Record<string, string | undefined>) {
+  if (env.APP_ENV === "local") {
+    const url =
+      env.DIRECT_URL && databaseURL(env.DIRECT_URL, "vamotors_migrator", true)
+    if (
+      !url ||
+      env.LOCAL_DATABASE_AUTHORIZATION !== env.ENVIRONMENT_ID ||
+      !env.ENVIRONMENT_ID ||
+      url.pathname !== "/vamotors_local"
+    )
+      throw new Error("LOCAL_AUTHORIZATION_REQUIRED")
+    return env.DIRECT_URL!
+  }
   if (
     env.APP_ENV !== "disposable-test" ||
     !env.ENVIRONMENT_ID ||

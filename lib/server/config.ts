@@ -24,11 +24,18 @@ export function runtimeConfig(
   const config = result.data
   const origin = new URL(config.APP_ORIGIN)
   if (
-    !databaseURL(config.DATABASE_URL, "vamotors_runtime") ||
+    !databaseURL(
+      config.DATABASE_URL,
+      "vamotors_runtime",
+      config.APP_ENV === "local"
+    ) ||
     config.APP_ORIGIN !== origin.origin ||
     config.BETTER_AUTH_URL !== config.APP_ORIGIN ||
+    (config.APP_ENV === "local" &&
+      !["localhost", "127.0.0.1"].includes(origin.hostname)) ||
     (origin.protocol !== "https:" &&
       !(
+        origin.protocol === "http:" &&
         ["local", "disposable-test"].includes(config.APP_ENV) &&
         ["localhost", "127.0.0.1"].includes(origin.hostname)
       ))
