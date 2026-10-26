@@ -89,6 +89,16 @@ function SidebarProvider({
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
+    // A modal owns mobile focus. Don't stack transient navigation over it:
+    // Activity reconnects effects in tree order, not modal opening order.
+    if (
+      isMobile &&
+      document.querySelector(
+        '[role="dialog"][data-state="open"]:not([data-sidebar="sidebar"])'
+      )
+    ) {
+      return
+    }
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
