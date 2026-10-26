@@ -23,9 +23,14 @@ export function CustomerDirectory({ id }: { id?: string }) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState<VisibleCustomer | null>(null)
   const [reason, setReason] = useState("")
-  const [archiveKey, setArchiveKey] = useState<string | null>(null)
+  // Serialized once: a refetch must never change an unresolved command's intent.
+  const [archiveCommand, setArchiveCommand] = useState<{
+    body: string
+    active: boolean
+  } | null>(null)
+  const [formUnresolved, setFormUnresolved] = useState(false)
   const [archiveStale, setArchiveStale] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
@@ -93,34 +98,48 @@ export function CustomerDirectory({ id }: { id?: string }) {
     row.active !== undefined
   async function archive() {
     if (!row || !reason.trim() || pending || archiveStale) return
-    const key = archiveKey ?? crypto.randomUUID()
-    setArchiveKey(key)
+    const command = archiveCommand ?? {
+      active: !row.active,
+      body: JSON.stringify({
+        schemaVersion: 1,
+        idempotencyKey: crypto.randomUUID(),
+        expected: [{ type: "Customer", id: row.id, revision: row.revision }],
+        input: {
+          type: "CUSTOMER",
+          id: row.id,
+          active: !row.active,
+          reason: reason.trim(),
+        },
+      }),
+    }
+    setArchiveCommand(command)
     setPending(true)
     setError("")
     try {
       await privateRequest("/api/v1/commands/archiveParty", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          schemaVersion: 1,
-          idempotencyKey: key,
-          expected: [{ type: "Customer", id: row.id, revision: row.revision }],
-          input: {
-            type: "CUSTOMER",
-            id: row.id,
-            active: !row.active,
-            reason: reason.trim(),
-          },
-        }),
+        body: command.body,
       })
-      await queries.invalidateQueries({ queryKey: ["customers"] })
       setReason("")
-      setArchiveKey(null)
+      setArchiveCommand(null)
+      await queries.invalidateQueries({ queryKey: ["customers"] })
     } catch (cause) {
       const code = cause instanceof RequestError ? cause.code : "NETWORK_ERROR"
       setArchiveStale(["STALE_REVISION", "REVISION_REQUIRED"].includes(code))
+      if (
+        cause instanceof RequestError &&
+        cause.status < 500 &&
+        ![
+          "COMMAND_IN_PROGRESS",
+          "IDEMPOTENCY_MISMATCH",
+          "STALE_REVISION",
+          "REVISION_REQUIRED",
+        ].includes(code)
+      )
+        setArchiveCommand(null)
       setError(
-        `${code}. Reason retained. Reload and reconfirm before changing archive status.`
+        `${code}. Reason retained. Retry the unchanged command to confirm its outcome; stale status requires reload and reconfirmation.`
       )
     } finally {
       setPending(false)
@@ -147,7 +166,11 @@ export function CustomerDirectory({ id }: { id?: string }) {
           </Link>
         ) : (
           canCreate && (
-            <Button className="min-h-11" onClick={() => setCreating(!creating)}>
+            <Button
+              className="min-h-11"
+              disabled={formUnresolved}
+              onClick={() => setCreating(!creating)}
+            >
               {creating ? "Close new customer form" : "New customer"}
             </Button>
           )
@@ -157,6 +180,7 @@ export function CustomerDirectory({ id }: { id?: string }) {
         <section className="rounded-lg border p-4 sm:p-6">
           <h2 className="mb-4 text-lg font-semibold">New customer</h2>
           <CustomerForm
+            onUnresolvedChange={setFormUnresolved}
             onSaved={(result) => {
               window.location.assign(`/customers/${result.result.id}`)
             }}
@@ -288,19 +312,29 @@ export function CustomerDirectory({ id }: { id?: string }) {
             )}
           </dl>
           {canEdit && (
-            <Button variant="outline" onClick={() => setEditing(!editing)}>
+            <Button
+              variant="outline"
+              disabled={formUnresolved}
+              onClick={() => setEditing(editing ? null : row)}
+            >
               {editing ? "Close edit form" : "Edit customer"}
             </Button>
           )}
-          {editing && (
-            <CustomerForm
-              initial={row}
-              onSaved={async () => {
-                await query.refetch()
-                setEditing(false)
-              }}
-            />
-          )}
+        </>
+      )}
+      {/* Keep an open draft/command mounted while the privacy boundary refetches. */}
+      {editing && (
+        <CustomerForm
+          initial={editing}
+          onUnresolvedChange={setFormUnresolved}
+          onSaved={async () => {
+            await query.refetch()
+            setEditing(null)
+          }}
+        />
+      )}
+      {row && (
+        <>
           {canArchive && (
             <form
               onSubmit={(e) => {
@@ -310,7 +344,9 @@ export function CustomerDirectory({ id }: { id?: string }) {
               className="space-y-3 rounded-lg border p-4"
             >
               <h2 className="font-semibold">
-                {row.active ? "Archive customer" : "Reactivate customer"}
+                {(archiveCommand ? !archiveCommand.active : row.active)
+                  ? "Archive customer"
+                  : "Reactivate customer"}
               </h2>
               <p className="text-sm text-muted-foreground">
                 No customer or history is deleted.
@@ -321,10 +357,9 @@ export function CustomerDirectory({ id }: { id?: string }) {
                 required
                 maxLength={2000}
                 value={reason}
-                disabled={pending}
+                disabled={pending || (!!archiveCommand && !archiveStale)}
                 onChange={(e) => {
                   setReason(e.target.value)
-                  setArchiveKey(null)
                 }}
                 className="min-h-11 text-base"
               />
@@ -339,7 +374,7 @@ export function CustomerDirectory({ id }: { id?: string }) {
                       setError("Unable to reload status. Reason retained.")
                       return
                     }
-                    setArchiveKey(null)
+                    setArchiveCommand(null)
                     setArchiveStale(false)
                     setError(
                       "Current status reloaded. Check it and explicitly submit again."
@@ -356,9 +391,13 @@ export function CustomerDirectory({ id }: { id?: string }) {
               >
                 {pending
                   ? "Saving…"
-                  : row.active
-                    ? "Confirm archive"
-                    : "Confirm reactivation"}
+                  : archiveCommand && !archiveStale
+                    ? archiveCommand.active
+                      ? "Retry reactivation"
+                      : "Retry archive"
+                    : row.active
+                      ? "Confirm archive"
+                      : "Confirm reactivation"}
               </Button>
             </form>
           )}

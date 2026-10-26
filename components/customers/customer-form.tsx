@@ -31,9 +31,11 @@ export type VisibleCustomer = Visible<CustomerDTO> & {
 export function CustomerForm({
   initial,
   onSaved,
+  onUnresolvedChange,
 }: {
   initial?: VisibleCustomer
   onSaved: (result: Applied) => void
+  onUnresolvedChange?: (unresolved: boolean) => void
 }) {
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
@@ -45,7 +47,9 @@ export function CustomerForm({
       ) as Record<keyof CustomerInput, string>
   )
   const [reason, setReason] = useState("")
-  const [key, setKey] = useState<string | null>(null)
+  const [command, setCommand] = useState<{ url: string; body: string } | null>(
+    null
+  )
   const [revision, setRevision] = useState(initial?.revision)
   const [error, setError] = useState("")
   const [pending, setPending] = useState(false)
@@ -88,37 +92,53 @@ export function CustomerForm({
       )
       return
     }
-    const currentKey = key ?? crypto.randomUUID()
-    setKey(currentKey)
+    const submitted = command ?? {
+      url: `/api/v1/commands/${initial ? "updateCustomer" : "createCustomer"}`,
+      body: JSON.stringify({
+        schemaVersion: 1,
+        idempotencyKey: crypto.randomUUID(),
+        expected: initial
+          ? [{ type: "Customer", id: initial.id, revision }]
+          : [],
+        input: initial
+          ? {
+              id: initial.id,
+              values: parsed.data,
+              ...(reason.trim() ? { reason: reason.trim() } : {}),
+            }
+          : parsed.data,
+      }),
+    }
+    setCommand(submitted)
+    onUnresolvedChange?.(true)
     setPending(true)
     setError("")
     try {
-      const result = await privateRequest<Applied>(
-        `/api/v1/commands/${initial ? "updateCustomer" : "createCustomer"}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            schemaVersion: 1,
-            idempotencyKey: currentKey,
-            expected: initial
-              ? [{ type: "Customer", id: initial.id, revision }]
-              : [],
-            input: initial
-              ? {
-                  id: initial.id,
-                  values: parsed.data,
-                  ...(reason.trim() ? { reason: reason.trim() } : {}),
-                }
-              : parsed.data,
-          }),
-        }
-      )
+      const result = await privateRequest<Applied>(submitted.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: submitted.body,
+      })
+      setCommand(null)
+      onUnresolvedChange?.(false)
       await queries.invalidateQueries({ queryKey: ["customers"] })
       onSaved(result)
     } catch (cause) {
       const code = cause instanceof RequestError ? cause.code : "NETWORK_ERROR"
       setStale(["STALE_REVISION", "REVISION_REQUIRED"].includes(code))
+      if (
+        cause instanceof RequestError &&
+        cause.status < 500 &&
+        ![
+          "COMMAND_IN_PROGRESS",
+          "IDEMPOTENCY_MISMATCH",
+          "STALE_REVISION",
+          "REVISION_REQUIRED",
+        ].includes(code)
+      ) {
+        setCommand(null)
+        onUnresolvedChange?.(false)
+      }
       setError(
         `${code}. Your draft is retained. A network retry keeps the same key; stale edits require reload and explicit reconfirmation.`
       )
@@ -135,7 +155,7 @@ export function CustomerForm({
         </p>
       )}
       <fieldset
-        disabled={pending || !!blocked}
+        disabled={pending || !!blocked || (!!command && !stale)}
         className="grid min-w-0 gap-4 sm:grid-cols-2"
       >
         {customerFields.map(([field, label, required]) => (
@@ -185,7 +205,6 @@ export function CustomerForm({
               value={draft[field]}
               onChange={(e) => {
                 setDraft({ ...draft, [field]: e.target.value })
-                setKey(null)
               }}
               className="min-h-11 text-base"
             />
@@ -202,7 +221,6 @@ export function CustomerForm({
               value={reason}
               onChange={(e) => {
                 setReason(e.target.value)
-                setKey(null)
               }}
               className="min-h-11 text-base"
             />
@@ -256,7 +274,8 @@ export function CustomerForm({
                 }
                 onClick={() => {
                   setRevision(latest.revision)
-                  setKey(null)
+                  setCommand(null)
+                  onUnresolvedChange?.(false)
                   setStale(false)
                   setError("")
                   setLatest(null)
