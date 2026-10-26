@@ -41,7 +41,7 @@ export function AddUserDialog({
       !!existing.revision &&
       Array.isArray(existing.roles) &&
       !existing.redactedFields?.some(
-        (f) => f === "roles" || f.startsWith("roles.")
+        (f) => f === "roles" || f === "roles.id" || f === "roles.revision"
       ) &&
       existing.roles.every((r) => r.id && r.revision))
   const [name, setName] = useState(existing?.name ?? "")
@@ -279,9 +279,9 @@ export function AddUserDialog({
                       type="checkbox"
                       checked={roleIds.includes(r.id)}
                       disabled={
-                        (!r.active && !roleIds.includes(r.id)) ||
-                        (!administrator && r.systemKey !== null) ||
-                        (!roleIds.includes(r.id) && !assignable(r))
+                        roleIds.includes(r.id)
+                          ? !administrator && r.systemKey != null
+                          : r.active !== true || !assignable(r)
                       }
                       onChange={(e) =>
                         setRoleIds(
@@ -292,7 +292,8 @@ export function AddUserDialog({
                       }
                     />
                     {r.name}
-                    {!r.active && " (archived)"}
+                    {r.active === false && " (archived)"}
+                    {r.active === undefined && " (activation unavailable)"}
                   </Label>
                 ))}
             </fieldset>

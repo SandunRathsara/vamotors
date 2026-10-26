@@ -127,6 +127,65 @@ policy explicitly. Private failure logs are retained as historical diagnostics.
 
 ## Remaining G1/T03 and required next seams
 
+### Bounded correction of independent review findings
+
+Correction base: exact `e347827e57ff73c91e0e16730283acc241346cd0`.
+The independent `9ab8e9db` review's three P2 UI failures are attributed to that
+exact candidate, not an ambiguous author final check. Its other reported passes
+remain independent historical evidence, not results for this correction.
+
+Only `components/users/add-user-dialog.tsx` changes application behavior:
+command completeness requires membership IDs/revisions, not optional display
+names; selected-role removals do not require hidden grants/system identity;
+known system roles stay disabled for delegates and additions still require
+readable active state and the existing assignment coverage check. Hidden active
+state displays “activation unavailable”, never an invented archive status.
+Server authorization, protected-account enforcement and all contracts are unchanged.
+
+`tests/security/redacted-user-check.mjs` adds seven production Chromium/HTTP
+groups: unavailable activation with disabled addition, actual name-save API/UI
+parity with only Role IDs/revisions readable, actual custom-role-removal API/UI
+parity without grants/systemKey, missing role ID and revision denials, hidden
+replacement-field/forbidden changed-field checks, and protected Administrator
+removal denial with visible and hidden identity metadata. Each actor's own
+session performs both API and UI operations; Administrator reads only verify
+persisted outcomes or construct negative probes. Hidden values are never supplied
+to the positive delegate replacements.
+
+Author-owned private evidence (not independent acceptance):
+
+- `/Users/alpha/.config/vamotors/local-t03c-correction-4f463751`: exact-base
+  `before-repro.log` / `before-independent-adversarial-results.json` reproduce all
+  three failures with the reviewer's read-only runnable fixture against this
+  author's own cluster. `before-regression.log` / `before-redacted-user-results.json`
+  show the new regression red on those same three paths and green on four negative
+  groups. Preliminary corrected production runs (`after-regression.log` and
+  `after-repro.log`) pass seven and five groups respectively.
+- An initial later DB run (`db.log`) failed the retained two-admin race because
+  the first regression fixture left a third active synthetic Administrator. This
+  is retained as a failed author attempt, not a DB pass. The regression now probes
+  the existing protected account without creating another Administrator.
+- `/Users/alpha/.config/vamotors/local-t03c-correction-4f463751-final`: fresh
+  owner-isolated cluster for serial final checks, DB campaign first. Final JSON
+  evidence records exact candidate SHA/dirty state; `check-summary.json` records
+  command outcomes. No reviewer services, credentials or data are used. Both
+  owned clusters are stopped on handback; persistent evidence/data remain private.
+
+Final verification includes unit/contracts/typed contracts, build/typecheck,
+owned ESLint/Prettier/diff checks, retained DB/delegated/production/portal/mobile
+campaigns and the new regression. Reproduce the new regression after a production
+build, against a newly set up private cluster, with:
+
+```sh
+node --import tsx tests/security/redacted-user-check.mjs "$VAMOTORS_LOCAL_DIR"
+```
+
+Full lint remains a failed baseline gate: three errors / 27 warnings, with no
+unrelated repairs. Exact-SHA final outcomes are in the private evidence, not
+inferred from the earlier author or independent runs. A new independent review
+and explicit parent bounded acceptance are still required; this correction is
+not G1/T03 acceptance.
+
 This is bounded implementation, not self-acceptance. Parent's independent combined
 source/UI/API/DB review and explicit acceptance are still required. It does not
 unlock downstream features, certify full E6 or complete G1/T03, storage, expiry,
