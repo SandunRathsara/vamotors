@@ -56,7 +56,8 @@ The retained production suite now explicitly distinguishes an authorized
 User.read/id-only response from full administrative revocation. Its full-revocation
 fixture retains an empty role, not a still-readable role. Read denial is404;
 registry gate denial403; malformed command after authentication422. Portal/mobile
-privacy assertions were not weakened.
+privacy assertions were not weakened. The mobile fixture now resolves each required
+role by ID instead of missing revisions outside its first 20-row list page.
 
 ## Reproduce on a new owner-isolated local cluster
 
@@ -118,7 +119,9 @@ Earlier author attempts are not counted as passes: the first race observer used
 restricted pg_stat_activity wait details and could not see another role's wait;
 it now observes public lock metadata. One accidental overlap with the seed-mutating
 DB suite made an in-flight synthetic request see an inactive seed administrator;
-all final campaigns are serial. Earlier retained production assertions assumed
+all final campaigns are serial. A later clean-tree mobile run exposed that
+first-page-only fixture bug after retained roles exceeded 20; its required-ref
+lookup was corrected, with all 12 privacy/focus assertions retained. Earlier retained production assertions assumed
 Administrator-only reads; fixtures/expectations now test the accepted capability
 policy explicitly. Private failure logs are retained as historical diagnostics.
 

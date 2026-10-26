@@ -204,7 +204,11 @@ try {
   let custom = (await query(admin, "roles", `?q=${suffix}`)).data[0]
   async function assign(ids: string[]) {
     const current = await query(admin, "user", `?id=${target.id}`)
-    const roles = (await query(admin, "roles")).data
+    // Retained synthetic rows may exceed the first list page. Resolve every
+    // required reference explicitly instead of silently omitting its revision.
+    const roles = await Promise.all(
+      ids.map((id) => query(admin, "role", `?id=${id}`))
+    )
     await command(
       "updateUser",
       {
