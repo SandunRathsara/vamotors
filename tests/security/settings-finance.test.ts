@@ -4,6 +4,7 @@ import {
   financeInput,
   partySelector,
   partyEnvelope,
+  moneyInput,
 } from "@/lib/server/validators"
 import {
   abilityFor,
@@ -37,6 +38,45 @@ export const syntheticSettings = {
   theme: "SYSTEM",
 }
 describe("Settings and finance trust boundaries", () => {
+  it("parses only bounded canonical nonnegative minor-unit strings without throwing", () => {
+    for (const value of ["0", "1", "9999999999999", "99999999999999"])
+      expect(moneyInput.safeParse(value)).toEqual({
+        success: true,
+        data: value,
+      })
+    for (const value of [
+      "abc",
+      "1.5",
+      "1e2",
+      "",
+      " ",
+      "+1",
+      "-1",
+      "-0",
+      "01",
+      "00",
+      "1\n",
+      "\n1",
+      "1 ",
+      "1\r\n",
+      "０",
+      "١",
+      "0x10",
+      "NaN",
+      "Infinity",
+      "100000000000000",
+      "9".repeat(1000),
+      0,
+      1,
+      null,
+      undefined,
+      {},
+      [],
+    ]) {
+      expect(() => moneyInput.safeParse(value)).not.toThrow()
+      expect(moneyInput.safeParse(value).success).toBe(false)
+    }
+  })
   it("validates the complete strict Settings object, not only fee", () => {
     expect(settingsInput.safeParse(syntheticSettings).success).toBe(true)
     for (const patch of [

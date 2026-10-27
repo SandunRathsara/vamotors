@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { Activity, useState } from "react"
 import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
 import type {
@@ -21,7 +21,9 @@ export function PartyDetail({ kind, id }: { kind: DirectoryKind; id: string }) {
       : kind === "SUPPLIER"
         ? "Supplier"
         : "RepairVendor"
-  const [editing, setEditing] = useState(false)
+  // An edit owns its opening snapshot, not the transient zero-retention query.
+  // AuthBoundary still hides verification and discards on identity/access change.
+  const [editing, setEditing] = useState<Visible<PartyDetailDTO> | null>(null)
   const [unresolved, setUnresolved] = useState(false)
   const query = useQuery({
     queryKey: ["party", kind, id],
@@ -176,32 +178,37 @@ export function PartyDetail({ kind, id }: { kind: DirectoryKind; id: string }) {
             })}
           </section>
           {row.id && row.revision && ability.can("update", type) && (
-            <Button disabled={unresolved} onClick={() => setEditing(!editing)}>
+            <Button
+              disabled={unresolved}
+              onClick={() => setEditing(editing ? null : row)}
+            >
               {editing ? "Close directory form" : "Edit entry"}
             </Button>
           )}
-          {editing && (
-            <PartyForm
-              key={`${kind}:${id}`}
-              kind={kind}
-              initial={row}
-              onUnresolvedChange={setUnresolved}
-              onSaved={() => setEditing(false)}
-              onReload={async () => {
-                const current = await query.refetch()
-                if (current.isError) throw current.error
-                return current.data?.data
-              }}
-            />
-          )}
-          {unresolved && (
-            <p role="status">
-              Unresolved command retained for this typed party only. Resolve it
-              before leaving this page.
-            </p>
-          )}
         </>
       )}
+      <Activity mode={row && !query.isError ? "visible" : "hidden"}>
+        {editing && (
+          <PartyForm
+            key={`${kind}:${id}`}
+            kind={kind}
+            initial={editing}
+            onUnresolvedChange={setUnresolved}
+            onSaved={() => setEditing(null)}
+            onReload={async () => {
+              const current = await query.refetch()
+              if (current.isError) throw current.error
+              return current.data?.data
+            }}
+          />
+        )}
+        {unresolved && (
+          <p role="status">
+            Unresolved command retained for this typed party only. Resolve it
+            before leaving this page.
+          </p>
+        )}
+      </Activity>
     </section>
   )
 }

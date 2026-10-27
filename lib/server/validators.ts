@@ -75,8 +75,8 @@ export const partySelector = z
   .strict()
 export const moneyInput = z
   .string()
+  .max(14)
   .regex(/^(0|[1-9][0-9]*)$/)
-  .refine((value) => value.length <= 14 && BigInt(value) <= 99999999999999n)
 export const financePolicy = z
   .object({
     path: z.enum(["APPLICATION", "REFERRAL"]),
