@@ -396,6 +396,7 @@ try {
         { ...input, purchasePrice: "01" },
         { ...input, purchasePrice: "1.0" },
         { ...input, purchaseDate: "2026-02-30" },
+        { ...input, purchaseDate: "0000-01-01" },
         { ...input, purchaseDate: "2099-01-01" },
         { ...input, vehicle: { ...input.vehicle, engineNumber: "" } },
         { ...input, vehicle: { ...input.vehicle, transmission: "BOGUS" } },

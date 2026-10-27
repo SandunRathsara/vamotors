@@ -102,6 +102,7 @@ describe("bounded T05a acquisition boundary", () => {
   it("rejects invalid dates, identity, extras and unsupported lanes", () => {
     for (const patch of [
       { purchaseDate: "2026-02-30" },
+      { purchaseDate: "0000-01-01" },
       { purchaseType: "LEASE_SETTLEMENT" },
       { purchaseType: "TRADE_IN" },
       { actor: "admin" },

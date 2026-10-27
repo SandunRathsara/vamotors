@@ -255,7 +255,11 @@ export const dateOnly = z
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine((s) => {
     const d = new Date(`${s}T00:00:00.000Z`)
-    return !Number.isNaN(d.valueOf()) && d.toISOString().slice(0, 10) === s
+    return (
+      !s.startsWith("0000-") &&
+      !Number.isNaN(d.valueOf()) &&
+      d.toISOString().slice(0, 10) === s
+    )
   })
 export const vehicleInput = z
   .object({
