@@ -623,7 +623,7 @@ try {
     }
   )
   await group(
-    "anonymous/denied RSC, forbidden query predicates, real Settings/finance unavailable",
+    "anonymous/denied RSC, forbidden query predicates, real Settings/finance reads",
     async () => {
       await denied(
         await anonymous.request.get("/api/v1/queries/parties?type=SUPPLIER"),
@@ -665,15 +665,15 @@ try {
         422,
         "INVALID_INPUT"
       )
-      await denied(
-        await a.request.get("/api/v1/queries/parties?type=FINANCE_COMPANY"),
-        503,
-        "ENVIRONMENT_UNAVAILABLE"
+      assert.equal(
+        (
+          await a.request.get("/api/v1/queries/parties?type=FINANCE_COMPANY")
+        ).status(),
+        200
       )
-      await denied(
-        await a.request.get("/api/v1/queries/settings"),
-        404,
-        "NOT_FOUND"
+      assert.equal(
+        (await a.request.get("/api/v1/queries/settings")).status(),
+        200
       )
       await denied(
         await post(a.request, "createFinanceCompany", {
@@ -681,8 +681,8 @@ try {
           contacts: [],
           policy: {},
         }),
-        404,
-        "NOT_FOUND"
+        422,
+        "INVALID_INPUT"
       )
     }
   )
@@ -1318,7 +1318,7 @@ try {
     }
   )
   console.log(
-    `Party production campaign: ${passed} groups passed. Finance/Settings/detail contract/downstream histories NOT implemented or accepted.`
+    `Party production campaign: ${passed} groups passed. Finance/Settings/detail require their separate campaign; downstream histories not accepted.`
   )
 } catch (error) {
   console.error(

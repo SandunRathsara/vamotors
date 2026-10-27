@@ -22,10 +22,15 @@ GRANT UPDATE ("readAt", revision) ON vamotors."Notification" TO vamotors_runtime
 GRANT SELECT, INSERT ON vamotors."Customer" TO vamotors_runtime;
 GRANT UPDATE ("fullName", "callingName", "nicOrPassport", "normalizedIdentity", address, phone, email, "drivingLicence", notes, active, revision, "updatedAt") ON vamotors."Customer" TO vamotors_runtime;
 -- Read-only, exact source columns for independently authorized customer links.
-GRANT SELECT (id, "sellerCustomerId", "createdBy", "purchaseDate", status, "purchasePrice") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT SELECT (id, "supplierId", "sellerCustomerId", "createdBy", "purchaseDate", status, "purchasePrice") ON vamotors."PurchaseRecord" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."Supplier", vamotors."SupplierContact", vamotors."RepairVendor", vamotors."VendorContact" TO vamotors_runtime;
 GRANT UPDATE (name, category, "nicOrRegNumber", address, phone, hotline, notes, recurring, active, revision, "updatedAt") ON vamotors."Supplier" TO vamotors_runtime;
 GRANT UPDATE (name, category, "nicOrRegNumber", address, phone, hotline, notes, recurring, specialisation, active, revision, "updatedAt") ON vamotors."RepairVendor" TO vamotors_runtime;
 -- Contacts are immutable identities. Replacement only archives; no DELETE or
 -- owner/content UPDATE can invalidate historical references.
 GRANT UPDATE (active) ON vamotors."SupplierContact", vamotors."VendorContact" TO vamotors_runtime;
+GRANT SELECT ON vamotors."Settings", vamotors."SettingsVersion" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."FinanceCompany", vamotors."FinanceContact", vamotors."FinancePolicyVersion" TO vamotors_runtime;
+GRANT UPDATE (name, active, revision, "currentPolicyId", "updatedAt") ON vamotors."FinanceCompany" TO vamotors_runtime;
+GRANT UPDATE (active) ON vamotors."FinanceContact" TO vamotors_runtime;
+GRANT EXECUTE ON FUNCTION vamotors.valid_finance_policy(jsonb) TO vamotors_runtime;

@@ -53,7 +53,6 @@ export const unavailablePages = [
   "/sales",
   "/sales/[id]",
   "/settings",
-  "/third-parties/[id]",
   "/vehicles",
   "/vehicles/[id]",
 ]
@@ -67,6 +66,8 @@ export const methods = [
   "DELETE",
 ] as const
 export const queryNames = [
+  "settings",
+  "party",
   "parties",
   "customers",
   "customer",
@@ -79,6 +80,8 @@ export const queryNames = [
   "audit",
 ]
 export const commandNames = [
+  "createFinanceCompany",
+  "updateFinanceCompany",
   "createDirectoryParty",
   "updateDirectoryParty",
   "createCustomer",

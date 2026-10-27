@@ -250,6 +250,71 @@ model Customer {
   @@schema("vamotors")
 }
 
+model SettingsVersion {
+  id          String    @id @default(uuid()) @db.Uuid
+  version     Int       @unique
+  effectiveAt DateTime  @default(now())
+  values      Json
+  current     Settings?
+
+  @@schema("vamotors")
+}
+
+model Settings {
+  id               String          @id @default(uuid()) @db.Uuid
+  singleton        Int             @unique @default(1)
+  revision         Int             @default(1)
+  currentVersionId String          @unique @db.Uuid
+  currentVersion   SettingsVersion @relation(fields: [currentVersionId], references: [id], onDelete: Restrict)
+
+  @@schema("vamotors")
+}
+
+model FinanceCompany {
+  id              String                 @id @default(uuid()) @db.Uuid
+  name            String
+  active          Boolean                @default(true)
+  revision        Int                    @default(1)
+  createdBy       String                 @db.Uuid
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  currentPolicyId String                 @unique @db.Uuid
+  currentPolicy   FinancePolicyVersion   @relation("currentPolicy", fields: [currentPolicyId, id], references: [id, companyId], onDelete: Restrict)
+  policies        FinancePolicyVersion[] @relation("policies")
+  contacts        FinanceContact[]
+
+  @@unique([currentPolicyId, id])
+  @@schema("vamotors")
+}
+
+model FinancePolicyVersion {
+  id          String          @id @default(uuid()) @db.Uuid
+  companyId   String          @db.Uuid
+  company     FinanceCompany  @relation("policies", fields: [companyId], references: [id], onDelete: Restrict)
+  version     Int
+  effectiveAt DateTime        @default(now())
+  values      Json
+  currentFor  FinanceCompany? @relation("currentPolicy")
+
+  @@unique([id, companyId])
+  @@unique([companyId, version])
+  @@schema("vamotors")
+}
+
+model FinanceContact {
+  id        String         @id @default(uuid()) @db.Uuid
+  companyId String         @db.Uuid
+  company   FinanceCompany @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  name      String
+  phone     String
+  email     String?
+  role      String
+  isPrimary Boolean        @default(false)
+  active    Boolean        @default(true)
+
+  @@schema("vamotors")
+}
+
 model Supplier {
   id             String            @id @default(uuid()) @db.Uuid
   name           String

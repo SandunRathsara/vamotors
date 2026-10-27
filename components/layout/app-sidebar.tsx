@@ -21,7 +21,7 @@ export function AppSidebar() {
   const administration = (["User", "Role"] as const).some((t) =>
     ["read", "create", "update", "archive"].some((a) => can(t, a))
   )
-  const parties = ["Supplier", "RepairVendor"].some((type) =>
+  const parties = ["Supplier", "RepairVendor", "FinanceCompany"].some((type) =>
     abilityFor(actor.presentationGrants, actor.user.id).can("read", type)
   )
   return (

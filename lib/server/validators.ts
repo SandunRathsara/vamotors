@@ -67,7 +67,111 @@ export const directoryInput = z
   })
   .strict()
 const directoryType = z.enum(["SUPPLIER", "REPAIR_VENDOR"])
+export const partySelector = z
+  .object({
+    type: z.enum(["SUPPLIER", "REPAIR_VENDOR", "FINANCE_COMPANY"]),
+    id,
+  })
+  .strict()
+export const moneyInput = z
+  .string()
+  .regex(/^(0|[1-9][0-9]*)$/)
+  .refine((value) => value.length <= 14 && BigInt(value) <= 99999999999999n)
+export const financePolicy = z
+  .object({
+    path: z.enum(["APPLICATION", "REFERRAL"]),
+    commission: z.discriminatedUnion("basis", [
+      z
+        .object({
+          basis: z.literal("FIXED"),
+          fixed: moneyInput,
+          rateBps: z.number().int().min(0).max(10000),
+        })
+        .strict(),
+      z
+        .object({
+          basis: z.literal("FINANCED_PRINCIPAL"),
+          rateBps: z.number().int().min(0).max(10000),
+        })
+        .strict(),
+    ]),
+    processingFee: moneyInput,
+    reconciliationMethod: z.enum(["PERIOD_NOTICE", "PER_DEAL"]),
+  })
+  .strict()
+export const financeInput = z
+  .object({
+    name,
+    contacts: directoryInput.shape.contacts,
+    policy: financePolicy,
+  })
+  .strict()
+export const settingsInput = z
+  .object({
+    company: z
+      .object({
+        name,
+        identity: text.max(100),
+        address: text,
+        phone: customerInput.shape.phone,
+        email: z.string().trim().email().max(254),
+      })
+      .strict(),
+    declarations: z.array(text).max(100),
+    currency: z
+      .string()
+      .regex(/^[A-Z]{3}$/)
+      .refine(
+        (value) =>
+          Intl.supportedValuesOf("currency").includes(value) &&
+          new Intl.NumberFormat("en", {
+            style: "currency",
+            currency: value,
+          }).resolvedOptions().maximumFractionDigits === 2
+      ),
+    scale: z.literal(2),
+    timezone: name.refine((value) => {
+      try {
+        new Intl.DateTimeFormat("en", { timeZone: value })
+        return true
+      } catch {
+        return false
+      }
+    }),
+    tiers: z
+      .array(
+        z
+          .object({
+            upperBps: z.number().int().min(0).max(10000).nullable(),
+            days: z.number().int().min(1).max(31),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(100)
+      .refine((tiers) =>
+        tiers.every((tier, index) =>
+          index === tiers.length - 1
+            ? tier.upperBps === null
+            : tier.upperBps !== null &&
+              (index === 0 || tier.upperBps > tiers[index - 1].upperBps!)
+        )
+      ),
+    warningLeadDays: z.number().int().min(0).max(7),
+    processingFee: moneyInput,
+    dateFormat: z.enum(["YYYY-MM-DD", "DD/MM/YYYY"]),
+    itemsPerPage: z.union([
+      z.literal(10),
+      z.literal(20),
+      z.literal(50),
+      z.literal(100),
+    ]),
+    theme: z.enum(["SYSTEM", "LIGHT", "DARK"]),
+  })
+  .strict()
 export const partyCommands = {
+  createFinanceCompany: financeInput,
+  updateFinanceCompany: financeInput.extend({ id, reason: text }).strict(),
   createDirectoryParty: z
     .object({ type: directoryType, values: directoryInput })
     .strict(),
@@ -80,7 +184,12 @@ export const partyCommands = {
     })
     .strict(),
   archiveParty: z
-    .object({ type: directoryType, id, active: z.boolean(), reason: text })
+    .object({
+      type: partySelector.shape.type,
+      id,
+      active: z.boolean(),
+      reason: text,
+    })
     .strict(),
 } as const
 export type PartyCommandName = keyof typeof partyCommands

@@ -1,5 +1,6 @@
 import "server-only"
 import { randomUUID } from "node:crypto"
+import { subject } from "@casl/ability"
 import { z } from "zod"
 import type { Supplier, RepairVendor, SupplierContact } from "@prisma/client"
 import type {
@@ -18,10 +19,13 @@ import {
   partyCommands,
   partyEnvelope,
   listParams,
+  partySelector,
+  financePolicy,
   type PartyCommandName,
 } from "./validators"
 import { project, readScope, requireFields, expanded } from "./permissions"
 import { fail, CommandError } from "./errors"
+import { currentSettings } from "./settings"
 
 type Kind = "SUPPLIER" | "REPAIR_VENDOR"
 type Type = "Supplier" | "RepairVendor"
@@ -157,6 +161,13 @@ export async function executeParty(
   name: PartyCommandName,
   raw: unknown
 ): Promise<Applied> {
+  if (
+    name === "createFinanceCompany" ||
+    name === "updateFinanceCompany" ||
+    (name === "archiveParty" &&
+      (raw as { input?: { type?: string } })?.input?.type === "FINANCE_COMPANY")
+  )
+    return executeFinance(identity, name, raw)
   await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
@@ -178,6 +189,7 @@ export async function executeParty(
       : undefined
   const input = create ?? update ?? archive!
   const kind = input.type
+  if (kind === "FINANCE_COMPANY") fail("INVALID_INPUT", 422)
   const type = partySubject(kind)
   const fields = Object.keys(directoryInput.shape).filter(
     (f) => kind !== "SUPPLIER" || f !== "specialisation"
@@ -400,8 +412,428 @@ export async function executeParty(
   })
 }
 
-/** The accepted contract only supplies a typed paginated list, never an ID
- * predicate. Detail UI uses these same projected rows, not a new endpoint. */
+const financeInclude = { ...include, currentPolicy: true }
+type FinanceRow = NonNullable<Awaited<ReturnType<typeof loadFinance>>>
+const loadFinance = (tx: Tx, id: string) =>
+  tx.financeCompany.findUnique({ where: { id }, include: financeInclude })
+function financeDTO(row: FinanceRow): PartyDTO {
+  const parsed = financePolicy.safeParse(row.currentPolicy.values)
+  if (!parsed.success) fail("INTERNAL_ERROR", 500)
+  return {
+    id: row.id,
+    revision: row.revision,
+    type: "FINANCE_COMPANY",
+    name: row.name,
+    active: row.active,
+    contacts: row.contacts
+      .filter((c) => c.active)
+      .map((c) => ({ id: c.id, ...contactDTO(c) })),
+    policy: parsed.data,
+    provenance: { imported: false },
+  }
+}
+const financeAuth = (row: FinanceRow) => ({
+  ...financeDTO(row),
+  createdBy: row.createdBy,
+})
+const contactValues = (contact: PartyDTO["contacts"][number]) => {
+  const { id, ...values } = contact
+  void id
+  return values
+}
+const policyPaths = [
+  "policy.path",
+  "policy.commission.basis",
+  "policy.commission.rateBps",
+  "policy.commission.fixed",
+  "policy.processingFee",
+  "policy.reconciliationMethod",
+]
+const atPath = (row: unknown, path: string): unknown =>
+  path
+    .split(".")
+    .reduce<unknown>(
+      (value, key) =>
+        value && typeof value === "object"
+          ? (value as Record<string, unknown>)[key]
+          : undefined,
+      row
+    )
+async function executeFinance(
+  identity: Identity,
+  name: PartyCommandName,
+  raw: unknown
+): Promise<Applied> {
+  await database().$transaction(async (tx) => {
+    await assertEnvironment(tx)
+    await currentActor(tx, identity)
+  })
+  const parsed = partyEnvelope(name).safeParse(raw)
+  if (!parsed.success) fail("INVALID_INPUT", 422)
+  const envelope = parsed.data
+  const create =
+    name === "createFinanceCompany"
+      ? partyCommands.createFinanceCompany.parse(envelope.input)
+      : undefined
+  const update =
+    name === "updateFinanceCompany"
+      ? partyCommands.updateFinanceCompany.parse(envelope.input)
+      : undefined
+  const archive =
+    name === "archiveParty"
+      ? partyCommands.archiveParty.parse(envelope.input)
+      : undefined
+  if (archive && archive.type !== "FINANCE_COMPANY") fail("INVALID_INPUT", 422)
+  const supplied = create ?? update
+  const action = create ? "create" : archive ? "archive" : "update"
+  const config = runtimeConfig()
+  const digest = inputDigest(envelope, config.BETTER_AUTH_SECRET)
+  return transaction(async (tx) => {
+    await tx.$queryRaw`SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE`
+    await tx.$queryRaw`SELECT vamotors.lock_admin_guard()`
+    const actor = await currentActor(tx, identity)
+    const scope = {
+      environmentId: config.ENVIRONMENT_ID,
+      actorKey: `USER:${actor.userId}`,
+      commandName: name,
+      idempotencyKey: envelope.idempotencyKey,
+    }
+    const prior = await tx.commandReceipt.findUnique({
+      where: { environmentId_actorKey_commandName_idempotencyKey: scope },
+    })
+    const target = update?.id ?? archive?.id
+    const row = target ? await loadFinance(tx, target) : null
+    if (target && !row) fail("NOT_FOUND", 404)
+    if (row)
+      requireFields(actor.ability, "FinanceCompany", "read", financeAuth(row), [
+        "id",
+        "revision",
+      ])
+    // Dependency authority precedes CAS errors, including the immutable retry.
+    const settings = supplied ? await currentSettings(tx) : null
+    if (settings)
+      requireFields(actor.ability, "Settings", "read", settings, [
+        "id",
+        "revision",
+      ])
+    const before = row ? financeDTO(row) : null
+    const candidate = supplied
+      ? {
+          name: supplied.name,
+          contacts: supplied.contacts,
+          policy: supplied.policy,
+        }
+      : { active: archive!.active }
+    const paths = archive ? ["active"] : ["name", "contacts", ...policyPaths]
+    const oldValues = before
+      ? { ...before, contacts: before.contacts.map(contactValues) }
+      : null
+    const changed = paths.filter(
+      (path) =>
+        comparison(path, atPath(oldValues, path)) !==
+        comparison(path, atPath(candidate, path))
+    )
+    const auth = row ? financeAuth(row) : { createdBy: actor.userId }
+    requireFields(
+      actor.ability,
+      "FinanceCompany",
+      action,
+      auth,
+      prior ? [] : changed
+    )
+    if (prior) {
+      const result = prior.result as {
+        type: string
+        id: string
+        revision: number
+      }
+      if (
+        result.type !== "FinanceCompany" ||
+        !result.id ||
+        !Number.isInteger(result.revision)
+      )
+        fail("IDEMPOTENCY_MISMATCH")
+      const current = await loadFinance(tx, result.id)
+      if (!current) fail("NOT_FOUND", 404)
+      requireFields(
+        actor.ability,
+        "FinanceCompany",
+        "read",
+        financeAuth(current),
+        ["id", "revision"]
+      )
+      const original = await tx.auditEntry.findFirst({
+        where: {
+          commandId: prior.id,
+          entityType: "FinanceCompany",
+          entityId: result.id,
+        },
+      })
+      if (!original) fail("INTERNAL_ERROR", 500)
+      requireFields(
+        actor.ability,
+        "FinanceCompany",
+        action,
+        financeAuth(current),
+        Object.keys(original.fieldDiff as object)
+      )
+      if (prior.inputHash !== digest || (target && target !== result.id))
+        fail("IDEMPOTENCY_MISMATCH")
+      return {
+        ok: true,
+        status: "APPLIED",
+        commandId: prior.id,
+        replayed: true,
+        result,
+        affected: [
+          {
+            type: "FinanceCompany",
+            id: current.id,
+            revision: current.revision,
+          },
+        ],
+        invalidate: ["parties"],
+      }
+    }
+    for (const dependency of [
+      settings && { type: "Settings" as const, ...settings },
+      row && {
+        type: "FinanceCompany" as const,
+        id: row.id,
+        revision: row.revision,
+      },
+    ]) {
+      if (!dependency) continue
+      const ref = envelope.expected.find(
+        (r) => r.type === dependency.type && r.id === dependency.id
+      )
+      if (!ref) fail("REVISION_REQUIRED", 428)
+      if (ref.revision !== dependency.revision)
+        throw new CommandError("STALE_REVISION", 409, false, [
+          {
+            type: dependency.type,
+            id: dependency.id,
+            revision: dependency.revision,
+          },
+        ])
+    }
+    if (row?.revision === 2147483647) fail("REVISION_EXHAUSTED")
+    const sequence = await nextBusinessSequence(tx)
+    const id = row?.id ?? randomUUID()
+    const policyChanged =
+      supplied &&
+      (!row || canonical(before!.policy) !== canonical(supplied.policy))
+    const policyId = policyChanged ? randomUUID() : row!.currentPolicyId
+    if (policyChanged) {
+      if (row?.currentPolicy.version === 2147483647) fail("REVISION_EXHAUSTED")
+      await tx.financePolicyVersion.create({
+        data: {
+          id: policyId,
+          companyId: id,
+          version: (row?.currentPolicy.version ?? 0) + 1,
+          values: supplied!.policy,
+        },
+      })
+    }
+    if (create)
+      await tx.financeCompany.create({
+        data: {
+          id,
+          name: create.name,
+          currentPolicyId: policyId,
+          createdBy: actor.userId,
+        },
+      })
+    else
+      await tx.financeCompany.update({
+        where: { id, revision: row!.revision },
+        data: {
+          ...(update
+            ? { name: update.name, currentPolicyId: policyId }
+            : { active: archive!.active }),
+          revision: { increment: 1 },
+        },
+      })
+    if (supplied) {
+      const retained = new Set<string>()
+      const additions = supplied.contacts.flatMap((c) => {
+        const match = row?.contacts.find(
+          (old) =>
+            old.active &&
+            !retained.has(old.id) &&
+            canonical(contactDTO(old)) === canonical(c)
+        )
+        if (match) {
+          retained.add(match.id)
+          return []
+        }
+        return [
+          {
+            id: randomUUID(),
+            companyId: id,
+            name: c.name,
+            phone: c.phone,
+            email: c.email ?? null,
+            role: c.role,
+            isPrimary: c.primary,
+          },
+        ]
+      })
+      await tx.financeContact.updateMany({
+        where: { companyId: id, active: true, id: { notIn: [...retained] } },
+        data: { active: false },
+      })
+      if (additions.length)
+        await tx.financeContact.createMany({ data: additions })
+    }
+    const saved = (await loadFinance(tx, id))!
+    requireFields(actor.ability, "FinanceCompany", "read", financeAuth(saved), [
+      "id",
+      "revision",
+    ])
+    const after = financeDTO(saved)
+    const afterValues = {
+      ...after,
+      contacts: after.contacts.map(contactValues),
+    }
+    const commandId = randomUUID()
+    const result = {
+      type: "FinanceCompany" as const,
+      id,
+      revision: saved.revision,
+    }
+    await tx.commandReceipt.create({
+      data: {
+        id: commandId,
+        ...scope,
+        inputHash: digest,
+        result,
+        businessSequence: sequence,
+      },
+    })
+    await tx.auditEntry.create({
+      data: {
+        commandId,
+        userId: actor.userId,
+        actorKind: "USER",
+        entityType: "FinanceCompany",
+        entityId: id,
+        action,
+        reason: update?.reason ?? archive?.reason,
+        fieldDiff: Object.fromEntries(
+          changed.map((path) => [
+            path,
+            {
+              before: atPath(oldValues, path) ?? null,
+              after: atPath(afterValues, path) ?? null,
+            },
+          ])
+        ),
+      },
+    })
+    await writeReadVersion(tx, {
+      commandId,
+      sequence,
+      entityType: "FinanceCompany",
+      entityId: id,
+      revision: saved.revision,
+      payload: after,
+    })
+    return {
+      ok: true,
+      status: "APPLIED",
+      commandId,
+      replayed: false,
+      result,
+      affected: [result],
+      invalidate: ["parties"],
+    }
+  })
+}
+
+/** Singular typed identity: never scan a list, guess a table, or use a receipt. */
+export async function partyQuery(
+  tx: Tx,
+  actor: Actor,
+  args: Record<string, string>
+) {
+  const parsed = partySelector.safeParse(args)
+  if (!parsed.success) fail("INVALID_INPUT", 422)
+  const { type: kind, id } = parsed.data
+  const type =
+    kind === "FINANCE_COMPANY" ? "FinanceCompany" : partySubject(kind)
+  const row =
+    kind === "FINANCE_COMPANY"
+      ? await loadFinance(tx, id)
+      : await load(tx, kind, id)
+  if (!row) fail("NOT_FOUND", 404)
+  const auth =
+    kind === "FINANCE_COMPANY"
+      ? financeAuth(row as FinanceRow)
+      : authRow(kind, row as Row)
+  const visible = project(actor.ability, type, auth)
+  visible.redactedFields = visible.redactedFields.filter(
+    (f) => f !== "createdBy"
+  )
+  const domains =
+    kind === "SUPPLIER"
+      ? ["purchases"]
+      : kind === "REPAIR_VENDOR"
+        ? ["repairs"]
+        : [
+            "settlementPurchases",
+            "leaseSales",
+            "brokerage",
+            "entitlements",
+            "remittances",
+          ]
+  const contributions: Record<string, unknown> = {}
+  for (const domain of domains) {
+    const path = `contributions.${domain}`
+    if (!actor.ability.can("read", subject(type, auth), path)) {
+      visible.redactedFields.push(path)
+      continue
+    }
+    const links: Record<string, unknown>[] = []
+    if (domain === "purchases") {
+      // Scope in SQL before materialization. No page cap or hidden-row metadata.
+      const rows = await tx.purchaseRecord.findMany({
+        where: {
+          AND: [
+            { supplierId: id },
+            readScope(actor.grants, actor.userId, "PurchaseRecord"),
+          ],
+        },
+        select: { id: true, purchaseDate: true, status: true, createdBy: true },
+        orderBy: [{ purchaseDate: "asc" }, { id: "asc" }],
+      })
+      for (const purchase of rows) {
+        const record = subject("PurchaseRecord", purchase)
+        const link: Record<string, unknown> = { type: "PURCHASE" }
+        for (const [wire, source, value] of [
+          ["id", "id", purchase.id],
+          [
+            "date",
+            "purchaseDate",
+            purchase.purchaseDate.toISOString().slice(0, 10),
+          ],
+          ["status", "status", purchase.status],
+        ] as const) {
+          if (actor.ability.can("read", record, source)) link[wire] = value
+          else visible.redactedFields.push(`${path}.links.${wire}`)
+        }
+        links.push(link)
+      }
+    }
+    // Static pending capability: absent downstream implementations are NOT
+    // authoritative empty histories. Read failures above propagate normally.
+    contributions[domain] = { state: "PENDING_DOMAIN", links }
+  }
+  visible.contributions = contributions
+  visible.redactedFields = [...new Set(visible.redactedFields)]
+  return visible
+}
+
 export async function partiesQuery(
   tx: Tx,
   actor: Actor,
@@ -420,8 +852,10 @@ export async function partiesQuery(
     .safeParse(args)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const input = parsed.data
-  if (input.type === "FINANCE_COMPANY") fail("ENVIRONMENT_UNAVAILABLE", 503)
-  const type = partySubject(input.type)
+  const type =
+    input.type === "FINANCE_COMPANY"
+      ? "FinanceCompany"
+      : partySubject(input.type)
   if (!actor.ability.can("read", type)) fail("FORBIDDEN", 403)
   if (input.from || input.through) fail("FIELD_FORBIDDEN", 403)
   let raw: unknown = [{ field: "id", direction: "asc" }]
@@ -497,17 +931,28 @@ export async function partiesQuery(
           tx.supplier.findMany({ where, ...paging }),
           tx.supplier.count({ where }),
         ])
-      : await Promise.all([
-          tx.repairVendor.findMany({ where, ...paging }),
-          tx.repairVendor.count({ where }),
-        ])
+      : input.type === "FINANCE_COMPANY"
+        ? await Promise.all([
+            tx.financeCompany.findMany({
+              where,
+              ...paging,
+              include: financeInclude,
+            }),
+            tx.financeCompany.count({ where }),
+          ])
+        : await Promise.all([
+            tx.repairVendor.findMany({ where, ...paging }),
+            tx.repairVendor.count({ where }),
+          ])
   return {
     ok: true,
     data: rows.map((row) => {
       const visible = project(
         actor.ability,
         type,
-        authRow(input.type as Kind, row)
+        input.type === "FINANCE_COMPANY"
+          ? financeAuth(row as FinanceRow)
+          : authRow(input.type as Kind, row as Row)
       )
       visible.redactedFields = visible.redactedFields.filter(
         (f) => f !== "createdBy"

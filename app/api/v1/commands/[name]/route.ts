@@ -43,6 +43,7 @@ export async function POST(
       name === "createUser" ||
       name === "createCustomer" ||
       name === "createDirectoryParty" ||
+      name === "createFinanceCompany" ||
       (name === "saveRole" && !(raw as { input: { id?: string } }).input.id)
     return noStoreJSON(result, !result.replayed && created ? 201 : 200)
   })

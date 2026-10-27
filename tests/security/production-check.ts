@@ -1333,7 +1333,7 @@ async function main() {
           assert.equal(
             (
               await admin.request.get(
-                `/api/v1/queries/${name}${name === "parties" ? "?type=SUPPLIER" : ""}`
+                `/api/v1/queries/${name}${name === "parties" ? "?type=SUPPLIER" : name === "party" ? "?type=SUPPLIER&id=00000000-0000-4000-8000-000000000099" : ""}`
               )
             ).status(),
             ["permissionRegistry", "customers", "parties"].includes(name)

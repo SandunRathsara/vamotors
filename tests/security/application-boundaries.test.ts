@@ -47,6 +47,7 @@ describe("global entry-point inventory", () => {
         "/customers",
         "/customers/[id]",
         "/third-parties",
+        "/third-parties/[id]",
       ].sort()
     )
     for (const path of unavailablePages)
@@ -56,7 +57,12 @@ describe("global entry-point inventory", () => {
     expect(readFileSync("app/(app)/users/page.tsx", "utf8")).toContain(
       "await pageActor(true)"
     )
-    for (const path of ["/customers", "/customers/[id]", "/third-parties"])
+    for (const path of [
+      "/customers",
+      "/customers/[id]",
+      "/third-parties",
+      "/third-parties/[id]",
+    ])
       expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8")).toContain(
         "await pageActor()"
       )

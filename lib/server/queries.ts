@@ -16,7 +16,8 @@ import { adminList } from "./admin-list"
 import { subject } from "@casl/ability"
 import type { Tx } from "./db"
 import { customerQuery } from "./customers"
-import { partiesQuery } from "./parties"
+import { partiesQuery, partyQuery } from "./parties"
+import { settingsQuery } from "./settings"
 
 const canAdminister = (actor: Actor) =>
   ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
@@ -90,6 +91,8 @@ export async function securityQuery(
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
       if (name === "parties") return partiesQuery(tx, actor, args)
+      if (name === "party") return partyQuery(tx, actor, args)
+      if (name === "settings") return settingsQuery(tx, actor, args)
       if (name === "customers" || name === "customer")
         return customerQuery(tx, actor, name, args)
       if (name === "currentActor") {
@@ -188,6 +191,8 @@ export async function securityQuery(
               "Customer",
               "Supplier",
               "RepairVendor",
+              "FinanceCompany",
+              "Settings",
             ]),
             id,
           })
@@ -201,16 +206,26 @@ export async function securityQuery(
                 where: { id: entityId },
                 include: userInclude,
               })
-            : entityType === "Supplier"
-              ? await tx.supplier.findUnique({ where: { id: entityId } })
-              : entityType === "RepairVendor"
-                ? await tx.repairVendor.findUnique({ where: { id: entityId } })
-                : entityType === "Customer"
-                  ? await tx.customer.findUnique({ where: { id: entityId } })
-                  : await tx.role.findUnique({
-                      where: { id: entityId },
-                      include: roleInclude,
-                    })
+            : entityType === "Settings"
+              ? await tx.settings.findUnique({ where: { id: entityId } })
+              : entityType === "FinanceCompany"
+                ? await tx.financeCompany.findUnique({
+                    where: { id: entityId },
+                  })
+                : entityType === "Supplier"
+                  ? await tx.supplier.findUnique({ where: { id: entityId } })
+                  : entityType === "RepairVendor"
+                    ? await tx.repairVendor.findUnique({
+                        where: { id: entityId },
+                      })
+                    : entityType === "Customer"
+                      ? await tx.customer.findUnique({
+                          where: { id: entityId },
+                        })
+                      : await tx.role.findUnique({
+                          where: { id: entityId },
+                          include: roleInclude,
+                        })
         if (!row) fail("NOT_FOUND", 404)
         requireFields(actor.ability, entityType, "read", row, ["id"])
         // at is recordedAt in SQL; both ordering fields need unconditional read.

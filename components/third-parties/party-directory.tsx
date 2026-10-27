@@ -7,6 +7,7 @@ import { privateRequest, RequestError } from "@/lib/security-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Link from "next/link"
 import {
   PartyForm,
   directoryFields,
@@ -18,9 +19,18 @@ export function PartyDirectory() {
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const [kind, setKind] = useState<DirectoryKind>(
-    ability.can("read", "Supplier") ? "SUPPLIER" : "REPAIR_VENDOR"
+    ability.can("read", "Supplier")
+      ? "SUPPLIER"
+      : ability.can("read", "RepairVendor")
+        ? "REPAIR_VENDOR"
+        : "FINANCE_COMPANY"
   )
-  const type = kind === "SUPPLIER" ? "Supplier" : "RepairVendor"
+  const type =
+    kind === "FINANCE_COMPANY"
+      ? "FinanceCompany"
+      : kind === "SUPPLIER"
+        ? "Supplier"
+        : "RepairVendor"
   const [q, setQ] = useState("")
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
@@ -76,6 +86,7 @@ export function PartyDirectory() {
       })
       setArchive(null)
       await queries.invalidateQueries({ queryKey: ["parties"] })
+      await queries.invalidateQueries({ queryKey: ["party"] })
     } catch (cause) {
       const code = cause instanceof RequestError ? cause.code : "NETWORK_ERROR"
       const stale = ["STALE_REVISION", "REVISION_REQUIRED"].includes(code)
@@ -102,36 +113,43 @@ export function PartyDirectory() {
         </p>
       </header>
       <nav aria-label="Directory categories" className="flex flex-wrap gap-3">
-        {(["SUPPLIER", "REPAIR_VENDOR"] as const).map((value) => (
-          <Button
-            key={value}
-            variant={kind === value ? "default" : "outline"}
-            disabled={
-              locked ||
-              !ability.can(
-                "read",
-                value === "SUPPLIER" ? "Supplier" : "RepairVendor"
-              )
-            }
-            onClick={() => {
-              setKind(value)
-              setPage(1)
-              setForm(null)
-              setArchive(null)
-              setSearch("")
-              setQ("")
-            }}
-          >
-            {value === "SUPPLIER" ? "Suppliers" : "Repair vendors"}
-          </Button>
-        ))}
-        <Button variant="outline" disabled>
-          Finance companies — unavailable
-        </Button>
+        {(["SUPPLIER", "REPAIR_VENDOR", "FINANCE_COMPANY"] as const).map(
+          (value) => (
+            <Button
+              key={value}
+              variant={kind === value ? "default" : "outline"}
+              disabled={
+                locked ||
+                !ability.can(
+                  "read",
+                  value === "FINANCE_COMPANY"
+                    ? "FinanceCompany"
+                    : value === "SUPPLIER"
+                      ? "Supplier"
+                      : "RepairVendor"
+                )
+              }
+              onClick={() => {
+                setKind(value)
+                setPage(1)
+                setForm(null)
+                setArchive(null)
+                setSearch("")
+                setQ("")
+              }}
+            >
+              {value === "SUPPLIER"
+                ? "Suppliers"
+                : value === "REPAIR_VENDOR"
+                  ? "Repair vendors"
+                  : "Finance companies"}
+            </Button>
+          )
+        )}
       </nav>
       <p className="text-sm text-muted-foreground">
-        Finance requires its persisted Settings dependency. Purchase, repair and
-        finance histories remain pending their respective workflows.
+        Finance writes require readable persisted Settings references. Purchase,
+        repair and finance histories remain pending their respective workflows.
       </p>
       {(form || ability.can("create", type)) && (
         <Button
@@ -152,11 +170,12 @@ export function PartyDirectory() {
           onUnresolvedChange={setUnresolved}
           onSaved={() => setForm(null)}
           onReload={async () => {
-            const result = await query.refetch()
-            if (result.isError) throw result.error
-            return result.data?.data.data.find(
-              (row) => row.id === form.initial?.id
-            )
+            if (!form.initial?.id) return undefined
+            return (
+              await privateRequest<{ data: VisibleParty }>(
+                `/api/v1/queries/party?type=${kind}&id=${form.initial.id}`
+              )
+            ).data
           }}
         />
       )}
@@ -227,6 +246,7 @@ export function PartyDirectory() {
                 </h2>
                 <dl className="grid gap-3 sm:grid-cols-2">
                   {directoryFields
+                    .filter(() => kind !== "FINANCE_COMPANY")
                     .filter(
                       ([f]) => kind !== "SUPPLIER" || f !== "specialisation"
                     )
@@ -244,20 +264,40 @@ export function PartyDirectory() {
                         </dd>
                       </div>
                     ))}
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Category</dt>
-                    <dd>{row.directory?.category ?? "Unavailable"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Recurring</dt>
-                    <dd>
-                      {row.directory?.recurring === undefined
-                        ? "Unavailable"
-                        : row.directory.recurring
-                          ? "Yes"
-                          : "No"}
-                    </dd>
-                  </div>
+                  {kind !== "FINANCE_COMPANY" && (
+                    <div>
+                      <dt className="text-sm text-muted-foreground">
+                        Category
+                      </dt>
+                      <dd>{row.directory?.category ?? "Unavailable"}</dd>
+                    </div>
+                  )}
+                  {kind !== "FINANCE_COMPANY" && (
+                    <div>
+                      <dt className="text-sm text-muted-foreground">
+                        Recurring
+                      </dt>
+                      <dd>
+                        {row.directory?.recurring === undefined
+                          ? "Unavailable"
+                          : row.directory.recurring
+                            ? "Yes"
+                            : "No"}
+                      </dd>
+                    </div>
+                  )}
+                  {kind === "FINANCE_COMPANY" && (
+                    <div>
+                      <dt>Finance policy</dt>
+                      <dd>
+                        <pre className="text-sm break-words whitespace-pre-wrap">
+                          {row.policy
+                            ? JSON.stringify(row.policy, null, 2)
+                            : "Unavailable"}
+                        </pre>
+                      </dd>
+                    </div>
+                  )}
                 </dl>
                 <section aria-label="Current contacts">
                   <h3 className="font-medium">Contacts</h3>
@@ -276,6 +316,16 @@ export function PartyDirectory() {
                   )}
                 </section>
                 <div className="flex flex-wrap gap-3">
+                  {row.id && !locked && (
+                    <Button variant="outline" asChild>
+                      <Link
+                        prefetch={false}
+                        href={`/third-parties/${row.id}?type=${kind}`}
+                      >
+                        View details
+                      </Link>
+                    </Button>
+                  )}
                   {row.id && row.revision && ability.can("update", type) && (
                     <Button
                       variant="outline"

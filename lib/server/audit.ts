@@ -13,9 +13,18 @@ export function fieldDiff(
 ) {
   const diff: Record<string, { before: unknown; after: unknown }> = {}
   for (const key of fieldsFor(type, "read")) {
-    if (key.includes(".")) continue
-    const old = before?.[key] ?? null
-    const next = after[key] ?? null
+    const value = (row: Record<string, unknown> | null) =>
+      key
+        .split(".")
+        .reduce<unknown>(
+          (current, part) =>
+            current && typeof current === "object"
+              ? (current as Record<string, unknown>)[part]
+              : undefined,
+          row
+        ) ?? null
+    const old = value(before)
+    const next = value(after)
     if (canonical(old) !== canonical(next))
       diff[key] = { before: old, after: next }
   }
@@ -81,7 +90,13 @@ export async function writeReadVersion(
   input: {
     commandId: string
     sequence: bigint
-    entityType: "Vehicle" | "Customer" | "Supplier" | "RepairVendor"
+    entityType:
+      | "Vehicle"
+      | "Customer"
+      | "Supplier"
+      | "RepairVendor"
+      | "FinanceCompany"
+      | "Settings"
     entityId: string
     revision: number
     payload: Record<string, unknown>

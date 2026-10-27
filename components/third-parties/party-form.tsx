@@ -1,13 +1,15 @@
 "use client"
 import { useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   Applied,
   DirectoryInput,
   PartyDTO,
   Visible,
+  QueryData,
 } from "@/.planning/implementation/contracts/api"
-import { directoryInput } from "@/lib/server/validators"
+import { directoryInput, financeInput } from "@/lib/server/validators"
+import { parseMajor, major } from "@/lib/money"
 import { privateRequest, RequestError } from "@/lib/security-client"
 import { useActor } from "@/components/providers/auth-boundary"
 import { abilityFor } from "@/lib/server/permissions"
@@ -15,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 
-export type DirectoryKind = "SUPPLIER" | "REPAIR_VENDOR"
+export type DirectoryKind = "SUPPLIER" | "REPAIR_VENDOR" | "FINANCE_COMPANY"
 export type VisibleParty = Visible<PartyDTO> & { redactedFields?: string[] }
 export const directoryFields = [
   ["name", "Name"],
@@ -41,11 +43,16 @@ export function PartyForm({
 }) {
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
-  const type = kind === "SUPPLIER" ? "Supplier" : "RepairVendor"
+  const finance = kind === "FINANCE_COMPANY"
+  const type = finance
+    ? "FinanceCompany"
+    : kind === "SUPPLIER"
+      ? "Supplier"
+      : "RepairVendor"
   const action = initial ? "update" : "create"
   const queries = useQueryClient()
   const [draft, setDraft] = useState(() => ({
-    name: initial?.directory?.name ?? "",
+    name: initial?.directory?.name ?? initial?.name ?? "",
     category: initial?.directory?.category ?? "INDIVIDUAL",
     nicOrRegNumber: initial?.directory?.nicOrRegNumber ?? "",
     address: initial?.directory?.address ?? "",
@@ -54,7 +61,9 @@ export function PartyForm({
     specialisation: initial?.directory?.specialisation ?? "",
     notes: initial?.directory?.notes ?? "",
     recurring: initial?.directory?.recurring ?? false,
-    contacts: (initial?.directory?.contacts ?? []).map((c) => ({
+    contacts: (
+      (finance ? initial?.contacts : initial?.directory?.contacts) ?? []
+    ).map((c) => ({
       name: c.name ?? "",
       phone: c.phone ?? "",
       email: c.email ?? "",
@@ -63,6 +72,35 @@ export function PartyForm({
     })),
   }))
   const [reason, setReason] = useState("")
+  const [policy, setPolicy] = useState(() => ({
+    path: initial?.policy?.path ?? "APPLICATION",
+    basis: initial?.policy?.commission?.basis ?? "FINANCED_PRINCIPAL",
+    rateBps: String(initial?.policy?.commission?.rateBps ?? ""),
+    fixed:
+      initial?.policy?.commission?.basis === "FIXED" &&
+      initial.policy.commission.fixed !== undefined
+        ? major(BigInt(initial.policy.commission.fixed))
+        : "",
+    processingFee:
+      initial?.policy?.processingFee !== undefined
+        ? major(BigInt(initial.policy.processingFee))
+        : "",
+    reconciliationMethod:
+      initial?.policy?.reconciliationMethod ?? "PERIOD_NOTICE",
+  }))
+  const settings = useQuery({
+    queryKey: ["settings"],
+    enabled: finance,
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: Visible<QueryData["settings"]> }>(
+        "/api/v1/queries/settings"
+      ),
+  })
+  const [settingsRef, setSettingsRef] = useState<{
+    id: string
+    revision: number
+  } | null>(null)
   const [command, setCommand] = useState<{ url: string; body: string } | null>(
     null
   )
@@ -75,12 +113,19 @@ export function PartyForm({
     !!initial &&
     (!initial.id ||
       !initial.revision ||
-      initial.redactedFields?.some(
-        (f) => f === "directory" || f.startsWith("directory.")
+      initial.redactedFields?.some((f) =>
+        finance
+          ? f === "name" ||
+            f === "contacts" ||
+            f === "policy" ||
+            f.startsWith("policy.")
+          : f === "directory" || f.startsWith("directory.")
       ))
+  const dependency = settingsRef ?? settings.data?.data
+  const missingSettings = finance && (!dependency?.id || !dependency.revision)
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (pending || stale || blocked) return
+    if (pending || stale || blocked || (missingSettings && !command)) return
     const values = {
       ...Object.fromEntries(
         Object.entries(draft)
@@ -92,7 +137,35 @@ export function PartyForm({
         ...(c.email.trim() ? { email: c.email } : { email: undefined }),
       })),
     }
-    const parsed = directoryInput.safeParse(values)
+    let financeValues: unknown
+    if (finance) {
+      try {
+        financeValues = {
+          name: draft.name,
+          contacts: values.contacts,
+          policy: {
+            path: policy.path,
+            commission: {
+              basis: policy.basis,
+              rateBps: policy.rateBps.trim() ? Number(policy.rateBps) : NaN,
+              ...(policy.basis === "FIXED"
+                ? { fixed: parseMajor(policy.fixed) }
+                : {}),
+            },
+            processingFee: parseMajor(policy.processingFee),
+            reconciliationMethod: policy.reconciliationMethod,
+          },
+        }
+      } catch {
+        setError(
+          "Enter valid nonnegative money with at most two decimals. Draft retained."
+        )
+        return
+      }
+    }
+    const parsed = finance
+      ? financeInput.safeParse(financeValues)
+      : directoryInput.safeParse(values)
     if (!parsed.success) {
       setError(
         parsed.error.issues
@@ -102,15 +175,27 @@ export function PartyForm({
       return
     }
     const submitted = command ?? {
-      url: `/api/v1/commands/${initial ? "updateDirectoryParty" : "createDirectoryParty"}`,
+      url: `/api/v1/commands/${finance ? (initial ? "updateFinanceCompany" : "createFinanceCompany") : initial ? "updateDirectoryParty" : "createDirectoryParty"}`,
       body: JSON.stringify({
         schemaVersion: 1,
         idempotencyKey: crypto.randomUUID(),
-        expected: initial ? [{ type, id: initial.id, revision }] : [],
+        expected: [
+          ...(initial ? [{ type, id: initial.id, revision }] : []),
+          ...(finance
+            ? [
+                {
+                  type: "Settings",
+                  id: dependency!.id,
+                  revision: dependency!.revision,
+                },
+              ]
+            : []),
+        ],
         input: {
-          type: kind,
+          ...(finance
+            ? parsed.data
+            : { type: kind, values: parsed.data as DirectoryInput }),
           ...(initial ? { id: initial.id } : {}),
-          values: parsed.data as DirectoryInput,
           ...(reason.trim() ? { reason: reason.trim() } : {}),
         },
       }),
@@ -128,6 +213,7 @@ export function PartyForm({
       setCommand(null)
       onUnresolvedChange(false)
       await queries.invalidateQueries({ queryKey: ["parties"] })
+      await queries.invalidateQueries({ queryKey: ["party"] })
       onSaved(result)
     } catch (cause) {
       const code = cause instanceof RequestError ? cause.code : "NETWORK_ERROR"
@@ -162,11 +248,18 @@ export function PartyForm({
           Editing unavailable: required fields or revision are not readable.
         </p>
       )}
+      {missingSettings && (
+        <p role="status">
+          Finance writes unavailable: actual Settings identity and revision must
+          be readable. {settings.isError ? "Settings read failed." : ""}
+        </p>
+      )}
       <fieldset
         disabled={pending || !!command || !!blocked}
         className="grid min-w-0 gap-4 sm:grid-cols-2"
       >
         {directoryFields
+          .filter(([key]) => !finance || key === "name")
           .filter(([key]) => kind !== "SUPPLIER" || key !== "specialisation")
           .map(([key, label]) => (
             <div key={key} className="space-y-2">
@@ -194,35 +287,116 @@ export function PartyForm({
               />
             </div>
           ))}
-        <div className="space-y-2">
-          <Label htmlFor="party-category">Category *</Label>
-          <select
-            id="party-category"
-            value={draft.category}
-            disabled={!ability.can(action, type, "category")}
-            onChange={(e) =>
-              setDraft({
-                ...draft,
-                category: e.target.value as "INDIVIDUAL" | "COMPANY",
-              })
-            }
-            className="min-h-11 w-full rounded-md border bg-background px-3 text-base"
+        {!finance && (
+          <div className="space-y-2">
+            <Label htmlFor="party-category">Category *</Label>
+            <select
+              id="party-category"
+              value={draft.category}
+              disabled={!ability.can(action, type, "category")}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  category: e.target.value as "INDIVIDUAL" | "COMPANY",
+                })
+              }
+              className="min-h-11 w-full rounded-md border bg-background px-3 text-base"
+            >
+              <option value="INDIVIDUAL">Individual</option>
+              <option value="COMPANY">Company</option>
+            </select>
+          </div>
+        )}
+        {!finance && (
+          <Label className="flex min-h-11 items-center gap-3">
+            <input
+              type="checkbox"
+              checked={draft.recurring}
+              disabled={!ability.can(action, type, "recurring")}
+              onChange={(e) =>
+                setDraft({ ...draft, recurring: e.target.checked })
+              }
+            />
+            Recurring
+          </Label>
+        )}
+        {finance && (
+          <section
+            aria-label="Finance policy"
+            className="space-y-4 sm:col-span-2"
           >
-            <option value="INDIVIDUAL">Individual</option>
-            <option value="COMPANY">Company</option>
-          </select>
-        </div>
-        <Label className="flex min-h-11 items-center gap-3">
-          <input
-            type="checkbox"
-            checked={draft.recurring}
-            disabled={!ability.can(action, type, "recurring")}
-            onChange={(e) =>
-              setDraft({ ...draft, recurring: e.target.checked })
-            }
-          />
-          Recurring
-        </Label>
+            <h3 className="font-semibold">Explicit company policy</h3>
+            <p className="text-sm text-muted-foreground">
+              Fees are this company’s policy, not copied from Settings. Money is
+              entered in major currency units.
+            </p>
+            {(
+              [
+                ["path", "Processing path", ["APPLICATION", "REFERRAL"]],
+                ["basis", "Commission basis", ["FINANCED_PRINCIPAL", "FIXED"]],
+                [
+                  "reconciliationMethod",
+                  "Reconciliation method",
+                  ["PERIOD_NOTICE", "PER_DEAL"],
+                ],
+              ] as const
+            ).map(([key, label, options]) => (
+              <div key={key} className="space-y-2">
+                <Label htmlFor={`finance-${key}`}>{label}</Label>
+                <select
+                  id={`finance-${key}`}
+                  value={policy[key]}
+                  disabled={
+                    !ability.can(
+                      action,
+                      type,
+                      key === "basis"
+                        ? "policy.commission.basis"
+                        : `policy.${key}`
+                    )
+                  }
+                  onChange={(e) =>
+                    setPolicy({ ...policy, [key]: e.target.value })
+                  }
+                  className="min-h-11 w-full rounded-md border bg-background px-3 text-base"
+                >
+                  {options.map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+            {(
+              [
+                [
+                  "rateBps",
+                  "Commission rate (basis points, 0–10000)",
+                  "policy.commission.rateBps",
+                ],
+                ["fixed", "Fixed commission", "policy.commission.fixed"],
+                ["processingFee", "Processing fee", "policy.processingFee"],
+              ] as const
+            )
+              .filter(([key]) => key !== "fixed" || policy.basis === "FIXED")
+              .map(([key, label, field]) => (
+                <div key={key} className="space-y-2">
+                  <Label htmlFor={`finance-${key}`}>{label} *</Label>
+                  <Input
+                    id={`finance-${key}`}
+                    value={policy[key]}
+                    required
+                    maxLength={30}
+                    inputMode={key === "rateBps" ? "numeric" : "decimal"}
+                    disabled={!ability.can(action, type, field)}
+                    onChange={(e) =>
+                      setPolicy({ ...policy, [key]: e.target.value })
+                    }
+                    className="min-h-11 text-base"
+                  />
+                </div>
+              ))}
+          </section>
+        )}
         <section className="space-y-4 sm:col-span-2" aria-label="Contacts">
           <h3 className="font-semibold">Contacts</h3>
           {draft.contacts.map((contact, index) => (
@@ -315,10 +489,13 @@ export function PartyForm({
         </section>
         {initial && (
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="party-reason">Correction reason (optional)</Label>
+            <Label htmlFor="party-reason">
+              Correction reason {finance ? "*" : "(optional)"}
+            </Label>
             <Input
               id="party-reason"
               maxLength={2000}
+              required={finance}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="min-h-11 text-base"
@@ -348,6 +525,19 @@ export function PartyForm({
               setPending(true)
               try {
                 const row = await onReload()
+                if (finance) {
+                  const refreshed = await settings.refetch()
+                  if (
+                    refreshed.isError ||
+                    !refreshed.data?.data.id ||
+                    !refreshed.data.data.revision
+                  )
+                    throw new Error("SETTINGS_UNAVAILABLE")
+                  setSettingsRef({
+                    id: refreshed.data.data.id,
+                    revision: refreshed.data.data.revision,
+                  })
+                }
                 if (row?.id === initial?.id && row?.revision) setLatest(row)
                 else
                   setError(
@@ -365,14 +555,19 @@ export function PartyForm({
           {latest && (
             <>
               <pre className="overflow-auto rounded-md border p-3 text-sm">
-                {JSON.stringify(latest.directory, null, 2)}
+                {JSON.stringify(finance ? latest : latest.directory, null, 2)}
               </pre>
               <Button
                 type="button"
                 disabled={
                   !latest.revision ||
-                  latest.redactedFields?.some(
-                    (f) => f === "directory" || f.startsWith("directory.")
+                  latest.redactedFields?.some((f) =>
+                    finance
+                      ? f === "name" ||
+                        f === "contacts" ||
+                        f === "policy" ||
+                        f.startsWith("policy.")
+                      : f === "directory" || f.startsWith("directory.")
                   )
                 }
                 onClick={() => {
@@ -402,7 +597,9 @@ export function PartyForm({
       )}
       <Button
         type="submit"
-        disabled={pending || stale || !!blocked}
+        disabled={
+          pending || stale || !!blocked || (missingSettings && !command)
+        }
         className="min-h-11"
       >
         {pending
