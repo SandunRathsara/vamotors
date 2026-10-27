@@ -8,6 +8,7 @@ import {
   abilityFor,
   attenuation,
   registryVersion,
+  readScope,
 } from "../../lib/server/permissions"
 import { parseMajor } from "../../lib/money"
 const input = {
@@ -30,6 +31,50 @@ const input = {
   paymentMethod: "BANK_TRANSFER",
 }
 describe("bounded T05a acquisition boundary", () => {
+  it("keeps unconditional SQL scopes true and permits only fully covered scoped predicates", () => {
+    expect(readScope([], input.supplierId, "PurchaseRecord")).toEqual({
+      id: { in: [] },
+    })
+    expect(
+      readScope(
+        [{ subject: "PurchaseRecord", action: "read", fields: ["*"] }],
+        input.supplierId,
+        "PurchaseRecord",
+        ["id"]
+      )
+    ).toEqual({})
+    expect(
+      readScope(
+        [
+          {
+            subject: "PurchaseRecord",
+            action: "read",
+            fields: ["id"],
+            conditions: { createdBy: "$actor.id" },
+          },
+        ],
+        input.supplierId,
+        "PurchaseRecord",
+        ["id"]
+      )
+    ).toEqual({ OR: [{ createdBy: input.supplierId }] })
+    expect(() =>
+      readScope(
+        [
+          { subject: "PurchaseRecord", action: "read", fields: ["id"] },
+          {
+            subject: "PurchaseRecord",
+            action: "read",
+            fields: ["purchasePrice"],
+            conditions: { createdBy: "$actor.id" },
+          },
+        ],
+        input.supplierId,
+        "PurchaseRecord",
+        ["purchasePrice"]
+      )
+    ).toThrow("FIELD_FORBIDDEN")
+  })
   it("preserves zero mileage, optional VIN/CR and exact >32-bit currency", () => {
     const result = purchaseInput.parse(input)
     expect(result.mileage.reading).toBe(0)

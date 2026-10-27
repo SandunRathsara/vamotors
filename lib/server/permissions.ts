@@ -660,7 +660,7 @@ export function readScope(
   userId: string,
   type: EnabledSubject,
   requiredFields: readonly string[] = []
-): { OR?: Record<string, string>[] } {
+): { OR?: Record<string, string>[]; id?: { in: string[] } } {
   const rules = grants.filter(
     (g) => g.subject === type && g.action === "read" && g.fields.length > 0
   )
@@ -676,17 +676,28 @@ export function readScope(
   })
   for (const field of requiredFields)
     if (!fieldsFor(type, "read").includes(field)) fail("FIELD_FORBIDDEN", 403)
-  // Never silently shrink population to hide a forbidden sort/filter input.
-  // Initial lists support those fields only with an unconditional field grant.
+  // Every readable population needs a covering field witness. This permits
+  // own-record lists without silently shrinking a mixed public/private union.
   for (const field of requiredFields)
     if (
-      !rules.some(
-        (g) =>
-          Object.keys(g.conditions ?? {}).length === 0 &&
-          expanded(g).includes(field)
+      !rules.length ||
+      !rules.every((population) =>
+        rules.some(
+          (g) =>
+            expanded(g).includes(field) &&
+            Object.entries(g.conditions ?? {}).every(
+              ([key, value]) =>
+                (
+                  population.conditions as Record<string, unknown> | undefined
+                )?.[key] === value
+            )
+        )
       )
     )
       fail("FIELD_FORBIDDEN", 403)
+  // Empty OR is optimized away inside some nested AND shapes in Prisma 6.
+  // Empty IN remains false under composition: default deny must be composable.
+  if (!rules.length) return { id: { in: [] } }
   // Prisma treats OR:[{}] as an empty disjunction in some query shapes. An
   // unconditional positive grant means no row predicate, not an empty OR arm.
   return rules.some((g) => Object.keys(g.conditions ?? {}).length === 0)

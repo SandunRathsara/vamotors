@@ -172,7 +172,7 @@ describe("actual CASL grant union and record/field projection", () => {
     expect(() => readScope(grants, uid, "Vehicle", ["listedPrice"])).toThrow(
       "FIELD_FORBIDDEN"
     )
-    expect(readScope([], uid, "User")).toEqual({ OR: [] })
+    expect(readScope([], uid, "User")).toEqual({ id: { in: [] } })
   })
 })
 

@@ -1333,12 +1333,21 @@ async function main() {
           assert.equal(
             (
               await admin.request.get(
-                `/api/v1/queries/${name}${name === "parties" ? "?type=SUPPLIER" : name === "party" ? "?type=SUPPLIER&id=00000000-0000-4000-8000-000000000099" : ""}`
+                `/api/v1/queries/${name}${name === "vehicle" ? `?id=${guessedID}` : name === "purchase" ? `?cycleId=${guessedID}` : name === "vehicleIdentity" ? "?engineNumber=UNKNOWN-T05A&chassisNumber=UNKNOWN-T05A" : name === "parties" ? "?type=SUPPLIER" : name === "party" ? "?type=SUPPLIER&id=00000000-0000-4000-8000-000000000099" : ""}`
               )
             ).status(),
-            ["permissionRegistry", "customers", "parties"].includes(name)
-              ? 403
-              : 404
+            name === "vehicleIdentity"
+              ? 200
+              : [
+                    "permissionRegistry",
+                    "customers",
+                    "parties",
+                    "purchases",
+                    "inventory",
+                  ].includes(name)
+                ? 403
+                : 404,
+            `staff query ${name}`
           )
         assert.equal(
           (

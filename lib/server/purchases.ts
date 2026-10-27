@@ -292,6 +292,7 @@ function physicalScope(
   fields: string[] = []
 ): Prisma.VehicleWhereInput {
   const scope = readScope(actor.grants, actor.userId, "Vehicle", fields)
+  if (scope.id) return { id: scope.id }
   if (!scope.OR) return {}
   return {
     OR: scope.OR.map(({ status, ...condition }) => ({
@@ -346,6 +347,8 @@ export async function recordPurchase(
       if (result.type !== "PurchaseRecord") fail("INTERNAL_ERROR", 500)
       const row = await load(tx, result.id)
       if (!row) fail("NOT_FOUND", 404)
+      if (row.acquisitionCommandId !== prior.id || result.revision !== 1)
+        fail("INTERNAL_ERROR", 500)
       requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
         "id",
         "revision",
@@ -626,6 +629,17 @@ export async function purchaseQuery(
   name: string,
   args: Record<string, string>
 ) {
+  if (name !== "audit") {
+    if (name === "inventory" && !actor.ability.can("read", "PurchaseRecord"))
+      fail("FORBIDDEN", 403)
+    const type = ["purchases", "purchase"].includes(name)
+      ? "PurchaseRecord"
+      : "Vehicle"
+    if (!actor.ability.can("read", type)) {
+      const list = ["purchases", "inventory"].includes(name)
+      fail(list ? "FORBIDDEN" : "NOT_FOUND", list ? 403 : 404)
+    }
+  }
   if (name === "audit") {
     const parsed = listParams
       .extend({ type: z.enum(["Vehicle", "PurchaseRecord"]), id })
@@ -739,7 +753,10 @@ export async function purchaseQuery(
       where: {
         normalizedEngine: normalizeVehicleIdentity(input.data.engineNumber),
         normalizedChassis: normalizeVehicleIdentity(input.data.chassisNumber),
-        ...physicalScope(actor),
+        ...physicalScope(actor, [
+          "identity.engineNumber",
+          "identity.chassisNumber",
+        ]),
       },
       include: {
         purchases: { orderBy: [{ cycleNumber: "desc" }], take: 1, include },
@@ -751,21 +768,45 @@ export async function purchaseQuery(
       "Vehicle",
       "read",
       { ...row, status: row.purchases[0]?.status },
-      ["id", "revision", "identity"]
+      ["id", "revision"]
     )
     const latest = row.purchases[0]
     if (!latest) fail("INVALID_STATE")
-    requireFields(actor.ability, "PurchaseRecord", "read", auth(latest), [
-      "id",
-      "status",
-    ])
-    return {
+    const visible = project(actor.ability, "Vehicle", {
       id: row.id,
       revision: row.revision,
       identity: physical(row),
-      activeCycleId: row.activePurchaseId,
-      latestCycleId: latest.id,
-      latestStatus: latest.status,
+      createdBy: row.createdBy,
+      status: latest.status,
+      cycleId: row.activePurchaseId,
+    })
+    const cycle = subject("PurchaseRecord", auth(latest))
+    const cycleVisible =
+      actor.ability.can("read", cycle, "id") &&
+      actor.ability.can(
+        "read",
+        subject("Vehicle", { ...row, status: latest.status }),
+        "cycleId"
+      )
+    return {
+      id: row.id,
+      revision: row.revision,
+      ...(visible.identity ? { identity: visible.identity } : {}),
+      ...(cycleVisible
+        ? { activeCycleId: row.activePurchaseId, latestCycleId: latest.id }
+        : {}),
+      ...(visible.status && actor.ability.can("read", cycle, "status")
+        ? { latestStatus: latest.status }
+        : {}),
+      redactedFields: [
+        ...visible.redactedFields.filter((field) =>
+          field.startsWith("identity")
+        ),
+        ...(!cycleVisible ? ["activeCycleId", "latestCycleId"] : []),
+        ...(!(visible.status && actor.ability.can("read", cycle, "status"))
+          ? ["latestStatus"]
+          : []),
+      ],
     }
   }
   if (name === "purchase") {
@@ -827,6 +868,17 @@ export async function purchaseQuery(
   const input = parsed.data,
     inventory = name === "inventory",
     type = inventory ? "Vehicle" : "PurchaseRecord"
+  if (
+    Object.keys(args).some((key) =>
+      (inventory
+        ? ["supplierId", "sellerCustomerId", "vehicleId", "purchaseType"]
+        : ["available", "make", "model"]
+      ).includes(key)
+    )
+  )
+    fail("INVALID_INPUT", 422)
+  if (input.from && input.through && input.from > input.through)
+    fail("INVALID_INPUT", 422)
   if (!actor.ability.can("read", type)) fail("FORBIDDEN", 403)
   let sortRaw: unknown, statusesRaw: unknown
   try {
@@ -909,11 +961,28 @@ export async function purchaseQuery(
     "PurchaseRecord",
     purchaseFields
   )
-  const vehicleScope = physicalScope(
-    actor,
-    input.q || input.make || input.model ? ["identity"] : []
-  )
+  const vehicleScope =
+    inventory || input.q || input.make || input.model
+      ? physicalScope(
+          actor,
+          input.q || input.make || input.model ? ["identity"] : []
+        )
+      : {}
   const q = input.q?.replace(/[\\%_]/g, "\\$&")
+  if (input.supplierId) {
+    const supplier = await tx.supplier.findUnique({
+      where: { id: input.supplierId },
+    })
+    if (!supplier) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "Supplier", "read", supplier, ["id"])
+  }
+  if (input.sellerCustomerId) {
+    const customer = await tx.customer.findUnique({
+      where: { id: input.sellerCustomerId },
+    })
+    if (!customer) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "Customer", "read", customer, ["id"])
+  }
   const where: Prisma.PurchaseRecordWhereInput = {
     AND: [
       purchaseScope,
@@ -963,7 +1032,9 @@ export async function purchaseQuery(
       where,
       include,
       orderBy: [
-        ...sorts.data.map((s) => ({ [s.field]: s.direction })),
+        ...sorts.data.map((s) => ({
+          [inventory && s.field === "id" ? "vehicleId" : s.field]: s.direction,
+        })),
         ...(!sorts.data.some((s) => s.field === "id")
           ? [{ id: "asc" as const }]
           : []),

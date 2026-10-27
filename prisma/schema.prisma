@@ -169,7 +169,7 @@ model CommandReceipt {
   statuses              StatusEvent[]
   acquisitions          PurchaseRecord[]
   purchasePayments      PurchasePayment[]
-  mileageReadings        MileageReading[]
+  mileageReadings       MileageReading[]
   basisVersions         CycleBasisVersion[]
 
   @@unique([environmentId, actorKey, commandName, idempotencyKey])
@@ -255,9 +255,9 @@ model Customer {
 }
 
 model SettingsVersion {
-  id          String    @id @default(uuid()) @db.Uuid
-  version     Int       @unique
-  effectiveAt DateTime  @default(now())
+  id          String           @id @default(uuid()) @db.Uuid
+  version     Int              @unique
+  effectiveAt DateTime         @default(now())
   values      Json
   current     Settings?
   purchases   PurchaseRecord[]
@@ -435,37 +435,37 @@ model Vehicle {
 }
 
 model PurchaseRecord {
-  id               String        @id @default(uuid()) @db.Uuid
-  vehicleId        String        @db.Uuid
-  vehicle          Vehicle       @relation("cycles", fields: [vehicleId], references: [id], onDelete: Restrict)
-  activeFor        Vehicle?      @relation("activeCycle")
-  cycleNumber      Int
-  purchaseType     String
-  acquisitionKind  String
-  supplierId       String?       @db.Uuid
-  supplier         Supplier?     @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  sellerCustomerId String?       @db.Uuid
-  seller           Customer?     @relation(fields: [sellerCustomerId], references: [id], onDelete: Restrict)
-  purchaseDate     DateTime      @db.Date
-  purchasePrice    BigInt
-  listedPrice      BigInt?
-  status           VehicleStatus @default(PURCHASED)
-  available        Boolean       @default(false)
-  holdReason       String?
-  receivedDate     DateTime?     @db.Date
-  closedAt         DateTime?
-  revision         Int           @default(1)
-  createdBy        String        @db.Uuid
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  statuses         StatusEvent[]
-  acquisitionCommandId String? @unique @db.Uuid
-  acquisitionCommand CommandReceipt? @relation(fields: [acquisitionCommandId], references: [id], onDelete: Restrict)
-  settingsVersionId String? @db.Uuid
-  settingsVersion SettingsVersion? @relation(fields: [settingsVersionId], references: [id], onDelete: Restrict)
-  payments PurchasePayment[]
-  mileage MileageReading[]
-  basisVersions CycleBasisVersion[]
+  id                   String              @id @default(uuid()) @db.Uuid
+  vehicleId            String              @db.Uuid
+  vehicle              Vehicle             @relation("cycles", fields: [vehicleId], references: [id], onDelete: Restrict)
+  activeFor            Vehicle?            @relation("activeCycle")
+  cycleNumber          Int
+  purchaseType         String
+  acquisitionKind      String
+  supplierId           String?             @db.Uuid
+  supplier             Supplier?           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  sellerCustomerId     String?             @db.Uuid
+  seller               Customer?           @relation(fields: [sellerCustomerId], references: [id], onDelete: Restrict)
+  purchaseDate         DateTime            @db.Date
+  purchasePrice        BigInt
+  listedPrice          BigInt?
+  status               VehicleStatus       @default(PURCHASED)
+  available            Boolean             @default(false)
+  holdReason           String?
+  receivedDate         DateTime?           @db.Date
+  closedAt             DateTime?
+  revision             Int                 @default(1)
+  createdBy            String              @db.Uuid
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  statuses             StatusEvent[]
+  acquisitionCommandId String?             @unique @db.Uuid
+  acquisitionCommand   CommandReceipt?     @relation(fields: [acquisitionCommandId], references: [id], onDelete: Restrict)
+  settingsVersionId    String?             @db.Uuid
+  settingsVersion      SettingsVersion?    @relation(fields: [settingsVersionId], references: [id], onDelete: Restrict)
+  payments             PurchasePayment[]
+  mileage              MileageReading[]
+  basisVersions        CycleBasisVersion[]
 
   @@unique([id, vehicleId])
   @@unique([vehicleId, cycleNumber])
@@ -491,25 +491,26 @@ model StatusEvent {
 }
 
 model PurchasePayment {
-  id String @id @default(uuid()) @db.Uuid
-  cycleId String @db.Uuid
-  cycle PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
-  amount BigInt
-  direction String
-  category String
-  occurredDate DateTime @db.Date
-  method String
-  currency String
-  scale Int
-  reference String?
-  reversalOf String? @unique @db.Uuid
-  original PurchasePayment? @relation("purchaseReversal", fields: [reversalOf, cycleId], references: [id, cycleId], onDelete: Restrict)
-  reversal PurchasePayment? @relation("purchaseReversal")
-  reason String?
-  commandId String @db.Uuid
-  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
-  lineKey String
-  recordedAt DateTime @default(now())
+  id           String           @id @default(uuid()) @db.Uuid
+  cycleId      String           @db.Uuid
+  cycle        PurchaseRecord   @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  amount       BigInt
+  direction    String
+  category     String
+  occurredDate DateTime         @db.Date
+  method       String
+  currency     String
+  scale        Int
+  reference    String?
+  reversalOf   String?          @unique @db.Uuid
+  original     PurchasePayment? @relation("purchaseReversal", fields: [reversalOf, cycleId], references: [id, cycleId], onDelete: Restrict)
+  reversal     PurchasePayment? @relation("purchaseReversal")
+  reason       String?
+  commandId    String           @db.Uuid
+  command      CommandReceipt   @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  lineKey      String
+  recordedAt   DateTime         @default(now())
+
   @@unique([id, cycleId])
   @@unique([commandId, lineKey])
   @@unique([reversalOf, cycleId])
@@ -518,40 +519,42 @@ model PurchasePayment {
 }
 
 model MileageReading {
-  id String @id @default(uuid()) @db.Uuid
-  vehicleId String @db.Uuid
-  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  cycleId String @db.Uuid
-  cycle PurchaseRecord @relation(fields: [cycleId, vehicleId], references: [id, vehicleId], onDelete: Restrict)
-  reading Int
-  recordedDate DateTime @db.Date
-  remark String?
+  id             String         @id @default(uuid()) @db.Uuid
+  vehicleId      String         @db.Uuid
+  vehicle        Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  cycleId        String         @db.Uuid
+  cycle          PurchaseRecord @relation(fields: [cycleId, vehicleId], references: [id, vehicleId], onDelete: Restrict)
+  reading        Int
+  recordedDate   DateTime       @db.Date
+  remark         String?
   decreaseReason String?
-  commandId String @db.Uuid
-  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
-  recordedAt DateTime @default(now())
+  commandId      String         @db.Uuid
+  command        CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  recordedAt     DateTime       @default(now())
+
   @@unique([commandId, cycleId])
   @@index([cycleId, recordedDate, id])
   @@schema("vamotors")
 }
 
 model CycleBasisVersion {
-  id String @id @default(uuid()) @db.Uuid
-  cycleId String @db.Uuid
-  cycle PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
-  version Int
-  purchase BigInt
-  components Json
-  total BigInt
-  currency String
-  scale Int
-  reason String
-  commandId String @db.Uuid
-  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
-  supersedesId String? @unique @db.Uuid
-  original CycleBasisVersion? @relation("basisCorrection", fields: [supersedesId, cycleId], references: [id, cycleId], onDelete: Restrict)
-  correction CycleBasisVersion? @relation("basisCorrection")
-  recordedAt DateTime @default(now())
+  id           String             @id @default(uuid()) @db.Uuid
+  cycleId      String             @db.Uuid
+  cycle        PurchaseRecord     @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  version      Int
+  purchase     BigInt
+  components   Json
+  total        BigInt
+  currency     String
+  scale        Int
+  reason       String
+  commandId    String             @db.Uuid
+  command      CommandReceipt     @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  supersedesId String?            @unique @db.Uuid
+  original     CycleBasisVersion? @relation("basisCorrection", fields: [supersedesId, cycleId], references: [id, cycleId], onDelete: Restrict)
+  correction   CycleBasisVersion? @relation("basisCorrection")
+  recordedAt   DateTime           @default(now())
+
   @@unique([id, cycleId])
   @@unique([cycleId, version])
   @@unique([supersedesId, cycleId])

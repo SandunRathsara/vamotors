@@ -14,6 +14,7 @@ import {
 } from "@playwright/test"
 import pg from "pg"
 import { privateEnvironment } from "../../scripts/private-environment"
+import { registry } from "../../lib/server/permissions"
 import type {
   Applied,
   Dependency,
@@ -21,6 +22,7 @@ import type {
   PurchaseCycleDTO,
   PartyDTO,
   Grant,
+  QueryData,
 } from "../../.planning/implementation/contracts/api"
 
 process.umask(0o077)
@@ -777,6 +779,92 @@ try {
         403
       )
       assert.equal(await snapshot(), before)
+      const changedRole = await command(
+        a.request,
+        "saveRole",
+        envelope(
+          {
+            id: role.result.id,
+            name: `T05a limited ${suffix}`,
+            reason: "Synthetic changed financial field denial",
+            grants: [
+              {
+                subject: "PurchaseRecord",
+                action: "create",
+                fields: registry.PurchaseRecord.create.filter(
+                  (f) => f !== "purchasePrice"
+                ),
+              },
+              {
+                subject: "Vehicle",
+                action: "create",
+                fields: [...registry.Vehicle.create],
+              },
+              {
+                subject: "Vehicle",
+                action: "read",
+                fields: [
+                  "id",
+                  "revision",
+                  "identity",
+                  "identityRevision",
+                  "cycleId",
+                  "status",
+                ],
+              },
+              {
+                subject: "Supplier",
+                action: "read",
+                fields: ["id", "revision", "name", "contributions.purchases"],
+              },
+            ],
+          },
+          [{ type: "Role", id: role.result.id, revision: 1 }]
+        )
+      )
+      const deniedBefore = await snapshot()
+      const denied = await command(
+        staff.request,
+        "recordPurchase",
+        envelope(purchase("price-field-denied"), [ref("Supplier", individual)]),
+        403
+      )
+      assert.equal(denied.error.code, "FIELD_FORBIDDEN")
+      assert.equal(await snapshot(), deniedBefore)
+      const identityOnly = await query<Record<string, unknown>>(
+        staff.request,
+        "vehicleIdentity",
+        `?engineNumber=${brand.identity.engineNumber}&chassisNumber=${brand.identity.chassisNumber}`
+      )
+      assert.equal(identityOnly.id, brand.vehicleId)
+      for (const field of ["activeCycleId", "latestCycleId", "latestStatus"])
+        assert.equal(field in identityOnly, false)
+      assert.equal(
+        (await staff.request.get("/api/v1/queries/inventory")).status(),
+        403
+      )
+      assert.equal(
+        (
+          await staff.request.get(
+            `/api/v1/queries/purchase?cycleId=${brand.id}`
+          )
+        ).status(),
+        404
+      )
+      assert.equal(changedRole.result.revision, 2)
+      const noTargetGrant = await query<{
+        contributions: { purchases: { links: unknown[] } }
+      }>(staff.request, "party", `?type=SUPPLIER&id=${individual.id}`)
+      assert.deepEqual(noTargetGrant.contributions.purchases.links, [])
+      assert.equal(
+        (
+          await db.query(
+            'SELECT count(*) FROM vamotors."PurchaseRecord" WHERE "supplierId"=$1',
+            [individual.id]
+          )
+        ).rows[0].count === "0",
+        false
+      )
       const current = await query<{
         id: string
         revision: number
@@ -807,6 +895,353 @@ try {
           },
           [ref("User", current), ...refs]
         )
+      )
+    }
+  )
+  await group(
+    "stale acquisition retains original draft and requires explicit reload/reconfirmation/new key",
+    async () => {
+      await page.goto("/purchases")
+      await page.getByRole("button", { name: "New paid acquisition" }).click()
+      await page.getByLabel("Search active suppliers by name").fill(suffix)
+      await expect(
+        page.locator("#supplier option", { hasText: "INDIVIDUAL" })
+      ).toHaveCount(1)
+      await page.locator("#supplier").selectOption(individual.id)
+      for (const [key, value] of Object.entries({
+        engineNumber: `E-${suffix}-stale-ui`,
+        chassisNumber: `C-${suffix}-stale-ui`,
+        make: "Synthetic",
+        model: "Retained stale draft",
+        year: "2026",
+        colour: "Blue",
+        purchaseDate: "2026-10-01",
+        purchasePrice: "100",
+        mileageDate: "2026-10-01",
+      }))
+        await page.locator(`#acquisition-${key}`).fill(value)
+      const oldRevision = individual.revision
+      await command(
+        b.request,
+        "updateDirectoryParty",
+        envelope(
+          {
+            type: "SUPPLIER",
+            id: individual.id,
+            values: {
+              ...individual.directory!,
+              name: `${individual.name} stale review`,
+            },
+          },
+          [ref("Supplier", individual)]
+        )
+      )
+      individual = await query(
+        a.request,
+        "party",
+        `?type=SUPPLIER&id=${individual.id}`
+      )
+      const bodies: string[] = []
+      await page.route("**/api/v1/commands/recordPurchase", async (route) => {
+        bodies.push(route.request().postData()!)
+        await route.continue()
+      })
+      const before = await snapshot()
+      await page
+        .getByRole("button", { name: "Record fully paid acquisition" })
+        .click()
+      await expect(
+        page.getByRole("alert").filter({ hasText: "STALE_REVISION" })
+      ).toBeVisible()
+      assert.equal(await snapshot(), before)
+      await expect(page.locator("#acquisition-model")).toHaveValue(
+        "Retained stale draft"
+      )
+      await page
+        .getByRole("button", { name: "Reload current supplier", exact: true })
+        .click()
+      await page
+        .getByRole("button", { name: "Reconfirm retained draft as new intent" })
+        .click()
+      await page
+        .getByRole("button", { name: "Record fully paid acquisition" })
+        .click()
+      await page.waitForURL(/\/purchases\/[0-9a-f-]+$/)
+      assert.equal(bodies.length, 2)
+      const first = JSON.parse(bodies[0]),
+        next = JSON.parse(bodies[1])
+      assert.deepEqual(first.input, next.input)
+      assert.notEqual(first.idempotencyKey, next.idempotencyKey)
+      assert.equal(first.expected[0].revision, oldRevision)
+      assert.equal(next.expected[0].revision, individual.revision)
+      await page.unroute("**/api/v1/commands/recordPurchase")
+    }
+  )
+  await group(
+    "cash has no invented Settings CAS; concurrent policy changes preserve immutable acquisition snapshots",
+    async () => {
+      const settings = await query<QueryData["settings"]>(a.request, "settings")
+      const { id, revision, policyVersion, ...values } = settings
+      void policyVersion
+      const before = (
+        await db.query(
+          'SELECT to_jsonb(p) AS p,to_jsonb(v) AS v FROM vamotors."PurchaseRecord" p JOIN vamotors."SettingsVersion" v ON v.id=p."settingsVersionId" WHERE p.id=$1',
+          [brand.id]
+        )
+      ).rows[0]
+      const body = envelope(purchase("settings-race"), [
+        ref("Supplier", individual),
+      ])
+      assert.equal(
+        body.expected.some((r) => r.type === "Settings"),
+        false
+      )
+      const [acquired] = await Promise.all([
+        command(a.request, "recordPurchase", body, 201),
+        command(
+          b.request,
+          "updateSettings",
+          envelope(
+            {
+              ...values,
+              timezone: values.timezone === "UTC" ? "Asia/Colombo" : "UTC",
+              reason: "Synthetic purchase policy race",
+            },
+            [{ type: "Settings", id, revision }]
+          )
+        ),
+      ])
+      const after = (
+        await db.query(
+          'SELECT to_jsonb(p) AS p,to_jsonb(v) AS v FROM vamotors."PurchaseRecord" p JOIN vamotors."SettingsVersion" v ON v.id=p."settingsVersionId" WHERE p.id=$1',
+          [brand.id]
+        )
+      ).rows[0]
+      assert.deepEqual(after, before)
+      const row = await query<PurchaseCycleDTO>(
+        a.request,
+        "purchase",
+        `?cycleId=${acquired.result.id}`
+      )
+      assert.equal(row.payments[0].date, "2026-10-01")
+      assert.equal(row.financial?.currency, values.currency)
+      assert.equal(
+        (
+          await db.query(
+            'SELECT count(*) FROM vamotors."SettingsVersion" v JOIN vamotors."PurchaseRecord" p ON p."settingsVersionId"=v.id WHERE p.id=$1',
+            [row.id]
+          )
+        ).rows[0].count,
+        "1"
+      )
+    }
+  )
+  await group(
+    "locked execution and locked replay observe committed current-account revocation",
+    async () => {
+      const target = await query<{ user: { id: string } }>(
+        b.request,
+        "currentActor"
+      )
+      const current = async () =>
+        query<{
+          id: string
+          revision: number
+          name: string
+          active: boolean
+          roles: { id: string; revision: number }[]
+        }>(a.request, "user", `?id=${target.user.id}`)
+      const setActive = async (active: boolean) => {
+        const user = await current()
+        return command(
+          a.request,
+          "updateUser",
+          envelope(
+            {
+              id: user.id,
+              name: user.name,
+              active,
+              roleIds: user.roles.map((r) => r.id),
+              reason: "Synthetic lock/revocation proof",
+            },
+            [ref("User", user), ...user.roles.map((r) => ref("Role", r))]
+          )
+        )
+      }
+      const replayBody = envelope(purchase("revocation-replay"), [
+        ref("Supplier", individual),
+      ])
+      await command(b.request, "recordPurchase", replayBody, 201)
+      for (const body of [
+        envelope(purchase("revocation-new"), [ref("Supplier", individual)]),
+        replayBody,
+      ]) {
+        const before = await snapshot(),
+          blocker = await db.connect()
+        try {
+          await blocker.query("BEGIN")
+          await blocker.query(
+            'SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE'
+          )
+          const request = b.request.post("/api/v1/commands/recordPurchase", {
+            data: body,
+            headers: { Origin: origin },
+          })
+          await expect
+            .poll(
+              async () =>
+                Number(
+                  (
+                    await monitor.query(
+                      "SELECT count(*) FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE '%BusinessSequence%'"
+                    )
+                  ).rows[0].count
+                ),
+              { timeout: 1200 }
+            )
+            .toBeGreaterThan(0)
+          await setActive(false)
+          await blocker.query("COMMIT")
+          const response = await request
+          assert.equal(response.status(), 403)
+          assert.equal((await response.json()).error.code, "ACCOUNT_INACTIVE")
+          // Administrative changes do not change any report/source/history row.
+          const after = JSON.parse(await snapshot()),
+            old = JSON.parse(before)
+          for (const key of [
+            "Vehicle",
+            "PurchaseRecord",
+            "PurchasePayment",
+            "MileageReading",
+            "CycleBasisVersion",
+            "StatusEvent",
+            "EntityReadVersion",
+            "BusinessSequence",
+          ])
+            assert.deepEqual(after[key], old[key])
+        } finally {
+          await blocker.query("ROLLBACK")
+          blocker.release()
+          await setActive(true)
+        }
+      }
+    }
+  )
+  await group(
+    "supplier archive/update eligibility races preserve lawful history without new effects",
+    async () => {
+      const old = company
+      const archived = await command(
+        a.request,
+        "archiveParty",
+        envelope(
+          {
+            type: "SUPPLIER",
+            id: company.id,
+            active: false,
+            reason: "Synthetic eligibility proof",
+          },
+          [ref("Supplier", company)]
+        )
+      )
+      company = await query(
+        a.request,
+        "party",
+        `?type=SUPPLIER&id=${company.id}`
+      )
+      const before = await snapshot()
+      await command(
+        a.request,
+        "recordPurchase",
+        envelope(purchase("stale-archived", old, "BRAND_NEW"), [
+          ref("Supplier", old),
+        ]),
+        409
+      )
+      await command(
+        a.request,
+        "recordPurchase",
+        envelope(purchase("archived", company, "BRAND_NEW"), [
+          ref("Supplier", company),
+        ]),
+        409
+      )
+      assert.equal(await snapshot(), before)
+      const history = await query<PurchaseCycleDTO>(
+        a.request,
+        "purchase",
+        `?cycleId=${brand.id}`
+      )
+      assert.equal(history.seller.active, false)
+      assert.equal(history.payments[0].id, brand.payments[0].id)
+      await command(
+        a.request,
+        "archiveParty",
+        envelope(
+          {
+            type: "SUPPLIER",
+            id: company.id,
+            active: true,
+            reason: "Restore synthetic supplier",
+          },
+          [
+            {
+              type: "Supplier",
+              id: company.id,
+              revision: archived.result.revision,
+            },
+          ]
+        )
+      )
+      company = await query(
+        a.request,
+        "party",
+        `?type=SUPPLIER&id=${company.id}`
+      )
+    }
+  )
+  await group(
+    "mobile inline supplier owns independent envelope; keyboard, retained draft and transient authorization read",
+    async () => {
+      await second.goto("/purchases")
+      await second.getByRole("button", { name: "New paid acquisition" }).click()
+      await second
+        .locator("#acquisition-engineNumber")
+        .fill(`E-${suffix}-inline`)
+      await second
+        .getByRole("button", { name: "Create supplier inline" })
+        .click()
+      const inline = second.getByRole("region", { name: "Inline supplier" })
+      await inline.locator("#party-name").fill(`Inline supplier ${suffix}`)
+      const submit = inline.getByRole("button", {
+        name: "Create directory entry",
+        exact: true,
+      })
+      await expect(submit).toBeVisible()
+      await submit.focus()
+      await second.keyboard.press("Enter")
+      await expect(second.locator("#supplier")).not.toHaveValue("")
+      await expect(second.locator("#acquisition-engineNumber")).toHaveValue(
+        `E-${suffix}-inline`
+      )
+      assert.equal(
+        await second.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth
+        ),
+        true
+      )
+      await second.route("**/api/v1/queries/currentActor", (route) =>
+        route.abort("failed")
+      )
+      await second.evaluate(() => window.dispatchEvent(new Event("auth-check")))
+      await expect(
+        second.getByText("Checking access…", { exact: true })
+      ).toBeVisible()
+      await second.unroute("**/api/v1/queries/currentActor")
+      await second.evaluate(() => window.dispatchEvent(new Event("auth-check")))
+      await expect(second.locator("#acquisition-engineNumber")).toBeVisible()
+      await expect(second.locator("#acquisition-engineNumber")).toHaveValue(
+        `E-${suffix}-inline`
       )
     }
   )
@@ -856,6 +1291,10 @@ try {
         results,
         passed: results.length,
         note: "Author evidence only, not independent acceptance",
+        origin,
+        dirty: !!execFileSync("git", ["status", "--porcelain"], {
+          encoding: "utf8",
+        }).trim(),
         synthetic: { cash: cash.id, brand: brand.id },
         migrationInventory: (
           await db.query(
