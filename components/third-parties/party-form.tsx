@@ -109,6 +109,7 @@ export function PartyForm({
   const [stale, setStale] = useState(false)
   const [revision, setRevision] = useState(initial?.revision)
   const [latest, setLatest] = useState<VisibleParty | null>(null)
+  const [settingsReloaded, setSettingsReloaded] = useState(false)
   const blocked =
     !!initial &&
     (!initial.id ||
@@ -524,7 +525,7 @@ export function PartyForm({
             onClick={async () => {
               setPending(true)
               try {
-                const row = await onReload()
+                const row = initial ? await onReload() : undefined
                 if (finance) {
                   const refreshed = await settings.refetch()
                   if (
@@ -537,9 +538,11 @@ export function PartyForm({
                     id: refreshed.data.data.id,
                     revision: refreshed.data.data.revision,
                   })
+                  setSettingsReloaded(true)
                 }
-                if (row?.id === initial?.id && row?.revision) setLatest(row)
-                else
+                if (initial && row?.id === initial.id && row?.revision)
+                  setLatest(row)
+                else if (initial)
                   setError(
                     "Current entry is not available on this authorized page. Draft retained; no new intent can be confirmed."
                   )
@@ -550,18 +553,24 @@ export function PartyForm({
               }
             }}
           >
-            Reload current directory entry
+            {initial
+              ? "Reload current directory entry"
+              : "Reload current Settings reference"}
           </Button>
-          {latest && (
+          {(latest || (!initial && settingsReloaded && settingsRef)) && (
             <>
               <pre className="overflow-auto rounded-md border p-3 text-sm">
-                {JSON.stringify(finance ? latest : latest.directory, null, 2)}
+                {JSON.stringify(
+                  latest ? (finance ? latest : latest.directory) : settingsRef,
+                  null,
+                  2
+                )}
               </pre>
               <Button
                 type="button"
                 disabled={
-                  !latest.revision ||
-                  latest.redactedFields?.some((f) =>
+                  (initial && !latest?.revision) ||
+                  latest?.redactedFields?.some((f) =>
                     finance
                       ? f === "name" ||
                         f === "contacts" ||
@@ -571,15 +580,18 @@ export function PartyForm({
                   )
                 }
                 onClick={() => {
-                  setRevision(latest.revision)
+                  if (latest) setRevision(latest.revision)
                   setCommand(null)
                   onUnresolvedChange(false)
                   setStale(false)
                   setLatest(null)
+                  setSettingsReloaded(false)
                   setError("")
                 }}
               >
-                Reconfirm retained draft against revision {latest.revision}
+                Reconfirm retained draft against{" "}
+                {initial ? "revision" : "Settings revision"}{" "}
+                {latest?.revision ?? settingsRef?.revision}
               </Button>
             </>
           )}

@@ -288,11 +288,20 @@ try {
   try {
     await setup.query("BEGIN")
     await setup.query("SELECT vamotors.lock_admin_guard()")
-    await setup.query('DELETE FROM vamotors."UserRole" WHERE "userId"=\'03000000-0000-4000-8000-000000000013\' AND "roleId" NOT IN (\'03000000-0000-4000-8000-000000000002\',\'03000000-0000-4000-8000-000000000003\')')
-    await setup.query('UPDATE vamotors."user" SET "authzRevision"="authzRevision"+1 WHERE id=\'03000000-0000-4000-8000-000000000013\'')
+    await setup.query(
+      "DELETE FROM vamotors.\"UserRole\" WHERE \"userId\"='03000000-0000-4000-8000-000000000013' AND \"roleId\" NOT IN ('03000000-0000-4000-8000-000000000002','03000000-0000-4000-8000-000000000003')"
+    )
+    await setup.query(
+      'UPDATE vamotors."user" SET "authzRevision"="authzRevision"+1 WHERE id=\'03000000-0000-4000-8000-000000000013\''
+    )
     await setup.query("SET CONSTRAINTS ALL IMMEDIATE")
     await setup.query("COMMIT")
-  } catch (error) { await setup.query("ROLLBACK"); throw error } finally { setup.release() }
+  } catch (error) {
+    await setup.query("ROLLBACK")
+    throw error
+  } finally {
+    setup.release()
+  }
   await start()
   await group(
     "two independent real sessions and persisted strict Settings read",
@@ -1082,6 +1091,63 @@ try {
     }
   )
   await group(
+    "stale finance create retains draft and explicitly reconfirms actual Settings with a new key",
+    async () => {
+      await page.goto("/third-parties")
+      await page
+        .getByRole("button", { name: "Finance companies", exact: true })
+        .click()
+      await page.getByRole("button", { name: "New entry", exact: true }).click()
+      const name = `Stale create UI ${suffix}`
+      await page.getByLabel("Name *", { exact: true }).fill(name)
+      await page.getByLabel("Commission rate", { exact: false }).fill("200")
+      await page.getByLabel("Processing fee *", { exact: true }).fill("321.45")
+      // The open form holds the pre-change actual ref. No focus/refetch between
+      // this owner-only concurrency fixture and submission.
+      await ownerSettingsVersion()
+      const bodies: string[] = []
+      await page.route(
+        "**/api/v1/commands/createFinanceCompany",
+        async (route) => {
+          bodies.push(route.request().postData()!)
+          await route.continue()
+        }
+      )
+      await page
+        .getByRole("button", { name: "Create directory entry", exact: true })
+        .click()
+      await expect(
+        page.getByRole("alert").filter({ hasText: "STALE_REVISION" })
+      ).toBeVisible()
+      await expect(page.getByLabel("Name *", { exact: true })).toHaveValue(name)
+      await page
+        .getByRole("button", {
+          name: "Reload current Settings reference",
+          exact: true,
+        })
+        .click()
+      await page
+        .getByRole("button", {
+          name: /Reconfirm retained draft against Settings revision/,
+        })
+        .click()
+      await page
+        .getByRole("button", { name: "Create directory entry", exact: true })
+        .click()
+      await expect(
+        page.getByRole("heading", { name: `${name} · Active`, exact: true })
+      ).toBeVisible()
+      assert.equal(bodies.length, 2)
+      const first = JSON.parse(bodies[0]),
+        second = JSON.parse(bodies[1])
+      assert.deepEqual(first.input, second.input)
+      assert.notEqual(first.idempotencyKey, second.idempotencyKey)
+      currentSettings = await settings()
+      assert.deepEqual(second.expected, [ref("Settings", currentSettings)])
+      await page.unroute("**/api/v1/commands/createFinanceCompany")
+    }
+  )
+  await group(
     "all 111 known purchase links, independent target fields/record scope, denied versus pending",
     async () => {
       const supplier = await applied(
@@ -1362,6 +1428,9 @@ try {
     JSON.stringify(
       {
         base: "08d17063bfe3cbec37cd995bdb7c44bf057412ba",
+        source: execFileSync("git", ["rev-parse", "HEAD"], {
+          encoding: "utf8",
+        }).trim(),
         passed,
         results,
         limitations: [
