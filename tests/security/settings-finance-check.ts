@@ -769,6 +769,7 @@ try {
           conditions: { createdBy: "$actor.id" },
         },
         { subject: "FinanceCompany", action: "create", fields: ["*"] },
+        { subject: "FinanceCompany", action: "update", fields: ["name"] },
         { subject: "Settings", action: "read", fields: ["id", "revision"] },
         { subject: "AuditLog", action: "read", fields: ["*"] },
       ]
@@ -867,25 +868,30 @@ try {
       assert.ok(!JSON.stringify(audit).includes("123450"))
       assert.ok(!JSON.stringify(audit).includes(contact.name))
       const before = await counts()
-      await denied(
-        await post(
-          staff.request,
-          "updateFinanceCompany",
-          envelope(
-            {
-              ...createValues("Forbidden update"),
-              id: own.result.id,
-              reason: "Denied",
-            },
-            [
-              ref("FinanceCompany", own.result),
-              ref("Settings", currentSettings),
-            ]
-          )
-        ),
-        403,
-        "FORBIDDEN"
-      )
+      for (const patch of [
+        { policy: { ...policy, processingFee: "99" } },
+        { contacts: [{ ...contact, name: "Forbidden replacement" }] },
+      ])
+        await denied(
+          await post(
+            staff.request,
+            "updateFinanceCompany",
+            envelope(
+              {
+                ...createValues(`Private own ${suffix}`),
+                ...patch,
+                id: own.result.id,
+                reason: "Denied field change despite name-update authority",
+              },
+              [
+                ref("FinanceCompany", own.result),
+                ref("Settings", currentSettings),
+              ]
+            )
+          ),
+          403,
+          "FIELD_FORBIDDEN"
+        )
       assert.deepEqual(await counts(), before)
       await limited.goto(`/third-parties/${own.result.id}?type=FINANCE_COMPANY`)
       await expect(
@@ -954,6 +960,7 @@ try {
   await group(
     "real finance UI create/edit and lost-response immutable envelope across refetch",
     async () => {
+      await page.setViewportSize({ width: 360, height: 800 })
       await page.goto("/third-parties")
       await page
         .getByRole("button", { name: "Finance companies", exact: true })
@@ -962,8 +969,45 @@ try {
       await page
         .getByLabel("Name *", { exact: true })
         .fill(`Finance UI ${suffix}`)
+      await page.getByLabel("Name *", { exact: true }).focus()
+      await page.keyboard.press("Tab")
+      await expect(
+        page.getByLabel("Processing path", { exact: true })
+      ).toBeFocused()
+      await page
+        .getByLabel("Processing path", { exact: true })
+        .selectOption("REFERRAL")
+      await page
+        .getByLabel("Commission basis", { exact: true })
+        .selectOption("FIXED")
+      await page
+        .getByLabel("Reconciliation method", { exact: true })
+        .selectOption("PER_DEAL")
+      await page
+        .getByLabel("Fixed commission *", { exact: true })
+        .fill("5000.00")
       await page.getByLabel("Commission rate", { exact: false }).fill("200")
       await page.getByLabel("Processing fee *", { exact: true }).fill("321.45")
+      for (let index = 1; index <= 2; index++) {
+        await page
+          .getByRole("button", { name: "Add contact", exact: true })
+          .click()
+        const fields = page.getByRole("group", {
+          name: `Contact ${index}`,
+          exact: true,
+        })
+        await fields
+          .getByLabel("name *", { exact: true })
+          .fill(`Finance browser contact ${index}`)
+        await fields.getByLabel("phone *", { exact: true }).fill("0112345678")
+        await fields.getByLabel("role *", { exact: true }).fill("Agent")
+        if (index === 1) await fields.getByLabel("Primary contact").check()
+      }
+      assert.ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth
+        )
+      )
       const bodies: string[] = []
       let lost = false
       await page.route(
@@ -1006,6 +1050,13 @@ try {
       )
       const ui = rows.data[0]
       assert.equal(ui.policy!.processingFee, "32145")
+      assert.equal(ui.policy!.path, "REFERRAL")
+      assert.deepEqual(ui.policy!.commission, {
+        basis: "FIXED",
+        fixed: "500000",
+        rateBps: 200,
+      })
+      assert.equal(ui.contacts.length, 2)
       await page.goto(`/third-parties/${ui.id}?type=FINANCE_COMPANY`)
       await page
         .getByRole("button", { name: "Edit entry", exact: true })
@@ -1062,6 +1113,35 @@ try {
         path: join(directory, "t04c-finance-360px.png"),
         fullPage: true,
       })
+      await page.goto("/third-parties")
+      await page
+        .getByRole("button", { name: "Finance companies", exact: true })
+        .click()
+      await page
+        .getByLabel("Search name", { exact: true })
+        .fill(`Finance UI corrected ${suffix}`)
+      await page.getByRole("button", { name: "Search", exact: true }).click()
+      for (const active of [false, true]) {
+        await page
+          .getByRole("button", {
+            name: `${active ? "Reactivate" : "Archive"} Finance UI corrected ${suffix}`,
+            exact: true,
+          })
+          .click()
+        await page
+          .getByLabel("Reason *", { exact: true })
+          .fill("Synthetic finance browser lifecycle")
+        await page
+          .getByRole("button", { name: "Confirm status change", exact: true })
+          .click()
+        await expect(
+          page.getByRole("heading", {
+            name: `Finance UI corrected ${suffix} · ${active ? "Active" : "Archived"}`,
+            exact: true,
+          })
+        ).toBeVisible()
+        assert.equal((await party(ui.id)).active, active)
+      }
     }
   )
   await group(
