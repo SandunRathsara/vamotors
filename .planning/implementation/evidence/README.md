@@ -1,5 +1,9 @@
 # Evidence index
 
+## Current T05a + R1 acceptance — 2026-10-27
+
+Parent accepts bounded exact `def32caa482cffa794b98037e24b937dbff58b7d` after independent `5d416215` PASS. [Sanitized attribution, prior ae3295f/9a785097 R1 FAIL, correction20/15/3/117 and original-ID evidence map](T05a-acceptance-attributed.md); [fresh records-only preservation/spec/types/links](T05a-integration-checks.md). No runtime rerun by integration. **Next [T05b receipt/hold/release](../T05b-next-slice.md)**; independent **[T06a private local bytes](../T06a-next-slice.md)** task-ready with concrete target-integration gaps, neither dispatched. Whole T05/G2 pending; all134 U; full lint3/40 retained. Literal G2 URL/private human handoff/private application-file restart gaps remain; later G3 workflows are not added G2 prerequisites. All earlier current/next entries below are historical snapshots.
+
 ## Current T04d acceptance / bounded PURCHASE readiness — 2026-10-27
 
 Parent explicitly accepts exact `7ba9b9f4b28839afafe1b0468b9de8b8abf64b36`, independent `ccd9c73d` PASS, and purchase-facing T04 prerequisites for bounded T05. [Sanitized attribution, fresh16/genuine upgrade16/adversarial7/108 units/retained campaigns and full-scenario review](T04d-acceptance-attributed.md); portal15 **author-attributed, not independent rerun**, reused-fixture admin failure then fresh10 PASS preserved. Immutable Settings history/CAS versus policyVersion/auth/rollback/replay/finance races/grants verified per parent. [Fresh integration preservation/spec/types/links](T04d-integration-checks.md) adds no runtime claim. **NEXT [T05a real cash + brand-new PURCHASE](../T05a-next-slice.md)**; prepared not dispatched. G1 and bounded T04a–d accepted; whole T04/T05/G2 pending, all134 U. Full lint3 errors/40 warnings remains G6 debt. Prior evidence and historical current/next labels below are preserved, not duplicate dispatches.
