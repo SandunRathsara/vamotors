@@ -80,6 +80,22 @@ Full repository lint is unchanged **3 errors / 40 warnings**, explicit G6 debt (
 
 ## Remaining independent criteria and next bounded slice
 
+### Bounded R1 correction on exact candidate `ae3295f761b740dcf9fc7232892a7dca6ec0a6dc`
+
+The query now requires **only consumed identity leaves**: `identity.make` for make, `identity.model` for model, and `identity.make/model/engineNumber/chassisNumber` for q. The same four-field array drives the actual SQL OR predicate. Inventory consumes Vehicle identity; purchase search additionally requires those leaves on PurchaseRecord. Existing pre-count/filter/order scopes and conservative per-population witnesses are unchanged. No compound/wildcard restoration, migration, schema, runtime grant, contract, ledger or dependency change accompanies this correction.
+
+`tests/security/purchase-upgrade-check.ts prepare` now also retains an actual old compound identity role. After genuine seven-migration parent setup, prepare, candidate overlay, setup, verify, repeated setup/verify, and **before appending any acquisition campaign rows**, run:
+
+```sh
+node --import tsx tests/security/purchase-predicate-check.ts <your-private-upgrade-root>
+```
+
+This production Next/Chromium runner owns its ephemeral loopback port, checks 20 groups, restores exact original staff assignments, and compares business rowsets/sequence before and after. It tests retained wildcard/compound roles, explicit make-only/model-only/four-leaf roles, every missing search leaf on both source roots, safe no-data/no-count errors (including no matches/page2), UI search success and access-loss purge, sort/filter denial, same-population leaf union, mixed-public/private denial and independently scoped cross-root counts. It deliberately retains old PurchaseRecord ceilings rather than making old identity-unreadable purchase searches succeed. Run on a dedicated pre-business-write upgrade fixture: assertions name its one retained Synthetic purchase.
+
+Author correction evidence is private under `/Users/alpha/.config/vamotors/local-t05a-r1-91054b-upgrade`: baseline `purchase-predicates-c08a32d8-0c17-4ea3-bc2b-ff34c7ea2189.json` records inventory200/make403/model403/q403 with unchanged business rows; corrected `purchase-predicates-f8d2c57b-99d5-40e0-aa2a-28cbea6e4df9.json` passes20; `purchase-acquisition-ff7eb881.json` passes the full15 acquisition groups including app/DB restart. Earlier runner-development failures are retained, not passes: missing fixture assignment metadata, invalid literal-createdBy typing, the existing access-loss login redirect rather than an inline403, invalid pageSize1, and the intentional independent unfiltered purchase scope. No product guard was relaxed to satisfy those assumptions. A final clean-SHA rerun/evidence is returned separately.
+
+Freshly rerun correction checks:117 units/11 files, typecheck, production build, owned lint/format/diff; full lint still reports the unchanged3 errors/40 warnings. Prior fresh15/upgrade15, affected finance/Settings/administrative/portal/mobile/redaction/DB/party/customer campaigns, contracts19 and roundtrips remain **prior independent evidence** from `/Users/alpha/.config/vamotors/local-t05a-review-d960-upgrade/independent-review.json`, not newly executed correction claims. Independent acceptance of the returned correction SHA is pending. Literal G2 human handoff/private storage gaps and all downstream receive/hold/release, settlements/costs/edits/repurchase/trade-in work remain pending and outside R1.
+
 - Independent reviewer must bind the returned clean SHA and reproduce its own fresh/upgrade/production evidence. Author results alone cannot authorize READY, accept T05a, promote any of134 IDs, or move a gate.
 - **T05b:** actual receive/hold/release; lawful settlement graph/institution variants/positive component payments/outstanding/corrections; dated costs/mileage append/listed-price/reasoned edits and correction reads. Replace narrow immutable acquisition restrictions only when the corresponding real commands, grants and constraints are installed/tested; never disable all initial protections.
 - **T05c:** real sale completion/immutable original basis/profit before repurchase; real linked noncash source-sale/customer trade-in. One physical identity/new purchase cycle, no fake SOLD fixture presented as runtime proof. Repair/reservation/finance/DO/full ten-state availability closure remains T08–T10 work.

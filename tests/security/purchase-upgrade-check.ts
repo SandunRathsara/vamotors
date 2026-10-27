@@ -83,6 +83,7 @@ try {
     const ids = Object.fromEntries(
       [
         "role",
+        "identityRole",
         "supplier",
         "contact",
         "customer",
@@ -124,6 +125,24 @@ try {
       await db.query(
         'INSERT INTO vamotors."RolePermission" SELECT $1,id FROM vamotors."Permission" WHERE "ruleHash"=$2',
         [ids.role, hash]
+      )
+    }
+    await db.query('INSERT INTO vamotors."Role"(id,name) VALUES($1,$2)', [
+      ids.identityRole,
+      `T05a genuine-parent identity ${ids.identityRole}`,
+    ])
+    for (const rule of [
+      { subject: "Vehicle", action: "read", fields: ["id", "identity"] },
+      { subject: "PurchaseRecord", action: "read", fields: ["id"] },
+    ]) {
+      const hash = createHash("sha256").update(canonical(rule)).digest("hex")
+      await db.query(
+        'INSERT INTO vamotors."Permission"(id,"ruleHash",rule) VALUES($1,$2,$3) ON CONFLICT("ruleHash") DO NOTHING',
+        [randomUUID(), hash, rule]
+      )
+      await db.query(
+        'INSERT INTO vamotors."RolePermission" SELECT $1,id FROM vamotors."Permission" WHERE "ruleHash"=$2',
+        [ids.identityRole, hash]
       )
     }
     await db.query(

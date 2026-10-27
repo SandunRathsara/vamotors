@@ -925,12 +925,18 @@ export async function purchaseQuery(
     : ["id", "purchaseDate", "purchasePrice", "listedPrice", "status"]
   if (sorts.data.some((s) => !allowed.includes(s.field)))
     fail("FIELD_FORBIDDEN", 403)
+  const searchFields = ["make", "model", "engineNumber", "chassisNumber"]
+  const identityFields = [
+    ...(input.make ? ["identity.make"] : []),
+    ...(input.model ? ["identity.model"] : []),
+    ...(input.q ? searchFields.map((field) => `identity.${field}`) : []),
+  ]
   const required = [
     "id",
     ...sorts.data.map((s) => s.field),
     ...(statuses.data.length ? ["status"] : []),
     ...(input.available ? ["available"] : []),
-    ...(input.q || input.make || input.model ? ["identity"] : []),
+    ...identityFields,
     ...(input.from || input.through
       ? [inventory ? "cycleId" : "purchaseDate"]
       : []),
@@ -963,10 +969,7 @@ export async function purchaseQuery(
   )
   const vehicleScope =
     inventory || input.q || input.make || input.model
-      ? physicalScope(
-          actor,
-          input.q || input.make || input.model ? ["identity"] : []
-        )
+      ? physicalScope(actor, identityFields)
       : {}
   const q = input.q?.replace(/[\\%_]/g, "\\$&")
   if (input.supplierId) {
@@ -997,9 +1000,9 @@ export async function purchaseQuery(
             ...(q
               ? [
                   {
-                    OR: ["make", "model", "engineNumber", "chassisNumber"].map(
-                      (f) => ({ [f]: { contains: q, mode: "insensitive" } })
-                    ),
+                    OR: searchFields.map((f) => ({
+                      [f]: { contains: q, mode: "insensitive" },
+                    })),
                   },
                 ]
               : []),

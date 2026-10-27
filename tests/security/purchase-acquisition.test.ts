@@ -31,6 +31,56 @@ const input = {
   paymentMethod: "BANK_TRANSFER",
 }
 describe("bounded T05a acquisition boundary", () => {
+  const searchLeaves = [
+    "identity.make",
+    "identity.model",
+    "identity.engineNumber",
+    "identity.chassisNumber",
+  ]
+  it("authorizes exact identity leaves across grants for the same record population", () => {
+    for (const type of ["Vehicle", "PurchaseRecord"] as const) {
+      const grants = searchLeaves.map((field) => ({
+        subject: type,
+        action: "read" as const,
+        fields: ["id", field],
+        conditions: { createdBy: "$actor.id" as const },
+      }))
+      expect(readScope(grants, input.supplierId, type, searchLeaves)).toEqual({
+        OR: searchLeaves.map(() => ({ createdBy: input.supplierId })),
+      })
+      expect(() =>
+        readScope(grants, input.supplierId, type, ["identity"])
+      ).toThrow("FIELD_FORBIDDEN")
+      for (const field of searchLeaves)
+        expect(() =>
+          readScope(
+            grants.filter((g) => !g.fields.includes(field)),
+            input.supplierId,
+            type,
+            searchLeaves
+          )
+        ).toThrow("FIELD_FORBIDDEN")
+    }
+  })
+  it("does not expand a public record population with private identity leaf grants", () => {
+    for (const type of ["Vehicle", "PurchaseRecord"] as const)
+      expect(() =>
+        readScope(
+          [
+            { subject: type, action: "read", fields: ["id", "identity.make"] },
+            {
+              subject: type,
+              action: "read",
+              fields: searchLeaves,
+              conditions: { createdBy: "$actor.id" },
+            },
+          ],
+          input.supplierId,
+          type,
+          searchLeaves
+        )
+      ).toThrow("FIELD_FORBIDDEN")
+  })
   it("keeps unconditional SQL scopes true and permits only fully covered scoped predicates", () => {
     expect(readScope([], input.supplierId, "PurchaseRecord")).toEqual({
       id: { in: [] },
