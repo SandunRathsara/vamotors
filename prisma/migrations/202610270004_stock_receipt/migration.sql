@@ -32,7 +32,9 @@ BEGIN
  RETURN NEW;
 END $$;
 
-CREATE OR REPLACE FUNCTION vamotors.purchase_status_guard() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$
+-- Definer reads the root's system xmin without granting runtime whole-table or
+-- system-column SELECT. Fixed search path; trigger-only, no caller SQL/GUC input.
+CREATE OR REPLACE FUNCTION vamotors.purchase_status_guard() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE p vamotors."PurchaseRecord"; c vamotors."CommandReceipt";
 BEGIN
  SELECT * INTO p FROM vamotors."PurchaseRecord" WHERE id=NEW."cycleId";
