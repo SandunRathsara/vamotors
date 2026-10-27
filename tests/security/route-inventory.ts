@@ -52,7 +52,6 @@ export const unavailablePages = [
   "/reports/stock",
   "/sales",
   "/sales/[id]",
-  "/settings",
   "/vehicles",
   "/vehicles/[id]",
 ]
@@ -80,6 +79,7 @@ export const queryNames = [
   "audit",
 ]
 export const commandNames = [
+  "updateSettings",
   "createFinanceCompany",
   "updateFinanceCompany",
   "createDirectoryParty",

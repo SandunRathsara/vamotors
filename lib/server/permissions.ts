@@ -207,6 +207,24 @@ export const registry = {
       "itemsPerPage",
       "theme",
     ],
+    update: [
+      "company",
+      "company.name",
+      "company.identity",
+      "company.address",
+      "company.phone",
+      "company.email",
+      "declarations",
+      "currency",
+      "scale",
+      "timezone",
+      "tiers",
+      "warningLeadDays",
+      "processingFee",
+      "dateFormat",
+      "itemsPerPage",
+      "theme",
+    ],
   },
   FinanceCompany: {
     read: [
@@ -271,7 +289,7 @@ export const registry = {
     ],
   },
 } as const
-export const registryVersion = 4
+export const registryVersion = 5
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
@@ -584,7 +602,10 @@ export const administratorGrants: Grant[] = Object.entries(registry).flatMap(
     Object.keys(actions).map((action) => ({
       subject: name as Subject,
       action: action as Grant["action"],
-      fields: ["*"],
+      fields:
+        name === "Settings" && action === "update"
+          ? registry.Settings.update.filter((field) => field !== "company")
+          : ["*"],
     }))
 )
 

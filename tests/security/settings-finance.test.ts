@@ -159,15 +159,15 @@ describe("Settings and finance trust boundaries", () => {
       }).success
     ).toBe(false)
   })
-  it("has read-only Settings and independently grantable policy leaves", () => {
-    expect(registryVersion).toBe(4)
+  it("has explicit Settings updates and independently grantable policy leaves", () => {
+    expect(registryVersion).toBe(5)
     expect(
       grantSchema.safeParse({
         subject: "Settings",
         action: "update",
         fields: ["*"],
       }).success
-    ).toBe(false)
+    ).toBe(true)
     const ability = abilityFor(
       [
         { subject: "Settings", action: "read", fields: ["id", "revision"] },

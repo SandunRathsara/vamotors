@@ -337,8 +337,8 @@ try {
           "updateSettings",
           envelope({ ...currentSettings, reason: "Not enabled" })
         ),
-        404,
-        "NOT_FOUND"
+        422,
+        "INVALID_INPUT"
       )
     }
   )
@@ -686,8 +686,8 @@ try {
     "exact runtime privileges: no owner/DDL/future tables/history edits or deletes",
     async () => {
       for (const sql of [
-        'UPDATE vamotors."Settings" SET revision=revision+1',
-        "INSERT INTO vamotors.\"SettingsVersion\"(id,version,values) VALUES(gen_random_uuid(),999,'{}')",
+        'UPDATE vamotors."Settings" SET singleton=singleton',
+        'UPDATE vamotors."SettingsVersion" SET values=values',
         'UPDATE vamotors."FinanceCompany" SET "createdBy"=\'03000000-0000-4000-8000-000000000013\'',
         "UPDATE vamotors.\"FinanceContact\" SET name='impersonated'",
         'DELETE FROM vamotors."FinanceCompany"',
@@ -1514,7 +1514,7 @@ try {
         passed,
         results,
         limitations: [
-          "Settings writes/UI remain disabled; owner version changes here are concurrency fixtures only",
+          "Settings writes/UI are covered separately by T04d; owner version changes in this retained campaign are concurrency fixtures only",
           "Downstream selection/snapshots/history readiness remain pending",
           "No independent acceptance",
         ],

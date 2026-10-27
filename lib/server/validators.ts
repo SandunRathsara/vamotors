@@ -249,6 +249,10 @@ export function customerEnvelope(name: CustomerCommandName) {
     })
     .strict()
 }
+export const settingsCommand = settingsInput.extend({ reason: text }).strict()
+export const settingsEnvelope = customerEnvelope("createCustomer").extend({
+  input: settingsCommand,
+})
 const roleIds = z
   .array(id)
   .min(1)

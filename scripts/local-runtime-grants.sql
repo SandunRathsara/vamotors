@@ -30,6 +30,10 @@ GRANT UPDATE (name, category, "nicOrRegNumber", address, phone, hotline, notes, 
 -- owner/content UPDATE can invalidate historical references.
 GRANT UPDATE (active) ON vamotors."SupplierContact", vamotors."VendorContact" TO vamotors_runtime;
 GRANT SELECT ON vamotors."Settings", vamotors."SettingsVersion" TO vamotors_runtime;
+GRANT INSERT ON vamotors."SettingsVersion" TO vamotors_runtime;
+GRANT UPDATE (revision, "currentVersionId") ON vamotors."Settings" TO vamotors_runtime;
+-- Currency freeze includes pre-Settings vehicle roots, not a vehicle DTO grant.
+GRANT SELECT (id) ON vamotors."Vehicle" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."FinanceCompany", vamotors."FinanceContact", vamotors."FinancePolicyVersion" TO vamotors_runtime;
 GRANT UPDATE (name, active, revision, "currentPolicyId", "updatedAt") ON vamotors."FinanceCompany" TO vamotors_runtime;
 GRANT UPDATE (active) ON vamotors."FinanceContact" TO vamotors_runtime;
