@@ -981,8 +981,10 @@ try {
     "cash has no invented Settings CAS; concurrent policy changes preserve immutable acquisition snapshots",
     async () => {
       const settings = await query<QueryData["settings"]>(a.request, "settings")
-      const { id, revision, policyVersion, ...values } = settings
+      const { id, revision, policyVersion, redactedFields, ...values } =
+        settings as QueryData["settings"] & { redactedFields?: string[] }
       void policyVersion
+      void redactedFields
       const before = (
         await db.query(
           'SELECT to_jsonb(p) AS p,to_jsonb(v) AS v FROM vamotors."PurchaseRecord" p JOIN vamotors."SettingsVersion" v ON v.id=p."settingsVersionId" WHERE p.id=$1',
