@@ -250,6 +250,25 @@ export function customerEnvelope(name: CustomerCommandName) {
     .strict()
 }
 export const settingsCommand = settingsInput.extend({ reason: text }).strict()
+export const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((s) => {
+  const d = new Date(`${s}T00:00:00.000Z`)
+  return !Number.isNaN(d.valueOf()) && d.toISOString().slice(0, 10) === s
+})
+export const vehicleInput = z.object({
+  engineNumber: text.max(100).refine((v) => v.replace(/[\t\n\r\f\v ]/g, "").length > 0),
+  chassisNumber: text.max(100).refine((v) => v.replace(/[\t\n\r\f\v ]/g, "").length > 0),
+  make: name, model: name, year: z.number().int().min(1886).max(new Date().getUTCFullYear() + 1),
+  colour: name, vin: text.max(100).optional(), crNumber: text.max(100).optional(),
+  fuelType: z.enum(["PETROL", "DIESEL", "HYBRID", "ELECTRIC", "OTHER"]),
+  transmission: z.enum(["MANUAL", "AUTOMATIC", "CVT", "OTHER"]), notes: text.optional(),
+}).strict()
+export const mileageInput = z.object({ reading: z.number().int().min(0).max(99999999), date: dateOnly, remark: text.optional(), decreaseReason: text.optional() }).strict()
+export const purchaseInput = z.object({
+  vehicle: vehicleInput, supplierId: id, purchaseDate: dateOnly, listedPrice: moneyInput.optional(),
+  mileage: mileageInput, paymentMethod: z.enum(["CASH", "BANK_TRANSFER"]),
+  purchaseType: z.enum(["CASH", "BRAND_NEW"]), purchasePrice: moneyInput.refine((v) => BigInt(v) > 0n),
+}).strict()
+export const purchaseEnvelope = customerEnvelope("createCustomer").extend({ input: purchaseInput })
 export const settingsEnvelope = customerEnvelope("createCustomer").extend({
   input: settingsCommand,
 })

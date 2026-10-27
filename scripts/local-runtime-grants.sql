@@ -38,3 +38,11 @@ GRANT SELECT, INSERT ON vamotors."FinanceCompany", vamotors."FinanceContact", va
 GRANT UPDATE (name, active, revision, "currentPolicyId", "updatedAt") ON vamotors."FinanceCompany" TO vamotors_runtime;
 GRANT UPDATE (active) ON vamotors."FinanceContact" TO vamotors_runtime;
 GRANT EXECUTE ON FUNCTION vamotors.valid_finance_policy(jsonb) TO vamotors_runtime;
+-- T05a: create complete acquisition graph only. No mutable ownership, lifecycle,
+-- financial-history UPDATE, DELETE, DDL, or future-table/default privileges.
+GRANT SELECT ON vamotors."Vehicle", vamotors."PurchaseRecord", vamotors."PurchasePayment", vamotors."MileageReading", vamotors."CycleBasisVersion", vamotors."CashMovement" TO vamotors_runtime;
+GRANT INSERT (id, "engineNumber", "chassisNumber", "normalizedEngine", "normalizedChassis", make, model, year, colour, "fuelType", transmission, vin, "crNumber", notes, revision, "createdBy", "createdAt", "updatedAt", "activePurchaseId") ON vamotors."Vehicle" TO vamotors_runtime;
+GRANT INSERT (id, "vehicleId", "cycleNumber", "purchaseType", "acquisitionKind", "supplierId", "purchaseDate", "purchasePrice", "listedPrice", status, available, revision, "createdBy", "createdAt", "updatedAt", "acquisitionCommandId", "settingsVersionId") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT INSERT (id, "cycleId", amount, direction, category, "occurredDate", method, currency, scale, "commandId", "lineKey", "recordedAt") ON vamotors."PurchasePayment" TO vamotors_runtime;
+GRANT INSERT (id, "vehicleId", "cycleId", reading, "recordedDate", remark, "decreaseReason", "commandId", "recordedAt") ON vamotors."MileageReading" TO vamotors_runtime;
+GRANT INSERT (id, "cycleId", version, purchase, components, total, currency, scale, reason, "commandId", "recordedAt") ON vamotors."CycleBasisVersion" TO vamotors_runtime;

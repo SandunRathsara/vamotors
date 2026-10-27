@@ -49,7 +49,11 @@ export const registry = {
       "financial.basis",
       "financial.originalProfit",
       "financial.restatedProfit",
+      "identityRevision", "holdReason", "mileage", "provenance",
+      "identity.engineNumber", "identity.chassisNumber", "identity.make", "identity.model", "identity.year", "identity.colour", "identity.fuelType", "identity.transmission", "identity.vin", "identity.crNumber", "identity.notes",
+      "financial.currency", "financial.scale", "financial.cashIn", "financial.cashOut", "financial.net",
     ],
+    create: ["engineNumber", "chassisNumber", "make", "model", "year", "colour", "fuelType", "transmission", "vin", "crNumber", "notes"],
   },
   Customer: {
     read: [
@@ -89,8 +93,12 @@ export const registry = {
     ],
     archive: ["active"],
   },
-  // Customer history links only; no purchase lifecycle command/query enabled.
-  PurchaseRecord: { read: ["id", "purchaseDate", "status", "purchasePrice"] },
+  PurchaseRecord: {
+    read: ["id", "revision", "vehicleId", "identity", "identityRevision", "cycleNumber", "purchaseType", "acquisitionKind", "seller", "purchaseDate", "purchasePrice", "listedPrice", "status", "available", "holdReason", "receivedDate", "closedAt", "payments", "outstanding", "costs", "repairs", "mileage", "financial", "basisVersions", "sales", "disposal", "provenance", "nextActions",
+      "identity.engineNumber", "identity.chassisNumber", "identity.make", "identity.model", "identity.year", "identity.colour", "identity.fuelType", "identity.transmission", "identity.vin", "identity.crNumber", "identity.notes",
+      "financial.currency", "financial.scale", "financial.purchase", "financial.repairs", "financial.additionalCosts", "financial.basis", "financial.cashIn", "financial.cashOut", "financial.net"],
+    create: ["vehicle", "supplierId", "purchaseDate", "purchaseType", "purchasePrice", "listedPrice", "mileage", "paymentMethod"],
+  },
   Supplier: {
     // category is retained only to validate immutable legacy permissions. The
     // wire DTO exposes it at directory.category, never as an extra DTO key.
@@ -289,7 +297,7 @@ export const registry = {
     ],
   },
 } as const
-export const registryVersion = 5
+export const registryVersion = 6
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],

@@ -92,6 +92,7 @@ export async function writeReadVersion(
     sequence: bigint
     entityType:
       | "Vehicle"
+      | "PurchaseRecord"
       | "Customer"
       | "Supplier"
       | "RepairVendor"

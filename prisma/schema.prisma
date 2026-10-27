@@ -167,6 +167,10 @@ model CommandReceipt {
   audit                 AuditEntry[]
   versions              EntityReadVersion[]
   statuses              StatusEvent[]
+  acquisitions          PurchaseRecord[]
+  purchasePayments      PurchasePayment[]
+  mileageReadings        MileageReading[]
+  basisVersions         CycleBasisVersion[]
 
   @@unique([environmentId, actorKey, commandName, idempotencyKey])
   @@schema("vamotors")
@@ -256,6 +260,7 @@ model SettingsVersion {
   effectiveAt DateTime  @default(now())
   values      Json
   current     Settings?
+  purchases   PurchaseRecord[]
 
   @@schema("vamotors")
 }
@@ -422,6 +427,7 @@ model Vehicle {
   activePurchaseId  String?          @unique @db.Uuid
   purchases         PurchaseRecord[] @relation("cycles")
   activePurchase    PurchaseRecord?  @relation("activeCycle", fields: [activePurchaseId, id], references: [id, vehicleId], onDelete: Restrict)
+  mileage           MileageReading[]
 
   @@unique([normalizedEngine, normalizedChassis])
   @@unique([activePurchaseId, id])
@@ -453,6 +459,13 @@ model PurchaseRecord {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   statuses         StatusEvent[]
+  acquisitionCommandId String? @unique @db.Uuid
+  acquisitionCommand CommandReceipt? @relation(fields: [acquisitionCommandId], references: [id], onDelete: Restrict)
+  settingsVersionId String? @db.Uuid
+  settingsVersion SettingsVersion? @relation(fields: [settingsVersionId], references: [id], onDelete: Restrict)
+  payments PurchasePayment[]
+  mileage MileageReading[]
+  basisVersions CycleBasisVersion[]
 
   @@unique([id, vehicleId])
   @@unique([vehicleId, cycleNumber])
@@ -474,5 +487,73 @@ model StatusEvent {
   recordedAt DateTime       @default(now())
 
   @@index([cycleId, recordedAt, id])
+  @@schema("vamotors")
+}
+
+model PurchasePayment {
+  id String @id @default(uuid()) @db.Uuid
+  cycleId String @db.Uuid
+  cycle PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  amount BigInt
+  direction String
+  category String
+  occurredDate DateTime @db.Date
+  method String
+  currency String
+  scale Int
+  reference String?
+  reversalOf String? @unique @db.Uuid
+  original PurchasePayment? @relation("purchaseReversal", fields: [reversalOf, cycleId], references: [id, cycleId], onDelete: Restrict)
+  reversal PurchasePayment? @relation("purchaseReversal")
+  reason String?
+  commandId String @db.Uuid
+  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  lineKey String
+  recordedAt DateTime @default(now())
+  @@unique([id, cycleId])
+  @@unique([commandId, lineKey])
+  @@unique([reversalOf, cycleId])
+  @@index([cycleId, occurredDate, id])
+  @@schema("vamotors")
+}
+
+model MileageReading {
+  id String @id @default(uuid()) @db.Uuid
+  vehicleId String @db.Uuid
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  cycleId String @db.Uuid
+  cycle PurchaseRecord @relation(fields: [cycleId, vehicleId], references: [id, vehicleId], onDelete: Restrict)
+  reading Int
+  recordedDate DateTime @db.Date
+  remark String?
+  decreaseReason String?
+  commandId String @db.Uuid
+  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  recordedAt DateTime @default(now())
+  @@unique([commandId, cycleId])
+  @@index([cycleId, recordedDate, id])
+  @@schema("vamotors")
+}
+
+model CycleBasisVersion {
+  id String @id @default(uuid()) @db.Uuid
+  cycleId String @db.Uuid
+  cycle PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  version Int
+  purchase BigInt
+  components Json
+  total BigInt
+  currency String
+  scale Int
+  reason String
+  commandId String @db.Uuid
+  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  supersedesId String? @unique @db.Uuid
+  original CycleBasisVersion? @relation("basisCorrection", fields: [supersedesId, cycleId], references: [id, cycleId], onDelete: Restrict)
+  correction CycleBasisVersion? @relation("basisCorrection")
+  recordedAt DateTime @default(now())
+  @@unique([id, cycleId])
+  @@unique([cycleId, version])
+  @@unique([supersedesId, cycleId])
   @@schema("vamotors")
 }
