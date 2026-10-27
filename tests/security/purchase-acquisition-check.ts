@@ -14,7 +14,7 @@ import {
 } from "@playwright/test"
 import pg from "pg"
 import { privateEnvironment } from "../../scripts/private-environment"
-import { registry } from "../../lib/server/permissions"
+import { registry, expanded } from "../../lib/server/permissions"
 import type {
   Applied,
   Dependency,
@@ -23,6 +23,7 @@ import type {
   PartyDTO,
   Grant,
   QueryData,
+  CurrentActorDTO,
 } from "../../.planning/implementation/contracts/api"
 
 process.umask(0o077)
@@ -33,7 +34,7 @@ const runtime = await privateEnvironment(join(root, "runtime.env")),
   accounts = await privateEnvironment(join(root, "accounts.env")),
   cluster = await privateEnvironment(join(root, "cluster.env")),
   admin = await privateEnvironment(join(root, "admin.env"))
-assert.equal(cluster.PROJECT, process.cwd())
+assert.equal(cluster.PROJECT, process.argv[3] ?? process.cwd())
 assert.equal(runtime.APP_ENV, "local")
 assert.equal(new URL(runtime.DATABASE_URL!).hostname, "127.0.0.1")
 let db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 3 }),
@@ -249,6 +250,32 @@ try {
       await login(page, "ADMIN")
       await login(second, "SECOND")
       await login(limited, "STAFF")
+      const staffActor = await query<CurrentActorDTO>(
+        staff.request,
+        "currentActor"
+      )
+      const stockFields = staffActor.presentationGrants
+        .filter((g) => g.subject === "Vehicle" && g.action === "read")
+        .flatMap(expanded)
+      for (const field of [
+        "identityRevision",
+        "financial.currency",
+        "financial.scale",
+        "financial.cashIn",
+        "financial.cashOut",
+        "financial.net",
+      ])
+        assert.equal(
+          stockFields.includes(field),
+          false,
+          `fresh staff ceiling ${field}`
+        )
+      assert.equal(
+        staffActor.presentationGrants.some(
+          (g) => g.subject === "PurchaseRecord" && g.action === "create"
+        ),
+        false
+      )
       assert.equal(
         (await anonymous.request.get("/api/v1/queries/purchases")).status(),
         401
@@ -1259,12 +1286,20 @@ try {
       execFileSync(
         process.execPath,
         ["--import", "tsx", "scripts/local-postgres.ts", "stop"],
-        { env: { ...process.env, VAMOTORS_LOCAL_DIR: root }, stdio: "pipe" }
+        {
+          cwd: cluster.PROJECT,
+          env: { ...process.env, VAMOTORS_LOCAL_DIR: root },
+          stdio: "pipe",
+        }
       )
       execFileSync(
         process.execPath,
         ["--import", "tsx", "scripts/local-postgres.ts", "start"],
-        { env: { ...process.env, VAMOTORS_LOCAL_DIR: root }, stdio: "pipe" }
+        {
+          cwd: cluster.PROJECT,
+          env: { ...process.env, VAMOTORS_LOCAL_DIR: root },
+          stdio: "pipe",
+        }
       )
       db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 3 })
       restricted = new pg.Pool({
@@ -1295,6 +1330,8 @@ try {
         passed: results.length,
         note: "Author evidence only, not independent acceptance",
         origin,
+        fixture: root,
+        fixtureProject: cluster.PROJECT,
         dirty: !!execFileSync("git", ["status", "--porcelain"], {
           encoding: "utf8",
         }).trim(),

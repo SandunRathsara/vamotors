@@ -149,7 +149,17 @@ async function main() {
               {
                 subject: "Vehicle" as const,
                 action: "read" as const,
-                fields: ["listedPrice", "financial"],
+                // Preserve the pre-acquisition synthetic staff ceiling on fresh
+                // installs too. Only Administrator receives the new v6 fields.
+                fields: [
+                  "listedPrice",
+                  "financial.purchase",
+                  "financial.repairs",
+                  "financial.additionalCosts",
+                  "financial.basis",
+                  "financial.originalProfit",
+                  "financial.restatedProfit",
+                ],
                 conditions: { createdBy: "$actor.id" as const },
               },
             ],
