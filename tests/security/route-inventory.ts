@@ -40,7 +40,6 @@ export const unavailablePages = [
   "/lease-dispatch",
   "/lease-rate-sheets",
   "/lease-reconciliation",
-  "/purchases",
   "/repairs",
   "/reports",
   "/reports/advances",
@@ -52,8 +51,6 @@ export const unavailablePages = [
   "/reports/stock",
   "/sales",
   "/sales/[id]",
-  "/vehicles",
-  "/vehicles/[id]",
 ]
 export const methods = [
   "GET",
@@ -65,6 +62,11 @@ export const methods = [
   "DELETE",
 ] as const
 export const queryNames = [
+  "purchases",
+  "purchase",
+  "inventory",
+  "vehicle",
+  "vehicleIdentity",
   "settings",
   "party",
   "parties",
@@ -79,6 +81,7 @@ export const queryNames = [
   "audit",
 ]
 export const commandNames = [
+  "recordPurchase",
   "updateSettings",
   "createFinanceCompany",
   "updateFinanceCompany",

@@ -4,7 +4,7 @@ import { Activity, createContext, useContext, useEffect, useState } from "react"
 import { flushSync } from "react-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import type { CurrentActorDTO } from "@/.planning/implementation/contracts/api"
-import { privateRequest } from "@/lib/security-client"
+import { privateRequest, RequestError } from "@/lib/security-client"
 
 type Context = { actor: CurrentActorDTO; administrator: boolean }
 const AuthContext = createContext<Context | null>(null)
@@ -68,8 +68,15 @@ export function AuthBoundary({
         }
         setReady(!obscured)
         setVerified(true)
-      } catch {
-        if (alive) leave()
+      } catch (error) {
+        if (alive) {
+          if (
+            error instanceof RequestError &&
+            [401, 403].includes(error.status)
+          )
+            leave()
+          else setReady(false) // Retain hidden Activity/drafts during transient verification failure.
+        }
       } finally {
         checking = false
       }

@@ -49,11 +49,40 @@ export const registry = {
       "financial.basis",
       "financial.originalProfit",
       "financial.restatedProfit",
-      "identityRevision", "holdReason", "mileage", "provenance",
-      "identity.engineNumber", "identity.chassisNumber", "identity.make", "identity.model", "identity.year", "identity.colour", "identity.fuelType", "identity.transmission", "identity.vin", "identity.crNumber", "identity.notes",
-      "financial.currency", "financial.scale", "financial.cashIn", "financial.cashOut", "financial.net",
+      "identityRevision",
+      "holdReason",
+      "mileage",
+      "provenance",
+      "identity.engineNumber",
+      "identity.chassisNumber",
+      "identity.make",
+      "identity.model",
+      "identity.year",
+      "identity.colour",
+      "identity.fuelType",
+      "identity.transmission",
+      "identity.vin",
+      "identity.crNumber",
+      "identity.notes",
+      "financial.currency",
+      "financial.scale",
+      "financial.cashIn",
+      "financial.cashOut",
+      "financial.net",
     ],
-    create: ["engineNumber", "chassisNumber", "make", "model", "year", "colour", "fuelType", "transmission", "vin", "crNumber", "notes"],
+    create: [
+      "engineNumber",
+      "chassisNumber",
+      "make",
+      "model",
+      "year",
+      "colour",
+      "fuelType",
+      "transmission",
+      "vin",
+      "crNumber",
+      "notes",
+    ],
   },
   Customer: {
     read: [
@@ -94,10 +123,66 @@ export const registry = {
     archive: ["active"],
   },
   PurchaseRecord: {
-    read: ["id", "revision", "vehicleId", "identity", "identityRevision", "cycleNumber", "purchaseType", "acquisitionKind", "seller", "purchaseDate", "purchasePrice", "listedPrice", "status", "available", "holdReason", "receivedDate", "closedAt", "payments", "outstanding", "costs", "repairs", "mileage", "financial", "basisVersions", "sales", "disposal", "provenance", "nextActions",
-      "identity.engineNumber", "identity.chassisNumber", "identity.make", "identity.model", "identity.year", "identity.colour", "identity.fuelType", "identity.transmission", "identity.vin", "identity.crNumber", "identity.notes",
-      "financial.currency", "financial.scale", "financial.purchase", "financial.repairs", "financial.additionalCosts", "financial.basis", "financial.cashIn", "financial.cashOut", "financial.net"],
-    create: ["vehicle", "supplierId", "purchaseDate", "purchaseType", "purchasePrice", "listedPrice", "mileage", "paymentMethod"],
+    read: [
+      "id",
+      "revision",
+      "vehicleId",
+      "identity",
+      "identityRevision",
+      "cycleNumber",
+      "purchaseType",
+      "acquisitionKind",
+      "seller",
+      "purchaseDate",
+      "purchasePrice",
+      "listedPrice",
+      "status",
+      "available",
+      "holdReason",
+      "receivedDate",
+      "closedAt",
+      "payments",
+      "outstanding",
+      "costs",
+      "repairs",
+      "mileage",
+      "financial",
+      "basisVersions",
+      "sales",
+      "disposal",
+      "provenance",
+      "nextActions",
+      "identity.engineNumber",
+      "identity.chassisNumber",
+      "identity.make",
+      "identity.model",
+      "identity.year",
+      "identity.colour",
+      "identity.fuelType",
+      "identity.transmission",
+      "identity.vin",
+      "identity.crNumber",
+      "identity.notes",
+      "financial.currency",
+      "financial.scale",
+      "financial.purchase",
+      "financial.repairs",
+      "financial.additionalCosts",
+      "financial.basis",
+      "financial.cashIn",
+      "financial.cashOut",
+      "financial.net",
+    ],
+    create: [
+      "vehicle",
+      "supplierId",
+      "purchaseDate",
+      "purchaseType",
+      "purchasePrice",
+      "listedPrice",
+      "mileage",
+      "paymentMethod",
+    ],
   },
   Supplier: {
     // category is retained only to validate immutable legacy permissions. The
@@ -575,7 +660,7 @@ export function readScope(
   userId: string,
   type: EnabledSubject,
   requiredFields: readonly string[] = []
-) {
+): { OR?: Record<string, string>[] } {
   const rules = grants.filter(
     (g) => g.subject === type && g.action === "read" && g.fields.length > 0
   )
@@ -602,7 +687,11 @@ export function readScope(
       )
     )
       fail("FIELD_FORBIDDEN", 403)
-  return scope(rules)
+  // Prisma treats OR:[{}] as an empty disjunction in some query shapes. An
+  // unconditional positive grant means no row predicate, not an empty OR arm.
+  return rules.some((g) => Object.keys(g.conditions ?? {}).length === 0)
+    ? {}
+    : scope(rules)
 }
 
 export const administratorGrants: Grant[] = Object.entries(registry).flatMap(

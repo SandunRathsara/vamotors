@@ -11,6 +11,7 @@ import { fail } from "@/lib/server/errors"
 import { executeCustomer } from "@/lib/server/customers"
 import { executeParty } from "@/lib/server/parties"
 import { executeSettings } from "@/lib/server/settings"
+import { recordPurchase } from "@/lib/server/purchases"
 import { partyCommands, type PartyCommandName } from "@/lib/server/validators"
 import {
   customerCommands,
@@ -30,6 +31,7 @@ export async function POST(
     const party = Object.hasOwn(partyCommands, name)
     if (
       name !== "updateSettings" &&
+      name !== "recordPurchase" &&
       !customer &&
       !party &&
       !Object.hasOwn(commandInputs, name)
@@ -41,15 +43,22 @@ export async function POST(
       (name !== "archiveParty" ||
         (raw as { input?: { type?: string } })?.input?.type !== "CUSTOMER")
     const result =
-      name === "updateSettings"
-        ? await executeSettings(identity, raw)
-        : directory
-          ? await executeParty(identity, name as PartyCommandName, raw)
-          : customer
-            ? await executeCustomer(identity, name as CustomerCommandName, raw)
-            : await executeAdmin(identity, name as CommandName, raw)
+      name === "recordPurchase"
+        ? await recordPurchase(identity, raw)
+        : name === "updateSettings"
+          ? await executeSettings(identity, raw)
+          : directory
+            ? await executeParty(identity, name as PartyCommandName, raw)
+            : customer
+              ? await executeCustomer(
+                  identity,
+                  name as CustomerCommandName,
+                  raw
+                )
+              : await executeAdmin(identity, name as CommandName, raw)
     const created =
       name === "createUser" ||
+      name === "recordPurchase" ||
       name === "createCustomer" ||
       name === "createDirectoryParty" ||
       name === "createFinanceCompany" ||

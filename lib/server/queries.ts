@@ -18,6 +18,7 @@ import type { Tx } from "./db"
 import { customerQuery } from "./customers"
 import { partiesQuery, partyQuery } from "./parties"
 import { settingsQuery } from "./settings"
+import { purchaseQuery } from "./purchases"
 
 const canAdminister = (actor: Actor) =>
   ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
@@ -90,6 +91,18 @@ export async function securityQuery(
       await assertEnvironment(tx)
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
+      if (name === "audit" && ["Vehicle", "PurchaseRecord"].includes(args.type))
+        return purchaseQuery(tx, actor, name, args)
+      if (
+        [
+          "purchases",
+          "purchase",
+          "inventory",
+          "vehicle",
+          "vehicleIdentity",
+        ].includes(name)
+      )
+        return purchaseQuery(tx, actor, name, args)
       if (name === "parties") return partiesQuery(tx, actor, args)
       if (name === "party") return partyQuery(tx, actor, args)
       if (name === "settings") return settingsQuery(tx, actor, args)

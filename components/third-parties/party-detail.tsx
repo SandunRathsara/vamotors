@@ -163,8 +163,18 @@ export function PartyDetail({ kind, id }: { kind: DirectoryKind; id: string }) {
                         <p key={i} className="break-words">
                           {link.type} · {link.id ?? "Identity unavailable"} ·{" "}
                           {link.date ?? "Date unavailable"} ·{" "}
-                          {link.status ?? "Status unavailable"} · Navigation
-                          pending
+                          {link.status ?? "Status unavailable"} ·{" "}
+                          {link.type === "PURCHASE" && link.id ? (
+                            <Link
+                              prefetch={false}
+                              className="underline"
+                              href={`/purchases/${link.id}`}
+                            >
+                              View purchase
+                            </Link>
+                          ) : (
+                            "Navigation pending"
+                          )}
                         </p>
                       ))}
                       {contribution.state === "READY" &&

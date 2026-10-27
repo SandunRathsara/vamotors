@@ -62,7 +62,7 @@ CREATE TRIGGER acquisition_root BEFORE INSERT OR UPDATE ON vamotors."PurchaseRec
 CREATE FUNCTION vamotors.check_acquisition_graph() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$
 DECLARE cid uuid; p vamotors."PurchaseRecord"; policy jsonb;
 BEGIN
- cid:=CASE WHEN TG_TABLE_NAME='PurchaseRecord' THEN NEW.id ELSE NEW."cycleId" END;
+ IF TG_TABLE_NAME='PurchaseRecord' THEN cid:=NEW.id; ELSE cid:=NEW."cycleId"; END IF;
  SELECT * INTO p FROM vamotors."PurchaseRecord" WHERE id=cid;
  IF p."acquisitionCommandId" IS NULL THEN
   IF TG_TABLE_NAME<>'PurchaseRecord' THEN RAISE EXCEPTION 'ACQUISITION_EVIDENCE_REQUIRED' USING ERRCODE='23514'; END IF;
