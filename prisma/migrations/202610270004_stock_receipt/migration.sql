@@ -41,7 +41,7 @@ BEGIN
    IF NEW."from" IS NOT NULL OR NEW."to"<>'PURCHASED' OR NEW.action<>'recordPurchase' OR NEW."userId"<>p."createdBy" OR NEW."occurredAt"<>p."purchaseDate"::timestamp OR EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."cycleId"=p.id) THEN RAISE EXCEPTION 'INVALID_ACQUISITION_STATUS' USING ERRCODE='23514'; END IF;
   ELSE
    SELECT * INTO c FROM vamotors."CommandReceipt" WHERE id=NEW."commandId";
-   IF c.id IS NULL OR c."actorKey"<>'USER:'||NEW."userId"::text OR c."commandName"<>NEW.action OR NEW.action NOT IN ('receiveStock','holdStock','releaseStock') OR NEW."to"<>'IN_STOCK' OR NEW."from" IS DISTINCT FROM (CASE WHEN NEW.action='receiveStock' THEN 'PURCHASED' ELSE 'IN_STOCK' END) OR c.result<>jsonb_build_object('type','PurchaseRecord','id',p.id,'revision',p.revision) OR EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."commandId"=c.id) THEN RAISE EXCEPTION 'INVALID_STOCK_STATUS' USING ERRCODE='23514'; END IF;
+   IF c.id IS NULL OR c."actorKey"<>'USER:'||NEW."userId"::text OR c."commandName"<>NEW.action OR NEW.action NOT IN ('receiveStock','holdStock','releaseStock') OR NEW."to"<>'IN_STOCK' OR NEW."from"::text IS DISTINCT FROM (CASE WHEN NEW.action='receiveStock' THEN 'PURCHASED' ELSE 'IN_STOCK' END) OR c.result<>jsonb_build_object('type','PurchaseRecord','id',p.id,'revision',p.revision) OR NOT EXISTS(SELECT 1 FROM vamotors."PurchaseRecord" x WHERE x.id=p.id AND x.xmin=pg_current_xact_id()::text::xid) OR EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."commandId"=c.id) THEN RAISE EXCEPTION 'INVALID_STOCK_STATUS' USING ERRCODE='23514'; END IF;
   END IF;
  END IF;
  RETURN NEW;
@@ -80,7 +80,7 @@ DROP TRIGGER acquisition_graph ON vamotors."PurchaseRecord";
 CREATE CONSTRAINT TRIGGER acquisition_graph AFTER INSERT OR UPDATE ON vamotors."PurchaseRecord" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vamotors.check_acquisition_graph();
 
 CREATE FUNCTION vamotors.check_stock_graph() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$
-DECLARE c vamotors."CommandReceipt"; v vamotors."Vehicle"; prior jsonb; after_payload jsonb; old_payload jsonb; delta jsonb; kind text; eid uuid; rev integer; paths text[]:=ARRAY['revision','status','available','holdReason','receivedDate'];
+DECLARE c vamotors."CommandReceipt"; v vamotors."Vehicle"; after_payload jsonb; old_payload jsonb; delta jsonb; kind text; eid uuid; rev integer; paths text[]:=ARRAY['revision','status','available','holdReason','receivedDate'];
 BEGIN
  SELECT * INTO v FROM vamotors."Vehicle" WHERE id=NEW."vehicleId";
  SELECT * INTO c FROM vamotors."CommandReceipt" WHERE result=jsonb_build_object('type','PurchaseRecord','id',NEW.id,'revision',NEW.revision) AND "commandName" IN ('receiveStock','holdStock','releaseStock') AND xmin=pg_current_xact_id()::text::xid;
@@ -102,7 +102,8 @@ BEGIN
    OR after_payload->'available' IS DISTINCT FROM to_jsonb(NEW.available)
    OR coalesce(after_payload->'holdReason','null'::jsonb) IS DISTINCT FROM coalesce(to_jsonb(NEW."holdReason"),'null'::jsonb)
    OR (kind='PurchaseRecord' AND after_payload->'receivedDate' IS DISTINCT FROM to_jsonb(NEW."receivedDate"::text))
-   OR (after_payload-paths) IS DISTINCT FROM (old_payload-paths)
+   OR (kind='PurchaseRecord' AND after_payload->'seller' IS DISTINCT FROM (SELECT jsonb_build_object('type','SUPPLIER','id',s.id,'name',s.name,'active',s.active) FROM vamotors."Supplier" s WHERE s.id=NEW."supplierId"))
+   OR (after_payload-paths-'seller') IS DISTINCT FROM (old_payload-paths-'seller')
    THEN RAISE EXCEPTION 'INVALID_STOCK_VERSION' USING ERRCODE='23514'; END IF;
   SELECT coalesce(jsonb_object_agg(f,jsonb_build_object('before',coalesce(old_payload->f,'null'::jsonb),'after',coalesce(after_payload->f,'null'::jsonb))),'{}'::jsonb) INTO delta FROM unnest(paths) f WHERE coalesce(old_payload->f,'null'::jsonb) IS DISTINCT FROM coalesce(after_payload->f,'null'::jsonb);
   IF NOT EXISTS(SELECT 1 FROM vamotors."AuditEntry" a WHERE a."commandId"=c.id AND a."entityType"=kind AND a."entityId"=eid AND a.action=c."commandName" AND a."actorKind"='USER' AND c."actorKey"='USER:'||a."userId"::text AND a."fieldDiff"=delta AND a.xmin=pg_current_xact_id()::text::xid) THEN RAISE EXCEPTION 'INVALID_STOCK_AUDIT' USING ERRCODE='23514'; END IF;

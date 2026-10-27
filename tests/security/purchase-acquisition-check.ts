@@ -480,7 +480,6 @@ try {
       )
       for (const name of [
         "payPurchase",
-        "receiveStock",
         "intakeTradeIn",
         "editPurchase",
       ])

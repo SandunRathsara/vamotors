@@ -513,20 +513,43 @@ export function AcquisitionWorkspace({
     [draftSearch, setDraftSearch] = useState(search),
     [form, setForm] = useState(false)
   const name = inventory ? "inventory" : "purchases"
+  const status = params.get("status") ?? ""
+  const availability = params.get("available") ?? ""
+  const make = params.get("make") ?? ""
+  const model = params.get("model") ?? ""
+  const sort = params.get("order") ?? "id"
+  const filters = new URLSearchParams({
+    page: String(page),
+    pageSize: "20",
+    q: search,
+  })
+  if (status) filters.set("statuses", JSON.stringify([status]))
+  if (inventory && availability) filters.set("available", availability)
+  if (inventory && make) filters.set("make", make)
+  if (inventory && model) filters.set("model", model)
+  filters.set("sort", JSON.stringify([{ field: sort, direction: "asc" }]))
   const query = useQuery({
-    queryKey: [name, page, search],
+    queryKey: [name, filters.toString()],
     retry: false,
     queryFn: () =>
       privateRequest<{
         data: { data: (Cycle & Vehicle)[]; total: number; pageSize: number }
-      }>(
-        `/api/v1/queries/${name}?page=${page}&pageSize=20&q=${encodeURIComponent(search)}`
-      ),
+      }>(`/api/v1/queries/${name}?${filters}`),
   })
   function navigate(next: number, q = search) {
-    router.replace(`?page=${next}&q=${encodeURIComponent(q)}`, {
+    const nextParams = new URLSearchParams(params.toString())
+    nextParams.set("page", String(next))
+    nextParams.set("q", q)
+    router.replace(`?${nextParams}`, {
       scroll: false,
     })
+  }
+  function filter(key: string, value: string) {
+    const nextParams = new URLSearchParams(params.toString())
+    if (value) nextParams.set(key, value)
+    else nextParams.delete(key)
+    nextParams.set("page", "1")
+    router.replace(`?${nextParams}`, { scroll: false })
   }
   return (
     <section className="mx-auto w-full max-w-5xl space-y-6">
@@ -570,6 +593,76 @@ export function AcquisitionWorkspace({
         </div>
         <Button>Search</Button>
       </form>
+      <section
+        aria-label="Persisted inventory filters"
+        className="grid gap-3 sm:grid-cols-2"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="stock-status">Status filter</Label>
+          <select
+            id="stock-status"
+            value={status}
+            onChange={(e) => filter("status", e.target.value)}
+            className="min-h-11 w-full rounded-md border bg-background px-3"
+          >
+            <option value="">All statuses</option>
+            <option value="PURCHASED">Purchased</option>
+            <option value="IN_STOCK">In Stock</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="stock-sort">Sort ascending</Label>
+          <select
+            id="stock-sort"
+            value={sort}
+            onChange={(e) => filter("order", e.target.value)}
+            className="min-h-11 w-full rounded-md border bg-background px-3"
+          >
+            {(inventory
+              ? ["id", "status", "available", "listedPrice"]
+              : ["id", "purchaseDate", "purchasePrice", "listedPrice", "status"]
+            ).map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </select>
+        </div>
+        {inventory && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="stock-available">Availability filter</Label>
+              <select
+                id="stock-available"
+                value={availability}
+                onChange={(e) => filter("available", e.target.value)}
+                className="min-h-11 w-full rounded-md border bg-background px-3"
+              >
+                <option value="">All availability</option>
+                <option value="true">Available</option>
+                <option value="false">Unavailable</option>
+              </select>
+            </div>
+            {[
+              ["make", make],
+              ["model", model],
+            ].map(([key, value]) => (
+              <div key={key} className="space-y-2">
+                <Label htmlFor={`stock-${key}`}>Exact {key} filter</Label>
+                <Input
+                  id={`stock-${key}`}
+                  defaultValue={value}
+                  maxLength={200}
+                  onBlur={(e) => {
+                    if (e.target.value !== value) filter(key, e.target.value)
+                  }}
+                  className="min-h-11 text-base"
+                />
+              </div>
+            ))}
+          </>
+        )}
+      </section>
       {query.isPending && <p role="status">Loading persisted {name}…</p>}
       {query.isError && (
         <p role="alert">
@@ -890,12 +983,17 @@ function StockControls({ cycle }: { cycle: Cycle }) {
                   ? "Retry unchanged stock intent"
                   : `Confirm ${label[name].toLowerCase()}`}
             </Button>
-            {!body && (
+            {(!body || stale) && (
               <Button
                 type="button"
                 variant="outline"
                 disabled={pending}
-                onClick={() => setName(null)}
+                onClick={() => {
+                  setName(null)
+                  setBody(null)
+                  setStale(false)
+                  setLatest(null)
+                }}
               >
                 Cancel draft
               </Button>
@@ -951,7 +1049,6 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           </div>
         ))}
       </dl>
-      <StockControls cycle={cycle} />
       {cycle.seller?.id && cycle.seller.type === "SUPPLIER" && (
         <Link
           prefetch={false}
@@ -1031,6 +1128,13 @@ export function AcquisitionDetail({
       <h1 className="text-2xl font-semibold">
         {vehicle ? "Physical vehicle" : "Purchase detail"}
       </h1>
+      {/* Keep the pending intent outside the query-result subtree. A transient
+          observer/read reset must not unmount its immutable request envelope. */}
+      <StockControls
+        cycle={
+          (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
+        }
+      />
       {query.isPending && <p role="status">Loading persisted detail…</p>}
       {query.isError && (
         <p role="alert">
