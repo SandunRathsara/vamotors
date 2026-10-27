@@ -183,6 +183,9 @@ export const registry = {
       "mileage",
       "paymentMethod",
     ],
+    receive: ["date", "disposition.kind", "disposition.reason"],
+    update: ["reason"],
+    release: ["cycleId"],
   },
   Supplier: {
     // category is retained only to validate immutable legacy permissions. The
@@ -382,7 +385,7 @@ export const registry = {
     ],
   },
 } as const
-export const registryVersion = 6
+export const registryVersion = 7
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
@@ -711,9 +714,12 @@ export const administratorGrants: Grant[] = Object.entries(registry).flatMap(
       subject: name as Subject,
       action: action as Grant["action"],
       fields:
-        name === "Settings" && action === "update"
-          ? registry.Settings.update.filter((field) => field !== "company")
-          : ["*"],
+        name === "PurchaseRecord" &&
+        ["receive", "update", "release"].includes(action)
+          ? [...fieldsFor("PurchaseRecord", action)]
+          : name === "Settings" && action === "update"
+            ? registry.Settings.update.filter((field) => field !== "company")
+            : ["*"],
     }))
 )
 

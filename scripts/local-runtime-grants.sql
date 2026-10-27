@@ -51,3 +51,5 @@ GRANT INSERT (id, "vehicleId", "cycleNumber", "purchaseType", "acquisitionKind",
 GRANT INSERT (id, "cycleId", amount, direction, category, "occurredDate", method, currency, scale, "commandId", "lineKey", "recordedAt") ON vamotors."PurchasePayment" TO vamotors_runtime;
 GRANT INSERT (id, "vehicleId", "cycleId", reading, "recordedDate", remark, "decreaseReason", "commandId", "recordedAt") ON vamotors."MileageReading" TO vamotors_runtime;
 GRANT INSERT (id, "cycleId", version, purchase, components, total, currency, scale, reason, "commandId", "recordedAt") ON vamotors."CycleBasisVersion" TO vamotors_runtime;
+-- T05b: command-evidenced stock state only; identity, provenance and money stay immutable.
+GRANT UPDATE (status, available, "holdReason", "receivedDate", revision, "updatedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;

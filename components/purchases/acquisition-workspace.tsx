@@ -12,7 +12,11 @@ import type {
 } from "@/.planning/implementation/contracts/api"
 import { useActor } from "@/components/providers/auth-boundary"
 import { abilityFor } from "@/lib/server/permissions"
-import { purchaseInput } from "@/lib/server/validators"
+import {
+  purchaseInput,
+  stockEnvelope,
+  type StockCommand,
+} from "@/lib/server/validators"
 import { privateRequest, RequestError } from "@/lib/security-client"
 import { major, parseMajor } from "@/lib/money"
 import { Button } from "@/components/ui/button"
@@ -199,8 +203,9 @@ export function AcquisitionForm({
       <h2 className="text-xl font-semibold">Record paid acquisition</h2>
       <p>
         Cash and brand-new only. This records a full seller payment on the
-        actual purchase date. Physical receipt, settlement, repurchase and
-        trade-in are pending; stock remains Purchased and unavailable.
+        actual purchase date. Stock remains Purchased and unavailable until an
+        explicit physical receipt. Settlement, repurchase and trade-in remain
+        pending.
       </p>
       <fieldset disabled={locked} className="space-y-3">
         <Label htmlFor="supplier-search">Search active suppliers by name</Label>
@@ -600,6 +605,10 @@ export function AcquisitionWorkspace({
                       : "Unavailable stock"}
                 </p>
                 <p>Engine: {row.identity?.engineNumber ?? "Unavailable"}</p>
+                {row.receivedDate && <p>Received: {row.receivedDate}</p>}
+                {row.holdReason && (
+                  <p className="break-words">Hold: {row.holdReason}</p>
+                )}
                 {!inventory && row.purchasePrice !== undefined && (
                   <p>Purchase price: {amount(row.purchasePrice)}</p>
                 )}
@@ -643,6 +652,266 @@ export function AcquisitionWorkspace({
   )
 }
 
+function StockControls({ cycle }: { cycle: Cycle }) {
+  const queries = useQueryClient()
+  const [name, setName] = useState<StockCommand | null>(null)
+  const [snapshot, setSnapshot] = useState(cycle)
+  const [received, setReceived] = useState("")
+  const [disposition, setDisposition] = useState("RELEASE")
+  const [reason, setReason] = useState("")
+  const [body, setBody] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+  const [stale, setStale] = useState(false)
+  const [latest, setLatest] = useState<Cycle | null>(null)
+  const [message, setMessage] = useState("")
+  const alert = useRef<HTMLParagraphElement>(null)
+  const actions = (cycle.nextActions ?? []).filter((n): n is StockCommand =>
+    ["receiveStock", "holdStock", "releaseStock"].includes(n)
+  )
+  const label = {
+    receiveStock: "Receive stock",
+    holdStock: "Hold stock",
+    releaseStock: "Release stock",
+  }
+  function problem(text: string) {
+    setMessage(text)
+    requestAnimationFrame(() => alert.current?.focus())
+  }
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!name || pending || stale) return
+    setPending(true)
+    try {
+      let submitted = body
+      if (!submitted) {
+        if (!snapshot.id || !snapshot.revision)
+          throw new Error("Readable cycle revision required")
+        const input =
+          name === "receiveStock"
+            ? {
+                cycleId: snapshot.id,
+                date: received,
+                disposition:
+                  disposition === "HOLD"
+                    ? { kind: "HOLD", reason }
+                    : { kind: "RELEASE" },
+              }
+            : name === "holdStock"
+              ? { cycleId: snapshot.id, reason }
+              : { cycleId: snapshot.id }
+        const parsed = stockEnvelope(name).safeParse({
+          schemaVersion: 1,
+          idempotencyKey: crypto.randomUUID(),
+          expected: [
+            {
+              type: "PurchaseRecord",
+              id: snapshot.id,
+              revision: snapshot.revision,
+            },
+          ],
+          input,
+        })
+        if (!parsed.success)
+          throw new Error(
+            "Enter a valid receipt date and nonblank hold reason (at most 2000 characters)."
+          )
+        submitted = JSON.stringify(parsed.data)
+        setBody(submitted)
+      }
+      const result = await privateRequest<Applied>(`/api/v1/commands/${name}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: submitted,
+      })
+      setBody(null)
+      setName(null)
+      setMessage(
+        "Stock change committed. No payment, mileage or cost was recorded."
+      )
+      for (const key of result.invalidate)
+        await queries.invalidateQueries({ queryKey: [key] })
+    } catch (cause) {
+      const code =
+        cause instanceof RequestError
+          ? cause.code
+          : cause instanceof Error
+            ? cause.message
+            : "NETWORK_ERROR"
+      const conflict = [
+        "STALE_REVISION",
+        "REVISION_REQUIRED",
+        "INVALID_STATE",
+      ].includes(code)
+      setStale(conflict)
+      // Uncertain transport/auth/read failures never replace the original intent.
+      if (cause instanceof RequestError && cause.status === 422) setBody(null)
+      problem(
+        `${code}. Draft retained. Retry sends the original unchanged envelope; conflicts require explicit reload and reconfirmation.`
+      )
+    } finally {
+      setPending(false)
+    }
+  }
+  return (
+    <section
+      aria-label="Stock controls"
+      className="space-y-4 rounded-md border p-4"
+    >
+      <h3 className="font-semibold">Physical receipt and availability</h3>
+      {!name && (
+        <div className="flex flex-wrap gap-3">
+          {actions.map((n) => (
+            <Button
+              key={n}
+              onClick={() => {
+                setName(n)
+                setSnapshot(cycle)
+                setStale(false)
+                setLatest(null)
+                setMessage("")
+              }}
+            >
+              {label[n]}
+            </Button>
+          ))}
+          {!actions.length && <p>No authorized stock action in this state.</p>}
+        </div>
+      )}
+      {name && (
+        <form onSubmit={submit} className="space-y-4">
+          <p>
+            {label[name]} · cycle revision {snapshot.revision}. This changes
+            stock only, never money or physical identity.
+          </p>
+          <fieldset disabled={pending || !!body} className="space-y-4">
+            {name === "receiveStock" && (
+              <>
+                <Label htmlFor={`received-${cycle.id}`}>
+                  Actual received date *
+                </Label>
+                <Input
+                  id={`received-${cycle.id}`}
+                  type="date"
+                  required
+                  value={received}
+                  onChange={(e) => setReceived(e.target.value)}
+                  className="min-h-11 text-base"
+                />
+                <Label htmlFor={`disposition-${cycle.id}`}>
+                  Receipt disposition *
+                </Label>
+                <select
+                  id={`disposition-${cycle.id}`}
+                  value={disposition}
+                  onChange={(e) => setDisposition(e.target.value)}
+                  className="min-h-11 w-full rounded-md border bg-background px-3"
+                >
+                  <option value="RELEASE">Release as available</option>
+                  <option value="HOLD">Receive on hold</option>
+                </select>
+              </>
+            )}
+            {(name === "holdStock" ||
+              (name === "receiveStock" && disposition === "HOLD")) && (
+              <>
+                <Label htmlFor={`hold-${cycle.id}`}>Hold reason *</Label>
+                <Input
+                  id={`hold-${cycle.id}`}
+                  required
+                  maxLength={2000}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="min-h-11 text-base"
+                />
+              </>
+            )}
+          </fieldset>
+          {stale && (
+            <section className="space-y-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    setLatest(
+                      (
+                        await privateRequest<{ data: Cycle }>(
+                          `/api/v1/queries/purchase?cycleId=${snapshot.id}`
+                        )
+                      ).data
+                    )
+                  } catch {
+                    problem(
+                      "Current read failed. Original envelope and draft retained."
+                    )
+                  }
+                }}
+              >
+                Reload current stock
+              </Button>
+              {latest && (
+                <>
+                  <p>
+                    Current revision {latest.revision} · {latest.status} ·{" "}
+                    {latest.available ? "Available" : "Held or not received"}
+                  </p>
+                  <Button
+                    type="button"
+                    disabled={
+                      !latest.id ||
+                      !latest.revision ||
+                      !latest.nextActions?.includes(name)
+                    }
+                    onClick={() => {
+                      setSnapshot(latest)
+                      setLatest(null)
+                      setBody(null)
+                      setStale(false)
+                      setMessage("")
+                    }}
+                  >
+                    Reconfirm retained draft as new stock intent
+                  </Button>
+                  {!latest.nextActions?.includes(name) && (
+                    <p>
+                      This action is no longer available. No replacement intent
+                      was submitted.
+                    </p>
+                  )}
+                </>
+              )}
+            </section>
+          )}
+          <div className="flex flex-wrap gap-3">
+            <Button disabled={pending || stale} type="submit">
+              {pending
+                ? "Committing stock…"
+                : body
+                  ? "Retry unchanged stock intent"
+                  : `Confirm ${label[name].toLowerCase()}`}
+            </Button>
+            {!body && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                onClick={() => setName(null)}
+              >
+                Cancel draft
+              </Button>
+            )}
+          </div>
+        </form>
+      )}
+      {message && (
+        <p ref={alert} tabIndex={-1} role="status" className="break-words">
+          {message}
+        </p>
+      )}
+    </section>
+  )
+}
+
 function CycleDetail({ cycle }: { cycle: Cycle }) {
   return (
     <section className="space-y-4 rounded-lg border p-4">
@@ -655,6 +924,16 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           ["Cycle revision", cycle.revision],
           ["Identity revision", cycle.identityRevision],
           ["Status", cycle.status],
+          ["Received date", cycle.receivedDate],
+          [
+            "Availability",
+            cycle.available === undefined
+              ? undefined
+              : cycle.available
+                ? "Available"
+                : "Unavailable",
+          ],
+          ["Hold reason", cycle.holdReason],
           ["Purchase type", cycle.purchaseType],
           ["Acquisition kind", cycle.acquisitionKind],
           ["Purchase date", cycle.purchaseDate],
@@ -672,6 +951,7 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           </div>
         ))}
       </dl>
+      <StockControls cycle={cycle} />
       {cycle.seller?.id && cycle.seller.type === "SUPPLIER" && (
         <Link
           prefetch={false}
@@ -723,8 +1003,8 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
         </p>
       )) ?? <p>Unavailable</p>}
       <p>
-        Receipt, availability changes, costs, repairs, sales and disposal
-        workflows remain pending. No completed downstream history is implied.
+        Costs, repairs, sales and disposal workflows remain pending. Receipt and
+        availability changes do not imply completed downstream history.
       </p>
     </section>
   )
