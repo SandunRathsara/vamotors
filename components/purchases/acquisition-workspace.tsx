@@ -1,5 +1,5 @@
 "use client"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -513,6 +513,10 @@ export function AcquisitionWorkspace({
     [draftSearch, setDraftSearch] = useState(search),
     [form, setForm] = useState(false)
   const name = inventory ? "inventory" : "purchases"
+  const navigation = useRef(params.toString())
+  useEffect(() => {
+    navigation.current = params.toString()
+  }, [params])
   const status = params.get("status") ?? ""
   const availability = params.get("available") ?? ""
   const make = params.get("make") ?? ""
@@ -537,18 +541,20 @@ export function AcquisitionWorkspace({
       }>(`/api/v1/queries/${name}?${filters}`),
   })
   function navigate(next: number, q = search) {
-    const nextParams = new URLSearchParams(params.toString())
+    const nextParams = new URLSearchParams(navigation.current)
     nextParams.set("page", String(next))
     nextParams.set("q", q)
+    navigation.current = nextParams.toString()
     router.replace(`?${nextParams}`, {
       scroll: false,
     })
   }
   function filter(key: string, value: string) {
-    const nextParams = new URLSearchParams(params.toString())
+    const nextParams = new URLSearchParams(navigation.current)
     if (value) nextParams.set(key, value)
     else nextParams.delete(key)
     nextParams.set("page", "1")
+    navigation.current = nextParams.toString()
     router.replace(`?${nextParams}`, { scroll: false })
   }
   return (

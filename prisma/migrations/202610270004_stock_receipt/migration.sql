@@ -8,7 +8,7 @@ CREATE OR REPLACE FUNCTION vamotors.acquisition_root_guard() RETURNS trigger LAN
 BEGIN
  IF TG_OP='INSERT' THEN
   IF current_user='vamotors_runtime' AND NEW."acquisitionCommandId" IS NULL THEN RAISE EXCEPTION 'ACQUISITION_EVIDENCE_REQUIRED' USING ERRCODE='23514'; END IF;
-  IF NEW."acquisitionCommandId" IS NOT NULL AND (NEW.status<>'PURCHASED' OR NEW.available OR NEW."cycleNumber"<>1 OR NEW."purchasePrice"<=0 OR NEW."receivedDate" IS NOT NULL OR NEW."holdReason" IS NOT NULL OR NEW."purchaseDate">(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date) THEN RAISE EXCEPTION 'INVALID_ACQUISITION' USING ERRCODE='23514'; END IF;
+  IF NEW."acquisitionCommandId" IS NOT NULL AND (NEW.revision<>1 OR NEW.status<>'PURCHASED' OR NEW.available OR NEW."cycleNumber"<>1 OR NEW."purchasePrice"<=0 OR NEW."receivedDate" IS NOT NULL OR NEW."holdReason" IS NOT NULL OR NEW."purchaseDate">(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date) THEN RAISE EXCEPTION 'INVALID_ACQUISITION' USING ERRCODE='23514'; END IF;
  ELSE
   IF OLD."acquisitionCommandId" IS NULL OR NEW."acquisitionCommandId" IS DISTINCT FROM OLD."acquisitionCommandId" THEN RAISE EXCEPTION 'ACQUISITION_EVIDENCE_REQUIRED' USING ERRCODE='23514'; END IF;
   IF (to_jsonb(NEW)-ARRAY['status','available','holdReason','receivedDate','revision','updatedAt']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['status','available','holdReason','receivedDate','revision','updatedAt']) THEN RAISE EXCEPTION 'IMMUTABLE_ACQUISITION' USING ERRCODE='23514'; END IF;
@@ -16,7 +16,7 @@ BEGIN
    OR NEW."receivedDate" IS NULL OR NEW."receivedDate"<NEW."purchaseDate" OR NEW."receivedDate">(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date
    OR (OLD.status='IN_STOCK' AND NEW."receivedDate" IS DISTINCT FROM OLD."receivedDate")
    OR (NEW.available AND NEW."holdReason" IS NOT NULL)
-   OR (NOT NEW.available AND (NEW."holdReason" IS NULL OR NEW."holdReason"<>btrim(NEW."holdReason") OR length(NEW."holdReason") NOT BETWEEN 1 AND 2000))
+   OR (NOT NEW.available AND (NEW."holdReason" IS NULL OR NEW."holdReason" ~ '^[[:space:]]|[[:space:]]$' OR length(NEW."holdReason") NOT BETWEEN 1 AND 2000))
    OR (OLD.status='IN_STOCK' AND NEW.available=OLD.available AND NEW."holdReason" IS NOT DISTINCT FROM OLD."holdReason")
    THEN RAISE EXCEPTION 'INVALID_STOCK_CHANGE' USING ERRCODE='23514'; END IF;
  END IF;
@@ -34,7 +34,7 @@ END $$;
 
 -- Definer reads the root's system xmin without granting runtime whole-table or
 -- system-column SELECT. Fixed search path; trigger-only, no caller SQL/GUC input.
-CREATE OR REPLACE FUNCTION vamotors.purchase_status_guard() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+CREATE OR REPLACE FUNCTION vamotors.purchase_status_guard() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE p vamotors."PurchaseRecord"; c vamotors."CommandReceipt";
 BEGIN
  SELECT * INTO p FROM vamotors."PurchaseRecord" WHERE id=NEW."cycleId";
@@ -43,7 +43,7 @@ BEGIN
    IF NEW."from" IS NOT NULL OR NEW."to"<>'PURCHASED' OR NEW.action<>'recordPurchase' OR NEW."userId"<>p."createdBy" OR NEW."occurredAt"<>p."purchaseDate"::timestamp OR EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."cycleId"=p.id) THEN RAISE EXCEPTION 'INVALID_ACQUISITION_STATUS' USING ERRCODE='23514'; END IF;
   ELSE
    SELECT * INTO c FROM vamotors."CommandReceipt" WHERE id=NEW."commandId";
-   IF c.id IS NULL OR c."actorKey"<>'USER:'||NEW."userId"::text OR c."commandName"<>NEW.action OR NEW.action NOT IN ('receiveStock','holdStock','releaseStock') OR NEW."to"<>'IN_STOCK' OR NEW."from"::text IS DISTINCT FROM (CASE WHEN NEW.action='receiveStock' THEN 'PURCHASED' ELSE 'IN_STOCK' END) OR c.result<>jsonb_build_object('type','PurchaseRecord','id',p.id,'revision',p.revision) OR NOT EXISTS(SELECT 1 FROM vamotors."PurchaseRecord" x WHERE x.id=p.id AND x.xmin=pg_current_xact_id()::text::xid) OR EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."commandId"=c.id) THEN RAISE EXCEPTION 'INVALID_STOCK_STATUS' USING ERRCODE='23514'; END IF;
+   IF c.id IS NULL OR c."actorKey"<>'USER:'||NEW."userId"::text OR c."commandName"<>NEW.action OR NEW.action NOT IN ('receiveStock','holdStock','releaseStock') OR NEW."to"<>'IN_STOCK' OR NEW."from"::text IS DISTINCT FROM (CASE WHEN NEW.action='receiveStock' THEN 'PURCHASED' ELSE 'IN_STOCK' END) OR c.result<>jsonb_build_object('type','PurchaseRecord','id',p.id,'revision',p.revision) OR NOT EXISTS(SELECT 1 FROM vamotors."PurchaseRecord" x WHERE x.id=p.id AND x.xmin=pg_current_xact_id()::xid) OR EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."commandId"=c.id) THEN RAISE EXCEPTION 'INVALID_STOCK_STATUS' USING ERRCODE='23514'; END IF;
   END IF;
  END IF;
  RETURN NEW;
@@ -85,18 +85,19 @@ CREATE FUNCTION vamotors.check_stock_graph() RETURNS trigger LANGUAGE plpgsql SE
 DECLARE c vamotors."CommandReceipt"; v vamotors."Vehicle"; after_payload jsonb; old_payload jsonb; delta jsonb; kind text; eid uuid; rev integer; paths text[]:=ARRAY['revision','status','available','holdReason','receivedDate'];
 BEGIN
  SELECT * INTO v FROM vamotors."Vehicle" WHERE id=NEW."vehicleId";
- SELECT * INTO c FROM vamotors."CommandReceipt" WHERE result=jsonb_build_object('type','PurchaseRecord','id',NEW.id,'revision',NEW.revision) AND "commandName" IN ('receiveStock','holdStock','releaseStock') AND xmin=pg_current_xact_id()::text::xid;
+ SELECT * INTO c FROM vamotors."CommandReceipt" WHERE result=jsonb_build_object('type','PurchaseRecord','id',NEW.id,'revision',NEW.revision) AND "commandName" IN ('receiveStock','holdStock','releaseStock') AND xmin=pg_current_xact_id()::xid;
  IF c.id IS NULL OR c."environmentId"<>(SELECT id FROM vamotors."Environment" WHERE singleton=1) OR c."businessSequence"<>(SELECT value FROM vamotors."BusinessSequence" WHERE id=1)
  OR v."activePurchaseId" IS DISTINCT FROM NEW.id
  OR (OLD.status='PURCHASED' AND c."commandName"<>'receiveStock') OR (OLD.status='IN_STOCK' AND c."commandName" NOT IN ('holdStock','releaseStock'))
  OR (c."commandName"='holdStock' AND NEW.available) OR (c."commandName"='releaseStock' AND NOT NEW.available)
- OR NOT EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."commandId"=c.id AND s."cycleId"=NEW.id AND s."from"=OLD.status AND s."to"=NEW.status AND s.action=c."commandName" AND c."actorKey"='USER:'||s."userId"::text AND s.xmin=pg_current_xact_id()::text::xid AND (s.action<>'receiveStock' OR s."occurredAt"=NEW."receivedDate"::timestamp))
+  OR NOT EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."commandId"=c.id AND s."cycleId"=NEW.id AND s."from"=OLD.status AND s."to"=NEW.status AND s.action=c."commandName" AND c."actorKey"='USER:'||s."userId"::text AND s.xmin=pg_current_xact_id()::xid AND (s.action<>'receiveStock' OR s."occurredAt"=NEW."receivedDate"::timestamp))
  THEN RAISE EXCEPTION 'INVALID_STOCK_GRAPH' USING ERRCODE='23514'; END IF;
  FOREACH kind IN ARRAY ARRAY['PurchaseRecord','Vehicle'] LOOP
+  paths:=CASE WHEN kind='PurchaseRecord' THEN ARRAY['revision','status','available','holdReason','receivedDate'] ELSE ARRAY['revision','status','available','holdReason'] END;
   eid:=CASE WHEN kind='PurchaseRecord' THEN NEW.id ELSE NEW."vehicleId" END;
   rev:=CASE WHEN kind='PurchaseRecord' THEN NEW.revision ELSE v.revision END;
   SELECT payload INTO old_payload FROM vamotors."EntityReadVersion" WHERE "entityType"=kind AND "entityId"=eid AND sequence<c."businessSequence" ORDER BY sequence DESC LIMIT 1;
-  SELECT payload INTO after_payload FROM vamotors."EntityReadVersion" WHERE "entityType"=kind AND "entityId"=eid AND "commandId"=c.id AND revision=rev AND sequence=c."businessSequence" AND xmin=pg_current_xact_id()::text::xid;
+  SELECT payload INTO after_payload FROM vamotors."EntityReadVersion" WHERE "entityType"=kind AND "entityId"=eid AND "commandId"=c.id AND revision=rev AND sequence=c."businessSequence" AND xmin=pg_current_xact_id()::xid;
   IF old_payload IS NULL OR after_payload IS NULL
    OR old_payload->'revision' IS DISTINCT FROM to_jsonb(OLD.revision)
    OR after_payload->'revision' IS DISTINCT FROM to_jsonb(NEW.revision)
@@ -105,10 +106,10 @@ BEGIN
    OR coalesce(after_payload->'holdReason','null'::jsonb) IS DISTINCT FROM coalesce(to_jsonb(NEW."holdReason"),'null'::jsonb)
    OR (kind='PurchaseRecord' AND after_payload->'receivedDate' IS DISTINCT FROM to_jsonb(NEW."receivedDate"::text))
    OR (kind='PurchaseRecord' AND after_payload->'seller' IS DISTINCT FROM (SELECT jsonb_build_object('type','SUPPLIER','id',s.id,'name',s.name,'active',s.active) FROM vamotors."Supplier" s WHERE s.id=NEW."supplierId"))
-   OR (after_payload-paths-'seller') IS DISTINCT FROM (old_payload-paths-'seller')
+   OR (after_payload-paths-(CASE WHEN kind='PurchaseRecord' THEN ARRAY['seller'] ELSE ARRAY[]::text[] END)) IS DISTINCT FROM (old_payload-paths-(CASE WHEN kind='PurchaseRecord' THEN ARRAY['seller'] ELSE ARRAY[]::text[] END))
    THEN RAISE EXCEPTION 'INVALID_STOCK_VERSION' USING ERRCODE='23514'; END IF;
   SELECT coalesce(jsonb_object_agg(f,jsonb_build_object('before',coalesce(old_payload->f,'null'::jsonb),'after',coalesce(after_payload->f,'null'::jsonb))),'{}'::jsonb) INTO delta FROM unnest(paths) f WHERE coalesce(old_payload->f,'null'::jsonb) IS DISTINCT FROM coalesce(after_payload->f,'null'::jsonb);
-  IF NOT EXISTS(SELECT 1 FROM vamotors."AuditEntry" a WHERE a."commandId"=c.id AND a."entityType"=kind AND a."entityId"=eid AND a.action=c."commandName" AND a."actorKind"='USER' AND c."actorKey"='USER:'||a."userId"::text AND a."fieldDiff"=delta AND a.xmin=pg_current_xact_id()::text::xid) THEN RAISE EXCEPTION 'INVALID_STOCK_AUDIT' USING ERRCODE='23514'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM vamotors."AuditEntry" a WHERE a."commandId"=c.id AND a."entityType"=kind AND a."entityId"=eid AND a.action=c."commandName" AND a."actorKind"='USER' AND c."actorKey"='USER:'||a."userId"::text AND a."fieldDiff"=delta AND a.xmin=pg_current_xact_id()::xid) THEN RAISE EXCEPTION 'INVALID_STOCK_AUDIT' USING ERRCODE='23514'; END IF;
  END LOOP;
  RETURN NULL;
 END $$;

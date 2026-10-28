@@ -1174,6 +1174,82 @@ try {
     }
   )
   await group(
+    "persisted inventory filter/sort/page URLs and 360px deep reload",
+    async () => {
+      await mobile.goto(`/vehicles?q=${suffix}`)
+      await mobile
+        .getByLabel("Status filter", { exact: true })
+        .selectOption("IN_STOCK")
+      await mobile
+        .getByLabel("Availability filter", { exact: true })
+        .selectOption("true")
+      await mobile
+        .getByLabel("Sort ascending", { exact: true })
+        .selectOption("status")
+      await expect(mobile).toHaveURL(/status=IN_STOCK/)
+      await expect(mobile).toHaveURL(/available=true/)
+      await expect(mobile).toHaveURL(/order=status/)
+      await mobile.reload()
+      await expect(
+        mobile.getByLabel("Status filter", { exact: true })
+      ).toHaveValue("IN_STOCK")
+      await expect(
+        mobile.getByLabel("Availability filter", { exact: true })
+      ).toHaveValue("true")
+      await expect(
+        mobile.getByLabel("Sort ascending", { exact: true })
+      ).toHaveValue("status")
+      const result = await query<{ total: number }>(
+        b.request,
+        "inventory",
+        `?q=${suffix}&statuses=["IN_STOCK"]&available=true`
+      )
+      await expect(
+        mobile
+          .getByRole("status")
+          .filter({ hasText: `${result.total} records` })
+      ).toBeVisible()
+      assert.equal(
+        await mobile.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth
+        ),
+        true
+      )
+    }
+  )
+  await group(
+    "real logout and account switch discard stock draft, no retained browser storage",
+    async () => {
+      await assign([
+        ...reads,
+        { subject: "PurchaseRecord", action: "update", fields: ["reason"] },
+      ])
+      await limited.goto(`/purchases/${released.id}`)
+      await limited
+        .getByRole("button", { name: "Hold stock", exact: true })
+        .click()
+      await limited.getByLabel("Hold reason").fill("Logout private stock draft")
+      await limited.getByRole("button", { name: "Logout", exact: true }).click()
+      await limited.waitForURL(/\/login(?:\?|$)/)
+      await expect(limited.getByLabel("Hold reason")).toHaveCount(0)
+      await login(limited, "SECOND")
+      await limited.goto(`/purchases/${released.id}`)
+      await expect(
+        limited.getByRole("button", { name: "Hold stock", exact: true })
+      ).toBeVisible()
+      await expect(limited.getByLabel("Hold reason")).toHaveCount(0)
+      assert.equal(
+        await limited.evaluate(() =>
+          JSON.stringify({ ...localStorage, ...sessionStorage }).includes(
+            "Logout private stock draft"
+          )
+        ),
+        false
+      )
+      await restoreStaff()
+    }
+  )
+  await group(
     "production app and isolated PostgreSQL restart retain exact stock, source facts and sessions",
     async () => {
       const before = await snapshot()
