@@ -123,7 +123,26 @@ async function login(p: Page, who: "ADMIN" | "SECOND" | "STAFF") {
   await p
     .getByLabel("Password", { exact: true })
     .fill(accounts[`BOOTSTRAP_${who}_PASSWORD`]!)
-  await p.getByRole("button", { name: "Sign In", exact: true }).click()
+  async function submit() {
+    const response = p.waitForResponse(
+      (r) => new URL(r.url()).pathname === "/api/auth/sign-in/email"
+    )
+    await p.getByRole("button", { name: "Sign In", exact: true }).click()
+    return response
+  }
+  let response = await submit()
+  if (response.status() === 429) {
+    // Four real sign-ins share the production loopback rate-limit population.
+    // Honor its bounded Retry-After once; never disable or bypass the limiter.
+    const seconds = Number(response.headers()["retry-after"])
+    assert.ok(Number.isInteger(seconds) && seconds > 0 && seconds <= 120)
+    console.log(
+      `Production sign-in rate limit: honoring Retry-After ${seconds}s`
+    )
+    await new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+    response = await submit()
+  }
+  assert.equal(response.status(), 200, `SIGN_IN_${who}`)
   await p.waitForURL("**/dashboard")
 }
 async function query<T>(
@@ -1315,7 +1334,11 @@ try {
 } catch (error) {
   await writeFile(
     join(root, `stock-failure-${suffix}.txt`),
-    await page.locator("body").innerText(),
+    JSON.stringify({
+      stage,
+      primary: await page.locator("body").innerText(),
+      limited: await limited.locator("body").innerText(),
+    }),
     { mode: 0o600 }
   )
   console.error(
