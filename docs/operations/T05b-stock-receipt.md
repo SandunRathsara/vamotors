@@ -175,7 +175,7 @@ An upgrade setup launched from the wrong cwd correctly failed PROJECT mismatch.
 Redaction `.mjs` needs `node --import tsx` for its imported TypeScript modules.
 Recovery verification exposed the production sign-in limiter on the fourth
 real login in the logout/account-switch group. The runner now asserts the
-sign-in HTTP result and honors one bounded server `Retry-After` on429; it does
+sign-in HTTP result and honors one bounded server `X-Retry-After` on429; it does
 not bypass or weaken authentication. Failed campaigns are retained privately.
 
 Remaining scope: VSTS-01–04 gain this bounded receipt/hold/release evidence, not

@@ -133,11 +133,11 @@ async function login(p: Page, who: "ADMIN" | "SECOND" | "STAFF") {
   let response = await submit()
   if (response.status() === 429) {
     // Four real sign-ins share the production loopback rate-limit population.
-    // Honor its bounded Retry-After once; never disable or bypass the limiter.
-    const seconds = Number(response.headers()["retry-after"])
+    // Honor Better Auth's bounded X-Retry-After once; never bypass the limiter.
+    const seconds = Number(response.headers()["x-retry-after"])
     assert.ok(Number.isInteger(seconds) && seconds > 0 && seconds <= 120)
     console.log(
-      `Production sign-in rate limit: honoring Retry-After ${seconds}s`
+      `Production sign-in rate limit: honoring X-Retry-After ${seconds}s`
     )
     await new Promise((resolve) => setTimeout(resolve, seconds * 1000))
     response = await submit()
