@@ -152,7 +152,25 @@ async function login(p: Page, who: "ADMIN" | "SECOND" | "STAFF") {
   await p
     .getByLabel("Password", { exact: true })
     .fill(accounts[`BOOTSTRAP_${who}_PASSWORD`]!)
-  await p.getByRole("button", { name: "Sign In", exact: true }).click()
+  for (let attempt = 0; ; attempt++) {
+    const response = p.waitForResponse(
+      (r) =>
+        r.url().endsWith("/api/auth/sign-in/email") &&
+        r.request().method() === "POST"
+    )
+    await p.getByRole("button", { name: "Sign In", exact: true }).click()
+    const result = await response
+    if (result.status() !== 429 || attempt === 2) {
+      assert.equal(result.status(), 200, `UI_LOGIN_HTTP_${result.status()}`)
+      break
+    }
+    // Honor the real library limiter exactly; never disable it for verification.
+    const seconds = Math.min(
+      120,
+      Math.max(1, Number(result.headers()["retry-after"] ?? 10))
+    )
+    await new Promise((resolve) => setTimeout(resolve, seconds * 1000 + 100))
+  }
   await p.waitForURL("**/dashboard")
 }
 const envelope = (
@@ -476,17 +494,35 @@ try {
   await group(
     "1920px keyboard STAGED metadata → bounded PUT → genuine response-loss exact-key finalize → authorized download",
     async () => {
+      const businessCounts = async () =>
+        (
+          await db.query(
+            'SELECT (SELECT count(*) FROM vamotors."PurchaseRecord")::text purchases,(SELECT count(*) FROM vamotors."PurchasePayment")::text payments,(SELECT count(*) FROM vamotors."Vehicle")::text vehicles'
+          )
+        ).rows[0]
+      const beforeStage = await businessCounts()
       await page.goto("/imports")
       await page.getByLabel("Namespace", { exact: true }).fill(suffix)
-      await page
-        .getByRole("button", { name: "Create STAGED batch", exact: true })
-        .focus()
+      await page.keyboard.press("Tab")
+      await expect(page.getByRole("checkbox").first()).toBeFocused()
+      await page.keyboard.press("Space")
+      await expect(page.getByRole("checkbox").first()).not.toBeChecked()
+      await page.keyboard.press("Space")
+      for (let i = 0; i < 7; i++) await page.keyboard.press("Tab")
+      await expect(
+        page.getByRole("button", { name: "Create STAGED batch", exact: true })
+      ).toBeFocused()
       await page.keyboard.press("Enter")
       await page.waitForURL(/\/imports\/[a-f0-9-]{36}$/)
       primary = await detail(page.url().split("/").at(-1)!)
       assert.equal(primary.revision, 1)
       assert.equal(primary.state, "STAGED")
       assert.equal(primary.uploads.length, 0)
+      assert.deepEqual(
+        await businessCounts(),
+        beforeStage,
+        "STAGING_IS_NOT_BUSINESS_IMPORT"
+      )
       const persisted = (
         await db.query(
           'SELECT state,revision,"createdBy",types,namespace FROM vamotors."ImportBatch" WHERE id=$1',
@@ -615,6 +651,10 @@ try {
           () => document.documentElement.scrollWidth <= innerWidth
         )
       )
+      await page.screenshot({
+        path: join(root, `desktop-${suffix}.png`),
+        fullPage: true,
+      })
     }
   )
   await group(
@@ -688,6 +728,10 @@ try {
           () => document.documentElement.scrollWidth <= innerWidth
         )
       )
+      await mobile.screenshot({
+        path: join(root, `mobile-${suffix}.png`),
+        fullPage: true,
+      })
       await retained(primaryAttachment, csv, b.request)
       const f = (await validFixtures()).find((f) =>
         f.filename.endsWith(".xlsx")
@@ -708,6 +752,66 @@ try {
         sha256: hash(f.bytes),
         size: f.bytes.length,
       }
+    }
+  )
+  await group(
+    "active SW offline API/bytes remain errors; writes are never queued or replayed",
+    async () => {
+      const { batch, upload } = await makeStaged(),
+        dto = await retained(primaryAttachment)
+      await page.goto(`/imports/${batch.id}`)
+      await expect(
+        page.getByRole("button", {
+          name: "Finalize retained bytes",
+          exact: true,
+        })
+      ).toBeVisible()
+      await a.setOffline(true)
+      try {
+        const results = await page.evaluate(
+          async (url) =>
+            Promise.all(
+              ["/api/v1/queries/importBatches", url].map(async (path) => {
+                try {
+                  await fetch(path, { cache: "no-store" })
+                  return "UNEXPECTED_RESPONSE"
+                } catch {
+                  return "UNAVAILABLE"
+                }
+              })
+            ),
+          dto.url
+        )
+        assert.deepEqual(results, ["UNAVAILABLE", "UNAVAILABLE"])
+        await page
+          .getByRole("button", { name: "Finalize retained bytes", exact: true })
+          .click()
+        await expect(
+          page.getByRole("button", {
+            name: "Retry identical request",
+            exact: true,
+          })
+        ).toBeVisible()
+        assert.equal(await count(upload.uploadId), 0)
+      } finally {
+        await a.setOffline(false)
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      assert.equal(
+        await count(upload.uploadId),
+        0,
+        "NO_AUTOMATIC_ONLINE_REPLAY"
+      )
+      await page
+        .getByRole("button", { name: "Retry identical request", exact: true })
+        .click()
+      await expect(
+        page.getByRole("button", {
+          name: "Download verified source",
+          exact: true,
+        })
+      ).toBeVisible()
+      assert.equal(await count(upload.uploadId), 1)
     }
   )
   await group(
@@ -851,6 +955,19 @@ try {
         for (const r of results)
           assert.ok([200, 409].includes(r.status()), `RACE_${r.status()}`)
         assert.equal(await count(upload.uploadId), 1)
+        const current = await detail(batch.id)
+        const confirmed = await ok<Applied>(
+          await post(
+            a.request,
+            "completeUpload",
+            completeBody(current, upload.uploadId)
+          )
+        )
+        assert.equal(confirmed.result.id, current.uploads[0].attachmentId)
+        assert.equal(confirmed.replayed, false)
+        const unchanged = await detail(batch.id)
+        assert.equal(unchanged.revision, current.revision)
+        assert.equal(unchanged.uploads[0].revision, current.uploads[0].revision)
         assert.equal(
           (
             await ok<Applied>(
@@ -1006,6 +1123,8 @@ try {
         403,
         "FIELD_FORBIDDEN"
       )
+      const issued = await retained(primaryAttachment)
+      await denied(await staff.request.get(issued.url), 403, "FIELD_FORBIDDEN")
       await grants(fullGrants)
     }
   )
@@ -1199,6 +1318,11 @@ try {
         body,
         expiresAt: current.uploads[0].claimExpiresAt!,
       })
+      // The revoked page's privacy boundary may still be redirecting. Use a
+      // genuinely new browser context for the next ordinary sign-in.
+      await staff.close()
+      staff = await browser!.newContext({ baseURL: origin })
+      staffPage = await staff.newPage()
       await login(staffPage, "STAFF")
     }
   )
@@ -1373,6 +1497,21 @@ try {
         ).rows[0].allowed,
         false
       )
+      for (const sql of [
+        `INSERT INTO vamotors."UploadEvent"(id,"uploadId",revision,state,"attemptId","commandId") SELECT gen_random_uuid(),"uploadId",revision+10000,state,"attemptId","commandId" FROM vamotors."UploadEvent" WHERE "uploadId"=$1 ORDER BY revision DESC LIMIT 1`,
+        `WITH fresh AS (SELECT gen_random_uuid() id,gen_random_uuid() nonce) INSERT INTO vamotors."UploadAttempt"(id,"environmentId","uploadId","createdBy","claimedAt","claimExpiresAt","commandId","idempotencyKey","inputHash","uploadRevision","targetRevision","finalKey",size,sha256,"contentType") SELECT fresh.id,old."environmentId",old."uploadId",old."createdBy",old."claimedAt",old."claimExpiresAt",gen_random_uuid(),gen_random_uuid(),old."inputHash",old."uploadRevision",old."targetRevision",'f.'||old."environmentId"::text||'.'||old."uploadId"::text||'.'||fresh.id::text||'.'||fresh.nonce::text,old.size,old.sha256,old."contentType" FROM vamotors."UploadAttempt" old CROSS JOIN fresh WHERE old."uploadId"=$1 LIMIT 1`,
+      ]) {
+        await restricted.query("BEGIN")
+        try {
+          await restricted.query(sql, [primary.uploads[0].uploadId])
+          await assert.rejects(
+            restricted.query("SET CONSTRAINTS ALL IMMEDIATE"),
+            (error: unknown) => (error as { code?: string }).code === "23514"
+          )
+        } finally {
+          await restricted.query("ROLLBACK")
+        }
+      }
       const cacheURLs = await page.evaluate(async () =>
         (
           await Promise.all(
@@ -1531,15 +1670,27 @@ try {
 } catch (error) {
   evidence.status = "FAIL"
   evidence.failedStage = stage
+  // Playwright/pg exception messages can embed authentication headers, SQL or
+  // private keys. Persist only fixed machine diagnostics, never their raw text.
   evidence.error =
-    error instanceof Error
+    error instanceof Error && /^[A-Z][A-Z0-9_]{0,160}$/.test(error.message)
       ? error.message
-          .replace(
-            /postgresql:\/\/\S+|[a-z]\.([a-f0-9-]{36}\.){2,}[a-f0-9-]+/g,
-            "[redacted]"
+      : error instanceof assert.AssertionError
+        ? `ASSERT_${error.operator}`
+        : error instanceof Error
+          ? error.name
+          : "UNKNOWN"
+  evidence.failureLocation =
+    error instanceof Error
+      ? error.stack
+          ?.split("\n")
+          .find((line) =>
+            /^\s+at .*\/tests\/security\/import-attachments-check\.ts:\d+:\d+/.test(
+              line
+            )
           )
-          .slice(0, 500)
-      : "UNKNOWN"
+          ?.trim()
+      : undefined
   console.error(`FAIL ${stage}: ${evidence.error}`)
   process.exitCode = 1
 } finally {

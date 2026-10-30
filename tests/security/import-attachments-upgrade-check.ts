@@ -495,6 +495,23 @@ try {
     } else {
       assert.equal(cluster.PROJECT, process.cwd())
       const after = await snapshot()
+      for (const entry of after.migrations)
+        assert.equal(
+          entry.checksum,
+          createHash("sha256")
+            .update(
+              await readFile(
+                join(
+                  process.cwd(),
+                  "prisma/migrations",
+                  entry.migration_name,
+                  "migration.sql"
+                )
+              )
+            )
+            .digest("hex"),
+          `SOURCE_CHECKSUM_${entry.migration_name}`
+        )
       for (const [subject, actions] of Object.entries(before.registry))
         assert.deepEqual(
           registry[subject as keyof typeof registry],
