@@ -696,6 +696,8 @@ export async function executeApproval(
       const row = await lockedCycle(tx, writeOff.cycleId)
       requestAuthority(actor, row, writeOff)
       checkRefs(envelope.expected, readableRefs(actor, row))
+      if (envelope.expected.length !== refs(row).length)
+        fail("INVALID_INPUT", 422)
       eligible(row)
       validInput(row, writeOff)
       const expected = refs(row),
@@ -822,6 +824,8 @@ export async function executeApproval(
         !envelope.expected.some((r) => r.type === ref.type && r.id === ref.id)
       )
         fail("REVISION_REQUIRED", 428)
+    if (envelope.expected.length !== savedValue.expected.length + 1)
+      fail("INVALID_INPUT", 422)
     const requester = await userAuthority(tx, a.requestedBy)
     if (!requester?.user.active) fail("APPROVAL_STALE")
     try {

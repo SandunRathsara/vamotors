@@ -62,7 +62,7 @@ CREATE FUNCTION vamotors.approval_input_fields(i jsonb) RETURNS text[] LANGUAGE 
  SELECT ARRAY['cycleId','date','reason','method','proceeds'] || coalesce((SELECT array_agg('receipt.'||key ORDER BY key) FROM jsonb_object_keys(coalesce(i->'receipt','{}')) key),ARRAY[]::text[])
 $$;
 CREATE FUNCTION vamotors.approval_origin(uid uuid, a vamotors."ApprovalRequest", p vamotors."PurchaseRecord", v vamotors."Vehicle", reviewing boolean) RETURNS boolean LANGUAGE plpgsql STABLE SET search_path=pg_catalog AS $$
-DECLARE i jsonb:=a.proposal->'input'; fields text[]:=vamotors.approval_input_fields(i); f text; c record; cycle_data jsonb:=jsonb_build_object('createdBy',p."createdBy"); vehicle_data jsonb:=jsonb_build_object('createdBy',v."createdBy",'status',p.status); candidate jsonb:=jsonb_build_object('createdBy',uid);
+DECLARE i jsonb:=a.proposal->'input'; fields text[]:=vamotors.approval_input_fields(i); c record; cycle_data jsonb:=jsonb_build_object('createdBy',p."createdBy"); vehicle_data jsonb:=jsonb_build_object('createdBy',v."createdBy",'status',p.status); candidate jsonb:=jsonb_build_object('createdBy',uid);
 BEGIN
  IF a.state='APPROVED' THEN vehicle_data:=jsonb_set(vehicle_data,'{status}',(SELECT to_jsonb(s."from"::text) FROM vamotors."StatusEvent" s WHERE s."commandId"=a."appliedCommandId" AND s."cycleId"=p.id)); END IF;
  IF NOT vamotors.approval_fields(uid,'PurchaseRecord','update',cycle_data,ARRAY['cycleId'])
@@ -191,7 +191,10 @@ CREATE CONSTRAINT TRIGGER approval_graph AFTER INSERT OR UPDATE ON vamotors."App
 CREATE FUNCTION vamotors.check_disposal_graph() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE d vamotors."Disposal"; a vamotors."ApprovalRequest"; p vamotors."PurchaseRecord"; v vamotors."Vehicle"; b vamotors."CycleBasisVersion"; c vamotors."CommandReceipt"; i jsonb; r vamotors."DisposalReceipt"; cid uuid;
 BEGIN
- cid:=CASE WHEN TG_TABLE_NAME='Disposal' THEN NEW."cycleId" WHEN TG_TABLE_NAME='DisposalReceipt' THEN NEW."cycleId" WHEN TG_TABLE_NAME='Vehicle' THEN OLD."activePurchaseId" ELSE NEW.id END;
+ IF TG_TABLE_NAME IN ('Disposal','DisposalReceipt') THEN cid:=NEW."cycleId";
+ ELSIF TG_TABLE_NAME='Vehicle' THEN cid:=OLD."activePurchaseId";
+ ELSE cid:=NEW.id;
+ END IF;
  SELECT * INTO p FROM vamotors."PurchaseRecord" WHERE id=cid;
  SELECT * INTO d FROM vamotors."Disposal" WHERE "cycleId"=cid;
  SELECT * INTO v FROM vamotors."Vehicle" WHERE id=p."vehicleId";

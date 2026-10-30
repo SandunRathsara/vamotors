@@ -12,6 +12,7 @@ import {
   persistedRatePages,
   privateAttachmentAPIs,
   importStagingPages,
+  approvalPages,
 } from "./route-inventory"
 
 function files(root: string): string[] {
@@ -73,6 +74,7 @@ describe("global entry-point inventory", () => {
         ...unavailablePages,
         ...persistedRatePages,
         ...importStagingPages,
+        ...approvalPages,
         "/users",
         "/customers",
         "/customers/[id]",
@@ -102,6 +104,7 @@ describe("global entry-point inventory", () => {
       "/purchases/[id]",
       "/vehicles",
       "/vehicles/[id]",
+      "/approvals",
       ...persistedRatePages,
       ...importStagingPages,
     ])
@@ -109,6 +112,15 @@ describe("global entry-point inventory", () => {
         "await pageActor()"
       )
     expect(readFileSync("app/page.tsx", "utf8")).toContain("await pageActor()")
+    const approvalDetail = readFileSync(
+      "app/(app)/approvals/[id]/page.tsx",
+      "utf8"
+    )
+    expect(approvalDetail).toContain("await authenticate(await headers())")
+    expect(approvalDetail).toContain(
+      "approvalDetail(tx, await currentActor(tx, identity), id)"
+    )
+    expect(approvalDetail).not.toMatch(/approvalQuery|pageSize|commandReceipt/)
     expect(readFileSync("lib/server/pages.tsx", "utf8")).not.toMatch(
       /\bcache\(/
     )

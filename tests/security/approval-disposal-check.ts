@@ -10,6 +10,7 @@ import type {
   ApprovalDTO,
   PurchaseCycleDTO,
   Dependency,
+  NotificationDTO,
 } from "../../.planning/implementation/contracts/api"
 import { envelope, fixture, purchaseInput, ref } from "./cycle-edits-fixture"
 
@@ -274,6 +275,427 @@ try {
         reviewCommandId: applied.commandId,
         proceeds,
         loss: source.rows[0].loss,
+        pass: true,
+      })
+    }
+    const make = async (tag: string) => {
+      const created = await f.command(
+        requester,
+        "recordPurchase",
+        envelope(
+          {
+            ...purchaseInput(supplier.result.id, suffix, tag),
+            purchaseType: "CASH",
+          },
+          [ref(supplier.result, "Supplier")]
+        ),
+        201
+      )
+      return current(requester, created.result.id)
+    }
+    const proposal = (row: PurchaseCycleDTO, proceeds = "0") => ({
+      proposal: {
+        kind: "WRITE_OFF",
+        input: {
+          cycleId: row.id,
+          date: "2026-10-04",
+          reason: "Retained disposal reason",
+          method: "OTHER",
+          proceeds,
+          ...(proceeds !== "0"
+            ? {
+                receipt: {
+                  amount: proceeds,
+                  date: "2026-10-05",
+                  method: "BANK_TRANSFER",
+                  reference: "Actual received funds",
+                },
+              }
+            : {}),
+        },
+      },
+      reason: "Retained request reason",
+    })
+    const pendingFor = async (row: PurchaseCycleDTO, proceeds = "0") => {
+      const body = envelope(proposal(row, proceeds), cycleRefs(row))
+      const pending = (await f.command(
+        requester,
+        "requestApproval",
+        body,
+        202
+      )) as unknown as Pending
+      const a = await approval(reviewer, pending.approvalId)
+      return {
+        body,
+        pending,
+        a,
+        review: envelope({ approvalId: a.id, decision: "APPROVE" }, [
+          ref(a, "ApprovalRequest"),
+          ...a.expected,
+        ]),
+      }
+    }
+    {
+      const row = await make("strict"),
+        p = proposal(row)
+      for (const patch of [
+        { date: "2026-02-30" },
+        { date: "2026-09-30" },
+        { date: "9999-01-01" },
+        { proceeds: "-1" },
+        { proceeds: "01" },
+        { method: "CASH" },
+        { reason: " " },
+        { actorId: row.vehicleId },
+      ])
+        await statusBody(
+          requester,
+          "requestApproval",
+          envelope(
+            {
+              ...p,
+              proposal: {
+                ...p.proposal,
+                input: { ...p.proposal.input, ...patch },
+              },
+            },
+            cycleRefs(row)
+          ),
+          422,
+          "INVALID_INPUT"
+        )
+      for (const input of [
+        { ...p.proposal.input, proceeds: "1" },
+        {
+          ...p.proposal.input,
+          receipt: { amount: "1", date: "2026-10-05", method: "CASH" },
+        },
+        {
+          ...p.proposal.input,
+          proceeds: "2",
+          receipt: { amount: "1", date: "2026-10-05", method: "CASH" },
+        },
+      ])
+        await statusBody(
+          requester,
+          "requestApproval",
+          envelope(
+            { ...p, proposal: { kind: "WRITE_OFF", input } },
+            cycleRefs(row)
+          ),
+          422,
+          "BALANCE_MISMATCH"
+        )
+      await statusBody(
+        requester,
+        "requestApproval",
+        envelope(
+          {
+            ...p,
+            proposal: {
+              ...p.proposal,
+              input: { ...p.proposal.input, proceeds: "100000000000000" },
+            },
+          },
+          cycleRefs(row)
+        ),
+        422,
+        "MONEY_OVERFLOW"
+      )
+      await statusBody(
+        requester,
+        "requestApproval",
+        envelope(p, []),
+        428,
+        "REVISION_REQUIRED"
+      )
+      await statusBody(
+        requester,
+        "requestApproval",
+        envelope(
+          p,
+          cycleRefs(row).map((r) => ({ ...r, revision: r.revision + 1 }))
+        ),
+        409,
+        "STALE_REVISION"
+      )
+      await statusBody(
+        requester,
+        "requestApproval",
+        envelope(p, [ref(row), ref(row)]),
+        422,
+        "INVALID_INPUT"
+      )
+      await statusBody(
+        requester,
+        "requestApproval",
+        envelope(p, [...cycleRefs(row), ref(supplier.result, "Supplier")]),
+        422,
+        "INVALID_INPUT"
+      )
+      groups.push({
+        group: "P2/P4 strict input and exact request references",
+        pass: true,
+      })
+    }
+    {
+      const row = await make("reject"),
+        before = await f.snapshot(domainTables),
+        p = await pendingFor(row)
+      await statusBody(
+        reviewer,
+        "reviewApproval",
+        envelope(
+          { approvalId: p.a.id, decision: "REJECT", note: " " },
+          p.review.expected
+        ),
+        422,
+        "INVALID_INPUT"
+      )
+      await statusBody(
+        reviewer,
+        "reviewApproval",
+        { ...p.review, expected: [] },
+        428,
+        "REVISION_REQUIRED"
+      )
+      await statusBody(
+        reviewer,
+        "reviewApproval",
+        { ...p.review, expected: [ref(p.a, "ApprovalRequest")] },
+        428,
+        "REVISION_REQUIRED"
+      )
+      await statusBody(
+        reviewer,
+        "reviewApproval",
+        {
+          ...p.review,
+          expected: p.review.expected.map((r) =>
+            r.type === "ApprovalRequest" ? { ...r, revision: 2 } : r
+          ),
+        },
+        409,
+        "STALE_REVISION"
+      )
+      await statusBody(
+        reviewer,
+        "reviewApproval",
+        {
+          ...p.review,
+          expected: [...p.review.expected, ref(supplier.result, "Supplier")],
+        },
+        422,
+        "INVALID_INPUT"
+      )
+      const reject = envelope(
+        {
+          approvalId: p.a.id,
+          decision: "REJECT",
+          note: "Separate reviewer rejects retained intent",
+        },
+        p.review.expected
+      )
+      const result = await f.command(reviewer, "reviewApproval", reject)
+      assert.equal(await f.snapshot(domainTables), before)
+      const a = await approval(requester, p.a.id)
+      assert.equal(a.state, "REJECTED")
+      assert.equal(a.reviewNote, "Separate reviewer rejects retained intent")
+      const unchanged = await f.snapshot(allTables)
+      assert.equal(
+        (await f.command(reviewer, "reviewApproval", reject)).commandId,
+        result.commandId
+      )
+      assert.equal(await f.snapshot(allTables), unchanged)
+      await statusBody(
+        reviewer,
+        "reviewApproval",
+        p.review,
+        409,
+        "ALREADY_REVIEWED"
+      )
+      const fresh = await pendingFor(await current(requester, row.id))
+      await f.command(reviewer, "reviewApproval", fresh.review)
+      groups.push({
+        group:
+          "P2 rejection immutable proposal, zero domain effects, replay and fresh approval",
+        pass: true,
+      })
+    }
+    for (const name of [
+      "setListedPrice",
+      "addCost",
+      "addMileage",
+      "editVehicle",
+      "payPurchase",
+      "editPurchase",
+      "receiveStock",
+    ]) {
+      const row = await make(`stale-${name}`),
+        p = await pendingFor(row)
+      const input =
+        name === "setListedPrice"
+          ? { cycleId: row.id, amount: "0", reason: "New asking price" }
+          : name === "addCost"
+            ? {
+                cycleId: row.id,
+                category: "Other",
+                description: "Changed actual cost",
+                amount: "1",
+                incurredDate: "2026-10-03",
+              }
+            : name === "addMileage"
+              ? { cycleId: row.id, mileage: { reading: 1, date: "2026-10-03" } }
+              : name === "editVehicle"
+                ? {
+                    vehicleId: row.vehicleId,
+                    values: { ...row.identity, colour: "Red" },
+                    reason: "Current physical correction",
+                  }
+                : name === "payPurchase"
+                  ? {
+                      cycleId: row.id,
+                      recipient: "SELLER",
+                      payment: {
+                        amount: "1",
+                        date: "2026-10-03",
+                        method: "CASH",
+                      },
+                    }
+                  : name === "editPurchase"
+                    ? {
+                        cycleId: row.id,
+                        patch: { notes: "Current source correction" },
+                        cashCorrections: [],
+                        reason: "Actual correction",
+                      }
+                    : {
+                        cycleId: row.id,
+                        date: "2026-10-03",
+                        disposition: { kind: "RELEASE" },
+                      }
+      await f.command(
+        requester,
+        name,
+        envelope(
+          input,
+          name === "editVehicle"
+            ? [cycleRefs(row)[1]]
+            : name === "addMileage"
+              ? cycleRefs(row)
+              : [ref(row)]
+        ),
+        name === "addCost" ? 201 : 200
+      )
+      await statusBody(
+        reviewer,
+        "reviewApproval",
+        p.review,
+        409,
+        "APPROVAL_STALE"
+      )
+      assert.equal((await approval(reviewer, p.a.id)).state, "PENDING")
+      groups.push({
+        group: `P4 actual ${name} changes saved business dependencies`,
+        pass: true,
+      })
+    }
+    {
+      const row = await make("races"),
+        p = await pendingFor(row, "2000")
+      const results = await Promise.all(
+        Array.from({ length: 2 }, () =>
+          f.command(reviewer, "reviewApproval", p.review)
+        )
+      )
+      assert.equal(results[0].commandId, results[1].commandId)
+      assert.equal(results.filter((r) => !r.replayed).length, 1)
+      const snapshot = await f.snapshot(allTables)
+      const status = await f.query<Applied>(
+        reviewer,
+        "commandStatus",
+        `?name=reviewApproval&idempotencyKey=${p.review.idempotencyKey}`
+      )
+      assert.equal(status.commandId, results[0].commandId)
+      const prior = await f.query<Pending>(
+        requester,
+        "commandStatus",
+        `?name=requestApproval&idempotencyKey=${p.body.idempotencyKey}`
+      )
+      assert.equal(prior.approvalId, p.a.id)
+      assert.equal(prior.businessEffect, false)
+      assert.equal(await f.snapshot(allTables), snapshot)
+      await statusBody(
+        requester,
+        "requestApproval",
+        {
+          ...p.body,
+          input: {
+            ...(p.body.input as object),
+            reason: "Different authorized intent",
+          },
+        },
+        409,
+        "IDEMPOTENCY_MISMATCH"
+      )
+      groups.push({
+        group:
+          "P5 identical concurrent review, current-authority commandStatus and request replay after application",
+        pass: true,
+      })
+    }
+    {
+      const inbox = await f.query<{
+        data: NotificationDTO[]
+        unreadCount: number
+        asOf: string
+      }>(reviewer, "notifications", "?pageSize=100")
+      const notification = inbox.data.find((n) => n.readAt === null)
+      assert.ok(notification)
+      assert.ok(notification.target.href.startsWith("/approvals/"))
+      await statusBody(
+        requester,
+        "markNotificationRead",
+        envelope({ notificationId: notification.id }, [
+          ref(notification, "Notification"),
+        ]),
+        404,
+        "NOT_FOUND"
+      )
+      const beforeSequence = await f.snapshot(["BusinessSequence"])
+      const body = envelope({ notificationId: notification.id }, [
+        ref(notification, "Notification"),
+      ])
+      const result = await f.command(reviewer, "markNotificationRead", body)
+      const baseline = await f.snapshot(allTables)
+      assert.equal(
+        (await f.command(reviewer, "markNotificationRead", body)).commandId,
+        result.commandId
+      )
+      assert.equal(await f.snapshot(allTables), baseline)
+      const one = await f.query<{ unreadCount: number }>(
+        reviewer,
+        "notifications",
+        "?pageSize=1"
+      )
+      assert.equal(one.unreadCount, inbox.unreadCount - 1)
+      const all = envelope({ through: "9999-01-01T00:00:00.000Z" })
+      const marked = await f.command(reviewer, "markAllNotificationsRead", all)
+      assert.equal(
+        (await f.query<{ unreadCount: number }>(reviewer, "notifications"))
+          .unreadCount,
+        0
+      )
+      assert.equal(await f.snapshot(["BusinessSequence"]), beforeSequence)
+      const complete = await f.snapshot(allTables)
+      assert.equal(
+        (await f.command(reviewer, "markAllNotificationsRead", all)).commandId,
+        marked.commandId
+      )
+      assert.equal(await f.snapshot(allTables), complete)
+      groups.push({
+        group:
+          "P2/P3 recipient inbox, monotone read-one/all, future cutoff clamp, no business sequence",
         pass: true,
       })
     }

@@ -38,8 +38,8 @@ export const privateAttachmentAPIs = {
   "/api/v1/attachments/[attachmentId]": "GET",
 } as const
 export const importStagingPages = ["/imports", "/imports/[id]"]
+export const approvalPages = ["/approvals", "/approvals/[id]"]
 export const unavailablePages = [
-  "/approvals",
   "/cash-flow",
   "/dashboard",
   "/lease-deals",

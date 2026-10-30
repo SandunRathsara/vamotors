@@ -31,6 +31,29 @@ its no-work/released statements no longer describe current ownership.
   SHA/tree**, then actual inventory and fresh/genuine nonempty exact-parent
   upgrade/repeat. Current16 migrations/registry12 are prebase only; no006 claim.
 
+### First executed prebase feedback (after 5abb727)
+
+- Production build at clean `5abb727be7f21d208d5bd2b0f4019c4102786b23`, tree
+  `456ca420c01c2d4e698f3b3067bd2fa687b65781`, exited0.
+- First HTTP/PG run failed requestApproval500: SQL `approval_origin` declared an
+  unused `f` conflicting with its unnest column. After removal, the next run
+  reached reviewApproval500: a cross-table trigger CASE resolved nonexistent
+  record fields. Separate IF statements fixed that root cause. Both failed
+  receipts, PG error context and transaction histories remain retained.
+- `prebase-http-pg-record-fix` exited0 against the development-overlay draft:
+  three real PURCHASED/HOLD/RELEASE CASH/BRAND_NEW journeys, zero/2000/12000
+  proceeds at10500 basis, signed loss/gain, actual receipt dates, self-review
+  denial, terminal history, same-key request/review replay and reacquisition
+  denial. This is a **bounded smoke**, not full P1–P8 or final migration proof.
+- Initial units exited1 with six stale registry/route inventory expectations;
+  revised inventories preserve the pinned old registry fingerprint. Full rerun
+  `prebase-units-updated` exited0:18 files/150 tests. Added a separate full
+  accepted555 registry SHA-256 assertion derived from that exact Git object.
+- Expanded real HTTP negative test exposed acceptance of an extra Supplier CAS
+  reference (202 instead of422), retained as `prebase-expanded-exact-ref-red`.
+  Request/review now reject extra dependency populations; current expanded
+  compiler/lint feedback and rebuilt runtime verification are still pending.
+
 ## Historical frozen checkpoint — preserved verbatim below
 
 Parent requested safe checkpoint/freeze/release before reassigning a bounded
