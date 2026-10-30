@@ -328,6 +328,12 @@ function visibleCost(
       "read",
       subject("VehicleCost", costAuth(cost)),
       "payments.amount"
+    ) ||
+    !actor.ability.can("read", root, "costs.payments.direction") ||
+    !actor.ability.can(
+      "read",
+      subject("VehicleCost", costAuth(cost)),
+      "payments.direction"
     )
   )
     delete projected.outstanding

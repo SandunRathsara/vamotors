@@ -1184,6 +1184,134 @@ try {
         ),
         "Basis reasons must not launder a source-hidden correction reason"
       )
+      const costFields = [
+        "id",
+        "revision",
+        "category",
+        "description",
+        "amount",
+        "incurredDate",
+        "payments.id",
+        "payments.amount",
+        "outstanding",
+      ]
+      for (const denied of ["child-direction", "root-direction", "none"]) {
+        await assign(
+          denied === "none"
+            ? reads
+            : [
+                ...reads.filter(
+                  (g) =>
+                    g.subject !==
+                    (denied === "child-direction"
+                      ? "VehicleCost"
+                      : "PurchaseRecord")
+                ),
+                {
+                  subject:
+                    denied === "child-direction"
+                      ? "VehicleCost"
+                      : "PurchaseRecord",
+                  action: "read",
+                  fields:
+                    denied === "child-direction"
+                      ? costFields
+                      : [
+                          "id",
+                          "revision",
+                          "vehicleId",
+                          "identityRevision",
+                          "purchasePrice",
+                          "financial",
+                          "payments",
+                          ...costFields.map((f) => `costs.${f}`),
+                        ],
+                },
+              ]
+        )
+        const actor = await query<CurrentActorDTO>(
+            staff.request,
+            "currentActor"
+          ),
+          purchase = await current(row.id, staff.request),
+          vehicle = await query<{ cycles: PurchaseCycleDTO[] }>(
+            staff.request,
+            "vehicle",
+            `?id=${row.vehicleId}`
+          ),
+          purchases = await query<{ data: PurchaseCycleDTO[] }>(
+            staff.request,
+            "purchases",
+            `?vehicleId=${row.vehicleId}`
+          ),
+          audits = await Promise.all(
+            [
+              ["PurchaseRecord", row.id],
+              ["VehicleCost", cost.id],
+            ].map(([type, id]) =>
+              query(staff.request, "audit", `?type=${type}&id=${id}`)
+            )
+          )
+        const evidence = { denied, actor, purchase, vehicle, purchases, audits }
+        await writeFile(
+          join(root, `cycle-cost-direction-${suffix}-${denied}.json`),
+          JSON.stringify(evidence, null, 2),
+          { mode: 0o600 }
+        )
+        assert.equal(actor.roles.length, 1, "No inherited role may mask denial")
+        const authorized = denied === "none"
+        for (const projected of [
+          purchase,
+          vehicle.cycles.find((c) => c.id === row.id)!,
+          purchases.data.find((c) => c.id === row.id)!,
+        ]) {
+          const visible = projected.costs.find((c) => c.id === cost.id)!
+          assert.equal(visible.amount, "600")
+          assert.equal(visible.payments[0].amount, "200")
+          assert.equal(
+            visible.payments[0].direction,
+            authorized ? "OUT" : undefined
+          )
+          assert.equal(
+            visible.outstanding,
+            authorized ? "400" : undefined,
+            `${denied}: outstanding must inherit both source direction grants`
+          )
+          assert.equal(
+            projected.financial?.cashOut,
+            authorized ? "10200" : undefined
+          )
+        }
+        for (const audit of audits)
+          assert.equal(JSON.stringify(audit).includes('"400"'), authorized)
+        for (const width of [360, 1920]) {
+          await limited.setViewportSize({ width, height: 1080 })
+          for (const path of [
+            `/purchases/${row.id}`,
+            `/vehicles/${row.vehicleId}`,
+          ]) {
+            await limited.goto(path)
+            const item = limited.locator("li").filter({
+              has: limited.locator("p").filter({ hasText: `Cost ${cost.id}` }),
+            })
+            await expect(item).toBeVisible()
+            await expect(item).toContainText(
+              `outstanding ${authorized ? "4.00" : "Unavailable"}`
+            )
+            assert.equal(/\bOUT\b/.test(await item.innerText()), authorized)
+            const name = `cycle-cost-direction-${suffix}-${denied}-${width}-${path.split("/")[1]}`
+            await limited.screenshot({
+              path: join(root, `${name}.png`),
+              fullPage: true,
+            })
+            await writeFile(
+              join(root, `${name}.txt`),
+              await limited.locator("body").innerText(),
+              { mode: 0o600 }
+            )
+          }
+        }
+      }
       await restoreStaff()
     }
   )
