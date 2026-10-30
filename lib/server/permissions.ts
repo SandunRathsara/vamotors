@@ -527,9 +527,46 @@ export const registry = {
       "fields",
     ],
   },
+  ImportBatch: {
+    create: ["types", "namespace"],
+    read: [
+      "id",
+      "revision",
+      "state",
+      "types",
+      "namespace",
+      "createdAt",
+      "uploads",
+      "uploads.uploadId",
+      "uploads.revision",
+      "uploads.filename",
+      "uploads.expiresAt",
+      "uploads.state",
+      "uploads.attachmentId",
+      "uploads.claimExpiresAt",
+    ],
+    update: ["uploads"],
+  },
+  Document: {
+    create: ["target", "purpose", "filename", "contentType", "size", "sha256"],
+    read: [
+      "uploadId",
+      "revision",
+      "filename",
+      "expiresAt",
+      "state",
+      "attachmentId",
+      "claimExpiresAt",
+      "contentType",
+      "size",
+      "sha256",
+      "bytes",
+    ],
+    update: ["uploadId"],
+  },
 } as const
-// Accepted rates v8 plus bounded cycle costs/corrections; old ceilings freeze in 002.
-export const registryVersion = 9
+// Accepted v9 universes remain fixed; T06b adds only two independent subjects.
+export const registryVersion = 10
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
@@ -546,6 +583,8 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   AuditLog: [],
   RateSheet: ["createdBy", "financeCompanyId"],
   Quote: ["createdBy", "financeCompanyId"],
+  ImportBatch: ["createdBy"],
+  Document: ["createdBy"],
 }
 const conditionSchema = z
   .object({

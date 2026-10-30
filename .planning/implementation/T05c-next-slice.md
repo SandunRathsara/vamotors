@@ -1,6 +1,12 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current bounded ACCEPTED exact ac746b9 / required follow-ons NOT DISPATCHED
+## Current accepted costs / T06b REVIEW assembly / T05c.1 parent-DISPATCHED
+
+Bounded T05c+combined/P2/bounded F1 remain parent-accepted/closed **EXACTac746b90ce9782fd35635847dff6c1b3ab669618**, no post-wrap/freeze experiment claimed. Frozen T06b1d source is now in [ordinary current-records REVIEW assembly](evidence/T06b-1d384b1-review-assembly.md), **UNACCEPTED**; source author freeze ACK/released, distinct reviewer completed preparation only and awaits returned final SHA for one full campaign. Primaryac/matrix26 bindings unchanged.
+
+Parent explicitly **DISPATCHES [T05c.1](T05c.1-next-slice.md) ses_e7376ed96ffe2a8RsopfGvBwgI SOLE ACTIVE NEW shared source owner from exact ACCEPTEDac**, branch/head unknown; same mileage/listed-price/physical scope,005 reserved after004, actualac9 prebase without unaccepted T06 import. Eventual accepted T06-combined rebase preserving actual10 grant universes/attachments, final fresh/genuine-parent repeat/restart mandatory. T06 correction requires T05c.1 checkpoint+freeze+ACK before reassignment. [T05c.2](T05c.2-next-slice.md) remains FUTURE queued/NOT DISPATCHED; all original clauses/scope/tests below retained as historical dispatch specification.
+
+## Previous bounded ACCEPTED exact ac746b9 / then-undispatched follow-ons snapshot
 
 Parent **ACCEPTS bounded T05c+combined EXACT ac746b90ce9782fd35635847dff6c1b3ab669618**, distinct ses_e73866f03ffef8LtV6wZH4jIq7 **BOUNDED PASS**, completed/services released; **P2 and bounded F1/P3 corrections CLOSED by parent**. [Independent final attribution / preserved failures / actual primary FF](evidence/T05c-ac746b9-acceptance-attributed.md). Both fresh/upgraded normal acquisition15 pass without force fallback; original author98 cancelled11/12 and500 FAIL105 artifacts remain unchanged. No actual post-wrap workflow/freeze proof; no whole-ID closure:26 LOCAL/108 U/134/VSTS-03 U/full T05/T06/G2–G6 unaccepted. Authorized primary FF-onlye9→EXACTac succeeded, clean; newer docs/T06b not promoted.
 

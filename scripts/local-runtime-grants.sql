@@ -62,3 +62,7 @@ GRANT INSERT (reference, "reversalOf", reason) ON vamotors."PurchasePayment" TO 
 GRANT INSERT ("supersedesId") ON vamotors."CycleBasisVersion" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."VehicleCost", vamotors."CostPayment" TO vamotors_runtime;
 GRANT UPDATE (category, description, amount, "incurredDate", revision, "updatedAt") ON vamotors."VehicleCost" TO vamotors_runtime;
+-- T06b typed staging only. Retained claims/files/events are append-only.
+GRANT SELECT, INSERT ON vamotors."ImportBatch", vamotors."UploadIntent", vamotors."UploadAttempt", vamotors."Attachment", vamotors."UploadEvent" TO vamotors_runtime;
+GRANT UPDATE (revision) ON vamotors."ImportBatch" TO vamotors_runtime;
+GRANT UPDATE (revision, state, "currentAttemptId", "claimExpiresAt") ON vamotors."UploadIntent" TO vamotors_runtime;

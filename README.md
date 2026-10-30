@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-Parent accepts bounded T05c+combined at **ac746b90ce9782fd35635847dff6c1b3ab669618**, after distinct independent BOUNDED PASS; the authorized primary `integration/full-v1` was fast-forwarded to that exact SHA, not this newer docs commit. [Current handoff](.planning/implementation/HANDOFF.md), [attributed acceptance and remaining clauses](.planning/implementation/evidence/T05c-ac746b9-acceptance-attributed.md), [requirement matrix](.planning/implementation/requirements-matrix.md): **26 LOCAL/108 U/134**, no new IDs; full T05/T06/G2–G6/deployment remain unaccepted. T06b is the sole active NEW shared writer with parent-directed accepted-ac rebase pending; T05c.1/.2 are FUTURE/NOT DISPATCHED.
+Accepted baseline/primary remains **ac746b90ce9782fd35635847dff6c1b3ab669618**, with bounded costs P2/F1 corrections closed there. This checkout assembles **frozen UNACCEPTED T06b1d384b1 + current records for one final-combined-SHA independent review**, not acceptance or promotion. [Current handoff](.planning/implementation/HANDOFF.md), [exact source map and review gate](.planning/implementation/evidence/T06b-1d384b1-review-assembly.md), [requirement matrix](.planning/implementation/requirements-matrix.md): **26 LOCAL/108 U/134**, all bindings unchanged/VSTS-03 U/full T05/T06/G2–G6/deployment unaccepted. T06 author frozen/released; reviewer completed preparation only/awaits final SHA. Parent dispatched T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI as sole ACTIVE NEW shared writer from acceptedac, never unaccepted T06; later accepted-T06 rebase required. T05c.2 remains FUTURE queued/NOT DISPATCHED.
 
 ## Historical frontend-shell walkthrough
 

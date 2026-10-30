@@ -1,4 +1,8 @@
-# T05c acknowledged freeze / recovery resumed / T06b sole-owner dispatch
+# T06b ownership chronology — original dispatch retained
+
+**Current supersession:** [frozen1d review assembly and exact source map](T06b-1d384b1-review-assembly.md). T06b ses_e738d7ffaffeXx7RewTpqYvIg0 COMPLETE SOURCE FREEZE ACK/ownership RELEASE; author evidence is not acceptance. Independent ses_e734bc50bffeWMSjm7Ed2xdxA2 completed preparation only/awaits one returned final-combined SHA. Parent dispatched T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI SOLE ACTIVE NEW shared writer from acceptedac/005/actual9 prebase, never unaccepted1d; eventual accepted T06 rebase/final proof mandatory, branch/head unknown. T06 fix requires prior T05c.1 checkpoint+freeze+ACK; T05c.2 queued. Primaryac/P2+bounded F1 closure/26 bindings unchanged. The original dispatch snapshot below is historical, not current ownership or pending costs acceptance.
+
+## Historical T05c acknowledged freeze / recovery resumed / T06b dispatch
 
 2026-10-30, **parent-supplied facts and explicit dispatch**, recorded by the docs-only integration owner; not independently queried from author/recovery sessions or live services. This records ownership/evidence attribution, **not source integration or acceptance**.
 

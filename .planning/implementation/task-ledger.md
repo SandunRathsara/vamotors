@@ -1,6 +1,14 @@
 # Full-v1 implementation task ledger
 
-## Current parent acceptance / exact-ac primary FF / T06b sole active writer
+## Current frozen T06b REVIEW assembly / T05c.1 sole active NEW writer
+
+- **Review assembly only:** frozen UNACCEPTED1d384b194d057d21f3790ee2c8544f1391ce8833 + current records13277e5c45826b328215dcb2a66b5bcb847c78c1, common acceptedac; ordinary conflict-free/zero-overlap merge. [Exact29-path map, package integrity, source union and one-final-SHA review gate](evidence/T06b-1d384b1-review-assembly.md). Runtime/tests/schema/packages/contracts/native/PWA exact1d; current matrix entire bytes/bindings preserved26 LOCAL/108 U/134/VSTS-03 U. P2/bounded F1 remain parent-closed at acceptedac; primaryac/protected refs unchanged.
+- **T06b author frozen/released:** ses_e738d7ffaffeXx7RewTpqYvIg0 COMPLETE SOURCE FREEZE ACK/ownership RELEASE, all8 roots stopped/retained/no owned app/test/browser/fileworker per sealed handback.352 checksums/48 exact-head receipts/27 completed jobs verified; failures retained, not all receipts called PASS. Author full18 fresh+18 genuine-ac upgrade/repeat/expiry/restart/26 linked-file checks are not independent acceptance.
+- **Distinct reviewer ses_e734bc50bffeWMSjm7Ed2xdxA2:** COMPLETED PREPARATION ONLY, own real exactac NONEMPTY13-migration/registry9 fixture stopped/retained; awaits returned FINAL COMBINED SHA/tree for ONE full runtime campaign. No current runtime-review/verdict/acceptance or source-only duplicate inferred.
+- **Parent DISPATCHES [T05c.1](T05c.1-next-slice.md) ses_e7376ed96ffe2a8RsopfGvBwgI SOLE ACTIVE NEW shared writer**, exact ACCEPTEDac; isolated branch/head unknown.005_cycle_edits reserved after004, actualac9 prebase/no unaccepted1d import; eventual accepted T06-combined rebase preserving actual10 universes/attachments before final fresh/genuine-parent repeat/restart. T06 fix requires FIRST T05c.1 checkpoint+freeze+ACK, THEN reassignment. [T05c.2](T05c.2-next-slice.md) FUTURE queued/NOT DISPATCHED.
+- No T06/IMPT/G2–G6/full T05/deployment or new-ID acceptance/promotion. Integration checks only union/blob/hash/matrix/contracts/migrations/native/PWA/docs links/diff; no runtime rerun, secrets or delegation. Earlier current/next labels below are historical snapshots.
+
+## Previous parent acceptance / exact-ac primary FF / T06b active-writer snapshot
 
 - **Parent ACCEPTS bounded T05c+combined EXACT ac746b90ce9782fd35635847dff6c1b3ab669618**, distinct **ses_e73866f03ffef8LtV6wZH4jIq7 BOUNDED PASS**, completed/services released. **P2 hidden-direction aggregate and bounded F1/P3 xid-width correction CLOSED by parent at exactac**; no actual post-wrap application/freeze-experiment proof. [Exact attribution, campaigns, original-clause gaps and promotion](evidence/T05c-ac746b9-acceptance-attributed.md).
 - Stable308 hashes and12 normal fresh/upgraded exactac exit0 receipts verified by read/hash only. Both normal acquisition15 pass **without forced fallback**; author98 remains11/12/CANCELLED-STALLED-GROUP15, no twelfth receipt/original harness exit invented. Original500 FAIL/105 artifacts, source792 author evidence and verifier helper failures retained separately.

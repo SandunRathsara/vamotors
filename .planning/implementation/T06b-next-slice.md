@@ -1,6 +1,14 @@
 # T06b — lawful staged-import private attachments
 
-## Current parent steering — accepted exact-ac rebase REQUIRED, outcome unknown
+## Current frozen1d REVIEW assembly / source author RELEASED / no acceptance
+
+Parent authorizes ordinary merge of **frozen UNACCEPTED1d384b194d057d21f3790ee2c8544f1391ce8833** (acceptedac ancestor) into current records13277; [full29-path map, exact union and attributed author package](evidence/T06b-1d384b1-review-assembly.md). Author **ses_e738d7ffaffeXx7RewTpqYvIg0 COMPLETE SOURCE FREEZE ACK / ownership RELEASE**; all8 own roots stopped/retained, no app/test/browser/fileworker per handback.352 sealed checksums/48 exact-head receipts/27 completed jobs verified with original nonzero outcomes retained. Author full18 fresh+18 genuine-ac13→14 upgrade/repeat/actual expiry/restart/26 linked-file checks are **not independent acceptance**. All13 accepted SQL bytes retained/new004 exact author hash/registry10; no claim that changed shared audit/sidebar/tests equal oldac.
+
+Reviewer **ses_e734bc50bffeWMSjm7Ed2xdxA2 COMPLETED PREPARATION ONLY**, own genuine exactac NONEMPTY13-migration/registry9 fixture stopped/retained; **awaits returned FINAL COMBINED SHA/tree for one full runtime campaign**, no candidate verdict/acceptance. No root adoption or duplicate source-only review. Entire scope/security/tests below remain required; no G2/IMPT/full T06/gate acceptance or primary promotion.
+
+After explicit T06 release, parent **DISPATCHES T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI SOLE ACTIVE NEW shared owner** from accepted EXACTac, new isolated branch/head unknown;005 reserved after004/actualac9 prebase/no unaccepted1d import. Final T05c.1 handback must reconcile onto eventual accepted T06-combined source/actual10 universes/attachments, then fresh/genuine-parent repeat/restart. Any T06 fix FIRST requires T05c.1 checkpoint+freeze+ACK and parent reassignment. [T05c.2](T05c.2-next-slice.md) still queued/NOT DISPATCHED. Primary acceptedac/26 bindings/P2+bounded F1 closure unchanged; earlier steering/unknown-rebase/PREBASE/failure entries below remain historical.
+
+## Previous parent steering — accepted exact-ac rebase required at that snapshot
 
 **T06b ses_e738d7ffaffeXx7RewTpqYvIg0 remains SOLE ACTIVE NEW shared source writer**, no new task or competing writer. Parent [accepts bounded T05c+combined EXACT ac746b90ce9782fd35635847dff6c1b3ab669618](evidence/T05c-ac746b9-acceptance-attributed.md) after distinct completed BOUNDED PASS and directs **safe checkpoint/rebase onto that accepted EXACTac before final handback**. Preserve all13 accepted migrations unchanged; retain own **202610300004_import_attachments**, freeze **actual accepted registryv9→10** populations rather than oldv8 assumptions. Require new fresh + genuine **NONEMPTY exactac** upgrade including real cost/payment/reversal/basis history and all prior rates/quotes/grants/ACLs, then repeat setup/retention and final-combined independent review. Existing full scope/security/tests remain mandatory.
 

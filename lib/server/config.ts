@@ -13,6 +13,8 @@ export function runtimeConfig(
       APP_ORIGIN: z.string().url(),
       BETTER_AUTH_URL: z.string().url(),
       BETTER_AUTH_SECRET: z.string().min(32),
+      PRIVATE_FILES_ROOT: z.string().min(1).optional(),
+      PRIVATE_FILES_POLICY: z.string().min(1).optional(),
     })
     .safeParse(env)
   if (

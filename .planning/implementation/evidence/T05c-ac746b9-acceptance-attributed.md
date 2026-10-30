@@ -46,6 +46,6 @@ In `/Users/alpha/Developer/Personal/vamotors`, branch **integration/full-v1**, c
 
 Actual before/after/command/stdout/stderr/protected-ref proof and final source/matrix/docs manifest: `/private/var/folders/gb/j8pkyq8j0rd50dzkps44xgh40000gn/T/opencode/vamotors-t05c-ac-acceptance-fjn3bv2w/`. This worker changes records only; all source/contracts/tests/packages/migrations/native/PWA remain exactac, matrix rows/result cells/bindings exactac (top status only updated). Final clean docs SHA is returned separately, not promoted.
 
-## Current sole NEW source owner / next checkpoint
+## Previous T06b sole NEW source-owner / rebase-steering snapshot
 
 **T06b ses_e738d7ffaffeXx7RewTpqYvIg0 remains SOLE ACTIVE NEW shared writer.** Parent directed safe checkpoint/rebase onto **accepted EXACTac before final handback**, preserve13 accepted migrations/own004, freeze actual registryv9→10, fresh + genuine-ac NONEMPTY upgrade including real costs/payments/reversals/basis and retained rates/quotes/grants/owners/ACLs, then repeat. Latest head/rebase outcome unknown; no live author inspection or invented success. PREBASE87/failed-partial/private session-revocation evidence preserved. Future competing source assignment requires checkpoint+freeze+ACK and parent transfer; these docs dispatch nothing and create no new policy/contract choice.
