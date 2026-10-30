@@ -479,7 +479,12 @@ try {
         409
       )
       for (const name of ["payPurchase", "intakeTradeIn", "editPurchase"])
-        await command(a.request, name, envelope({ cycleId: cash.id }), 404)
+        await command(
+          a.request,
+          name,
+          envelope({ cycleId: cash.id }),
+          name === "intakeTradeIn" ? 404 : 422
+        )
       assert.equal(await snapshot(), before)
     }
   )

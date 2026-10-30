@@ -11,7 +11,15 @@ import { fail } from "@/lib/server/errors"
 import { executeCustomer } from "@/lib/server/customers"
 import { executeParty } from "@/lib/server/parties"
 import { executeSettings } from "@/lib/server/settings"
-import { recordPurchase, executeStock } from "@/lib/server/purchases"
+import {
+  recordPurchase,
+  executeStock,
+  executeCycleMoney,
+} from "@/lib/server/purchases"
+import {
+  cycleMoneyInputs,
+  type CycleMoneyCommand,
+} from "@/lib/server/validators"
 import { stockInputs, type StockCommand } from "@/lib/server/validators"
 import { executeRates } from "@/lib/server/rates"
 import { rateCommands, type RateCommandName } from "@/lib/server/validators"
@@ -37,6 +45,7 @@ export async function POST(
       name !== "updateSettings" &&
       name !== "recordPurchase" &&
       !Object.hasOwn(stockInputs, name) &&
+      !Object.hasOwn(cycleMoneyInputs, name) &&
       !customer &&
       !party &&
       !rates &&
@@ -52,22 +61,25 @@ export async function POST(
       ? await executeRates(identity, name as RateCommandName, raw)
       : name === "recordPurchase"
         ? await recordPurchase(identity, raw)
-        : Object.hasOwn(stockInputs, name)
-          ? await executeStock(identity, name as StockCommand, raw)
-          : name === "updateSettings"
-            ? await executeSettings(identity, raw)
-            : directory
-              ? await executeParty(identity, name as PartyCommandName, raw)
-              : customer
-                ? await executeCustomer(
-                    identity,
-                    name as CustomerCommandName,
-                    raw
-                  )
-                : await executeAdmin(identity, name as CommandName, raw)
+        : Object.hasOwn(cycleMoneyInputs, name)
+          ? await executeCycleMoney(identity, name as CycleMoneyCommand, raw)
+          : Object.hasOwn(stockInputs, name)
+            ? await executeStock(identity, name as StockCommand, raw)
+            : name === "updateSettings"
+              ? await executeSettings(identity, raw)
+              : directory
+                ? await executeParty(identity, name as PartyCommandName, raw)
+                : customer
+                  ? await executeCustomer(
+                      identity,
+                      name as CustomerCommandName,
+                      raw
+                    )
+                  : await executeAdmin(identity, name as CommandName, raw)
     const created =
       name === "createUser" ||
       name === "recordPurchase" ||
+      name === "addCost" ||
       name === "createCustomer" ||
       name === "createDirectoryParty" ||
       name === "createFinanceCompany" ||

@@ -55,3 +55,10 @@ GRANT INSERT (id, "cycleId", version, purchase, components, total, currency, sca
 GRANT UPDATE (status, available, "holdReason", "receivedDate", revision, "updatedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;
 -- T11a immutable published cards and quote candidates only; never update/delete.
 GRANT SELECT, INSERT ON vamotors."RateSheetVersion", vamotors."RateCardEntry", vamotors."Quote" TO vamotors_runtime;
+-- T05c: bounded current terms and costs only; source money/basis remain append-only.
+GRANT SELECT (notes) ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT UPDATE ("purchaseDate", "purchasePrice", notes) ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT INSERT (reference, "reversalOf", reason) ON vamotors."PurchasePayment" TO vamotors_runtime;
+GRANT INSERT ("supersedesId") ON vamotors."CycleBasisVersion" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."VehicleCost", vamotors."CostPayment" TO vamotors_runtime;
+GRANT UPDATE (category, description, amount, "incurredDate", revision, "updatedAt") ON vamotors."VehicleCost" TO vamotors_runtime;

@@ -65,8 +65,14 @@ describe("bounded stock command boundary", () => {
         false
       )
   })
-  it("adds only exact stock operations without enabling financial/identity edits", () => {
-    expect(registry.PurchaseRecord.update).toEqual(["reason"])
+  it("keeps stock operations separate from explicit bounded correction fields", () => {
+    expect(registry.PurchaseRecord.update).toEqual([
+      "reason",
+      "cycleId",
+      "patch.purchaseDate",
+      "patch.purchasePrice",
+      "patch.notes",
+    ])
     expect(
       grantSchema.safeParse({
         subject: "PurchaseRecord",

@@ -93,7 +93,10 @@ export async function securityQuery(
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
       if (name === "quote") return rateQuery(tx, actor, name, args)
-      if (name === "audit" && ["Vehicle", "PurchaseRecord"].includes(args.type))
+      if (
+        name === "audit" &&
+        ["Vehicle", "PurchaseRecord", "VehicleCost"].includes(args.type)
+      )
         return purchaseQuery(tx, actor, name, args)
       if (
         [

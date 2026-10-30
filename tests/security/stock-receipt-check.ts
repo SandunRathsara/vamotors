@@ -406,7 +406,12 @@ try {
       assert.equal(held.financial?.basis, "10000")
       assert.equal(held.payments[0].amount, "10000")
       assert.equal(held.listedPrice, "15000")
-      assert.deepEqual(held.nextActions, ["receiveStock"])
+      assert.deepEqual(
+        held.nextActions.filter((n) =>
+          ["receiveStock", "holdStock", "releaseStock"].includes(n)
+        ),
+        ["receiveStock"]
+      )
     }
   )
   await group(
@@ -601,7 +606,7 @@ try {
           a.request,
           name,
           envelope({ cycleId: row.id }, [ref(row)]),
-          404
+          ["editPurchase", "addCost"].includes(name) ? 422 : 404
         )
       assert.equal(await snapshot(), before)
     }

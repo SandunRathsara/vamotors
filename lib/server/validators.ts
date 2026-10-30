@@ -325,6 +325,70 @@ export type StockCommand = keyof typeof stockInputs
 export function stockEnvelope(name: StockCommand) {
   return customerEnvelope("createCustomer").extend({ input: stockInputs[name] })
 }
+export const cashInput = z
+  .object({
+    amount: moneyInput.refine((v) => v !== "0"),
+    date: dateOnly,
+    method: z.enum(["CASH", "BANK_TRANSFER"]),
+    reference: text.max(200).optional(),
+  })
+  .strict()
+const costTerms = {
+  category: text,
+  description: text,
+  amount: moneyInput,
+  incurredDate: dateOnly,
+}
+const cashCorrection = z
+  .object({ paymentId: id, replacement: cashInput.optional(), reason: text })
+  .strict()
+export const cycleMoneyInputs = {
+  addCost: z
+    .object({ cycleId: id, ...costTerms, payment: cashInput.optional() })
+    .strict(),
+  editCost: z.object({ costId: id, ...costTerms, reason: text }).strict(),
+  payCost: z.object({ costId: id, payment: cashInput }).strict(),
+  payPurchase: z
+    .object({ cycleId: id, recipient: z.literal("SELLER"), payment: cashInput })
+    .strict(),
+  editPurchase: z
+    .object({
+      cycleId: id,
+      reason: text,
+      patch: z
+        .object({
+          purchaseDate: dateOnly.optional(),
+          purchasePrice: moneyInput.refine((v) => v !== "0").optional(),
+          notes: text.nullable().optional(),
+        })
+        .strict(),
+      cashCorrections: z
+        .array(cashCorrection)
+        .max(100)
+        .refine(
+          (rows) => new Set(rows.map((r) => r.paymentId)).size === rows.length
+        ),
+    })
+    .strict()
+    .refine(
+      (v) => Object.keys(v.patch).length > 0 || v.cashCorrections.length > 0
+    ),
+  reversePayment: z
+    .object({
+      sourceType: z.enum(["COST", "PURCHASE"]),
+      sourceId: id,
+      paymentId: id,
+      replacement: cashInput.optional(),
+      reason: text,
+    })
+    .strict(),
+} as const
+export type CycleMoneyCommand = keyof typeof cycleMoneyInputs
+export function cycleMoneyEnvelope(name: CycleMoneyCommand) {
+  return customerEnvelope("createCustomer").extend({
+    input: cycleMoneyInputs[name],
+  })
+}
 export const settingsEnvelope = customerEnvelope("createCustomer").extend({
   input: settingsCommand,
 })

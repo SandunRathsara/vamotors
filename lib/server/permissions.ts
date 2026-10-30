@@ -8,6 +8,50 @@ import type {
 import { fail } from "./errors"
 import { states } from "../state"
 
+export const sourcePaymentFields = [
+  "id",
+  "owner.type",
+  "owner.id",
+  "commandId",
+  "amount",
+  "direction",
+  "category",
+  "date",
+  "method",
+  "recordedAt",
+  "reference",
+  "reversalOf",
+  "reason",
+] as const
+export const costReadFields = [
+  "id",
+  "revision",
+  "category",
+  "description",
+  "amount",
+  "incurredDate",
+  "payments",
+  ...sourcePaymentFields.map((p) => `payments.${p}`),
+  "outstanding",
+  "provenance",
+] as const
+const paymentWriteFields = [
+  "payment.amount",
+  "payment.date",
+  "payment.method",
+  "payment.reference",
+] as const
+const correctionWriteFields = [
+  "sourceType",
+  "sourceId",
+  "paymentId",
+  "reason",
+  "replacement.amount",
+  "replacement.date",
+  "replacement.method",
+  "replacement.reference",
+] as const
+
 // Deliberately closed initial capability registry. Downstream subjects stay
 // ungrantable until their authoritative DTO/command mappings are implemented.
 export const registry = {
@@ -152,6 +196,15 @@ export const registry = {
       "disposal",
       "provenance",
       "nextActions",
+      "notes",
+      ...sourcePaymentFields.map((p) => `payments.${p}`),
+      "outstanding.seller",
+      "outstanding.settlement",
+      ...costReadFields.map((p) => `costs.${p}`),
+      "basisVersions.id",
+      "basisVersions.version",
+      "basisVersions.total",
+      "basisVersions.reason",
       "identity.engineNumber",
       "identity.chassisNumber",
       "identity.make",
@@ -184,8 +237,39 @@ export const registry = {
       "paymentMethod",
     ],
     receive: ["date", "disposition.kind", "disposition.reason"],
-    update: ["reason"],
+    update: [
+      "reason",
+      "cycleId",
+      "patch.purchaseDate",
+      "patch.purchasePrice",
+      "patch.notes",
+    ],
     release: ["cycleId"],
+    pay: [
+      "cycleId",
+      "recipient",
+      ...paymentWriteFields,
+      ...correctionWriteFields,
+      "cashCorrections.paymentId",
+      "cashCorrections.reason",
+      "cashCorrections.replacement.amount",
+      "cashCorrections.replacement.date",
+      "cashCorrections.replacement.method",
+      "cashCorrections.replacement.reference",
+    ],
+  },
+  VehicleCost: {
+    read: costReadFields,
+    create: ["cycleId", "category", "description", "amount", "incurredDate"],
+    update: [
+      "costId",
+      "category",
+      "description",
+      "amount",
+      "incurredDate",
+      "reason",
+    ],
+    pay: ["costId", ...paymentWriteFields, ...correctionWriteFields],
   },
   Supplier: {
     // category is retained only to validate immutable legacy permissions. The
@@ -444,7 +528,8 @@ export const registry = {
     ],
   },
 } as const
-export const registryVersion = 8
+// Accepted rates v8 plus bounded cycle costs/corrections; old ceilings freeze in 002.
+export const registryVersion = 9
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
@@ -452,6 +537,7 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   Vehicle: ["createdBy", "status"],
   Customer: ["createdBy"],
   PurchaseRecord: ["createdBy"],
+  VehicleCost: ["createdBy"],
   Supplier: ["createdBy"],
   RepairVendor: ["createdBy"],
   FinanceCompany: ["createdBy"],
