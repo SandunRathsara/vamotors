@@ -1,6 +1,10 @@
 # T06b — lawful staged-import private attachments
 
-## Current explicit dispatch / sole shared owner / accepted prebase — 2026-10-30
+## Current exclusive shared owner / disjoint acquisition-test correction
+
+**T06b ses_e738d7ffaffeXx7RewTpqYvIg0 remains exclusive schema/registry/grants/dispatcher/config owner** under the dispatch below. Parent's [one-file acquisition-runner stop correction](evidence/T05c-acquisition-stop-correction.md) is narrowly disjoint test ownership, **no T06b freeze required**; no application/schema/package/contract edits. T05c final runtime review now binds the **returned clean containing test-corrected candidate SHA**, not historicale9a9b0b, app/schema bytes still exact frozen98. Recovery **COMPLETED/RELEASED/nine-root cleanup proved**, author11/12/CANCELLED-STALLED-GROUP15 **incomplete/NOT PASS**. Distinct reviewer ses_e73866f03ffef8LtV6wZH4jIq7 preps only, awaiting that SHA for runtime. T06b's accepted-e9 base/reserved004/actualv8 prebase/eventual accepted-T05c rebase/final fresh+genuine-parent upgrade/integrated-review obligations and all functionality/security/tests unchanged. F1 OPEN/VSTS-03 U/26 LOCAL/108 U/134, no acceptance/promotion or shared-source reassignment.
+
+## Previous explicit dispatch / sole shared owner / accepted prebase snapshot — 2026-10-30
 
 **[Parent explicitly DISPATCHED](evidence/T06b-active-ownership.md) ses_e738d7ffaffeXx7RewTpqYvIg0**, model **openai/gpt-6.1-sol-fast#xhigh** live-resolved by parent, as **SOLE NEW shared schema/registry/grants/dispatcher/config owner** from exact **ACCEPTED e9ba1a939667fc46178f89cccae1022a4bbcfb7e**, never unaccepted98fd8aa/e9a9b0b. Original T05c author genuinely ACKNOWLEDGED frozen98/released active ownership, no known correction queued; recovery is evidence/service-only, not a source writer. T05c combined **exact e9a9b0bfb515bca254b7b3aaa35ba65386fa67ef stays FROZEN REVIEW TARGET / UNACCEPTED**, verifier not dispatched pending recovery, no author PASS.
 

@@ -1,6 +1,10 @@
 # Local continuation — authorized candidate and baseline promotion
 
-## Current acknowledged freeze / resumed recovery / T06b sole-owner dispatch
+## Current bounded acquisition-test correction / containing-candidate review binding
+
+Parent authorizes [one-file acquisition stop-helper correction](T05c-acquisition-stop-correction.md); **final runtime review target is the returned clean containing test-corrected SHA**, replacing historicale9a9b0b only by explicit authority. App/schema bytes exact frozen98;15 scenario bodies/42,330-byte remainder unchanged. Probe4/4/isolated helper types/owned lint+format pass; full project typecheck FAIL98 byte-identical6791c90 baseline, no generation/build/app campaign. Recovery ses_e73984cfdffetqQ2tKxiAwF31b **COMPLETED/RELEASED**, nine PG roots stopped retained/both source98 clean/no owned test-app-browser; stable FINAL dossier278 hashes verified/old131 history/668 grants retained. Author **11/12 incomplete/CANCELLED-STALLED-GROUP15 NOT PASS**, runner-first identity-checked SIGTERM/no force/no original harness exit metadata. Reviewer **ses_e73866f03ffef8LtV6wZH4jIq7 RUNNING prep/static/own genuine-parent fixture only**, awaiting returned SHA for full normal runtime proof. No live inspection/polling/adoption here. T06b exclusive shared-source owner/no freeze for disjoint test fix. F1 OPEN/VSTS-03 U/26 LOCAL/108 U/134/primary acceptede9 unchanged; no acceptance/promotion, full normal acquisition15/fresh+genuine-upgrade/costs/F1/retained review mandatory.
+
+## Previous acknowledged freeze / resumed recovery / T06b sole-owner dispatch snapshot
 
 Follow [parent-attributed current authority/evidence](T06b-active-ownership.md): T05c original author ACKNOWLEDGED frozen98/RELEASED active ownership, future corrections by reassignment only, no known correction queued. Acquisition job sh_18c5e1e930011XG6EnepboxH16 **UNKNOWN/no completion notification/no PASS**. Recovery ses_e73984cfdffetqQ2tKxiAwF31b last completed HANDOFF **BLOCKED**, now resumed **RUNNING evidence/service-only, outcome pending**; legitimate existing outcome/capture/identity shutdown/seal only, failed/blocked provenance and missing metadata retained. **T05c combined exacte9a9b0bfb515bca254b7b3aaa35ba65386fa67ef remains FROZEN REVIEW TARGET / UNACCEPTED**, distinct verifier not yet dispatched pending recovery; later docs do not replace it.
 

@@ -1,6 +1,10 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current acknowledged freeze / released ownership / recovery pending — 2026-10-30
+## Current TEST-ONLY harness correction / returned candidate review binding
+
+Parent authorizes only [bounded acquisition-runner `stop()` correction](evidence/T05c-acquisition-stop-correction.md), disjoint from T06b's exclusive shared-source ownership. **Final runtime REVIEW target becomes the clean containing test-corrected SHA returned in handback**, superseding historical exacte9a9b0b; application/schema bytes remain exact frozen98, all scenario bodies/assertions unchanged. Recovery **COMPLETED/RELEASED**, nine-root cleanup proved/FINAL stable dossier278 hashes verified; author **11/12 incomplete / CANCELLED-STALLED-GROUP15 NOT PASS**, no twelfth receipt/original harness exit metadata. Reviewer **ses_e73866f03ffef8LtV6wZH4jIq7 RUNNING prep/static/own genuine-parent fixture only**, awaiting returned SHA for runtime. Four child probes/isolated helper types/owned lint+format pass; full project typecheck FAIL98 matches exact6791c90 baseline, no generation/build/app campaign. Fresh/genuine-parent upgrade/costs/F1/retained/acquisition15 review uses **normal committed runner** at returned candidate; bounds/tests below unchanged. F1 OPEN/VSTS-03 U/26 LOCAL/108 U/134, no costs acceptance or source-owner transfer.
+
+## Previous acknowledged freeze / released ownership / recovery snapshot — 2026-10-30
 
 **[Parent-attributed current coordination](evidence/T06b-active-ownership.md):** original author **ses_e73d53f14ffe6mFcfMW8lxAINw ACKNOWLEDGED frozen98fd8aaf02f28dcda8d47bb199971de895a960c8 and RELEASED active shared ownership**; no known source correction queued, future corrections require reassignment. Combined **EXACT e9a9b0bfb515bca254b7b3aaa35ba65386fa67ef remains FROZEN REVIEW TARGET / UNACCEPTED**, not this docs descendant. Distinct verifier not yet dispatched pending recovery. Acquisition job sh_18c5e1e930011XG6EnepboxH16 **UNKNOWN/no notification/no PASS**; recovery ses_e73984cfdffetqQ2tKxiAwF31b last HANDOFF **BLOCKED**, now resumed **RUNNING evidence/service-only, outcome pending**. Preserve failed/blocked provenance and missing metadata; no live-file inspection/polling/rerun here.
 

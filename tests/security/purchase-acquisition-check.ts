@@ -88,10 +88,32 @@ async function start() {
   })
 }
 async function stop() {
-  if (server && server.exitCode === null) {
-    const end = once(server, "exit")
-    server.kill("SIGTERM")
-    await end
+  const child = server
+  if (child && child.exitCode === null && child.signalCode === null) {
+    const abort = new AbortController(),
+      end = once(child, "exit", { signal: abort.signal })
+    let timer: ReturnType<typeof setTimeout> | undefined,
+      deadline: ReturnType<typeof setTimeout> | undefined
+    try {
+      child.kill("SIGTERM")
+      timer = setTimeout(() => {
+        console.error("APP_STOP_SIGTERM_TIMEOUT: SIGKILL for owned app child")
+        child.kill("SIGKILL")
+      }, 5000)
+      await Promise.race([
+        end,
+        new Promise<never>((_, reject) => {
+          deadline = setTimeout(
+            () => reject(new Error("APP_STOP_TIMEOUT")),
+            10000
+          )
+        }),
+      ])
+    } finally {
+      clearTimeout(timer)
+      clearTimeout(deadline)
+      abort.abort()
+    }
   }
   server = undefined
 }
