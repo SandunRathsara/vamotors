@@ -71,6 +71,14 @@ const correctionWriteFields = [
   "replacement.method",
   "replacement.reference",
 ] as const
+export const settlementFields = [
+  "institutionType",
+  "companyId",
+  "institutionName",
+  "reference",
+  "amount",
+  "cashToSeller",
+] as const
 
 // Deliberately closed initial capability registry. Downstream subjects stay
 // ungrantable until their authoritative DTO/command mappings are implemented.
@@ -225,6 +233,15 @@ export const registry = {
       "nextActions",
       "notes",
       ...sourcePaymentFields.map((p) => `payments.${p}`),
+      ...[
+        "institutionType",
+        "companyId",
+        "institutionName",
+        "institutionNameSnapshot",
+        "reference",
+        "amount",
+        "cashToSeller",
+      ].map((p) => `settlement.${p}`),
       "outstanding.seller",
       "outstanding.settlement",
       ...costReadFields.map((p) => `costs.${p}`),
@@ -262,6 +279,7 @@ export const registry = {
       "listedPrice",
       "mileage",
       "paymentMethod",
+      ...settlementFields.map((p) => `settlement.${p}`),
     ],
     receive: ["date", "disposition.kind", "disposition.reason"],
     update: [
@@ -275,6 +293,11 @@ export const registry = {
       "patch.purchaseDate",
       "patch.purchasePrice",
       "patch.notes",
+      "patch.purchaseType",
+      "patch.seller.type",
+      "patch.seller.id",
+      "patch.settlement",
+      ...settlementFields.map((p) => `patch.settlement.${p}`),
     ],
     release: ["cycleId"],
     pay: [
@@ -672,8 +695,8 @@ export const registry = {
     update: ["uploadId"],
   },
 } as const
-// Freeze all accepted T06b v10 populations before exposing cycle-edit paths.
-export const registryVersion = 12
+// Preserve accepted236 v12 populations; only the two approval/disposal subjects are new.
+export const registryVersion = 13
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   ApprovalRequest: ["createdBy"],
@@ -1059,11 +1082,13 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
                       "actor",
                       "target",
                       "provenance",
+                      "patch.settlement",
                     ].includes(path)
                   ? "OBJECT"
                   : path === "listedPrice" ||
                       path === "purchasePrice" ||
-                      path.startsWith("financial.")
+                      path.startsWith("financial.") ||
+                      /^(patch\.)?settlement\.(amount|cashToSeller)$/.test(path)
                     ? "MONEY"
                     : [
                           "createdAt",

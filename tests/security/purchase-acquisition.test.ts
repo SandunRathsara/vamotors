@@ -129,11 +129,16 @@ describe("bounded T05a acquisition boundary", () => {
     const result = purchaseInput.parse(input)
     expect(result.mileage.reading).toBe(0)
     expect(result.vehicle.vin).toBeUndefined()
+    if (result.purchaseType === "LEASE_SETTLEMENT")
+      throw new Error("Expected cash acquisition")
     expect(result.purchasePrice).toBe(parseMajor("21474836.48"))
-    expect(
-      purchaseInput.parse({ ...input, purchasePrice: "99999999999999" })
-        .purchasePrice
-    ).toBe("99999999999999")
+    const maximum = purchaseInput.parse({
+      ...input,
+      purchasePrice: "99999999999999",
+    })
+    if (maximum.purchaseType === "LEASE_SETTLEMENT")
+      throw new Error("Expected cash acquisition")
+    expect(maximum.purchasePrice).toBe("99999999999999")
   })
   it("rejects noncanonical, zero and overflow money before execution", () => {
     for (const purchasePrice of [
@@ -188,7 +193,7 @@ describe("bounded T05a acquisition boundary", () => {
       [{ subject: "PurchaseRecord", action: "create", fields: ["*"] }],
       input.supplierId
     )
-    expect(registryVersion).toBe(12)
+    expect(registryVersion).toBe(13)
     expect(ability.can("create", "PurchaseRecord", "purchasePrice")).toBe(true)
     expect(ability.can("pay", "PurchaseRecord")).toBe(false)
     expect(ability.can("receive", "PurchaseRecord")).toBe(false)

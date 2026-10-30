@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1 atac/T06b-d0/[G2 acceptance atd0](evidence/G2-d0-literal-acceptance-attributed.md) unchanged; G3–G6/full T05/T06 unaccepted,26 bindings/VSTS-03 U/no primary promotion. T05c.1 distinct review COMPLETED exact522 bounded runtime/security PASS/owned-format FAIL/P3 OPEN; [parent-authorized stock-test whitespace correction](evidence/T05c1-FMT-01-correction-attributed.md) now FROZEN SOURCE/RELEASE ACK, pending same verifier's bounded final closure, not acceptance/full16 rerun. T05c.2 explicitda56 freeze/release preceded reassignment; unfinished settlement feature untouched/not imported/no resumption until parent authority+eventual accepted-cycle-edits rebase/new genuine-parent proof. No concurrent authors or runtime actions.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md)/failures unchanged. [Ordinary frozenUIeaa+records6eb REVIEW assembly](evidence/T05c2-fc-ui-eaa567f-review-assembly.md), AUTHOR only/no independent P2 closure/VPRC-02 U/source exacteaa; all owners released/WRITE_OFF712 not resumed. Same completed reviewer/upgraded03816/12 fixture awaits exact final combined target for parent equivalence+affected/ALL paused proof dispatch/no fake555 reset. [HANDOFF](HANDOFF.md); matrix/scopes/gates/history/primary555/humanG2d0 preserved/no integration runtime/FF.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

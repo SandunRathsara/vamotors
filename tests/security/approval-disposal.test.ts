@@ -25,18 +25,18 @@ const input = {
   reason: "Independent request",
 }
 
-describe("bounded WRITE_OFF protocol and accepted555 permissions", () => {
-  it("keeps every accepted555 subject/action/field byte-identical, adding only two owners", () => {
+describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
+  it("keeps every accepted236 subject/action/field byte-identical, adding only two owners", () => {
     const old = Object.fromEntries(
       Object.entries(registry).filter(
         ([name]) => !["ApprovalRequest", "Disposal"].includes(name)
       )
     )
-    // Derived from exact accepted555, not the candidate's current expected value.
+    // Derived from exact accepted236, not the candidate's current expected value.
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
-      "924b4897630bebcd0fd549d9f5f1a78315963ea9e4e3f08e4cc477868dc8a8c2"
+      "6bbd6e95627fa94c4a5b92fb75b00185f7d9c396756e39cfd7af85d22f3e587e"
     )
-    expect(registryVersion).toBe(12)
+    expect(registryVersion).toBe(13)
     expect(
       registry.PurchaseRecord.read.filter((f) => f.startsWith("disposal"))
     ).toEqual(["disposal"])

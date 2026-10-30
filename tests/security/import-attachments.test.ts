@@ -104,8 +104,11 @@ describe("T06b staging trust boundaries", () => {
       }).success
     ).toBe(false)
   })
-  it("keeps the accepted v9 fingerprint apart from explicit T05c.1 additions; no import or upload verb", () => {
-    const old = Object.fromEntries(
+  it("keeps the accepted v9 fingerprint apart from explicit T05c.1/.2 additions; no import or upload verb", () => {
+    const old: Record<
+      string,
+      Record<string, readonly string[]>
+    > = Object.fromEntries(
       Object.entries(registry)
         .filter(
           ([name]) =>
@@ -147,6 +150,26 @@ describe("T06b staging trust boundaries", () => {
               ])
           ),
         ])
+    )
+    // Preserve the original v9 hash, subtract ONLY this slice's explicit new
+    // PurchaseRecord fields. ImportBatch/Document compound gates are untouched.
+    old.PurchaseRecord = Object.fromEntries(
+      Object.entries(old.PurchaseRecord).map(([action, fields]) => [
+        action,
+        action === "read" || action === "create"
+          ? fields.filter((f) => !f.startsWith("settlement."))
+          : action === "update"
+            ? fields.filter(
+                (f) =>
+                  ![
+                    "patch.purchaseType",
+                    "patch.seller.type",
+                    "patch.seller.id",
+                    "patch.settlement",
+                  ].includes(f) && !f.startsWith("patch.settlement.")
+              )
+            : fields,
+      ])
     )
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
       "9bcc167cdb755264f8963345dfcfce787a77806a713f07c3729c0529fea53a1b"

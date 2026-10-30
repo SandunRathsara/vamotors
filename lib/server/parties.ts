@@ -825,9 +825,59 @@ export async function partyQuery(
         links.push(link)
       }
     }
+    if (domain === "settlementPurchases") {
+      // Immutable command versions preserve past assignments after correction
+      // or leaving lease. Current detail alone is not a historical link source.
+      if (!actor.ability.can("read", subject(type, auth), "id")) {
+        visible.redactedFields.push(path)
+        continue
+      }
+      const rows = await tx.purchaseRecord.findMany({
+        where: readScope(actor.grants, actor.userId, "PurchaseRecord"),
+        select: { id: true, purchaseDate: true, status: true, createdBy: true },
+        orderBy: [{ purchaseDate: "asc" }, { id: "asc" }],
+      })
+      const versions = await tx.entityReadVersion.findMany({
+        where: {
+          entityType: "PurchaseRecord",
+          entityId: { in: rows.map((p) => p.id) },
+          payload: { path: ["settlement", "companyId"], equals: id },
+        },
+        select: { entityId: true },
+        distinct: ["entityId"],
+      })
+      const linked = new Set(versions.map((v) => v.entityId))
+      for (const purchase of rows) {
+        if (!linked.has(purchase.id)) continue
+        const source = subject("PurchaseRecord", purchase)
+        if (
+          !["settlement.companyId", "settlement.institutionType"].every((f) =>
+            actor.ability.can("read", source, f)
+          )
+        )
+          continue
+        const link: Record<string, unknown> = { type: "PURCHASE" }
+        for (const [wire, field, value] of [
+          ["id", "id", purchase.id],
+          [
+            "date",
+            "purchaseDate",
+            purchase.purchaseDate.toISOString().slice(0, 10),
+          ],
+          ["status", "status", purchase.status],
+        ] as const) {
+          if (actor.ability.can("read", source, field)) link[wire] = value
+          else visible.redactedFields.push(`${path}.links.${wire}`)
+        }
+        links.push(link)
+      }
+    }
     // Static pending capability: absent downstream implementations are NOT
     // authoritative empty histories. Read failures above propagate normally.
-    contributions[domain] = { state: "PENDING_DOMAIN", links }
+    contributions[domain] = {
+      state: domain === "settlementPurchases" ? "READY" : "PENDING_DOMAIN",
+      links,
+    }
   }
   visible.contributions = contributions
   visible.redactedFields = [...new Set(visible.redactedFields)]

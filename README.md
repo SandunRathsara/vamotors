@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-Parent-accepted source/primary and **LOCAL G2 human runtime remain d0b13455cdec498e0913c0b74566b90ee930e353**, **http://127.0.0.1:8000/login**, DEVELOPMENT/no uptime guarantee. [G2 acceptance](.planning/implementation/evidence/G2-d0-literal-acceptance-attributed.md), [current HANDOFF](.planning/implementation/HANDOFF.md). Distinct T05c.1 review COMPLETED at522: bounded runtime/security PASS, owned-format FAIL/P3 OPEN. [Minimal whitespace correction/proof](.planning/implementation/evidence/T05c1-FMT-01-correction-attributed.md) is FROZEN/RELEASED, **pending distinct bounded closure**, not acceptance or a new full runtime campaign. T05c.2 is explicitly FROZEN unfinished atda56, untouched/not imported/no resumption authority. **G3–G6 unaccepted**,26 LOCAL/108 U/134/VSTS-03 U/matrix bindings unchanged; no primary/human update/runtime/credential actions.
+**[Ordinary frozenUIeaa+records6eb REVIEW assembly](.planning/implementation/evidence/T05c2-fc-ui-eaa567f-review-assembly.md)** only: AUTHOR-corrected/UNACCEPTED/source exacteaa, no independent P2 closure/VPRC-02 U. All source owners frozen/released/WRITE_OFF712 incomplete/not resumed. Same completed reviewer/genuine fixture already upgraded03816/12 awaits this containing merge's exact final target for parent dispatch/equivalence+affected/ALL paused original proof; no fake555 reset or new-revision normal-run claim. [HANDOFF](.planning/implementation/HANDOFF.md). Matrix/scopes/gates/history/primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged; no integration runtime/FF/acceptance.
 
 ## Historical frontend-shell walkthrough
 

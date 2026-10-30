@@ -77,6 +77,16 @@ describe("bounded stock command boundary", () => {
       "patch.purchaseDate",
       "patch.purchasePrice",
       "patch.notes",
+      "patch.purchaseType",
+      "patch.seller.type",
+      "patch.seller.id",
+      "patch.settlement",
+      "patch.settlement.institutionType",
+      "patch.settlement.companyId",
+      "patch.settlement.institutionName",
+      "patch.settlement.reference",
+      "patch.settlement.amount",
+      "patch.settlement.cashToSeller",
     ])
     expect(
       grantSchema.safeParse({

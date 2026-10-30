@@ -69,6 +69,14 @@ GRANT UPDATE (revision, state, "currentAttemptId", "claimExpiresAt") ON vamotors
 -- T05c.1: exact current physical/asking columns; append-only mileage stays INSERT only.
 GRANT UPDATE ("engineNumber", "chassisNumber", "normalizedEngine", "normalizedChassis", make, model, year, colour, "fuelType", transmission, vin, "crNumber", notes, revision, "updatedAt") ON vamotors."Vehicle" TO vamotors_runtime;
 GRANT UPDATE ("listedPrice") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+-- T05c.2: current supplier/channel/settlement terms, never source-kind/owner/history.
+GRANT UPDATE ("purchaseType", "supplierId") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT SELECT (id, "purchaseRecordId", "institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
+GRANT INSERT (id, "purchaseRecordId", "institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
+GRANT UPDATE ("institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
+-- The accepted acquisition trigger remains invoker-security. Its three new
+-- read-only helpers need named EXECUTE, never a blanket function grant.
+GRANT EXECUTE ON FUNCTION vamotors.settlement_json(uuid), vamotors.purchase_outstanding_json(uuid), vamotors.purchase_payee(jsonb,text) TO vamotors_runtime;
 -- T07a/T08a: final-graph evidenced CURRENT approval/disposal only.
 GRANT SELECT, INSERT ON vamotors."ApprovalRequest", vamotors."Disposal", vamotors."DisposalReceipt" TO vamotors_runtime;
 GRANT UPDATE (state, revision, "reviewedBy", "reviewedAt", "reviewNote", "reviewerName", "reviewCommandId", "appliedCommandId") ON vamotors."ApprovalRequest" TO vamotors_runtime;

@@ -286,19 +286,20 @@ model Settings {
 }
 
 model FinanceCompany {
-  id              String                 @id @default(uuid()) @db.Uuid
-  name            String
-  active          Boolean                @default(true)
-  revision        Int                    @default(1)
-  createdBy       String                 @db.Uuid
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  currentPolicyId String                 @unique @db.Uuid
-  currentPolicy   FinancePolicyVersion   @relation("currentPolicy", fields: [currentPolicyId, id], references: [id, companyId], onDelete: Restrict)
-  policies        FinancePolicyVersion[] @relation("policies")
-  contacts        FinanceContact[]
-  rateSheets      RateSheetVersion[]
-  quotes          Quote[]
+  id                  String                 @id @default(uuid()) @db.Uuid
+  name                String
+  active              Boolean                @default(true)
+  revision            Int                    @default(1)
+  createdBy           String                 @db.Uuid
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  currentPolicyId     String                 @unique @db.Uuid
+  currentPolicy       FinancePolicyVersion   @relation("currentPolicy", fields: [currentPolicyId, id], references: [id, companyId], onDelete: Restrict)
+  policies            FinancePolicyVersion[] @relation("policies")
+  contacts            FinanceContact[]
+  rateSheets          RateSheetVersion[]
+  quotes              Quote[]
+  settlementPurchases LeasePurchaseDetail[]
 
   @@unique([currentPolicyId, id])
   @@schema("vamotors")
@@ -514,35 +515,35 @@ model Vehicle {
 }
 
 model PurchaseRecord {
-  id                   String              @id @default(uuid()) @db.Uuid
-  vehicleId            String              @db.Uuid
-  vehicle              Vehicle             @relation("cycles", fields: [vehicleId], references: [id], onDelete: Restrict)
-  activeFor            Vehicle?            @relation("activeCycle")
+  id                   String               @id @default(uuid()) @db.Uuid
+  vehicleId            String               @db.Uuid
+  vehicle              Vehicle              @relation("cycles", fields: [vehicleId], references: [id], onDelete: Restrict)
+  activeFor            Vehicle?             @relation("activeCycle")
   cycleNumber          Int
   purchaseType         String
   acquisitionKind      String
-  supplierId           String?             @db.Uuid
-  supplier             Supplier?           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  sellerCustomerId     String?             @db.Uuid
-  seller               Customer?           @relation(fields: [sellerCustomerId], references: [id], onDelete: Restrict)
-  purchaseDate         DateTime            @db.Date
+  supplierId           String?              @db.Uuid
+  supplier             Supplier?            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  sellerCustomerId     String?              @db.Uuid
+  seller               Customer?            @relation(fields: [sellerCustomerId], references: [id], onDelete: Restrict)
+  purchaseDate         DateTime             @db.Date
   purchasePrice        BigInt
   notes                String?
   listedPrice          BigInt?
-  status               VehicleStatus       @default(PURCHASED)
-  available            Boolean             @default(false)
+  status               VehicleStatus        @default(PURCHASED)
+  available            Boolean              @default(false)
   holdReason           String?
-  receivedDate         DateTime?           @db.Date
+  receivedDate         DateTime?            @db.Date
   closedAt             DateTime?
-  revision             Int                 @default(1)
-  createdBy            String              @db.Uuid
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
+  revision             Int                  @default(1)
+  createdBy            String               @db.Uuid
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
   statuses             StatusEvent[]
-  acquisitionCommandId String?             @unique @db.Uuid
-  acquisitionCommand   CommandReceipt?     @relation(fields: [acquisitionCommandId], references: [id], onDelete: Restrict)
-  settingsVersionId    String?             @db.Uuid
-  settingsVersion      SettingsVersion?    @relation(fields: [settingsVersionId], references: [id], onDelete: Restrict)
+  acquisitionCommandId String?              @unique @db.Uuid
+  acquisitionCommand   CommandReceipt?      @relation(fields: [acquisitionCommandId], references: [id], onDelete: Restrict)
+  settingsVersionId    String?              @db.Uuid
+  settingsVersion      SettingsVersion?     @relation(fields: [settingsVersionId], references: [id], onDelete: Restrict)
   payments             PurchasePayment[]
   mileage              MileageReading[]
   basisVersions        CycleBasisVersion[]
@@ -550,10 +551,27 @@ model PurchaseRecord {
   costPayments         CostPayment[]
   approvalRequests     ApprovalRequest[]
   disposal             Disposal?
+  settlement           LeasePurchaseDetail?
 
   @@unique([id, vehicleId])
   @@unique([vehicleId, cycleNumber])
   @@index([status, available, purchaseDate, id])
+  @@schema("vamotors")
+}
+
+// Mutable current terms only; root revisions and immutable read versions own history.
+model LeasePurchaseDetail {
+  id                      String          @id @default(uuid()) @db.Uuid
+  purchaseRecordId        String          @unique @db.Uuid
+  purchaseRecord          PurchaseRecord  @relation(fields: [purchaseRecordId], references: [id], onDelete: Restrict)
+  institutionType         String
+  companyId               String?         @db.Uuid
+  company                 FinanceCompany? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  institutionNameSnapshot String
+  reference               String
+  amount                  BigInt
+  cashToSeller            BigInt
+
   @@schema("vamotors")
 }
 

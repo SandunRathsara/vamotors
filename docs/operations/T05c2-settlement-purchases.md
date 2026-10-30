@@ -1,0 +1,302 @@
+# T05c.2 settlement purchases — author operations
+
+## Status and source boundary
+
+Author implementation candidate, **not accepted**. Final execution and service
+closeout outcomes are authoritative only in the separately sealed private
+handback, not inferred from this source guide. Author session
+`ses_e724e8803ffegV2I6w3qrj9OZS` owns this isolated slice. Base is parent-accepted
+`55564b5d25983c8de44980362a4c30d6e0e15cc1`, tree
+`eba1648a2bfb3db637de1728104214f19a1d60a6`. Parent accepted that exact combined
+T05c.1 closure; runtime campaigns ran at 522d26c, with independent runtime-byte
+equivalence and test-format verification at 555, not runtime reruns at 555.
+Branch `feat/t05c2-settlement-purchases`, worktree
+`/Users/alpha/Developer/Personal/vamotors-t05c2`.
+
+Actual accepted inventory is 15 migrations / registry v11 / 16 subjects / 51
+actions. This slice adds only **202610300006_settlement_purchases**, yielding
+16 migrations / registry v12. All 15 accepted migration files and the migration
+lock remain byte-identical, including 005. The original prebase branch remains
+at `da56e95760f352280000cb15d1f1d1f761146016` unchanged, with its three stopped
+roots and sealed failure history. Fresh/upgrade proof must use the final candidate.
+
+## Runtime behavior and files
+
+`lib/server/validators.ts` strictly discriminates the three acquisition channels
+and the finance-company/bank/private-party settlement variants. Settlement
+creation has no purchasePrice or extra payment/notes object. Components are
+canonical minor strings, each <= A; derived purchase and incurred basis use C.
+Only positive components become OUT facts, on the common purchase date/method.
+The new purchase remains PURCHASED/unavailable; existing receipt/hold/release
+are separate commands.
+
+`lib/server/purchases.ts` extends the existing command transaction, current
+authorization, expected refs, idempotency, cost/basis, payment/reversal, version
+and audit seams. Both recipient liabilities are capped independently. A payee
+change cannot relabel live credit: original payment context is resolved from
+the immutable PurchaseRecord version at that payment command's actual business
+sequence. Reverse old facts, edit terms, reload, then pay the intended recipient
+with a fresh intent. A replacement has no recipient field and retains category.
+No loan, quote, sale, lender receipt or second cash ledger is created.
+
+`prisma/schema.prisma` adds the typed unique-owned LeasePurchaseDetail. 006
+extends the existing final-graph functions with asserted, narrowly targeted
+changes so unrelated stock and cost proofs remain present. It widens only
+derived PurchaseRecord.purchasePrice/CycleBasisVersion.purchase storage to C;
+cash/brand-new and entered detail components stay A-bounded. Detail is current
+terms, governed by the root revision. Leaving lease omits current settlement;
+it never deletes the retained detail, initial graph, original cash or versions.
+CashMovement still has one PURCHASE branch.
+
+`lib/server/permissions.ts` adds only PurchaseRecord settlement/correction leaves.
+006 snapshots all actual accepted v11 universes and conservatively reattaches replacement
+rules without modifying immutable Permission records/hashes/conditions. It
+preserves compound gates, including ImportBatch.uploads and Document.target;
+it does not flatten unchanged compound authority into leaves. Only protected
+Administrator deliberately gains new capabilities. Runtime grants add named
+supplier/channel and detail columns; no owner/source-kind/DELETE/TRUNCATE/DDL
+or future default privilege is granted.
+
+`lib/server/parties.ts` exposes READY settlementPurchases from genuine immutable
+company assignments, with independently scoped source/company field checks.
+Other absent domains stay PENDING_DOMAIN. Audit historical names are authorized
+against their original typed party, not laundered through today's FK.
+
+The real UI seams are `components/purchases/acquisition-workspace.tsx`,
+`cycle-costs.tsx` and their shared `settlement-fields.tsx`. They retain the
+existing same-body retry, explicit stale reload/reconfirmation, auth-revision
+and logout draft lifetime. Company/supplier refs come from current typed queries;
+hidden/unreadable values are unavailable, not guessed. Legacy
+`lease-settlement-tab.tsx` and `/api/purchases` are not used.
+
+## Owned local state and receipts
+
+Author receipts are private, outside Git:
+`/Users/alpha/.config/vamotors/t05c2-author-20261030/evidence/`.
+Each `run.py` receipt records start/end, exact HEAD/CWD/command, separate stdout
+and stderr, and immediate exit status. It also preserves exact 1ee brief/proof
+map/HANDOFF/orchestration/local-completion blobs. No ledger/matrix was edited.
+
+An early setup-only development root
+`/Users/alpha/.config/vamotors/t05c2-prebase-fresh-20261030` was initialized while
+the forward migration was being written. It is retained and stopped, not reused
+as fresh-final or upgrade proof. No business fixtures were claimed there.
+Do not adopt, reset or delete any existing root. Every later owned destination
+must be checked absent before creation; setup/stop also verifies PROJECT and
+the private cluster identity. Use Node 24, native PG18, numeric loopback, private
+file storage and generated off-Git credentials. Review capacity policy against
+actual usage; never automatically renew review dates.
+
+Initial development checks retained failures: first typecheck found union
+narrowing/DTO issues; unit runs found old exact-version/unsupported-slice
+assertions plus a test file-URL harness issue; the first build found a test
+inference error. Corrections retain the original v9 universe hash and old
+security invariants, explicitly extending supported seller/channel assertions
+rather than removing their coverage. These failures are not passing evidence.
+
+## Reproducible checks
+
+### Resumed diagnosis and accepted-parent fixture
+
+Private resumed receipts: `/Users/alpha/.config/vamotors/t05c2-resumed-20261030/`.
+The exact-555 cash reproduction at `20261030T174539356540Z` reached C and returned
+500 at C+1; unconditional whole-graph snapshots were equal. A real authenticated
+direct-command probe at `20261030T174643371135Z` captured the actual
+`RangeError("MONEY_OVERFLOW")` stack at shared incurred-basis `sum(..., C)`.
+The new application guard raises existing `CommandError` 422 at that shared
+branch for addCost/editCost/price changes; no public-error catch-all or database
+cap relaxation was added. Original prebase failure evidence remains intact.
+
+The first resumed parent fixture attempt at root `t05c2-555-parent-20261030`
+failed because its old dispatcher string detector skipped accepted cycle edits.
+That root is retained as development history, never final-upgrade proof. The
+corrected NEW root `t05c2-555-parent-final-20261030-01` prepared successfully at
+exact 555, but the strengthened upgrade verifier then caught 006 changing an
+accepted invoker guard to definer security/search_path. That failed root stays
+retained, never repaired into final proof. 006 now preserves both attributes.
+The next NEW root `t05c2-555-parent-final-20261030-02` prepared at exact 555 with
+real P2, zero/declining mileage, physical/asking corrections, finance/rates/quotes,
+scoped readers and FINAL CSV/XLSX. Its subsequent upgrade/repeat and campaign
+results belong to the sealed private handback. No old root was emptied or reseeded.
+
+Both CASH and LEASE_SETTLEMENT C/C+1, zero effects, failed-key recovery and replay
+passed at c4a2bf0 (receipt `20261030T174947646102Z`). All 19 development settlement
+groups passed using the 1d7e3f2 app (receipt `20261030T175209110239Z`), including
+accepted lease cycle edits, real UI response loss, security/faults and restart.
+These are development evidence, not substitutes for final-source fresh/upgraded runs.
+
+At ed6f2ae, genuine nonempty upgrade and repeat retention passed, including exact
+old function bodies/extensions, invoker security/search paths and file bytes.
+The subsequent workflows caught a missing named EXECUTE grant on the new helper
+functions; all old function privileges remain unchanged. Only the three new
+read-only settlement helpers are now granted EXECUTE. Both failed ed6 roots stay
+retained; they are not final proof. A separate real HTTP probe also reproduced
+500/zero-effects when an inherited A+A total was switched to cash without a new
+A-bounded price. That final-state bound now explicitly raises MONEY_OVERFLOW422;
+the full campaign covers CASH/BRAND_NEW denial and valid same-key recovery.
+
+Run only in this worker's owned, isolated source/root:
+
+```sh
+pnpm db:generate
+pnpm build
+pnpm typecheck
+pnpm test:unit
+node .planning/implementation/contracts/check.mjs
+node --import tsx tests/security/incurred-basis-check.ts "$VAMOTORS_LOCAL_DIR"
+node --import tsx tests/security/settlement-purchase-check.ts "$VAMOTORS_LOCAL_DIR"
+```
+
+The settlement campaign writes incremental private, hash-sealed manifests,
+retains failures/data, and stops only its own app/browser children. It includes
+real SQL, authenticated HTTP, mobile/desktop UI, activated SW response loss,
+CAS/races/current revocation, fault rollback, exact-key recovery and authentic
+final-file bytes across app/PG restart. Stop the owned PG separately at final
+handoff with the verified PROJECT/root. Retain all DB and file bytes.
+
+The **new** upgrade runner takes an explicit parent, never the old costs
+runner's hardcoded e9:
+
+```sh
+node --import tsx tests/security/settlement-purchase-upgrade-check.ts "$UPGRADE_ROOT" prepare "$EXACT_PARENT_SHA"
+# Advance that same owned clean PROJECT from the actual parent to candidate,
+# apply committed migrations/restricted grants without reset/reseed, then:
+node --import tsx tests/security/settlement-purchase-upgrade-check.ts "$UPGRADE_ROOT" verify "$EXACT_PARENT_SHA"
+# Repeat setup and verify without altering the retained preparation.
+```
+
+Prepare requires clean PROJECT at exactly the supplied parent, inventories its
+real registry/migrations, builds genuine nonempty finance/contact/settings,
+purchase/cost/reversal/basis, rate/quote, grants and final attachment history
+through the real parent app. When present it also exercises accepted mileage,
+listed-price and identity commands. Verify preserves every old business row,
+old migration checksum, immutable rule, owner/function ACL and nonadmin ceiling,
+including compound gates, and obtains new authorized HTTP download bytes.
+Do not run parent preparation on the candidate or use markers/empty arrays as
+proof. A changed source requires affected checks again, bound to the new SHA.
+
+Normal retained regression campaigns remain required: costs17/P2/F1, rates8,
+stock16, audit32, acquisition15, attachment18 and accepted cycle edits when
+available. Final build/types/units/contracts/SW/owned lint/format and upgrade
+results must be recorded against the exact clean final source, not this WIP.
+
+## Contribution and remaining scope
+
+Contributes real VPRC-02 settlement and VPRC-09 open supplier/channel corrections;
+preserves open-cycle cost/basis/privacy and accepted uploads. This is not whole
+T05/T06/FINT acceptance. Customer-as-seller requires actual future trade-in sale
+history; closed-cycle restatement/profit/invoice, repairs115/full breakdown and
+reporting, genuine two-cycle profits30/25 and full dated business cash reports
+remain with their original tasks. No fake sold/repair history was added.
+
+No public contract edit, cloud operation, human G2 root/URL8000 access, push/PR,
+deployment, primary/default-branch change, self-acceptance or count/gate decision.
+Counts remain 26 LOCAL / 108 U / 134; VSTS-03 U; G3–G6 pending.
+
+## IV-T05c2-GROSS-C01 — bounded author correction
+
+The distinct final-combined review rejected exact
+`52c720d0831a712b98c1b54ed008faec27acb27c` for source cumulative gross cash
+C+1 returning 500 rather than 422. This is separate from the original incurred
+`addCost` basis boundary. The independent stack established an escaping
+`RangeError("MONEY_OVERFLOW")` in `checkCap`, not a failed SQL constraint or an
+error-mapper defect. A new isolated author fixture reproduces the HTTP failures
+before the correction, including unconditional zero effects on 13 populations.
+The original red evidence remains red.
+
+Only the two gross-direction checks in that shared command guard change to
+explicit `fail("MONEY_OVERFLOW", 422)`. Inclusive signed C bounds, net/liability
+checks, recipient partitioning, original source/category/payee context and
+transaction rollback remain unchanged. The guard is called for purchase totals,
+SELLER/SETTLEMENT partitions and every cost source after the six existing money
+intents. The money primitive, transaction wrapper, global error mapper, all 16
+migrations, schema, registry12, grants, contracts and native/PWA bytes are unchanged.
+
+The committed regression reuses the real production HTTP/restricted-PG fixture:
+
+```sh
+node --import tsx tests/security/gross-cash-check.ts "$OWN_ROOT" prepare
+# Fast repeatable probe: rejected requests never mutate the prepared boundaries.
+node --import tsx tests/security/gross-cash-check.ts "$OWN_ROOT" probe
+# Consumes the prepared controls; or use `all` on a new unprepared owned root.
+node --import tsx tests/security/gross-cash-check.ts "$OWN_ROOT" controls
+```
+
+Preparation uses actual A payments and 99 reasoned reversals/replacements, never
+SQL business fabrication or lowered caps. Coverage includes the CASH reversal,
+truthful reverse→CASH-to-bank-LEASE correction and institution payment, COST
+reversal/pay, purchase cash corrections, exact OUT=C and IN=C, failed-key recovery
+with valid current intent and immutable replay. For a lease already at gross C,
+failed pay-key recovery uses an explicitly different eligible lease source at
+exact C; no zero payment or recipient-replacement field is invented.
+
+IN>C cannot arise from a committed OUT<=C prefix: each IN must reverse one unique
+existing OUT exactly once. The test proves IN=C via lawful clearing reversals,
+rather than inventing impossible rows. Exact PostgreSQL row hashes cover business,
+history, audit, receipt, basis, read-version and sequence populations before any
+HTTP status assertion. AdminGuard remains mutable synchronization, not business
+immutability; credential-bearing bootstrap content is never exported by these
+snapshots.
+
+This bounded author correction does not close the P2 or the original independent
+incurred-basis checklist, accept the combined candidate or promote VPRC-02. The
+distinct full final-combined fresh/genuine555-upgrade/repeat/retained/UI review
+remains required. Earlier fd7 campaign results stay attributed to fd7. New author
+receipts and service closeout are sealed separately under the owned private
+`t05c2-gross-c01-20261031` directory.
+
+## IV-T05c2-FC-UI-C01 — shared selector render guard
+
+The distinct rejected038 review found an independent acquisition UI P2, not a
+regression in the accepted gross/incurred boundaries. With `company=null` and
+no draft company ID, `company?.id === draft.companyId` compared two undefined
+values and then read `company.revision`. Own exact038 production-browser RED
+receipts reproduce the exception at 360 and 1920, before any command POST, with
+all 13 business/history/audit/receipt/basis/read/sequence populations unchanged.
+
+The only application edit requires an actual company and matching ID before
+reading its revision. No default party, assertion, fallback authority, error
+boundary suppression or dependency is introduced. The shared acquisition and
+cycle-correction consumers and nearby optional comparisons were reviewed: the
+name fallback is safe, and both submission paths already require an actual
+matching readable company/revision. They remain byte-unchanged, as do every
+server/runtime, money, schema/16 migrations, registry12, grants, contracts and
+native/PWA/package file at038.
+
+```sh
+# Same committed production UI probe runs RED on rejected038, GREEN on correction.
+node --import tsx tests/security/settlement-ui-check.ts "$OWN_ROOT" probe
+node --import tsx tests/security/settlement-ui-check.ts "$OWN_ROOT" all
+# Keep the original settlement20 assertions, including BANK SW/replay/privacy.
+node --import tsx tests/security/settlement-purchase-check.ts "$OWN_ROOT"
+```
+
+The new runner reuses the existing owned production HTTP/restricted-PG fixture.
+It exercises actual absent/cleared/retained/mismatched company state, real DTO
+selection/reload and real field-hidden projection. Its mismatch control delays
+an actual A response until after B selection and releases the unchanged response;
+it does not fabricate IDs/revisions or inject component state. Read-only fiber
+props document the initial/mismatch state; DOM usability and real effects are
+the regression assertions. Service workers are blocked only in this targeted
+response-order control; the untouched settlement20 retains its active-SW tests.
+
+All three acquisition variants are entered/submitted through the keyboard at
+360 and 1920. Real HTTP envelopes and typed PostgreSQL detail/payment/basis rows
+must retain the selected actual reference, both exact components and their sum
+once. The correction consumer starts without a loaded company, exercises
+selection/clearing/institution switching, then commits a lawful bank→finance
+change with an explicit reversal of the old institution credit. It invents no
+cross-recipient replacement payload and preserves the original basis and seller
+credit. Reopening a saved finance correction requires an explicit current-party
+load instead of leaking the retained ID as a readable revision.
+
+The new bounded author evidence is sealed separately in the private
+`t05c2-fc-ui-c01-20261031` dossier, preserving every original RED/helper failure.
+The original gross/incurred closures remain attributed to distinct038 verification,
+not rerun or reopened here. This guard does not authorize candidate acceptance or
+VPRC-02 promotion. The parent's same distinct verifier still owns the one final
+assembled target, affected all-three UI and all paused original clauses: upgrade
+fault/observed-lock extras, old-nonadmin operation, UI-created typed facts/restart
+and all-linked new-auth 200/403/404/401 CSV/XLSX. Existing genuine-upgrade/repeat
+retention evidence stays038-bound; no fake reset/new555 campaign is substituted.
+26 LOCAL / 108 U / 134, VPRC-02 U, G2 pinned d0 and G3–G6 pending remain unchanged.

@@ -32,6 +32,30 @@ object, not newer records. Sole shared-source ownership remains active here.
 - No full write-off completion, acceptance, freeze or shared ownership release
   is claimed by this pre-reconciliation checkpoint.
 
+### Mechanical merge boundary (runtime reconciliation still WIP)
+
+- Safe pre-merge checkpoint is952489b; the old555-overlay draft was identity-
+  checked and stopped before merging. Its data and failure history remain.
+- Merging exact236 produced four conflicts (permissions, purchases, schema and
+  restricted grants). Both owner relations and grant additions are preserved;
+  accepted historical settlement/name projection is retained, with the private
+  write-off audit reason guard in the actual entry projection, not its helper.
+- Actual inventory: all16 accepted SQL bytes unchanged; all accepted v12 subject/
+  action/field arrays deep-equal exact236. Pinned v12 registry SHA-256 is
+  `6bbd6e95627fa94c4a5b92fb75b00185f7d9c396756e39cfd7af85d22f3e587e`.
+  Only ApprovalRequest/Disposal subjects are additional; registry is13. Native
+  Prisma formatting and generation exited0 without starting/migrating a DB.
+- **Do not install the current owned migration as final yet.** Its former555
+  capability/read/snapshot/root guards still need substantive lease reconciliation
+  and actual C-bound/source-version review. Mechanical conflict resolution and
+  source counts are not evidence that a nonempty236 upgrade would succeed.
+- New final roots/parent fixtures have not been created; no reviewer/author root
+  was adopted. Build the exact236 genuine parent fixture separately only with
+  explicit PROJECT provenance, then the reconciled final fresh/forward upgrade.
+- Mechanical merged source checks passed: types, all owned lint/format and
+  19 unit files/154 tests. These do not validate owned-migration installation,
+  lease write-off behavior or final17/v13 runtime/upgrade proof.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,
