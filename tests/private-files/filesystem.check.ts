@@ -395,12 +395,12 @@ test("capacity revocation during transfer prevents publication and preserves the
   }
 })
 
-test("CSV parses content, not extension: strict syntax, formula/polyglot and resource bounds", () => {
+test("CSV parses content, not extension: strict syntax, formula/polyglot and resource bounds", async () => {
   for (const valid of [
     bytes,
     Buffer.from('name,value\r\n"car, van","a""b"\r\n'),
   ])
-    validateDocument(valid, declaration(valid))
+    await validateDocument(valid, declaration(valid))
   for (const invalid of [
     "<html>,value\ncar,123\n",
     "name,value\ncar,=1+1\n",
@@ -420,7 +420,7 @@ test("CSV parses content, not extension: strict syntax, formula/polyglot and res
       "\n",
   ]) {
     const b = Buffer.from(invalid)
-    assert.throws(
+    await assert.rejects(
       () => validateDocument(b, declaration(b)),
       code("UPLOAD_MISMATCH")
     )
@@ -433,14 +433,14 @@ test("CSV parses content, not extension: strict syntax, formula/polyglot and res
     { filename: "fixture.exe" },
     { size: 5 * 1024 * 1024 + 1 },
   ]) {
-    assert.throws(
+    await assert.rejects(
       () => validateDocument(bytes, { ...declaration(), ...change }),
       code("UPLOAD_MISMATCH")
     )
   }
 })
 
-test("JPEG/PNG/WebP/PDF/XLSX explicitly unsupported, including encrypted/truncated/bomb candidates", async () => {
+test("JPEG/PNG/WebP/PDF/XLSX reject undecodable signatures and mismatched content", async () => {
   const { store } = await fixture()
   try {
     for (const [mime, filename, prefix] of [
@@ -455,19 +455,19 @@ test("JPEG/PNG/WebP/PDF/XLSX explicitly unsupported, including encrypted/truncat
       ],
     ]) {
       const b = Buffer.from(prefix, "latin1")
-      assert.throws(
+      await assert.rejects(
         () => validateDocument(b, declaration(b, mime, filename)),
-        code("UNSUPPORTED_VALIDATION")
+        code("UPLOAD_MISMATCH")
       )
-      assert.throws(
+      await assert.rejects(
         () => validateDocument(bytes, declaration(bytes, mime, filename)),
-        code("UNSUPPORTED_VALIDATION")
+        code("UPLOAD_MISMATCH")
       )
       const stage = store.newStageKey(intent)
       await store.writeStage(stage, source(b), declaration(b, mime, filename))
       await assert.rejects(
         store.validateStage(stage, declaration(b, mime, filename)),
-        code("UNSUPPORTED_VALIDATION")
+        code("UPLOAD_MISMATCH")
       )
     }
     for (const [mime, filename] of [
@@ -475,7 +475,7 @@ test("JPEG/PNG/WebP/PDF/XLSX explicitly unsupported, including encrypted/truncat
       ["text/html", "x.html"],
       ["application/x-executable", "x.exe"],
     ]) {
-      assert.throws(
+      await assert.rejects(
         () => validateDocument(bytes, declaration(bytes, mime, filename)),
         code("UPLOAD_MISMATCH")
       )

@@ -302,8 +302,9 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
       ): Promise<void> {
         return safe(async () => {
           key(name, stagePattern)
-          checkDeclaration(declaration)
-          await publish(name, source, declaration)
+          const declared = { ...declaration }
+          checkDeclaration(declared)
+          await publish(name, source, declared)
         })
       },
       validateStage(
@@ -312,14 +313,15 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
       ): Promise<ValidatedBytes> {
         return safe(async () => {
           const match = key(name, stagePattern)
-          checkDeclaration(declaration)
-          const bytes = await read(name, declaration)
-          validateDocument(bytes, declaration)
+          const declared = { ...declaration }
+          checkDeclaration(declared)
+          const bytes = await read(name, declared)
+          await validateDocument(bytes, declared)
           const token = Object.freeze({
             metadata: Object.freeze({
               size: bytes.length,
               sha256: digest(bytes),
-              mime: declaration.mime,
+              mime: declared.mime,
             }),
           })
           validated.set(token, { bytes, intent: match[2] })
@@ -341,12 +343,21 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
       readFinal(name: string, expected: FileMetadata): Promise<Buffer> {
         return safe(async () => {
           key(name, finalPattern)
-          const bytes = await read(name, expected)
+          const metadata = { ...expected }
+          const bytes = await read(name, metadata)
           // Metadata is authoritative only when supplied from the persisted validated attempt.
-          validateDocument(bytes, {
-            ...expected,
-            filename:
-              expected.mime === "text/csv" ? "retained.csv" : "unsupported",
+          const extensions: Record<string, string> = {
+            "text/csv": "csv",
+            "image/jpeg": "jpg",
+            "image/png": "png",
+            "image/webp": "webp",
+            "application/pdf": "pdf",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+              "xlsx",
+          }
+          await validateDocument(bytes, {
+            ...metadata,
+            filename: `retained.${extensions[metadata.mime] ?? "unsupported"}`,
           })
           return bytes
         })

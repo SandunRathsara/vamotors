@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { decodeDocument } from "./decoder.js"
 
 export type Declaration = {
   size: number
@@ -61,18 +62,18 @@ export function checkDeclaration(value: Declaration): void {
   }
 }
 
-/**
- * Minimal parser handoff: implement the unsupported branches here only after
- * real decoder/resource-bound/adversarial tests. Magic/extension is not proof.
- * CSV deliberately accepts a strict ASCII, rectangular, non-formula subset.
- */
-export function validateDocument(bytes: Buffer, declared: Declaration): void {
+/** CSV is a strict ASCII subset; other formats run in a bounded child process. */
+export async function validateDocument(
+  bytes: Buffer,
+  declared: Declaration
+): Promise<void> {
   checkDeclaration(declared)
   if (bytes.length !== declared.size || digest(bytes) !== declared.sha256) {
     throw new PrivateFileError("UPLOAD_MISMATCH")
   }
   if (declared.mime !== "text/csv") {
-    throw new PrivateFileError("UNSUPPORTED_VALIDATION")
+    await decodeDocument(bytes, declared.mime)
+    return
   }
   // No markup, NUL, executable/binary prefixes, Unicode ambiguity or controls.
   for (const b of bytes) {
