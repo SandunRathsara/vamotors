@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
   const filters: Record<string, string> = {}
   if (type) filters.type = type
 
-  let result = cashFlowStore.query({ page: 1, pageSize: 99999, sortBy, sortDir, filters })
+  const result = cashFlowStore.query({ page: 1, pageSize: 99999, sortBy, sortDir, filters })
   let entries = result.data
 
   if (dateFrom) entries = entries.filter((e) => e.date >= dateFrom)
