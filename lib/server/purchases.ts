@@ -1471,7 +1471,7 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
     row.vehicle.activePurchaseId !== row.id ||
     !["PURCHASED", "IN_STOCK"].includes(row.status) ||
     row.acquisitionKind !== "SUPPLIER" ||
-    !["CASH", "BRAND_NEW"].includes(row.purchaseType)
+    !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType)
   )
     return []
   const candidates: EditIntent[] = [
@@ -1633,7 +1633,7 @@ export async function executeCycleEdit(
       row.closedAt ||
       row.vehicle.activePurchaseId !== row.id ||
       row.acquisitionKind !== "SUPPLIER" ||
-      !["CASH", "BRAND_NEW"].includes(row.purchaseType) ||
+      !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
       !["PURCHASED", "IN_STOCK"].includes(row.status)
     )
       fail("INVALID_STATE")
@@ -2783,10 +2783,13 @@ export async function executeCycleMoney(
       after.purchasePrice !== row.purchasePrice
     ) {
       if (basis.version === 2147483647) fail("REVISION_EXHAUSTED")
-      const total = sum(
-        [after.purchasePrice, ...after.costs.map((c) => c.amount)],
-        C
+      // Database amounts are nonnegative bigint components. Classify this
+      // user-reachable aggregate boundary here, not as an arbitrary HTTP error.
+      const total = after.costs.reduce(
+        (total, cost) => total + cost.amount,
+        after.purchasePrice
       )
+      if (total > C) fail("MONEY_OVERFLOW", 422)
       await tx.cycleBasisVersion.create({
         data: {
           cycleId: row.id,
@@ -3164,56 +3167,56 @@ export async function purchaseQuery(
           delete result.reason
           redactedFields.push("reason")
         }
-      const physicalReasonReadable = physicalFields.every(
-        (f) =>
-          actor.ability.can(
-            "read",
-            subject("PurchaseRecord", auth(row)),
-            `identity.${f}`
-          ) &&
-          actor.ability.can(
-            "read",
-            subject("Vehicle", vehicleAuth(row)),
-            `identity.${f}`
-          )
-      )
-      const mileageReasonReadable = [
-        "reading",
-        "date",
-        "remark",
-        "decreaseReason",
-      ].every(
-        (f) =>
-          actor.ability.can(
-            "read",
-            subject("PurchaseRecord", auth(row)),
-            `mileage.${f}`
-          ) &&
-          actor.ability.can(
-            "read",
-            subject("Vehicle", vehicleAuth(row)),
-            `mileage.${f}`
-          )
-      )
-      if (
-        (entry.action === "editVehicle" && !physicalReasonReadable) ||
-        (entry.action === "addMileage" && !mileageReasonReadable) ||
-        (entry.action === "setListedPrice" &&
-          (!actor.ability.can(
-            "read",
-            subject("PurchaseRecord", auth(row)),
-            "listedPrice"
-          ) ||
-            (input.type === "Vehicle" &&
-              !actor.ability.can(
-                "read",
-                subject("Vehicle", vehicleAuth(row)),
-                "listedPrice"
-              ))))
-      ) {
-        delete result.reason
-        redactedFields.push("reason")
-      }
+        const physicalReasonReadable = physicalFields.every(
+          (f) =>
+            actor.ability.can(
+              "read",
+              subject("PurchaseRecord", auth(row)),
+              `identity.${f}`
+            ) &&
+            actor.ability.can(
+              "read",
+              subject("Vehicle", vehicleAuth(row)),
+              `identity.${f}`
+            )
+        )
+        const mileageReasonReadable = [
+          "reading",
+          "date",
+          "remark",
+          "decreaseReason",
+        ].every(
+          (f) =>
+            actor.ability.can(
+              "read",
+              subject("PurchaseRecord", auth(row)),
+              `mileage.${f}`
+            ) &&
+            actor.ability.can(
+              "read",
+              subject("Vehicle", vehicleAuth(row)),
+              `mileage.${f}`
+            )
+        )
+        if (
+          (entry.action === "editVehicle" && !physicalReasonReadable) ||
+          (entry.action === "addMileage" && !mileageReasonReadable) ||
+          (entry.action === "setListedPrice" &&
+            (!actor.ability.can(
+              "read",
+              subject("PurchaseRecord", auth(row)),
+              "listedPrice"
+            ) ||
+              (input.type === "Vehicle" &&
+                !actor.ability.can(
+                  "read",
+                  subject("Vehicle", vehicleAuth(row)),
+                  "listedPrice"
+                ))))
+        ) {
+          delete result.reason
+          redactedFields.push("reason")
+        }
         if (
           ["editCost", "editPurchase", "reversePayment"].includes(entry.action)
         ) {

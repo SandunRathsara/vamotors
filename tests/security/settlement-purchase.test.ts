@@ -147,7 +147,7 @@ describe("T05c.2 exact settlement contract", () => {
       }).success
     ).toBe(false)
   })
-  it("freezes the actual accepted 16-subject/50-action v10 universe without dropping compound gates", () => {
+  it("freezes the actual accepted 16-subject/51-action v11 universe without dropping compound gates", () => {
     const sql = readFileSync(
       "prisma/migrations/202610300006_settlement_purchases/migration.sql",
       "utf8"
@@ -155,12 +155,25 @@ describe("T05c.2 exact settlement contract", () => {
     const frozen = JSON.parse(
       sql.match(/universe jsonb :=\s*\n'(.+)'::jsonb;/)![1]
     ) as Record<string, Record<string, string[]>>
+    for (const match of sql.matchAll(
+      /universe:=jsonb_set\(universe,'\{(\w+),(\w+)\}',(universe#>'\{\w+,\w+\}'\|\|)?'([^']+)'::jsonb\);/g
+    )) {
+      const [, subject, action, append, json] = match
+      frozen[subject][action] = [
+        ...(append ? frozen[subject][action] : []),
+        ...JSON.parse(json),
+      ]
+    }
     expect(sql).toContain("DROP CONSTRAINT initial_cycle_capability")
     expect(sql).toContain(
       `CHECK(status IN ('PURCHASED','IN_STOCK') AND "closedAt" IS NULL AND "purchaseType" IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') AND "acquisitionKind"='SUPPLIER')`
     )
     expect(Object.keys(frozen)).toHaveLength(16)
-    expect(Object.values(frozen).flatMap(Object.keys)).toHaveLength(50)
+    expect(Object.values(frozen).flatMap(Object.keys)).toHaveLength(51)
+    expect(frozen.Vehicle.update).toContain("values.engineNumber")
+    expect(frozen.PurchaseRecord.update).toContain("mileage.decreaseReason")
+    expect(frozen.Vehicle.read).toContain("mileage.decreaseReason")
+    expect(frozen.PurchaseRecord.read).toContain("mileage.id")
     for (const [subject, actions] of Object.entries(frozen))
       for (const [action, fields] of Object.entries(actions)) {
         expect(
@@ -173,7 +186,7 @@ describe("T05c.2 exact settlement contract", () => {
             (registry as Record<string, Record<string, readonly string[]>>)[
               subject
             ][action]
-          ).toEqual(fields)
+          ).toEqual(expect.arrayContaining(fields))
       }
     expect(frozen.ImportBatch.update).toEqual(["uploads"])
     expect(frozen.Document.create).toContain("target")

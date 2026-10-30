@@ -15,6 +15,13 @@ import pg from "pg"
 import { privateEnvironment } from "../../scripts/private-environment"
 import { canonical } from "../../lib/server/idempotency"
 import { expanded, grantSchema } from "../../lib/server/permissions"
+import { fixture as localFixture } from "./cycle-edits-fixture"
+import {
+  seedFiles,
+  verifyFiles,
+  fileBytes,
+  type RetainedFiles,
+} from "./cycle-edits-files"
 import type {
   Applied,
   Dependency,
@@ -86,6 +93,8 @@ type Snapshot = {
     attachmentId: string
     sha256: string
     size: number
+    files: RetainedFiles
+    bytes: Awaited<ReturnType<typeof fileBytes>>
   }
 }
 async function source() {
@@ -436,7 +445,13 @@ async function populate(): Promise<Snapshot["fixture"]> {
       cycleId: row.id,
       reason: "Retained current parent terms",
       patch: { purchasePrice: "11000", notes: "Retained before upgrade" },
-      cashCorrections: [],
+      cashCorrections: [
+        {
+          paymentId: row.payments[0].id,
+          reason: "Retained actual P2 original-entry correction, not refund",
+          replacement: { amount: "9000", date: "2026-10-01", method: "CASH" },
+        },
+      ],
     },
     [
       ref("PurchaseRecord", row),
@@ -457,44 +472,78 @@ async function populate(): Promise<Snapshot["fixture"]> {
     join(project, "app/api/v1/commands/[name]/route.ts"),
     "utf8"
   )
-  if (dispatcher.includes('"addMileage"')) {
-    row = await query("purchase", `?cycleId=${row.id}`)
-    await command(
-      "addMileage",
-      {
-        cycleId: row.id,
-        mileage: {
-          reading: 1,
-          date: "2026-10-05",
-          remark: "Retained appended parent mileage",
-        },
+  assert.ok(
+    dispatcher.includes("executeCycleEdit"),
+    "Accepted current cycle-edit dispatcher is required"
+  )
+  row = await query("purchase", `?cycleId=${row.id}`)
+  await command(
+    "addMileage",
+    {
+      cycleId: row.id,
+      mileage: {
+        reading: 100,
+        date: "2026-10-05",
+        remark: "Retained appended parent mileage",
       },
-      [
-        ref("PurchaseRecord", row),
-        ref("Vehicle", { id: row.vehicleId, revision: row.identityRevision }),
-      ]
-    )
-    row = await query("purchase", `?cycleId=${row.id}`)
-    await command(
-      "setListedPrice",
-      {
-        cycleId: row.id,
-        amount: "16000",
-        reason: "Retained parent asking price",
+    },
+    [
+      ref("PurchaseRecord", row),
+      ref("Vehicle", { id: row.vehicleId, revision: row.identityRevision }),
+    ]
+  )
+  row = await query("purchase", `?cycleId=${row.id}`)
+  await command(
+    "addMileage",
+    {
+      cycleId: row.id,
+      mileage: {
+        reading: 0,
+        date: "2026-10-06",
+        remark: "Retained zero after reasoned correction",
+        decreaseReason: "Verified instrument transcription decline",
       },
-      [ref("PurchaseRecord", row)]
-    )
-    row = await query("purchase", `?cycleId=${row.id}`)
-    await command(
-      "editVehicle",
-      {
-        vehicleId: row.vehicleId,
-        values: { ...vehicle, colour: "Silver" },
-        reason: "Retained parent identity correction",
+    },
+    [
+      ref("PurchaseRecord", row),
+      ref("Vehicle", { id: row.vehicleId, revision: row.identityRevision }),
+    ]
+  )
+  row = await query("purchase", `?cycleId=${row.id}`)
+  await command(
+    "setListedPrice",
+    {
+      cycleId: row.id,
+      amount: "0",
+      reason: "Retained explicit zero asking price",
+    },
+    [ref("PurchaseRecord", row)]
+  )
+  row = await query("purchase", `?cycleId=${row.id}`)
+  await command(
+    "setListedPrice",
+    {
+      cycleId: row.id,
+      amount: "16000",
+      reason: "Retained parent asking price",
+    },
+    [ref("PurchaseRecord", row)]
+  )
+  row = await query("purchase", `?cycleId=${row.id}`)
+  await command(
+    "editVehicle",
+    {
+      vehicleId: row.vehicleId,
+      values: {
+        ...vehicle,
+        engineNumber: `CORRECTED-E-${suffix}`,
+        chassisNumber: `CORRECTED-C-${suffix}`,
+        colour: "Silver",
       },
-      [ref("Vehicle", { id: row.vehicleId, revision: row.identityRevision })]
-    )
-  }
+      reason: "Retained parent identity correction",
+    },
+    [ref("Vehicle", { id: row.vehicleId, revision: row.identityRevision })]
+  )
   const base = await source()
   const allGrants = Object.entries(base.registry).flatMap(
     ([subject, actions]) =>
@@ -539,6 +588,7 @@ async function populate(): Promise<Snapshot["fixture"]> {
           "costs",
           "basisVersions",
           "outstanding",
+          "mileage",
         ],
         conditions: { createdBy: "$actor.id" },
       },
@@ -588,8 +638,33 @@ async function populate(): Promise<Snapshot["fixture"]> {
     attachmentId: completed.result.id,
     sha256,
     size: csv.length,
+    files: undefined as unknown as RetainedFiles,
+    bytes: [] as Awaited<ReturnType<typeof fileBytes>>,
   }
   await bytes(fixture)
+  const local = await localFixture(root, project)
+  try {
+    await local.start()
+    const reader = await local.login("ADMIN")
+    try {
+      fixture.files = await seedFiles(local, reader)
+    } finally {
+      await reader.dispose()
+    }
+    await verifyFiles(local, fixture.files)
+    fixture.bytes = await fileBytes(local)
+  } finally {
+    await local.close()
+  }
+  row = await query("purchase", `?cycleId=${row.id}`)
+  assert.deepEqual(
+    row.mileage.map((m) => m.reading),
+    [0, 100, 0]
+  )
+  assert.ok(row.mileage[2].decreaseReason)
+  assert.equal(row.financial?.basis, "11500")
+  assert.equal(row.outstanding.seller, "2000")
+  assert.equal(row.listedPrice, "16000")
   return fixture
 }
 try {
@@ -659,6 +734,10 @@ try {
     assert.equal(before.source.sha, parentSHA)
     assert.notEqual(head, parentSHA)
     const after = await snapshot(before.fixture)
+    assert.equal(before.source.registryVersion, 11)
+    assert.equal(after.source.registryVersion, 12)
+    assert.equal(before.migrations.length, 15)
+    assert.equal(after.migrations.length, 16)
     for (const m of before.migrations) {
       assert.ok(after.migrations.some((n) => canonical(m) === canonical(n)))
       assert.equal(after.source.migrations[m.migration_name], m.checksum)
@@ -694,12 +773,15 @@ try {
       "cycle_cost_root_graph",
       "cycle_cost_diff",
       "cycle_cost_child_graph",
+      "check_cycle_edit",
     ]
     for (const old of before.functions) {
       const now = after.functions.find((f) => f.name === old.name)!
       assert.ok(now)
       assert.equal(now.owner, old.owner)
       assert.deepEqual(now.acl, old.acl)
+      assert.equal(now.securityDefiner, old.securityDefiner)
+      assert.deepEqual(now.config, old.config)
       if (!changedFunctions.some((name) => old.name.includes(`${name}(`)))
         assert.deepEqual(now, old)
     }
@@ -760,6 +842,17 @@ try {
     }
     await start()
     await bytes(before.fixture)
+    const local = await localFixture(root, project)
+    try {
+      await local.start()
+      assert.deepEqual(await fileBytes(local), before.fixture.bytes)
+      await verifyFiles(local, before.fixture.files)
+      await local.restart()
+      await verifyFiles(local, before.fixture.files)
+      assert.deepEqual(await fileBytes(local), before.fixture.bytes)
+    } finally {
+      await local.close()
+    }
     const row = await query<PurchaseCycleDTO>(
       "purchase",
       `?cycleId=${before.fixture.purchaseId}`

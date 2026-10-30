@@ -593,10 +593,9 @@ try {
       assert.equal(row.financial?.basis, "9999999999999999")
       assert.equal(row.financial?.cashOut, "99999999999999")
       const before = await snapshot()
-      await command(
-        a.request,
-        "addCost",
-        envelope(
+      const overflow = await a.request.post("/api/v1/commands/addCost", {
+        headers: { Origin: origin },
+        data: envelope(
           {
             cycleId: row.id,
             category: "Synthetic bound proof",
@@ -606,8 +605,16 @@ try {
           },
           refs(row)
         ),
-        422
-      )
+      })
+      const after = await snapshot()
+      evidence.incurredC = {
+        status: overflow.status(),
+        result: await overflow.json(),
+        zeroEffects: after === before,
+      }
+      await seal("RUNNING")
+      assert.equal(after, before)
+      assert.equal(overflow.status(), 422)
       assert.equal(await snapshot(), before)
     }
   )

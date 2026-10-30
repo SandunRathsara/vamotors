@@ -105,7 +105,10 @@ describe("T06b staging trust boundaries", () => {
     ).toBe(false)
   })
   it("keeps the accepted v9 fingerprint apart from explicit T05c.1/.2 additions; no import or upload verb", () => {
-    const old: Record<string, Record<string, readonly string[]>> = Object.fromEntries(
+    const old: Record<
+      string,
+      Record<string, readonly string[]>
+    > = Object.fromEntries(
       Object.entries(registry)
         .filter(([name]) => !["Document", "ImportBatch"].includes(name))
         .map(([name, actions]) => [
