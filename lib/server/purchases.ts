@@ -1852,6 +1852,20 @@ function moneyAuthority(
       "id",
       "revision",
     ])
+  if (
+    row.purchaseType === "LEASE_SETTLEMENT" &&
+    row.settlement?.company &&
+    (name === "payPurchase" ||
+      name === "editPurchase" ||
+      (name === "reversePayment" && !cost))
+  )
+    requireFields(
+      actor.ability,
+      "FinanceCompany",
+      "read",
+      row.settlement.company,
+      ["id", "name"]
+    )
   if (name === "payPurchase")
     requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
       "purchasePrice",
@@ -2309,7 +2323,7 @@ export async function executeCycleMoney(
       row.purchaseType === "LEASE_SETTLEMENT" &&
       row.settlement?.company &&
       (intent.name === "payPurchase" ||
-        intent.name === "reversePayment" ||
+        (intent.name === "reversePayment" && !cost) ||
         intent.name === "editPurchase")
     ) {
       await tx.$queryRaw`SELECT id FROM vamotors."FinanceCompany" WHERE id=${row.settlement.company.id}::uuid FOR UPDATE`
@@ -2393,7 +2407,10 @@ export async function executeCycleMoney(
     if (
       patch?.seller?.type === "CUSTOMER" ||
       (changedSeller && !proposedSupplier?.active) ||
-      (proposedCompany && !proposedCompany.active)
+      (proposedCompany &&
+        !proposedCompany.active &&
+        (row.purchaseType !== "LEASE_SETTLEMENT" ||
+          row.settlement?.companyId !== proposedCompany.id))
     )
       fail("INVALID_STATE")
     if (patch && purchaseType === "BRAND_NEW") {

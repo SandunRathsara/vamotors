@@ -932,6 +932,148 @@ try {
     }
   )
   await group(
+    "component reduction, inactive selection and archived historical liabilities remain truthful",
+    async () => {
+      let row = await create("component-reduction")
+      const before = await snapshot()
+      await command(
+        a.request,
+        "editPurchase",
+        envelope(
+          {
+            cycleId: row.id,
+            reason: "Cannot erase institution credit",
+            patch: {
+              settlement: { ...bank, amount: "5000", cashToSeller: "5000" },
+            },
+            cashCorrections: [],
+          },
+          refs(row, true)
+        ),
+        422
+      )
+      assert.equal(await snapshot(), before)
+      row = await edit(
+        row,
+        { settlement: { ...bank, amount: "5000", cashToSeller: "5000" } },
+        [],
+        [
+          {
+            paymentId: row.payments.find((p) => p.category === "SETTLEMENT")!
+              .id,
+            reason: "Explicit actual correction before split change",
+            replacement: payment("5000"),
+          },
+        ]
+      )
+      assert.equal(row.basisVersions.length, 1)
+      assert.equal(row.outstanding.seller, "1000")
+      assert.equal(row.outstanding.settlement, "0")
+      await command(
+        a.request,
+        "archiveParty",
+        envelope(
+          {
+            type: "FINANCE_COMPANY",
+            id: secondCompany.id,
+            active: false,
+            reason: "Retain historical liabilities",
+          },
+          [ref(secondCompany, "FinanceCompany")]
+        )
+      )
+      secondCompany = await query(
+        a.request,
+        "party",
+        `?type=FINANCE_COMPANY&id=${secondCompany.id}`
+      )
+      const archivedTerms: Settlement = {
+        institutionType: "FINANCE_COMPANY",
+        companyId: secondCompany.id,
+        reference: "Archived existing reference corrected",
+        amount: "6000",
+        cashToSeller: "4000",
+      }
+      const archived = await snapshot()
+      await command(
+        a.request,
+        "recordPurchase",
+        envelope(input("inactive-company", archivedTerms), [
+          ref(supplier, "Supplier"),
+          ref(secondCompany, "FinanceCompany"),
+        ]),
+        409
+      )
+      assert.equal(await snapshot(), archived)
+      primary = await edit(primary, { settlement: archivedTerms }, [
+        ref(secondCompany, "FinanceCompany"),
+      ])
+      await command(
+        a.request,
+        "payPurchase",
+        envelope(
+          {
+            cycleId: primary.id,
+            recipient: "SETTLEMENT",
+            payment: payment("100", "2026-10-05"),
+          },
+          refs(primary)
+        )
+      )
+      primary = await current(primary.id)
+      assert.equal(primary.outstanding.settlement, "2900")
+      await command(
+        a.request,
+        "archiveParty",
+        envelope(
+          {
+            type: "FINANCE_COMPANY",
+            id: secondCompany.id,
+            active: true,
+            reason: "Restore selectable synthetic company",
+          },
+          [ref(secondCompany, "FinanceCompany")]
+        )
+      )
+      secondCompany = await query(
+        a.request,
+        "party",
+        `?type=FINANCE_COMPANY&id=${secondCompany.id}`
+      )
+      const name = primary.settlement!.institutionNameSnapshot,
+        settings = await query<{ id: string; revision: number }>(
+          a.request,
+          "settings"
+        )
+      await command(
+        a.request,
+        "updateFinanceCompany",
+        envelope(
+          {
+            id: secondCompany.id,
+            name: `Renamed synthetic company ${suffix}`,
+            contacts: [],
+            policy: {
+              path: "APPLICATION",
+              commission: { basis: "FIXED", fixed: "1", rateBps: 0 },
+              processingFee: "0",
+              reconciliationMethod: "PER_DEAL",
+            },
+            reason: "Directory rename must not alter acquisition snapshots",
+          },
+          [ref(secondCompany, "FinanceCompany"), ref(settings, "Settings")]
+        )
+      )
+      secondCompany = await query(
+        a.request,
+        "party",
+        `?type=FINANCE_COMPANY&id=${secondCompany.id}`
+      )
+      primary = await current(primary.id)
+      assert.equal(primary.settlement!.institutionNameSnapshot, name)
+    }
+  )
+  await group(
     "creation/correction field authority and hidden direction/category/component/name history with positive controls",
     async () => {
       const writes: Grant[] = [

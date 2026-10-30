@@ -228,7 +228,10 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
               !company?.id ||
               company.id !== settlement.companyId ||
               !company.revision ||
-              !company.active ||
+              (!company.active &&
+                (snapshot.purchaseType !== "LEASE_SETTLEMENT" ||
+                  snapshot.settlement?.institutionType !== "FINANCE_COMPANY" ||
+                  snapshot.settlement.companyId !== company.id)) ||
               !company.name
             )
               throw new Error(
