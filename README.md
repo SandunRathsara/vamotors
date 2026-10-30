@@ -1,6 +1,12 @@
 # VSMS — VA Motors Vehicle Sale Management System
 
-Frontend shell for client sign-off. All screens use mock data served through Next.js Route Handlers with an in-memory store.
+## Current bounded LOCAL implementation
+
+Parent accepts bounded T05c+combined at **ac746b90ce9782fd35635847dff6c1b3ab669618**, after distinct independent BOUNDED PASS; the authorized primary `integration/full-v1` was fast-forwarded to that exact SHA, not this newer docs commit. [Current handoff](.planning/implementation/HANDOFF.md), [attributed acceptance and remaining clauses](.planning/implementation/evidence/T05c-ac746b9-acceptance-attributed.md), [requirement matrix](.planning/implementation/requirements-matrix.md): **26 LOCAL/108 U/134**, no new IDs; full T05/T06/G2–G6/deployment remain unaccepted. T06b is the sole active NEW shared writer with parent-directed accepted-ac rebase pending; T05c.1/.2 are FUTURE/NOT DISPATCHED.
+
+## Historical frontend-shell walkthrough
+
+The demo instructions below describe the original in-memory mock shell, **not** the current authenticated local runtime/run handoff or complete v1 acceptance. Current bounded runtime commands and limits are documented in the [T05c operations record](docs/operations/T05c-cycle-costs.md); no service was started by this documentation update.
 
 ## Prerequisites
 

@@ -1,6 +1,12 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current frozen792 correction + records REVIEW assembly — 2026-10-30
+## Current bounded ACCEPTED exact ac746b9 / required follow-ons NOT DISPATCHED
+
+Parent **ACCEPTS bounded T05c+combined EXACT ac746b90ce9782fd35635847dff6c1b3ab669618**, distinct ses_e73866f03ffef8LtV6wZH4jIq7 **BOUNDED PASS**, completed/services released; **P2 and bounded F1/P3 corrections CLOSED by parent**. [Independent final attribution / preserved failures / actual primary FF](evidence/T05c-ac746b9-acceptance-attributed.md). Both fresh/upgraded normal acquisition15 pass without force fallback; original author98 cancelled11/12 and500 FAIL105 artifacts remain unchanged. No actual post-wrap workflow/freeze proof; no whole-ID closure:26 LOCAL/108 U/134/VSTS-03 U/full T05/T06/G2–G6 unaccepted. Authorized primary FF-onlye9→EXACTac succeeded, clean; newer docs/T06b not promoted.
+
+Required follow-ons are now executable-owner handoffs: [T05c.1 mileage/listed-price/physical edits](T05c.1-next-slice.md), [T05c.2 settlement/remaining purchase corrections](T05c.2-next-slice.md), [historical immutable seam map](evidence/T05c-followon-proof-map.md). **FUTURE/NOT DISPATCHED**; actual then-parent-accepted final combination (including accepted T06b if preceding), exact SHA/sole-source transfer/distinct reviewer required. T06b alone remains ACTIVE NEW shared writer, parent-directed safe checkpoint/rebase onto accepted EXACTac/13 accepted migrations/own004/actualv9→10 freeze/fresh+genuine NONEMPTYac cost facts/repeat; latest head/outcome unknown. Original dispatch/source observations and future-runner wording below describe their historical baseline, not new missing-code claims or renewed implementation authority.
+
+## Previous frozen792 correction + records REVIEW assembly — 2026-10-30
 
 Parent authorizes [ordinary frozen7920bab39b7b883aa74911fa78025a84bf69036f + current8cd review assembly](evidence/T05c-P2-7920bab-review-assembly.md), no source fix by integration; exact runtime/test/schema bytes792, matrix/full scope/history retained. Six guard lines + additive128-line root/child-denied/authorized400 HTTP/audit/UI regression preserve all prior assertions. Author ses_e7376ed96ffe2a8RsopfGvBwgI **ACKED FROZEN792 / RELEASED shared correction ownership**, two own roots stopped/retained; author red→green/costs17/137units/projection2/types/build/contracts20/owned checks PASS, **not independent acceptance**. Historical500 independent FAIL P2/cleanup-helper failures/author11/12 cancelled acquisition and type baseline distinctions retained.
 

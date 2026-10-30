@@ -1,6 +1,12 @@
 # T06b — lawful staged-import private attachments
 
-## Current explicit parent REASSIGNMENT/RESUME / sole ACTIVE NEW writer
+## Current parent steering — accepted exact-ac rebase REQUIRED, outcome unknown
+
+**T06b ses_e738d7ffaffeXx7RewTpqYvIg0 remains SOLE ACTIVE NEW shared source writer**, no new task or competing writer. Parent [accepts bounded T05c+combined EXACT ac746b90ce9782fd35635847dff6c1b3ab669618](evidence/T05c-ac746b9-acceptance-attributed.md) after distinct completed BOUNDED PASS and directs **safe checkpoint/rebase onto that accepted EXACTac before final handback**. Preserve all13 accepted migrations unchanged; retain own **202610300004_import_attachments**, freeze **actual accepted registryv9→10** populations rather than oldv8 assumptions. Require new fresh + genuine **NONEMPTY exactac** upgrade including real cost/payment/reversal/basis history and all prior rates/quotes/grants/ACLs, then repeat setup/retention and final-combined independent review. Existing full scope/security/tests remain mandatory.
+
+**Latest head and rebase outcome unknown/not inspected; no success or final T06b acceptance inferred.** PREBASE87c57450268acf48658a6e5dc891f90f7522c5db and failed/partial/private header+revoked-session history remain distinct. Reviewer ses_e73866f03ffef8LtV6wZH4jIq7 completed/released services; parent closed bounded P2/F1 at exactac, not actual post-wrap/freeze proof. Primary authorized FF-onlye9→exactac completed clean;26 original LOCAL bindings unchanged/108 U/134/VSTS-03 U/full T05/T06/G2–G6/deployment unaccepted. New source reassignment still requires checkpoint+freeze+ACK and parent transfer. Earlier source-inspection/version/pending-review entries below are historical, not current accepted-base authority.
+
+## Previous explicit parent REASSIGNMENT/RESUME / sole ACTIVE NEW writer
 
 After P2 author ACKED FROZEN7920bab39b7b883aa74911fa78025a84bf69036f/RELEASED active shared correction ownership, parent **explicitly REASSIGNED/RESUMED T06b ses_e738d7ffaffeXx7RewTpqYvIg0 as SOLE ACTIVE NEW shared source writer** from preserved clean **PREBASE87c57450268acf48658a6e5dc891f90f7522c5db**, accepted-e9 ancestry, known `feat/t06b-import-attachments` / `/Users/alpha/Developer/Personal/vamotors-t06b`. **Latest next head unknown/not supplied**, no unaccepted cost import; eventual **parent-accepted costs-combined rebase** then final fresh/genuine-parent upgrade/integrated review mandatory. Original full functionality/security/tests/reserved004/actualv8 prebase unchanged; private header-emission failure/affected-session revocation, partial/intermediate passes/mobile-selector failure/unrerun migration-fault-restart history retained, **not final87/independent acceptance**.
 

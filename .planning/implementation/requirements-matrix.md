@@ -6,7 +6,11 @@ Coverage: **134 individual IDs /134 mapped /0 omitted /26 LOCALLY accepted /108 
 
 `Planned seam` remains proposed unless marked Actual. `U` means unverified/pending with no accepted SHA; **LOCAL PASS** means parent-accepted complete local criteria at the named independent reviewer/SHA, never a hosted pass. All scenarios still require real UI → authorized server → persistence plus meaningful negatives where applicable; pure helpers/counts do not replace them. A dash is missing evidence, not a pass.
 
-## Current LOCAL acceptance — 2026-10-30
+## Current bounded composition acceptance — 2026-10-30; result cells unchanged
+
+Parent accepts **bounded T05c+combined EXACT ac746b90ce9782fd35635847dff6c1b3ab669618** after distinct ses_e73866f03ffef8LtV6wZH4jIq7 BOUNDED PASS, closing bounded P2 aggregate-direction and F1/P3 xid-width corrections there; **no actual post-wrap workflow/freeze experiment claimed**. [Attribution, remaining original clauses and actual primary FF-onlye9→ac](evidence/T05c-ac746b9-acceptance-attributed.md). **No new requirement IDs accepted:26 LOCAL/108 U/134; all134 complete rows/result cells/bindings below unchanged**, original21 at0eaae8f/newfive ate9. VSTS-03 U/full T05/T06/G2–G6/deployment remain unaccepted. This top-status update supersedes the historical F1-open/primarye9 snapshot below, not its original acceptance bindings.
+
+## Previous26-LOCAL acceptance snapshot — retained history
 
 Parent accepts bounded T11a+combined **exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e** and complete ORIGINAL LOCAL **LBRK-01–05**, distinct ses_e741684d8ffeWOKAFoZu5LAVRe PASS with real OPEN P3 F1. [Per-ID exact source/groups/artifacts, immutable effective-dated maintenance, preserved failures, actual primary FF and F1 owner/correction gap](evidence/T11a-e9ba1a9-acceptance-attributed.md). Version2 is effective tomorrow; old quote retains v1 maximum/card, no active-period overwrite or rate-audit endpoint/UI claim. F1 is not waived: current sole T05c writer owns forward003 correction, pending independent final validation; no post-wrap application proof. **26 LOCAL/108 U**, original21 rows/bindings unchanged, only five new result cells below promoted. LBRK-06/whole T11/T06/G2/G4/G6/restore/device/deployment remain unaccepted, VSTS-03 U. Primary clean FF-onlyb7ac9af→accepted exacte9ba1a9; newer docs not promoted.
 
