@@ -1,6 +1,10 @@
 # Evidence index
 
-## Current review / T05c active ownership — 2026-10-30
+## Current parent T11a acceptance / five LOCAL IDs / OPEN F1 — 2026-10-30
+
+**[Exacte9ba1a9 acceptance / per-ID independent attribution / actual primary FF / F1 owner](T11a-e9ba1a9-acceptance-attributed.md):** parent accepts bounded T11a+combined and ORIGINAL LOCAL LBRK-01–05, distinct ses_e741684d8ffeWOKAFoZu5LAVRe PASS;130 indexed hashes preserved. **26 LOCAL/108 U/134**, old21 exact0eaae8f/newfive exacte9ba1a9; VSTS-03 U and excluded full gates/intake unchanged. Primary clean FF-onlyb7ac9af→accepted exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e, newer docs not promoted/main/remotes/protected held. **P3 F1 real OPEN/not waived**, current sole T05c owner assigned forward003 after costs002, accepted001 immutable; checkpoint/rebase accepted e9, focused regression/quote-upgrade validation pending. T11a frozen, no ownership transfer/freeze needed for same-owner correction; future reassignment freeze+ACK rule retained. T06b queued. No active-period overwrite/rate-audit endpoint/UI/post-wrap app claim or runtime rerun.
+
+## Previous running-review / T05c ownership snapshot
 
 **[Explicit parent ownership transfer / precise sequence](T05c-active-ownership.md):** independent ses_e741684d8ffeWOKAFoZu5LAVRe RUNNING exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e, sourceef9b7b7 unaccepted; one final-composition source+joint campaign. T11a freeze ACK/active ownership RELEASED, future correction only/no edits/tests before reassignment. **T05c ses_e73d53f14ffe6mFcfMW8lxAINw RUNNING/SOLE ACTIVE schema/registry/grants/shared-dispatch writer from accepted exactb7ac9af**, narrow wait-final-T11 start override only. Reserved costs002 follows rates001; PREBASE if needed, later accepted-rates rebase/final fresh+genuine upgrade/review required. Rates corrections only AFTER parent freezes T05c/checkpoint+ACK then reassigns. T06b queued;21 LOCAL/113 U/134/VSTS-03 U and primary/main/remotes/protected unchanged; docs only, no source acceptance/promotion/runtime tests.
 

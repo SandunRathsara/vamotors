@@ -1,6 +1,12 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current parent dispatch / sole active owner — 2026-10-30
+## Current accepted-parent rebase / same-owner OPEN F1 correction — 2026-10-30
+
+**T05c ses_e73d53f14ffe6mFcfMW8lxAINw remains SOLE ACTIVE shared writer.** Parent now [accepts bounded rates+combined EXACT e9ba1a939667fc46178f89cccae1022a4bbcfb7e](evidence/T11a-e9ba1a9-acceptance-attributed.md) and instructs safe checkpoint/rebase from the acceptedb7 dispatch onto that accepted combination before final fresh/genuine-parent-upgrade handback/review. Preserve accepted11 migrations/registryv8/rate grants/quote history. Costs functionality/bounds/tests below remain unchanged; retain reserved **202610300002_cycle_costs_corrections**.
+
+Parent additionally assigns **REAL OPEN P3 F1** (rates001:63 xmin-text versus64-bit current xid-text after epoch wrap) to this SAME current owner, no transfer or competing T11a writer. Add minimal **forward202610300003_rate_xid_epoch_guard**, NEVER rewrite accepted001; focused xid-expression + real publish/late-card regressions and preserved existing-quote upgrade required. F1 **OPEN/PENDING independent final validation**, no post-wrap app proof or waiver. Expected final13 migrations/registryv9 only if precisely these changes, subject actual code/evidence. No T05c freeze needed for this same-owner correction; original checkpoint-freeze+ACK-before-REASSIGN rule still governs any later transfer. T11a author remains frozen. T06b queued pending T05c source freeze/parent dispatch.26 LOCAL/108 U/134, VSTS-03 U; no cost/F1 completion inferred.
+
+## Historical initial dispatch / wait-final-T11 start override
 
 **RUNNING: ses_e73d53f14ffe6mFcfMW8lxAINw**, SOLE ACTIVE new schema/registry/grants/shared-dispatch owner, from **exact ACCEPTED `b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3`**. [Explicit release/override/sequencing](evidence/T05c-active-ownership.md): T11a ses_e7457169effeQXhP5ZYm4T06R0 acknowledged source freeze and released active ownership; future corrections only, no edits/tests until reassignment. Parent overrides **only the wait-final-T11a start gate**: independent costs use accepted purchase/stock; verified-base rule and **every functionality/bound/test below remain unchanged**. No unaccepted rates imported.
 

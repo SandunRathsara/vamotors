@@ -1,6 +1,10 @@
 # FUTURE T06b — lawful staged-import private attachments
 
-## Current queued status / active owner elsewhere — 2026-10-30
+## Current queued status / accepted rates / T05c same-owner correction
+
+**T06b remains QUEUED, NOT dispatched**, pending T05c source freeze and explicit parent dispatch/sole-owner transfer on an exact accepted base. [Bounded rates+combined accepted exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e](evidence/T11a-e9ba1a9-acceptance-attributed.md); T05c ses_e73d53f14ffe6mFcfMW8lxAINw remains SOLE ACTIVE shared writer, instructed checkpoint/rebase accepted e9 and forward003 F1 correction after costs002 without rewriting accepted001. F1 OPEN/pending independent validation; T11a author frozen, no transfer/concurrent writer. No T05c freeze needed for its same-owner fix; future reassignment still requires prior freeze/checkpoint+ACK. Original T06b scope/tests and final accepted-source reconciliation obligations below remain unchanged.26 LOCAL/108 U/134, VSTS-03 U; no actual file workflow/gate acceptance from rates.
+
+## Historical queued status / prior running-review ownership snapshot
 
 **T06b QUEUED, NOT dispatched.** [Parent coordination](evidence/T05c-active-ownership.md) released T11a active ownership after acknowledged freeze; **T05c ses_e73d53f14ffe6mFcfMW8lxAINw is now SOLE ACTIVE schema/registry/grants/shared-dispatch owner** from acceptedb7ac9af. The start-gate override is T05c-only: T06b's accepted final-combination/exact verified base/explicit transfer gates and all scope/tests below remain unchanged. Independent reviewer ses_e741684d8ffeWOKAFoZu5LAVRe RUNNING on exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e, sourceef9b7b7 unaccepted. T11a author has only future correction responsibility/no edits/tests until reassigned; rates corrections require T05c checkpoint freeze+ACK BEFORE ownership reassignment. No competing writer or T06b dispatch inferred.
 

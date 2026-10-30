@@ -1,6 +1,12 @@
 # Local continuation — authorized candidate and baseline promotion
 
-## Current running final review / T05c sole active ownership
+## Current accepted e9ba1a9 / actual primary FF / OPEN F1
+
+Parent accepts **bounded T11a+combined exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e plus ORIGINAL LOCAL LBRK-01–05**, independent ses_e741684d8ffeWOKAFoZu5LAVRe PASS. [Exact code/group/artifact maps,130 hashes, preserved failures, actual FF and open finding](T11a-e9ba1a9-acceptance-attributed.md). Authorized clean exactb7ac9af primary integration/full-v1 FF-only→exacte9ba1a9 succeeded, clean; no newer docs/main/remote/protected promotion. **26 LOCAL/108 U/134**, original21 bindings0eaae8f unchanged/newfive bounde9; VSTS-03 U/full LBRK-06/intake/T11/T06/G2/G4/G6/restore/device/deployment remain unaccepted. Immutable effective-dated tomorrow-v2/retained-v1 quote proof only, no active overwrite/rate-audit API/UI.
+
+**P3 F1 OPEN/not waived**, xmin/xid8 text after epoch wrap; no post-wrap application proof. Parent assigns CURRENT sole T05c ses_e73d53f14ffe6mFcfMW8lxAINw: safe checkpoint/rebase accepted e9, preserve accepted11 migrations/registryv8/grants/quotes, retain costs002, add forward003_rate_xid_epoch_guard (no001 rewrite), focused xid/publish/late-card/preserved-quote upgrade validation pending. Conditional final13 migrations/registryv9 subject actual code/evidence. T11a author frozen/no transfer, so no T05c freeze needed now; freeze+ACK-before-REASSIGN remains for future transfers. T06b queued pending T05c freeze/parent dispatch. This update records/spec/link/preservation only plus authorized primary FF, no source fix/runtime reruns.
+
+## Previous running-review / T05c ownership snapshot
 
 Parent decisions [recorded exactly](T05c-active-ownership.md): reviewer **ses_e741684d8ffeWOKAFoZu5LAVRe RUNNING exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e**, sourceef9b7b7 unaccepted, one final-composition source+joint campaign. T11a author freeze ACK/active shared ownership RELEASED; no edits/tests until reassigned, future corrections only. **T05c ses_e73d53f14ffe6mFcfMW8lxAINw RUNNING/SOLE ACTIVE schema/registry/grants/shared-dispatch owner from accepted exactb7ac9af**; narrow start-gate override, no unaccepted rates or functional/test changes. Migration costs002 after rates001; PREBASE if needed then later parent-accepted rates rebase/final fresh+genuine-parent upgrade before handback/review. Any rates correction requires parent FIRST freeze T05c/checkpoint+receive ACK, THEN reassign ownership. T06b queued/not dispatched;21 LOCAL/113 U/134/VSTS-03 U unchanged, primary clean acceptedb7ac9af/main/remotes/protected held. This docs descendant does not replace frozen review source or confer acceptance/promotion.
 
