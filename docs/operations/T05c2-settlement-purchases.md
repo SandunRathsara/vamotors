@@ -244,3 +244,59 @@ distinct full final-combined fresh/genuine555-upgrade/repeat/retained/UI review
 remains required. Earlier fd7 campaign results stay attributed to fd7. New author
 receipts and service closeout are sealed separately under the owned private
 `t05c2-gross-c01-20261031` directory.
+
+## IV-T05c2-FC-UI-C01 — shared selector render guard
+
+The distinct rejected038 review found an independent acquisition UI P2, not a
+regression in the accepted gross/incurred boundaries. With `company=null` and
+no draft company ID, `company?.id === draft.companyId` compared two undefined
+values and then read `company.revision`. Own exact038 production-browser RED
+receipts reproduce the exception at 360 and 1920, before any command POST, with
+all 13 business/history/audit/receipt/basis/read/sequence populations unchanged.
+
+The only application edit requires an actual company and matching ID before
+reading its revision. No default party, assertion, fallback authority, error
+boundary suppression or dependency is introduced. The shared acquisition and
+cycle-correction consumers and nearby optional comparisons were reviewed: the
+name fallback is safe, and both submission paths already require an actual
+matching readable company/revision. They remain byte-unchanged, as do every
+server/runtime, money, schema/16 migrations, registry12, grants, contracts and
+native/PWA/package file at038.
+
+```sh
+# Same committed production UI probe runs RED on rejected038, GREEN on correction.
+node --import tsx tests/security/settlement-ui-check.ts "$OWN_ROOT" probe
+node --import tsx tests/security/settlement-ui-check.ts "$OWN_ROOT" all
+# Keep the original settlement20 assertions, including BANK SW/replay/privacy.
+node --import tsx tests/security/settlement-purchase-check.ts "$OWN_ROOT"
+```
+
+The new runner reuses the existing owned production HTTP/restricted-PG fixture.
+It exercises actual absent/cleared/retained/mismatched company state, real DTO
+selection/reload and real field-hidden projection. Its mismatch control delays
+an actual A response until after B selection and releases the unchanged response;
+it does not fabricate IDs/revisions or inject component state. Read-only fiber
+props document the initial/mismatch state; DOM usability and real effects are
+the regression assertions. Service workers are blocked only in this targeted
+response-order control; the untouched settlement20 retains its active-SW tests.
+
+All three acquisition variants are entered/submitted through the keyboard at
+360 and 1920. Real HTTP envelopes and typed PostgreSQL detail/payment/basis rows
+must retain the selected actual reference, both exact components and their sum
+once. The correction consumer starts without a loaded company, exercises
+selection/clearing/institution switching, then commits a lawful bank→finance
+change with an explicit reversal of the old institution credit. It invents no
+cross-recipient replacement payload and preserves the original basis and seller
+credit. Reopening a saved finance correction requires an explicit current-party
+load instead of leaking the retained ID as a readable revision.
+
+The new bounded author evidence is sealed separately in the private
+`t05c2-fc-ui-c01-20261031` dossier, preserving every original RED/helper failure.
+The original gross/incurred closures remain attributed to distinct038 verification,
+not rerun or reopened here. This guard does not authorize candidate acceptance or
+VPRC-02 promotion. The parent's same distinct verifier still owns the one final
+assembled target, affected all-three UI and all paused original clauses: upgrade
+fault/observed-lock extras, old-nonadmin operation, UI-created typed facts/restart
+and all-linked new-auth 200/403/404/401 CSV/XLSX. Existing genuine-upgrade/repeat
+retention evidence stays038-bound; no fake reset/new555 campaign is substituted.
+26 LOCAL / 108 U / 134, VPRC-02 U, G2 pinned d0 and G3–G6 pending remain unchanged.
