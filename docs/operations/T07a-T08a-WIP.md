@@ -1,5 +1,37 @@
 # T07a/T08a — accepted236 reconciliation / incomplete final proof (2026-10-31)
 
+## Current author functional-complete boundary — final sealing pending
+
+All required bounded WRITE_OFF runtime groups and touched-seam regressions are now
+executed successfully, with retained failure history and exact per-command source
+bindings. This is **author evidence, not parent acceptance, whole-ID promotion or
+shared-source release**. Final post-effect restarts, frozen-source quality,
+identity-checked owned service closeout and the complete seal remain next.
+
+- At clean7d99146, all four actual ordered edit/stock-versus-review cases exited0:
+  both real source-row and BusinessSequence waits were observed, both winner
+  orders had the exact safe loser status, source revision/state/disposal cardinality
+  and no loser receipt. The stock barrier follows its accepted PurchaseRecord
+  row lock; no product lock was added. Earlier partial/failing attempts remain.
+- The separate real CASH UI selection exited0 over the genuinely retained236
+  held-stock cycle, with all physical/mileage/cost/basis/payment/correction and
+  outstanding facts unchanged except the evidenced close/disposal/proceeds graph.
+  The three real lease UI selections already passed at e5900ef, and the original
+  BRAND_NEW request/review/response-loss/terminal UI groups passed earlier on the
+  identical reconciled runtime. No passed broad campaign was repeated for time.
+- P1–P8 evidence includes real origins and all channels, exact pending/rejection/
+  zero/loss/gain, consumed and reviewer field/record/privacy/replay gates, stale
+  dependencies and unrelated directory/Settings controls, actual races/current
+  revocation+deactivation waits, all essential failure rollback and restricted SQL,
+  NEW fresh17/v13 plus genuine nonempty exact23616/v12 forward/repeat/native bytes,
+  real SW/keyboard/response-loss/purge UI and required regressions. Original wider
+  repair/buyer-obligation/report/import domains and gate acceptance remain outside
+  this bounded journey; coverage stays27 LOCAL/107 U/134 as parent directed.
+- Runtime source is still exactb4c1aac outside tests/docs; all16 accepted SQL files
+  remain byte-identical and only202610310001 is additional. Final metadata will
+  bind full SHA/tree, source/runtime equivalence and every artifact hash; do not
+  mistake this functional boundary for a sealed final candidate yet.
+
 ## Accepted236 steering / safe pre-reconciliation checkpoint
 
 The parent now explicitly accepts runtime base
