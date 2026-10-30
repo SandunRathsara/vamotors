@@ -173,6 +173,9 @@ model CommandReceipt {
   basisVersions         CycleBasisVersion[]
   costs                 VehicleCost[]
   costPayments          CostPayment[]
+  repairs               RepairRecord[] @relation("repairDispatch")
+  repairReturns         RepairRecord[] @relation("repairReturn")
+  repairPayments        RepairPayment[]
 
   @@unique([environmentId, actorKey, commandName, idempotencyKey])
   @@schema("vamotors")
@@ -444,6 +447,7 @@ model RepairVendor {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   contacts       VendorContact[]
+  repairs        RepairRecord[]
 
   @@schema("vamotors")
 }
@@ -541,6 +545,8 @@ model PurchaseRecord {
   basisVersions        CycleBasisVersion[]
   costs                VehicleCost[]
   costPayments         CostPayment[]
+  repairs              RepairRecord[]
+  repairPayments       RepairPayment[]
   settlement           LeasePurchaseDetail?
 
   @@unique([id, vehicleId])
@@ -659,6 +665,65 @@ model CostPayment {
   @@unique([commandId, lineKey])
   @@unique([reversalOf, costId, cycleId])
   @@index([costId, occurredDate, id])
+  @@schema("vamotors")
+}
+
+model RepairRecord {
+  id              String @id @default(uuid()) @db.Uuid
+  cycleId         String @db.Uuid
+  cycle           PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  vendorId        String @db.Uuid
+  vendor          RepairVendor @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  request         String
+  sentDate        DateTime @db.Date
+  returnedDate    DateTime? @db.Date
+  summary         String?
+  invoiceAmount   BigInt?
+  invoiceDate     DateTime? @db.Date
+  revision        Int @default(1)
+  createdBy       String @db.Uuid
+  commandId       String @unique @db.Uuid
+  command         CommandReceipt @relation("repairDispatch", fields: [commandId], references: [id], onDelete: Restrict)
+  returnCommandId String? @unique @db.Uuid
+  returnCommand   CommandReceipt? @relation("repairReturn", fields: [returnCommandId], references: [id], onDelete: Restrict)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  payments        RepairPayment[]
+
+  @@unique([id, cycleId])
+  @@index([cycleId, sentDate, id])
+  @@index([vendorId, returnedDate, sentDate, id])
+  @@schema("vamotors")
+}
+
+model RepairPayment {
+  id           String @id @default(uuid()) @db.Uuid
+  repairId     String @db.Uuid
+  cycleId      String @db.Uuid
+  repair       RepairRecord @relation(fields: [repairId, cycleId], references: [id, cycleId], onDelete: Restrict)
+  cycle        PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  amount       BigInt
+  direction    String
+  category     String
+  occurredDate DateTime @db.Date
+  method       String
+  currency     String
+  scale        Int
+  reference    String?
+  reversalOf   String? @unique @db.Uuid
+  original     RepairPayment? @relation("repairReversal", fields: [reversalOf, repairId, cycleId], references: [id, repairId, cycleId], onDelete: Restrict)
+  reversal     RepairPayment? @relation("repairReversal")
+  reason       String?
+  createdBy    String @db.Uuid
+  commandId    String @db.Uuid
+  command      CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  lineKey      String
+  recordedAt   DateTime @default(now())
+
+  @@unique([id, repairId, cycleId])
+  @@unique([commandId, lineKey])
+  @@unique([reversalOf, repairId, cycleId])
+  @@index([repairId, occurredDate, id])
   @@schema("vamotors")
 }
 

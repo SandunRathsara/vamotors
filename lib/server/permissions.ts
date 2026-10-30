@@ -23,6 +23,11 @@ export const sourcePaymentFields = [
   "reversalOf",
   "reason",
 ] as const
+export const repairReadFields = [
+  "id", "revision", "vendorId", "request", "sentDate", "returnedDate", "summary",
+  "invoiceAmount", "invoiceDate", "payments",
+  ...sourcePaymentFields.map((p) => `payments.${p}`),
+] as const
 export const mileageReadFields = [
   "id",
   "reading",
@@ -326,6 +331,12 @@ export const registry = {
     ],
     pay: ["costId", ...paymentWriteFields, ...correctionWriteFields],
   },
+  RepairRecord: {
+    read: repairReadFields,
+    create: ["cycleId", "vendorId", "request", "sentDate"],
+    update: ["repairId", "invoiceAmount", "invoiceDate", "returnedDate", "summary"],
+    pay: ["repairId", ...paymentWriteFields, ...correctionWriteFields],
+  },
   Supplier: {
     // category is retained only to validate immutable legacy permissions. The
     // wire DTO exposes it at directory.category, never as an extra DTO key.
@@ -621,7 +632,8 @@ export const registry = {
   },
 } as const
 // Freeze accepted T05c.1 v11 populations before exposing settlement fields.
-export const registryVersion = 12
+// PREBASE: accepted236 v12 + repairs. Final accepted WRITE_OFF reconciliation is v14.
+export const registryVersion = 13
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
@@ -630,6 +642,7 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   Customer: ["createdBy"],
   PurchaseRecord: ["createdBy"],
   VehicleCost: ["createdBy"],
+  RepairRecord: ["createdBy"],
   Supplier: ["createdBy"],
   RepairVendor: ["createdBy"],
   FinanceCompany: ["createdBy"],
