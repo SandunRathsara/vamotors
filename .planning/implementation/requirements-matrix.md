@@ -6,7 +6,11 @@ Coverage: **134 individual IDs /134 mapped /0 omitted /26 LOCALLY accepted /108 
 
 `Planned seam` remains proposed unless marked Actual. `U` means unverified/pending with no accepted SHA; **LOCAL PASS** means parent-accepted complete local criteria at the named independent reviewer/SHA, never a hosted pass. All scenarios still require real UI → authorized server → persistence plus meaningful negatives where applicable; pure helpers/counts do not replace them. A dash is missing evidence, not a pass.
 
-## Current bounded composition acceptance — 2026-10-30; result cells unchanged
+## Current bounded T06b composition acceptance — result cells unchanged
+
+Parent [accepts bounded T06b+combined EXACTd0b13455cdec498e0913c0b74566b90ee930e353](evidence/T06b-d0b1345-acceptance-attributed.md) after distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 independent PASS/no product blockers. Authorized primary FF-onlyac→d0 completed; this does **not** accept new original IDs/gates. **All134 rows/result cells/bindings below remain byte-exact:26 LOCAL/108 U, old21 at0eaae8f/newfivee9, VSTS-03 U**. Full T06/IMPT/G2–G6/restore/hosted/device remain unaccepted. P2/bounded F1 closure stays at exactac/no actual post-wrap or freeze experiment. Original G2 operations-only is now dispatched, no confirmed human URL/handoff or gate acceptance; T06 test roots do not establish G2.
+
+## Previous bounded costs composition acceptance — retained snapshot
 
 Parent accepts **bounded T05c+combined EXACT ac746b90ce9782fd35635847dff6c1b3ab669618** after distinct ses_e73866f03ffef8LtV6wZH4jIq7 BOUNDED PASS, closing bounded P2 aggregate-direction and F1/P3 xid-width corrections there; **no actual post-wrap workflow/freeze experiment claimed**. [Attribution, remaining original clauses and actual primary FF-onlye9→ac](evidence/T05c-ac746b9-acceptance-attributed.md). **No new requirement IDs accepted:26 LOCAL/108 U/134; all134 complete rows/result cells/bindings below unchanged**, original21 at0eaae8f/newfive ate9. VSTS-03 U/full T05/T06/G2–G6/deployment remain unaccepted. This top-status update supersedes the historical F1-open/primarye9 snapshot below, not its original acceptance bindings.
 

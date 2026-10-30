@@ -1,6 +1,14 @@
 # Full-v1 implementation task ledger
 
-## Current frozen T06b REVIEW assembly / T05c.1 sole active NEW writer
+## Current accepted T06b+combined exact d0 / primary FF / G2 operations-only dispatch
+
+- **Parent ACCEPTS bounded T06b+combined EXACT d0b13455cdec498e0913c0b74566b90ee930e353**, distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 independent PASS/no product blockers, completed/owned services stopped retained. [Proof/220 hashes/limits/four helper failures/remaining clauses/actual FF](evidence/T06b-d0b1345-acceptance-attributed.md). Author counts are not independent credit; all original failures retained.
+- **Actual primary FF-onlyac→EXACTd0 succeeded exit0/clean** on integration/full-v1; main/remotes/protected unchanged, newer docs/T05c.1 not promoted. Runtime/tests/schema/packages/contracts/native/PWA/14 migrations exactd0. No new original IDs/gates:26 LOCAL/108 U/134/VSTS-03 U; old21 at0eaae8f/newfivee9 unchanged. P2/bounded F1 closed atac; full T06/IMPT/G2–G6/restore/hosted/device unaccepted.
+- **T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI remains SOLE ACTIVE shared source writer**, parent-steered safe checkpoint/rebase EXACT ACCEPTEDd0, preserve14 migrations/own005/actual10→11 universes+real attachments/bytes; NEW fresh/genuine-d0 NONEMPTY14→15 repeat/restart required. Latest head/rebase success unknown, no live inspection. T05c.2 queued/NOT DISPATCHED.
+- **NEW G2 ops-only ses_e7292066cffe6V6B7QIdB6hQpe**, no source ownership; [authorized new immutable-d0 human destinations and proof gate](evidence/G2-human-d0-operations-dispatch.md). No confirmed path existence/running URL/handoff result. Enduring loopback/private accounts/two-account purchase+STAGED attachment/app-PG-adapter restart then leave running; distinct review and parent G2 adjudication mandatory. No full-T05/T18-restore prerequisite invented.
+- Ledger checks only docs/links/blobs/matrix/diff/stable evidence and actual authorized FF; no runtime reruns/services/credentials/delegation. Earlier source/pending-review/ownership entries remain historical.
+
+## Previous frozen T06b REVIEW assembly / T05c.1 initial-dispatch snapshot
 
 - **Review assembly only:** frozen UNACCEPTED1d384b194d057d21f3790ee2c8544f1391ce8833 + current records13277e5c45826b328215dcb2a66b5bcb847c78c1, common acceptedac; ordinary conflict-free/zero-overlap merge. [Exact29-path map, package integrity, source union and one-final-SHA review gate](evidence/T06b-1d384b1-review-assembly.md). Runtime/tests/schema/packages/contracts/native/PWA exact1d; current matrix entire bytes/bindings preserved26 LOCAL/108 U/134/VSTS-03 U. P2/bounded F1 remain parent-closed at acceptedac; primaryac/protected refs unchanged.
 - **T06b author frozen/released:** ses_e738d7ffaffeXx7RewTpqYvIg0 COMPLETE SOURCE FREEZE ACK/ownership RELEASE, all8 roots stopped/retained/no owned app/test/browser/fileworker per sealed handback.352 checksums/48 exact-head receipts/27 completed jobs verified; failures retained, not all receipts called PASS. Author full18 fresh+18 genuine-ac upgrade/repeat/expiry/restart/26 linked-file checks are not independent acceptance.

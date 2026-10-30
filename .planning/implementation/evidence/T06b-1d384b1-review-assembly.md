@@ -1,4 +1,6 @@
-# Frozen T06b1d + current13277 records — REVIEW assembly, NOT acceptance
+# Historical frozen T06b1d + current13277 REVIEW assembly
+
+**Later parent decision:** [bounded T06b+combined EXACTd0 ACCEPTED](T06b-d0b1345-acceptance-attributed.md) after distinct independent PASS; primary authorized FF-onlyac→d0 completed. This original assembly/author/preparation record is preserved at its historical binding, not current pending-review status or independent execution credit. T05c.1 remains sole source writer under accepted-d0 rebase steering; G2 operations-only is separately dispatched. No original IDs/gates closed.
 
 Parent authorizes ordinary local merge of **UNACCEPTED frozen1d384b194d057d21f3790ee2c8544f1391ce8833**, tree **dbfcddd08f7b039d64e1aaed5554b3bc67216625**, into clean records **13277e5c45826b328215dcb2a66b5bcb847c78c1**. Common accepted ancestor: **ac746b90ce9782fd35635847dff6c1b3ab669618**. Actual `git merge --no-ff --no-commit` was conflict-free/zero overlap; its automatic union tree is **02e6b5d59a1560e3aa6cb9a3b37b42f32852172d**. Current status records are reconciled in the containing ordinary merge commit. **The returned clean FINAL COMBINED SHA/tree is the sole frozen review target**, not a source-only duplicate campaign. No source fixes, squash/cherry-pick or self-acceptance.
 

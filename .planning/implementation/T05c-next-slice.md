@@ -1,6 +1,10 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current accepted costs / T06b REVIEW assembly / T05c.1 parent-DISPATCHED
+## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
+
+Bounded costs/P2/F1 acceptance remains at exactac; parent now [accepts bounded T06b+combined EXACTd0b13455cdec498e0913c0b74566b90ee930e353](evidence/T06b-d0b1345-acceptance-attributed.md), reviewer completed PASS. T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI remains SOLE ACTIVE shared source writer, parent-directed safe checkpoint/rebase EXACT ACCEPTEDd0/14 migrations/005/actual10→11 universes+real attachments/bytes/NEW fresh and genuine-d0 NONEMPTY14→15 repeat/restart; latest branch/head/outcome unknown. [Unchanged T05c.1 scope](T05c.1-next-slice.md); T05c.2 queued/NOT DISPATCHED. Separate [G2 operations-only owner](evidence/G2-human-d0-operations-dispatch.md) adds no source writer or G2 acceptance.26 bindings/VSTS-03 U/full T05/T06/G2–G6 limits unchanged; primary FF-onlyac→exactd0 succeeded, newer records not promoted.
+
+## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 
 Bounded T05c+combined/P2/bounded F1 remain parent-accepted/closed **EXACTac746b90ce9782fd35635847dff6c1b3ab669618**, no post-wrap/freeze experiment claimed. Frozen T06b1d source is now in [ordinary current-records REVIEW assembly](evidence/T06b-1d384b1-review-assembly.md), **UNACCEPTED**; source author freeze ACK/released, distinct reviewer completed preparation only and awaits returned final SHA for one full campaign. Primaryac/matrix26 bindings unchanged.
 

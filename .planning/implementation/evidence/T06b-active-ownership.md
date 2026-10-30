@@ -1,5 +1,9 @@
 # T06b ownership chronology — original dispatch retained
 
+**Current:** parent [accepts bounded T06b+combined EXACTd0](T06b-d0b1345-acceptance-attributed.md), distinct reviewer completed PASS/services closed. Primary authorized FF-onlyac→d0 completed. T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI remains sole ACTIVE shared source writer, instructed checkpoint/rebase EXACTacceptedd0/14 migrations/005/actual10→11/NEW genuine-d0 repeat+restart, latest head/outcome unknown. T05c.2 queued. [G2 operations-only ses_e7292066cffe6V6B7QIdB6hQpe](G2-human-d0-operations-dispatch.md) has no source ownership or confirmed URL/handoff; distinct review/parent gate decision pending.26 bindings/P2+bounded F1 atac unchanged. The following supersessions and dispatch entries are historical.
+
+## Previous review-assembly supersession snapshot
+
 **Current supersession:** [frozen1d review assembly and exact source map](T06b-1d384b1-review-assembly.md). T06b ses_e738d7ffaffeXx7RewTpqYvIg0 COMPLETE SOURCE FREEZE ACK/ownership RELEASE; author evidence is not acceptance. Independent ses_e734bc50bffeWMSjm7Ed2xdxA2 completed preparation only/awaits one returned final-combined SHA. Parent dispatched T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI SOLE ACTIVE NEW shared writer from acceptedac/005/actual9 prebase, never unaccepted1d; eventual accepted T06 rebase/final proof mandatory, branch/head unknown. T06 fix requires prior T05c.1 checkpoint+freeze+ACK; T05c.2 queued. Primaryac/P2+bounded F1 closure/26 bindings unchanged. The original dispatch snapshot below is historical, not current ownership or pending costs acceptance.
 
 ## Historical T05c acknowledged freeze / recovery resumed / T06b dispatch

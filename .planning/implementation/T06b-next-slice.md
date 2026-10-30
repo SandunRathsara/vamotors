@@ -1,6 +1,12 @@
 # T06b — lawful staged-import private attachments
 
-## Current frozen1d REVIEW assembly / source author RELEASED / no acceptance
+## Current bounded ACCEPTED exact d0 — no whole-T06/G2/IMPT closure
+
+Parent **ACCEPTS bounded T06b+combined EXACT d0b13455cdec498e0913c0b74566b90ee930e353**, distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 independent PASS/no product blockers, completed/services stopped retained. [Independent18+18/repeat/expiry/restart/downloads/security/limits/220 hashes and actual primary FF](evidence/T06b-d0b1345-acceptance-attributed.md). Source/14 migrations/registry10 exactd0;13 earlier SQL files retained, author1d/preparation/assembly pending history not deleted or relabelled. No new IDs/gates:26 LOCAL/108 U/134/VSTS-03 U/full T06/IMPT/G2–G6/restore/hosted/device unaccepted. Primary authorized clean FF-onlyac→exactd0 completed; newer records/T05c.1 not promoted.
+
+T05c.1 remains sole ACTIVE source writer, instructed checkpoint/rebase accepted EXACTd0/14 migrations/own005/actual10→11 freeze/real attachments+bytes/NEW fresh and genuine-d0 NONEMPTY14→15 repeat/restart; latest head/outcome unknown. T05c.2 queued. Parent separately dispatches [original G2 operations-only human runtime](evidence/G2-human-d0-operations-dispatch.md), no shared source ownership and no launch/handoff success inferred. Earlier scope/security/tests and source observations below are historical dispatch specification, not current absent-code or pending-review claims.
+
+## Previous frozen1d REVIEW assembly / source-author release snapshot
 
 Parent authorizes ordinary merge of **frozen UNACCEPTED1d384b194d057d21f3790ee2c8544f1391ce8833** (acceptedac ancestor) into current records13277; [full29-path map, exact union and attributed author package](evidence/T06b-1d384b1-review-assembly.md). Author **ses_e738d7ffaffeXx7RewTpqYvIg0 COMPLETE SOURCE FREEZE ACK / ownership RELEASE**; all8 own roots stopped/retained, no app/test/browser/fileworker per handback.352 sealed checksums/48 exact-head receipts/27 completed jobs verified with original nonzero outcomes retained. Author full18 fresh+18 genuine-ac13→14 upgrade/repeat/actual expiry/restart/26 linked-file checks are **not independent acceptance**. All13 accepted SQL bytes retained/new004 exact author hash/registry10; no claim that changed shared audit/sidebar/tests equal oldac.
 

@@ -1,6 +1,16 @@
 # Full-v1 execution handoff — LOCAL implementation; deployment deferred
 
-## Current frozen T06b + current-records REVIEW assembly / T05c.1 sole NEW writer
+## Current parent-ACCEPTED T06b+combined exact d0 / primary promoted / G2 ops dispatched
+
+Parent **ACCEPTS bounded T06b+combined EXACT d0b13455cdec498e0913c0b74566b90ee930e353**, tree **1ce2785e4af2c34bc35981d6539c66db14dc2dfd**, after distinct **ses_e734bc50bffeWMSjm7Ed2xdxA2 independent PASS/no product blockers**. Reviewer completed/owned services stopped and retained, not RUNNING. [Exact independent proof,220 verified artifacts, limits/failures/original clauses and actual FF](evidence/T06b-d0b1345-acceptance-attributed.md). Earlier author1d/preparation/assembly-pending labels below are history, not current acceptance. Source/contracts/tests/packages/native/PWA and14 migrations remain exactd0; **no new IDs/gates:26 LOCAL/108 U/134/VSTS-03 U**, old21 at0eaae8f/newfivee9 unchanged. P2/bounded F1 remain closed at exactac, no actual post-wrap/freeze proof. Full T06/IMPT/G2–G6/restore/hosted/device remain unaccepted.
+
+Authorized primary `/Users/alpha/Developer/Personal/vamotors`, clean **integration/full-v1 EXACTac**, passed branch/ancestry/ref preflight; **FF-onlyac→EXACTd0 succeeded exit0, clean**, main/remotes/protected unchanged. This newer records SHA and T05c.1 are NOT promoted. All runtime results are attributed, not rerun by ledger.
+
+**T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI remains SOLE ACTIVE shared source writer**, parent-directed safe checkpoint/rebase onto **EXACT ACCEPTEDd0**, preserve14 migrations/own005/actualv10→11 universes and real attachments/bytes; NEW fresh + genuine-d0 NONEMPTY14→15 upgrade/repeat/restart before final handback/review. Latest head/rebase outcome unknown/not inspected. [Unchanged scope/current steering](T05c.1-next-slice.md); T05c.2 remains FUTURE queued/NOT DISPATCHED. No new shared writer or unaccepted-code import.
+
+**NEW original G2 OPERATIONS-ONLY dispatch: ses_e7292066cffe6V6B7QIdB6hQpe**, immutable accepted-d0 new human checkout/root using existing code, no source ownership. [Exact authorized future destinations, literal G2 journey and nonclaims](evidence/G2-human-d0-operations-dispatch.md). No actual checkout/root existence, running URL/account handoff or success yet. Goal: enduring loopback/private human accounts/two-account purchase + lawful STAGED attachment/actual app+PG+adapter restart, then leave running; DISTINCT review and parent G2 adjudication still required. T06 tests alone do not close G2; full T05/T18 restore are not extra literal-G2 prerequisites. Ledger performs docs/hash/link/diff checks plus authorized FF only, no runtime/services/credentials/cloud/push/PR/deploy/delegation.
+
+## Previous frozen T06b + current-records REVIEW assembly / T05c.1 dispatch snapshot
 
 Parent-authorized ordinary merge of **UNACCEPTED frozen T06b1d384b194d057d21f3790ee2c8544f1391ce8833** into clean records13277e5c45826b328215dcb2a66b5bcb847c78c1, common acceptedac, is conflict-free/zero overlap. [Full29-path source map, author attribution, union and review gate](evidence/T06b-1d384b1-review-assembly.md). **Every runtime/test/schema/package/contract/native/PWA byte is exact1d**; shared audit/sidebar and retained-test changes are disclosed, not called old-source identical. Matrix remains byte-exact current13277:26 LOCAL/108 U/134, all accepted bindings unchanged/VSTS-03 U. Accepted T05c P2 and bounded F1/P3 closures remain **at exactac**, no actual post-wrap/freeze proof. Primary stays clean acceptedac; no promotion.
 

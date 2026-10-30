@@ -1,6 +1,14 @@
 # Evidence index
 
-## Current frozen T06b1d + current13277 REVIEW assembly / T05c.1 sole NEW writer
+## Current parent-ACCEPTED T06b+combined exact d0 / G2 operations-only dispatch
+
+**[Independent bounded acceptance,220 artifact hashes, exact proof/limits/four helper failures/original clauses and actual primary FF](T06b-d0b1345-acceptance-attributed.md):** parent accepts EXACTd0b13455cdec498e0913c0b74566b90ee930e353 after distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 PASS/no product blockers, completed/owned services closed retained. Fresh18+genuine-ac18/repeat/expiry/restart/independent11+5/36 authenticated downloads/9 storage guards/retained costs17 each and other regressions are independent executions, not author counts. All limits remain explicit, including headless-CDP not physical PWA,1081 payloads/two nonidentical path launchers/parser corpus not rerun/coordinator supplements/bounded inventory wrapper.
+
+Primary clean authorized FF-onlyac→EXACTd0 succeeded, no newer docs/T05c.1 promotion/main/remotes/protected change. Matrix134 rows/26 LOCAL/108 U/original bindings unchanged/VSTS-03 U/full T06/IMPT/G2–G6/restore/hosted/device unaccepted; P2/bounded F1 remain closed atac. T05c.1 sole ACTIVE shared source writer now parent-steered accepted-d0 checkpoint/rebase/14 migrations/005/actual10→11 universes+attachments/NEW fresh/genuine-d0 NONEMPTY14→15 repeat/restart; latest head/outcome unknown. T05c.2 queued.
+
+**[NEW original G2 OPERATIONS-ONLY dispatch](G2-human-d0-operations-dispatch.md)** ses_e7292066cffe6V6B7QIdB6hQpe uses new immutable-d0 human checkout/root/existing code with no source ownership. No path existence/live URL/account handoff/success yet. Literal enduring-runtime journey then distinct review/parent G2 adjudication; no T06-test shortcut or extra full-T05/T18-restore dependency. Earlier pending labels/author/prep/assembly records below remain historical, not current verdicts.
+
+## Previous frozen T06b1d + current13277 REVIEW assembly / T05c.1 initial-dispatch snapshot
 
 **[Full29-path map, author package integrity and exact source+records union](T06b-1d384b1-review-assembly.md):** ordinary conflict-free/zero-overlap merge, every runtime/test/schema/package/contract/native/PWA byte exact UNACCEPTED1d384b194d057d21f3790ee2c8544f1391ce8833; source audit/sidebar/retained-test changes explicitly disclosed.352 sealed hashes/48 exact-head receipts/27 completed jobs verified with failures retained. Author18 fresh+18 genuine-ac13→14 groups/expiry/restart/26 linked-file facts are not independent acceptance; COMPLETE SOURCE FREEZE ACK/ownership RELEASE/all8 roots stopped retained. Earlier PREBASE/header+revocation/mobile/harness/stale-cost/retention-helper/cleanup/seal failures not relabelled.
 
