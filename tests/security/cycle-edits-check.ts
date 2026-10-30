@@ -153,7 +153,11 @@ async function pageFor(client: APIRequestContext, width: number) {
   pages.push(page)
   return page
 }
-function input(row: PurchaseCycleDTO, name: string, tag: string = randomUUID()) {
+function input(
+  row: PurchaseCycleDTO,
+  name: string,
+  tag: string = randomUUID()
+) {
   return name === "addMileage"
     ? {
         cycleId: row.id,
