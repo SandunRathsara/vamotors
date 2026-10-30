@@ -43,13 +43,13 @@ const include = {
   },
 }
 const date = (d: Date) => d.toISOString().slice(0, 10)
-export const today = () =>
+export const today = (now = new Date()) =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Colombo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date())
+  }).format(now)
 const auth = <T extends { companyId: string }>(row: T) => ({
   ...row,
   financeCompanyId: row.companyId,
@@ -321,9 +321,11 @@ export async function executeRates(
     } else {
       const input = select!,
         source = sheet!
+      const now = new Date(),
+        currentDate = today(now)
       if (
-        date(source.validFrom) > today() ||
-        date(source.validThrough) < today()
+        date(source.validFrom) > currentDate ||
+        date(source.validThrough) < currentDate
       )
         fail("QUOTE_EXPIRED", 409)
       if (
@@ -344,7 +346,6 @@ export async function executeRates(
         where: { id: settings!.id },
         include: { currentVersion: true },
       })
-      const now = new Date()
       const end =
         new Date(`${date(source.validThrough)}T00:00:00+05:30`).valueOf() +
         86400000

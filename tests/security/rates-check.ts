@@ -287,6 +287,28 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
           after.columns.some((r) => key(r) === key(acl)),
           "old runtime ACL lost"
         )
+      const oldTables = new Set(before.columns.map((r) => r.table_name))
+      assert.deepEqual(
+        after.columns.filter((r) => oldTables.has(r.table_name)),
+        before.columns,
+        "old runtime grants must not widen"
+      )
+      assert.equal(
+        (
+          await restricted.query(
+            "SELECT has_schema_privilege(current_user,'vamotors','CREATE') AS create"
+          )
+        ).rows[0].create,
+        false
+      )
+      const owners = (
+        await db.query(
+          "SELECT c.relname,pg_get_userbyid(c.relowner) AS owner FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='vamotors' AND c.relname=ANY($1::text[]) ORDER BY c.relname",
+          [["RateSheetVersion", "RateCardEntry", "Quote"]]
+        )
+      ).rows
+      assert.equal(owners.length, 3)
+      assert.ok(owners.every((r) => r.owner === "vamotors_migrator"))
       for (const table of ["RateSheetVersion", "RateCardEntry", "Quote"]) {
         const privileges = (
           await restricted.query(
@@ -304,6 +326,22 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
       }
       console.log(
         `PASS exact-parent ${before.parent} upgrade: old rows/permissions/joins/delegated ceilings/stock ACLs retained; only protected admin gains four capabilities.`
+      )
+      await writeFile(
+        join(root, "t11a-upgrade-after.json"),
+        JSON.stringify(
+          {
+            parent: before.parent,
+            sha: execFileSync("git", ["rev-parse", "HEAD"], {
+              encoding: "utf8",
+            }).trim(),
+            owners,
+            ...after,
+          },
+          null,
+          2
+        ),
+        { mode: 0o600 }
       )
     }
   } finally {
@@ -1095,6 +1133,61 @@ try {
           "QUOTE_EXPIRED"
         )
         const ambiguousModel = `ambiguous-${suffix}`
+        const closingModel = `closing-today-${suffix}`
+        const closingSheet = await applied(
+          a.request,
+          "publishRates",
+          env({ ...base, model: closingModel, validThrough: today }, [
+            ref("FinanceCompany", ca),
+          ])
+        )
+        const closingCard = (
+          await db.query(
+            'SELECT id FROM vamotors."RateCardEntry" WHERE "sheetVersionId"=$1 ORDER BY months LIMIT 1',
+            [closingSheet.result.id]
+          )
+        ).rows[0].id
+        const closing = await applied(
+          a.request,
+          "selectQuote",
+          env(
+            {
+              sheetId: closingSheet.result.id,
+              cardId: closingCard,
+              vehicle: { ...vehicle, model: closingModel },
+              charges: [],
+            },
+            [
+              ref("FinanceCompany", ca),
+              { type: "RateSheet", id: closingSheet.result.id, revision: 1 },
+              ref("Settings", await settings()),
+            ]
+          )
+        )
+        assert.equal(
+          new Date(
+            (
+              await query<QuoteDTO>(
+                a.request,
+                "quote",
+                `?id=${closing.result.id}`
+              )
+            ).expiresAt
+          ).valueOf(),
+          new Date(`${today}T00:00:00+05:30`).valueOf() + 86400000
+        )
+        const nextDay = (
+          await read<LoanMaximumDTO[]>(
+            a.request,
+            "loanMaxima",
+            maxima(closingModel, dateOffset(1))
+          )
+        ).find((r) => r.companyId === ca.id)!
+        assert.equal(
+          nextDay.status === "UNAVAILABLE" && nextDay.reason,
+          "EXPIRED"
+        )
+        assert.equal(nextDay.maximum, null)
         await applied(
           a.request,
           "publishRates",
