@@ -66,3 +66,6 @@ GRANT UPDATE (category, description, amount, "incurredDate", revision, "updatedA
 GRANT SELECT, INSERT ON vamotors."ImportBatch", vamotors."UploadIntent", vamotors."UploadAttempt", vamotors."Attachment", vamotors."UploadEvent" TO vamotors_runtime;
 GRANT UPDATE (revision) ON vamotors."ImportBatch" TO vamotors_runtime;
 GRANT UPDATE (revision, state, "currentAttemptId", "claimExpiresAt") ON vamotors."UploadIntent" TO vamotors_runtime;
+-- T05c.1: exact current physical/asking columns; append-only mileage stays INSERT only.
+GRANT UPDATE ("engineNumber", "chassisNumber", "normalizedEngine", "normalizedChassis", make, model, year, colour, "fuelType", transmission, vin, "crNumber", notes, revision, "updatedAt") ON vamotors."Vehicle" TO vamotors_runtime;
+GRANT UPDATE ("listedPrice") ON vamotors."PurchaseRecord" TO vamotors_runtime;

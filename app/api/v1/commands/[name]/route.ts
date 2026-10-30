@@ -15,10 +15,13 @@ import {
   recordPurchase,
   executeStock,
   executeCycleMoney,
+  executeCycleEdit,
 } from "@/lib/server/purchases"
 import {
   cycleMoneyInputs,
   type CycleMoneyCommand,
+  cycleEditInputs,
+  type CycleEditCommand,
 } from "@/lib/server/validators"
 import { stockInputs, type StockCommand } from "@/lib/server/validators"
 import { executeRates } from "@/lib/server/rates"
@@ -49,6 +52,7 @@ export async function POST(
       name !== "recordPurchase" &&
       !Object.hasOwn(stockInputs, name) &&
       !Object.hasOwn(cycleMoneyInputs, name) &&
+      !Object.hasOwn(cycleEditInputs, name) &&
       !customer &&
       !party &&
       !rates &&
@@ -72,6 +76,8 @@ export async function POST(
               ? await executeRates(identity, name as RateCommandName, raw)
               : name === "recordPurchase"
                 ? await recordPurchase(identity, raw)
+                : Object.hasOwn(cycleEditInputs, name)
+                  ? await executeCycleEdit(identity, name as CycleEditCommand, raw)
                 : Object.hasOwn(cycleMoneyInputs, name)
                   ? await executeCycleMoney(
                       identity,

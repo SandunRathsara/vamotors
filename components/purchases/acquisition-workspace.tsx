@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CycleCosts } from "./cycle-costs"
+import { CycleEdits } from "./cycle-edits"
 import {
   PartyForm,
   type VisibleParty,
@@ -1110,7 +1111,10 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
       <h3 className="font-semibold">Dated mileage</h3>
       {cycle.mileage?.map((m) => (
         <p key={m.id}>
-          {m.reading} · {m.date} {m.remark}
+          {m.reading ?? "Unavailable"} · {m.date ?? "Date unavailable"}{" "}
+          {m.remark}
+          {m.decreaseReason && <> · Decrease reason: {m.decreaseReason}</>}
+          {m.id && <> · Reading {m.id}</>}
         </p>
       )) ?? <p>Unavailable</p>}
       <h3 className="font-semibold">Basis evidence</h3>
@@ -1156,6 +1160,11 @@ export function AcquisitionDetail({
         }
       />
       <CycleCosts
+        cycle={
+          (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
+        }
+      />
+      <CycleEdits
         cycle={
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }

@@ -69,6 +69,11 @@ describe("bounded stock command boundary", () => {
     expect(registry.PurchaseRecord.update).toEqual([
       "reason",
       "cycleId",
+      "amount",
+      "mileage.reading",
+      "mileage.date",
+      "mileage.remark",
+      "mileage.decreaseReason",
       "patch.purchaseDate",
       "patch.purchasePrice",
       "patch.notes",

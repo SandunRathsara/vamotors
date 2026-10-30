@@ -25,6 +25,9 @@ import {
   stockEnvelope,
   cycleMoneyEnvelope,
   cycleMoneyInputs,
+  cycleEditEnvelope,
+  cycleEditInputs,
+  type CycleEditCommand,
   type CycleMoneyCommand,
   type StockCommand,
 } from "./validators"
@@ -34,6 +37,8 @@ import {
   requireFields,
   costReadFields,
   sourcePaymentFields,
+  mileageReadFields,
+  physicalFields,
 } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { currentSettings } from "./settings"
@@ -496,12 +501,7 @@ export function visiblePurchase(actor: Actor, row: Row) {
         : []
   }
   const v = subject("Vehicle", vehicleAuth(row))
-  for (const field of [
-    "identity",
-    "identityRevision",
-    "vehicleId",
-    "mileage",
-  ] as const) {
+  for (const field of ["identity", "identityRevision", "vehicleId"] as const) {
     if (!(field in result)) continue
     const source = field === "vehicleId" ? "id" : field
     if (!actor.ability.can("read", v, source)) {
@@ -522,6 +522,23 @@ export function visiblePurchase(actor: Actor, row: Row) {
         result.redactedFields.push(field)
       }
     }
+  }
+  const mileageFields = mileageReadFields.filter(
+    (f) =>
+      actor.ability.can("read", root, `mileage.${f}`) &&
+      actor.ability.can("read", v, f === "id" ? "id" : `mileage.${f}`)
+  )
+  if (mileageFields.some((f) => f !== "id"))
+    result.mileage = purchaseDTO(row).mileage.map((m) =>
+      Object.fromEntries(
+        Object.entries(m).filter(([f]) =>
+          mileageFields.includes(f as (typeof mileageFields)[number])
+        )
+      )
+    )
+  else {
+    delete result.mileage
+    result.redactedFields.push("mileage")
   }
   if (result.seller) {
     const type = row.supplier ? "Supplier" : "Customer"
@@ -563,6 +580,7 @@ export function visiblePurchase(actor: Actor, row: Row) {
     result.nextActions = [
       ...(result.nextActions as string[]),
       ...availableMoneyActions(actor, row),
+      ...availableCycleEdits(actor, row),
     ]
   result.redactedFields = [
     ...new Set(result.redactedFields.filter((f) => f !== "createdBy")),
@@ -590,6 +608,22 @@ function visibleVehicle(actor: Actor, row: Row) {
         ([k]) => k in (purchase.financial as object)
       )
     )
+  }
+  if (purchase.mileage)
+    result.mileage = (purchase.mileage as Record<string, unknown>[]).map(
+      ({ id: unused, ...m }) => {
+        void unused
+        return m
+      }
+    )
+  if (result.identity) {
+    const identity = purchase.identity as Record<string, unknown> | undefined
+    result.identity = Object.fromEntries(
+      Object.entries(result.identity as object).filter(
+        ([f]) => identity && f in identity
+      )
+    )
+    if (!Object.keys(result.identity as object).length) delete result.identity
   }
   result.redactedFields = result.redactedFields.filter((f) => f !== "createdBy")
   return result
@@ -1150,6 +1184,442 @@ export async function executeStock(
       replayed: false,
       result,
       affected: [result, affected()[1]],
+      invalidate,
+    }
+  })
+}
+
+type EditIntent = {
+  [N in CycleEditCommand]: {
+    name: N
+    input: z.infer<(typeof cycleEditInputs)[N]>
+  }
+}[CycleEditCommand]
+function cycleEditAuthority(
+  actor: Actor,
+  row: Row,
+  intent: EditIntent,
+  changed: readonly string[] = []
+) {
+  requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+    "id",
+    "revision",
+    "status",
+    "closedAt",
+  ])
+  requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
+    "id",
+    "identityRevision",
+  ])
+  if (intent.name === "editVehicle") {
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "vehicleId",
+      "identityRevision",
+    ])
+    for (const type of ["PurchaseRecord", "Vehicle"] as const)
+      requireFields(
+        actor.ability,
+        type,
+        "read",
+        type === "Vehicle" ? vehicleAuth(row) : auth(row),
+        physicalFields.map((f) => `identity.${f}`)
+      )
+    requireFields(actor.ability, "Vehicle", "update", vehicleAuth(row), [
+      "vehicleId",
+      "reason",
+      ...changed.map((f) => `values.${f}`),
+    ])
+  } else {
+    requireFields(
+      actor.ability,
+      "PurchaseRecord",
+      "update",
+      auth(row),
+      intent.name === "addMileage"
+        ? [
+            "cycleId",
+            ...Object.keys(intent.input.mileage).map((f) => `mileage.${f}`),
+          ]
+        : [
+            "cycleId",
+            "amount",
+            ...(intent.input.reason !== undefined ? ["reason"] : []),
+          ]
+    )
+    requireFields(
+      actor.ability,
+      "PurchaseRecord",
+      "read",
+      auth(row),
+      intent.name === "addMileage"
+        ? [
+            "vehicleId",
+            "identityRevision",
+            "purchaseDate",
+            "mileage.reading",
+            "mileage.date",
+            "mileage.decreaseReason",
+          ]
+        : ["listedPrice"]
+    )
+    if (intent.name === "addMileage")
+      requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
+        "mileage.reading",
+        "mileage.date",
+        "mileage.decreaseReason",
+      ])
+  }
+}
+function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
+  if (
+    !row.acquisitionCommandId ||
+    row.closedAt ||
+    row.vehicle.activePurchaseId !== row.id ||
+    !["PURCHASED", "IN_STOCK"].includes(row.status) ||
+    row.acquisitionKind !== "SUPPLIER" ||
+    !["CASH", "BRAND_NEW"].includes(row.purchaseType)
+  )
+    return []
+  const candidates: EditIntent[] = [
+    {
+      name: "addMileage",
+      input: { cycleId: row.id, mileage: { reading: 0, date: "" } },
+    },
+    { name: "setListedPrice", input: { cycleId: row.id, amount: "0" } },
+    {
+      name: "editVehicle",
+      input: {
+        vehicleId: row.vehicleId,
+        values: physical(row.vehicle),
+        reason: "",
+      },
+    },
+  ]
+  return candidates.flatMap((intent) => {
+    try {
+      cycleEditAuthority(actor, row, intent)
+      if (
+        intent.name === "editVehicle" &&
+        !physicalFields.some((f) =>
+          actor.ability.can(
+            "update",
+            subject("Vehicle", vehicleAuth(row)),
+            `values.${f}`
+          )
+        )
+      )
+        return []
+      return [intent.name]
+    } catch {
+      return []
+    }
+  })
+}
+
+/** Three existing open-cycle commands; no synthetic lifecycle/proposal records. */
+export async function executeCycleEdit(
+  identity: Identity,
+  name: CycleEditCommand,
+  raw: unknown
+): Promise<Applied> {
+  await database().$transaction(async (tx) => {
+    await assertEnvironment(tx)
+    await currentActor(tx, identity)
+  })
+  const amount = (raw as { input?: { amount?: unknown } } | null)?.input?.amount
+  if (typeof amount === "string" && /^[1-9][0-9]{14,}$/.test(amount))
+    fail("MONEY_OVERFLOW", 422)
+  const parsed = cycleEditEnvelope(name).safeParse(raw)
+  if (!parsed.success) fail("INVALID_INPUT", 422)
+  const envelope = parsed.data,
+    intent = { name, input: envelope.input } as EditIntent,
+    config = runtimeConfig(),
+    digest = inputDigest(envelope, config.BETTER_AUTH_SECRET)
+  return transaction(async (tx) => {
+    await tx.$queryRaw`SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE`
+    await tx.$queryRaw`SELECT vamotors.lock_admin_guard()`
+    const actor = await currentActor(tx, identity),
+      scope = {
+        environmentId: config.ENVIRONMENT_ID,
+        actorKey: `USER:${actor.userId}`,
+        commandName: name,
+        idempotencyKey: envelope.idempotencyKey,
+      },
+      prior = await tx.commandReceipt.findUnique({
+        where: { environmentId_actorKey_commandName_idempotencyKey: scope },
+      })
+    const planned =
+      intent.name === "editVehicle"
+        ? await tx.purchaseRecord.findFirst({
+            where: {
+              vehicleId: intent.input.vehicleId,
+              vehicle: { activePurchaseId: { not: null } },
+            },
+            include,
+            orderBy: { cycleNumber: "desc" },
+          })
+        : await load(tx, intent.input.cycleId)
+    if (!planned) fail("NOT_FOUND", 404)
+    if (intent.name === "editVehicle") {
+      const keys = new Set([
+        `engine:${planned.vehicle.normalizedEngine}`,
+        `chassis:${planned.vehicle.normalizedChassis}`,
+        `engine:${normalizeVehicleIdentity(intent.input.values.engineNumber)}`,
+        `chassis:${normalizeVehicleIdentity(intent.input.values.chassisNumber)}`,
+      ])
+      for (const key of [...keys].sort())
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key},0))::text`
+    }
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`Vehicle:${planned.vehicleId}`},0))::text`
+    await tx.$queryRaw`SELECT id FROM vamotors."Vehicle" WHERE id=${planned.vehicleId}::uuid FOR UPDATE`
+    await tx.$queryRaw`SELECT id FROM vamotors."PurchaseRecord" WHERE id=${planned.id}::uuid FOR UPDATE`
+    const row = (await load(tx, planned.id))!
+    let changed =
+      intent.name === "editVehicle"
+        ? physicalFields.filter(
+            (f) =>
+              (intent.input.values as VehicleInput)[f] !==
+              physical(row.vehicle)[f]
+          )
+        : []
+    if (prior && intent.name === "editVehicle") {
+      const proof = await tx.auditEntry.findFirst({
+        where: {
+          commandId: prior.id,
+          entityType: "Vehicle",
+          entityId: row.vehicleId,
+        },
+      })
+      if (!proof) fail("INTERNAL_ERROR", 500)
+      changed = physicalFields.filter((f) =>
+        Object.hasOwn(proof.fieldDiff as object, `identity.${f}`)
+      )
+    }
+    cycleEditAuthority(actor, row, intent, changed)
+    const affected: Dependency[] = [
+      { type: "PurchaseRecord", id: row.id, revision: row.revision },
+      { type: "Vehicle", id: row.vehicleId, revision: row.vehicle.revision },
+    ]
+    const invalidate: Applied["invalidate"] = [
+      "inventory",
+      "purchases",
+      "parties",
+      "reports",
+      "dashboard",
+    ]
+    if (prior) {
+      const result = prior.result as Applied["result"]
+      if (
+        prior.inputHash !== digest ||
+        result.type !==
+          (name === "editVehicle" ? "Vehicle" : "PurchaseRecord") ||
+        result.id !== (name === "editVehicle" ? row.vehicleId : row.id)
+      )
+        fail("IDEMPOTENCY_MISMATCH")
+      return {
+        ok: true,
+        status: "APPLIED",
+        commandId: prior.id,
+        replayed: true,
+        result,
+        affected,
+        invalidate,
+      }
+    }
+    for (const ref of affected.filter((r) =>
+      intent.name === "editVehicle"
+        ? r.type === "Vehicle"
+        : intent.name === "setListedPrice"
+          ? r.type === "PurchaseRecord"
+          : true
+    ))
+      requireRef(envelope.expected, ref)
+    if (
+      !row.acquisitionCommandId ||
+      row.closedAt ||
+      row.vehicle.activePurchaseId !== row.id ||
+      row.acquisitionKind !== "SUPPLIER" ||
+      !["CASH", "BRAND_NEW"].includes(row.purchaseType) ||
+      !["PURCHASED", "IN_STOCK"].includes(row.status)
+    )
+      fail("INVALID_STATE")
+    if (
+      row.revision === 2147483647 ||
+      (intent.name !== "setListedPrice" && row.vehicle.revision === 2147483647)
+    )
+      fail("REVISION_EXHAUSTED")
+    if (intent.name === "editVehicle") {
+      if (!changed.length) fail("INVALID_STATE")
+      const collision = await tx.vehicle.findUnique({
+        where: {
+          normalizedEngine_normalizedChassis: {
+            normalizedEngine: normalizeVehicleIdentity(
+              intent.input.values.engineNumber
+            ),
+            normalizedChassis: normalizeVehicleIdentity(
+              intent.input.values.chassisNumber
+            ),
+          },
+        },
+      })
+      if (collision && collision.id !== row.vehicleId) fail("IDENTITY_CONFLICT")
+    }
+    if (
+      intent.name === "setListedPrice" &&
+      row.listedPrice === BigInt(intent.input.amount)
+    )
+      fail("INVALID_STATE")
+    const mileageId = randomUUID()
+    if (intent.name === "addMileage") {
+      const m = intent.input.mileage
+      if (m.date < date(row.purchaseDate) || m.date > colomboToday())
+        fail("INVALID_INPUT", 422)
+      const history = await tx.mileageReading.findMany({
+        where: { vehicleId: row.vehicleId },
+        orderBy: [{ recordedDate: "asc" }, { id: "asc" }],
+      })
+      for (const cid of new Set(history.map((m) => m.cycleId))) {
+        const owner = cid === row.id ? row : (await load(tx, cid))!
+        requireFields(actor.ability, "PurchaseRecord", "read", auth(owner), [
+          "mileage.reading",
+          "mileage.date",
+          "mileage.decreaseReason",
+        ])
+      }
+      const before = history
+        .filter(
+          (h) =>
+            date(h.recordedDate) < m.date ||
+            (date(h.recordedDate) === m.date && h.id < mileageId)
+        )
+        .at(-1)
+      const after = history.find(
+        (h) =>
+          date(h.recordedDate) > m.date ||
+          (date(h.recordedDate) === m.date && h.id > mileageId)
+      )
+      if (
+        (before && m.reading < before.reading && !m.decreaseReason) ||
+        (after && after.reading < m.reading && !after.decreaseReason)
+      )
+        fail("INVALID_INPUT", 422)
+    }
+    const sequence = await nextBusinessSequence(tx),
+      commandId = randomUUID(),
+      result: Applied["result"] =
+        intent.name === "editVehicle"
+          ? {
+              type: "Vehicle",
+              id: row.vehicleId,
+              revision: row.vehicle.revision + 1,
+            }
+          : { type: "PurchaseRecord", id: row.id, revision: row.revision + 1 }
+    await tx.commandReceipt.create({
+      data: {
+        id: commandId,
+        ...scope,
+        inputHash: digest,
+        result,
+        businessSequence: sequence,
+      },
+    })
+    if (intent.name === "addMileage")
+      await tx.mileageReading.create({
+        data: {
+          id: mileageId,
+          vehicleId: row.vehicleId,
+          cycleId: row.id,
+          commandId,
+          reading: intent.input.mileage.reading,
+          recordedDate: new Date(intent.input.mileage.date),
+          remark: intent.input.mileage.remark,
+          decreaseReason: intent.input.mileage.decreaseReason,
+        },
+      })
+    if (intent.name !== "setListedPrice")
+      await tx.vehicle.update({
+        where: { id: row.vehicleId },
+        data: {
+          revision: { increment: 1 },
+          ...(intent.name === "editVehicle"
+            ? {
+                ...intent.input.values,
+                vin: intent.input.values.vin ?? null,
+                crNumber: intent.input.values.crNumber ?? null,
+                notes: intent.input.values.notes ?? null,
+                normalizedEngine: normalizeVehicleIdentity(
+                  intent.input.values.engineNumber
+                ),
+                normalizedChassis: normalizeVehicleIdentity(
+                  intent.input.values.chassisNumber
+                ),
+              }
+            : {}),
+        },
+      })
+    await tx.purchaseRecord.update({
+      where: { id: row.id },
+      data: {
+        revision: { increment: 1 },
+        ...(intent.name === "setListedPrice"
+          ? { listedPrice: BigInt(intent.input.amount) }
+          : {}),
+      },
+    })
+    const after = (await load(tx, row.id))!,
+      reason =
+        intent.name === "addMileage"
+          ? intent.input.mileage.decreaseReason
+          : intent.input.reason
+    for (const [entityType, entityId, before, payload, revision] of [
+      [
+        "PurchaseRecord",
+        row.id,
+        purchaseDTO(row),
+        purchaseDTO(after),
+        after.revision,
+      ],
+      [
+        "Vehicle",
+        row.vehicleId,
+        vehicleDTO(row),
+        vehicleDTO(after),
+        after.vehicle.revision,
+      ],
+    ] as const) {
+      await audit(tx, {
+        commandId,
+        userId: actor.userId,
+        entityType,
+        entityId,
+        action: name,
+        reason,
+        before,
+        after: payload,
+      })
+      await writeReadVersion(tx, {
+        commandId,
+        sequence,
+        entityType,
+        entityId,
+        revision,
+        payload,
+      })
+    }
+    return {
+      ok: true,
+      status: "APPLIED",
+      commandId,
+      replayed: false,
+      result,
+      affected: [
+        { type: "PurchaseRecord", id: after.id, revision: after.revision },
+        {
+          type: "Vehicle",
+          id: after.vehicleId,
+          revision: after.vehicle.revision,
+        },
+      ],
       invalidate,
     }
   })
@@ -2152,6 +2622,56 @@ export async function purchaseQuery(
           delete result.reason
           redactedFields.push("reason")
         }
+      }
+      const physicalReasonReadable = physicalFields.every(
+        (f) =>
+          actor.ability.can(
+            "read",
+            subject("PurchaseRecord", auth(row)),
+            `identity.${f}`
+          ) &&
+          actor.ability.can(
+            "read",
+            subject("Vehicle", vehicleAuth(row)),
+            `identity.${f}`
+          )
+      )
+      const mileageReasonReadable = [
+        "reading",
+        "date",
+        "remark",
+        "decreaseReason",
+      ].every(
+        (f) =>
+          actor.ability.can(
+            "read",
+            subject("PurchaseRecord", auth(row)),
+            `mileage.${f}`
+          ) &&
+          actor.ability.can(
+            "read",
+            subject("Vehicle", vehicleAuth(row)),
+            `mileage.${f}`
+          )
+      )
+      if (
+        (entry.action === "editVehicle" && !physicalReasonReadable) ||
+        (entry.action === "addMileage" && !mileageReasonReadable) ||
+        (entry.action === "setListedPrice" &&
+          (!actor.ability.can(
+            "read",
+            subject("PurchaseRecord", auth(row)),
+            "listedPrice"
+          ) ||
+            (input.type === "Vehicle" &&
+              !actor.ability.can(
+                "read",
+                subject("Vehicle", vehicleAuth(row)),
+                "listedPrice"
+              ))))
+      ) {
+        delete result.reason
+        redactedFields.push("reason")
       }
       result.redactedFields.push(...redactedFields)
       return result

@@ -292,6 +292,21 @@ export const mileageInput = z
     decreaseReason: text.optional(),
   })
   .strict()
+export const cycleEditInputs = {
+  addMileage: z.object({ cycleId: id, mileage: mileageInput }).strict(),
+  setListedPrice: z
+    .object({ cycleId: id, amount: moneyInput, reason: text.optional() })
+    .strict(),
+  editVehicle: z
+    .object({ vehicleId: id, values: vehicleInput, reason: text })
+    .strict(),
+} as const
+export type CycleEditCommand = keyof typeof cycleEditInputs
+export function cycleEditEnvelope(name: CycleEditCommand) {
+  return customerEnvelope("createCustomer").extend({
+    input: cycleEditInputs[name],
+  })
+}
 export const purchaseInput = z
   .object({
     vehicle: vehicleInput,
