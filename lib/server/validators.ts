@@ -307,18 +307,55 @@ export function cycleEditEnvelope(name: CycleEditCommand) {
     input: cycleEditInputs[name],
   })
 }
-export const purchaseInput = z
-  .object({
-    vehicle: vehicleInput,
-    supplierId: id,
-    purchaseDate: dateOnly,
-    listedPrice: moneyInput.optional(),
-    mileage: mileageInput,
-    paymentMethod: z.enum(["CASH", "BANK_TRANSFER"]),
-    purchaseType: z.enum(["CASH", "BRAND_NEW"]),
-    purchasePrice: moneyInput.refine((v) => v !== "0"),
+const settlementTerms = {
+  reference: text.max(200),
+  amount: moneyInput,
+  cashToSeller: moneyInput,
+}
+export const settlementInput = z
+  .discriminatedUnion("institutionType", [
+    z
+      .object({
+        ...settlementTerms,
+        institutionType: z.literal("FINANCE_COMPANY"),
+        companyId: id,
+      })
+      .strict(),
+    z
+      .object({
+        ...settlementTerms,
+        institutionType: z.enum(["BANK", "PRIVATE_PARTY"]),
+        institutionName: name,
+      })
+      .strict(),
+  ])
+  .refine((value) => value.amount !== "0" || value.cashToSeller !== "0", {
+    message: "At least one settlement component must be positive",
   })
-  .strict()
+const purchaseCommon = {
+  vehicle: vehicleInput,
+  supplierId: id,
+  purchaseDate: dateOnly,
+  listedPrice: moneyInput.optional(),
+  mileage: mileageInput,
+  paymentMethod: z.enum(["CASH", "BANK_TRANSFER"]),
+}
+export const purchaseInput = z.discriminatedUnion("purchaseType", [
+  z
+    .object({
+      ...purchaseCommon,
+      purchaseType: z.enum(["CASH", "BRAND_NEW"]),
+      purchasePrice: moneyInput.refine((v) => v !== "0"),
+    })
+    .strict(),
+  z
+    .object({
+      ...purchaseCommon,
+      purchaseType: z.literal("LEASE_SETTLEMENT"),
+      settlement: settlementInput,
+    })
+    .strict(),
+])
 export const purchaseEnvelope = customerEnvelope("createCustomer").extend({
   input: purchaseInput,
 })
@@ -364,7 +401,11 @@ export const cycleMoneyInputs = {
   editCost: z.object({ costId: id, ...costTerms, reason: text }).strict(),
   payCost: z.object({ costId: id, payment: cashInput }).strict(),
   payPurchase: z
-    .object({ cycleId: id, recipient: z.literal("SELLER"), payment: cashInput })
+    .object({
+      cycleId: id,
+      recipient: z.enum(["SELLER", "SETTLEMENT"]),
+      payment: cashInput,
+    })
     .strict(),
   editPurchase: z
     .object({
@@ -374,6 +415,14 @@ export const cycleMoneyInputs = {
         .object({
           purchaseDate: dateOnly.optional(),
           purchasePrice: moneyInput.refine((v) => v !== "0").optional(),
+          purchaseType: z
+            .enum(["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"])
+            .optional(),
+          seller: z
+            .object({ type: z.enum(["SUPPLIER", "CUSTOMER"]), id })
+            .strict()
+            .optional(),
+          settlement: settlementInput.nullable().optional(),
           notes: text.nullable().optional(),
         })
         .strict(),

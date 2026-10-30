@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CycleCosts } from "./cycle-costs"
 import { CycleEdits } from "./cycle-edits"
+import { SettlementFields, settlementFromDraft } from "./settlement-fields"
 import {
   PartyForm,
   type VisibleParty,
@@ -65,6 +66,7 @@ export function AcquisitionForm({
     [supplier, setSupplier] = useState<VisibleParty | null>(null)
   const [inline, setInline] = useState(false),
     [inlinePending, setInlinePending] = useState(false)
+  const [company, setCompany] = useState<VisibleParty | null>(null)
   const [body, setBody] = useState<string | null>(null),
     [pending, setPending] = useState(false),
     [stale, setStale] = useState(false),
@@ -114,7 +116,9 @@ export function AcquisitionForm({
           supplierId: supplier.id,
           purchaseDate: draft.purchaseDate,
           purchaseType: draft.purchaseType,
-          purchasePrice: parseMajor(draft.purchasePrice ?? ""),
+          ...(draft.purchaseType === "LEASE_SETTLEMENT"
+            ? { settlement: settlementFromDraft(draft) }
+            : { purchasePrice: parseMajor(draft.purchasePrice ?? "") }),
           ...(draft.listedPrice?.trim()
             ? { listedPrice: parseMajor(draft.listedPrice) }
             : {}),
@@ -150,6 +154,26 @@ export function AcquisitionForm({
               ]
             : []),
         ]
+        if (
+          parsed.data.purchaseType === "LEASE_SETTLEMENT" &&
+          parsed.data.settlement.institutionType === "FINANCE_COMPANY"
+        ) {
+          if (
+            !company?.id ||
+            company.id !== parsed.data.settlement.companyId ||
+            !company.revision ||
+            !company.active ||
+            !company.name
+          )
+            throw new Error(
+              "Select or explicitly load a readable active finance company and revision."
+            )
+          expected.push({
+            type: "FinanceCompany",
+            id: company.id,
+            revision: company.revision,
+          })
+        }
         submitted = JSON.stringify({
           schemaVersion: 1,
           idempotencyKey: crypto.randomUUID(),
@@ -204,10 +228,9 @@ export function AcquisitionForm({
     >
       <h2 className="text-xl font-semibold">Record paid acquisition</h2>
       <p>
-        Cash and brand-new only. This records a full seller payment on the
-        actual purchase date. Stock remains Purchased and unavailable until an
-        explicit physical receipt. Settlement, repurchase and trade-in remain
-        pending.
+        Cash, brand-new and lease settlement acquisitions record actual positive
+        payments on the purchase date. Stock remains Purchased and unavailable
+        until explicit physical receipt. Repurchase and trade-in remain pending.
       </p>
       <fieldset disabled={locked} className="space-y-3">
         <Label htmlFor="supplier-search">Search active suppliers by name</Label>
@@ -359,7 +382,11 @@ export function AcquisitionForm({
               "Transmission",
               ["MANUAL", "AUTOMATIC", "CVT", "OTHER"],
             ],
-            ["purchaseType", "Purchase type", ["CASH", "BRAND_NEW"]],
+            [
+              "purchaseType",
+              "Purchase type",
+              ["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"],
+            ],
             ["paymentMethod", "Payment method", ["CASH", "BANK_TRANSFER"]],
           ].map(([key, label, options]) => (
             <div key={key as string} className="space-y-2">
@@ -395,28 +422,42 @@ export function AcquisitionForm({
             ["mileage", "Initial mileage", "number", true],
             ["mileageDate", "Mileage date", "date", true],
             ["mileageRemark", "Mileage remark (optional)", "text", false],
-          ].map(([key, label, type, required]) => (
-            <div key={key as string} className="space-y-2">
-              <Label htmlFor={`acquisition-${key}`}>
-                {label}
-                {required ? " *" : ""}
-              </Label>
-              <Input
-                id={`acquisition-${key}`}
-                name={key as string}
-                type={type as string}
-                required={required as boolean}
-                inputMode={
-                  (key as string).endsWith("Price") ? "decimal" : undefined
-                }
-                min={type === "number" ? 0 : undefined}
-                max={key === "mileage" ? 99999999 : undefined}
-                value={draft[key as string] ?? ""}
-                onChange={(e) => update(key as string, e.target.value)}
-                className="min-h-11 text-base"
-              />
-            </div>
-          ))}
+          ]
+            .filter(
+              ([key]) =>
+                key !== "purchasePrice" ||
+                draft.purchaseType !== "LEASE_SETTLEMENT"
+            )
+            .map(([key, label, type, required]) => (
+              <div key={key as string} className="space-y-2">
+                <Label htmlFor={`acquisition-${key}`}>
+                  {label}
+                  {required ? " *" : ""}
+                </Label>
+                <Input
+                  id={`acquisition-${key}`}
+                  name={key as string}
+                  type={type as string}
+                  required={required as boolean}
+                  inputMode={
+                    (key as string).endsWith("Price") ? "decimal" : undefined
+                  }
+                  min={type === "number" ? 0 : undefined}
+                  max={key === "mileage" ? 99999999 : undefined}
+                  value={draft[key as string] ?? ""}
+                  onChange={(e) => update(key as string, e.target.value)}
+                  className="min-h-11 text-base"
+                />
+              </div>
+            ))}
+          {draft.purchaseType === "LEASE_SETTLEMENT" && (
+            <SettlementFields
+              draft={draft}
+              change={update}
+              company={company}
+              selectCompany={setCompany}
+            />
+          )}
         </fieldset>
         {error && (
           <p
@@ -1051,6 +1092,21 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           ["Currency", cycle.financial?.currency],
           ["Seller outstanding", amount(cycle.outstanding?.seller)],
           ["Settlement outstanding", amount(cycle.outstanding?.settlement)],
+          ...(cycle.purchaseType === "LEASE_SETTLEMENT"
+            ? [
+                [
+                  "Settlement institution type",
+                  cycle.settlement?.institutionType,
+                ],
+                [
+                  "Institution name snapshot",
+                  cycle.settlement?.institutionNameSnapshot,
+                ],
+                ["Settlement reference", cycle.settlement?.reference],
+                ["Institution liability", amount(cycle.settlement?.amount)],
+                ["Seller liability", amount(cycle.settlement?.cashToSeller)],
+              ]
+            : []),
         ].map(([label, value]) => (
           <div key={label}>
             <dt className="text-sm text-muted-foreground">{label}</dt>
@@ -1067,6 +1123,16 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           Supplier history
         </Link>
       )}
+      {cycle.settlement?.institutionType === "FINANCE_COMPANY" &&
+        cycle.settlement.companyId && (
+          <Link
+            prefetch={false}
+            className="inline-flex min-h-11 items-center underline"
+            href={`/third-parties/${cycle.settlement.companyId}?type=FINANCE_COMPANY`}
+          >
+            Settlement company history
+          </Link>
+        )}
       {cycle.vehicleId && (
         <Link
           prefetch={false}
@@ -1083,13 +1149,22 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
         <ul className="space-y-3">
           {cycle.payments.map((p) => (
             <li key={p.id} className="break-words">
-              {p.direction} {amount(p.amount)} · {p.date} · {p.method}
+              {p.category ?? "Category unavailable"} ·{" "}
+              {p.direction ?? "Direction unavailable"} {amount(p.amount)} ·{" "}
+              {p.date ?? "Date unavailable"} ·{" "}
+              {p.method ?? "Method unavailable"}
               <br />
               Payment {p.id}
               <br />
               Owner {p.owner?.type} {p.owner?.id}
               <br />
               Command {p.commandId}
+              {p.reference && (
+                <>
+                  <br />
+                  Reference: {p.reference}
+                </>
+              )}
               {p.reversalOf && (
                 <>
                   <br />
