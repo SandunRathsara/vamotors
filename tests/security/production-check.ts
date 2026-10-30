@@ -18,6 +18,8 @@ import pg from "pg"
 import {
   legacyAPIs,
   unavailablePages,
+  persistedRateAPIs,
+  persistedRatePages,
   concrete,
   methods,
   queryNames,
@@ -732,9 +734,23 @@ async function main() {
             (await anonymous.request.get(`/api/v1/queries/${name}`)).status(),
             401
           )
+        for (const [route, method] of Object.entries(persistedRateAPIs)) {
+          const response = await anonymous.request.fetch(route, {
+            method,
+            headers: { origin },
+            data: method === "POST" ? {} : undefined,
+          })
+          assert.equal(response.status(), 401)
+          checkCache(response.headers())
+        }
         for (const name of commandNames)
           assert.equal((await post(anonymous.request, name, {})).status(), 401)
-        for (const route of ["/", "/users", ...unavailablePages]) {
+        for (const route of [
+          "/",
+          "/users",
+          ...unavailablePages,
+          ...persistedRatePages,
+        ]) {
           for (const rsc of [false, true]) {
             const response = await anonymous.request.get(concrete(route), {
               headers: rsc ? { RSC: "1" } : {},

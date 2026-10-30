@@ -1707,9 +1707,16 @@ try {
             page.getByRole("alert").filter({ hasText: "NETWORK_ERROR" })
           ).toBeVisible()
           assert.ok(committed)
-          assert.ok(
+          assert.equal(
+            await page.evaluate(
+              () => navigator.serviceWorker.controller?.scriptURL
+            ),
+            `${origin}/sw.js`
+          )
+          assert.equal(
             workerOwned,
-            "fault must traverse the active service worker"
+            false,
+            "accepted worker deliberately does not intercept or queue POST writes"
           )
         } finally {
           await a.unroute(lostPath)
