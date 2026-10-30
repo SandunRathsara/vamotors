@@ -1,4 +1,52 @@
-# T07a/T08a — FROZEN incomplete PREBASE WIP (2026-10-31)
+# T07a/T08a — resumed incomplete PREBASE WIP (2026-10-31)
+
+## Current explicit parent resumption from712af18
+
+The parent resumed this same branch/worktree as the **sole active shared-source,
+schema, registry, grants and dispatcher owner**. The freeze/release records below
+are historical and superseded by that explicit resumption, not deleted.
+
+- Verified clean `712af18981a8fd1487f6e82e31db7c5196dc3b1f`, tree
+  `26cb2f1e6d769d442e203e480a49abcb04725a4c`, before edits. Exact accepted555 start
+  remains unchanged. Unaccepted236/eaa/038/6cc/fd7 are not imported or patched.
+- Verified all2023 sealed evidence artifacts before reopening the stopped draft.
+  Their byte-exact copies plus the manifest/checksum (2025 files,100899919 bytes)
+  are retained at the same private evidence root in
+  `preserved-712af18-sealed-bytes/`. The original seal and transfer files remain
+  untouched. Subsequent draft DB/log mutation is development, not a rewrite of
+  the preserved frozen byte evidence.
+- Original capacity review is still valid through2026-10-31T18:47:22.474Z;
+  actual initial free space58751594496 bytes,2GiB reserve, no deadline extension.
+  The existing owned PG was explicitly resumed with its existing project script.
+- Continue focused UI/security implementation and affected proof; do not repeat
+  successful broad prebase upgrades/regressions merely while awaiting settlement.
+  Diagnose logout ERR_ABORTED with actual navigation/session evidence, preserve
+  purge assertions, fix360 action clipping minimally, then complete the remaining
+  original P1–P8. All prior partial/failing results remain honestly attributed.
+- Final acceptance still requires parent-explicit accepted settlement source,
+  safe reconciliation, actual final inventory and fresh/nonempty upgrade/repeat,
+  full required regressions/quality and real byte/restart proof. No final PASS,
+  ledger change, promotion or ownership release is claimed by this resumption.
+
+### Focused resume712 feedback (not final acceptance)
+
+- The isolated logout repro retained the real ERR_ABORTED failure. Its event trace
+  shows successful sign-out200, `/login` navigation aborted, then a second
+  `/login?reason=access-changed` navigation committed. The initiating cookie jar was
+  already empty. This is a product navigation race, not justification to swallow
+  Playwright errors: UserNav and its own AuthBoundary broadcast both navigated.
+- Local logout now dispatches the existing access-lost event to the boundary;
+  boundary teardown/navigation is idempotent. The test retains default load waits
+  and strengthens actual URL/login UI/cookie/private-query/draft/cache assertions,
+  including focus-driven verification in the storage-isolated second context.
+- A separate actual-bound repro failed on360 Logout x321,width68.703125 (right edge
+ 389.703125). Minimal existing flex/truncation changes keep the action fixed-size
+  while allowing name/title shrinkage; no redesign or settlement/UI import.
+- Full owned TS/TSX format, full owned lint and types exited0 after these changes.
+  A new clean production build and green focused browser verification are still
+  required; the new source is not called fixed merely because it compiles.
+
+## Historical712 parent-requested checkpoint / release
 
 ## Current parent-requested checkpoint / shared ownership release
 

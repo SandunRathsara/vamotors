@@ -9,6 +9,7 @@ import type {
   PurchaseCycleDTO,
 } from "../../.planning/implementation/contracts/api"
 import { envelope, fixture, purchaseInput, ref } from "./cycle-edits-fixture"
+import { privateEnvironment } from "../../scripts/private-environment"
 
 process.umask(0o077)
 const root = process.argv[2]
@@ -34,17 +35,30 @@ const tables = [
   "BusinessSequence",
 ]
 let stage = "initialize"
-const pages: Page[] = [], responses: { path: string; status: number }[] = []
+const pages: Page[] = [],
+  responses: { path: string; status: number }[] = [],
+  navigation: {
+    page: number
+    event: string
+    path: string
+    failure?: string
+  }[] = []
 async function key(page: Page, control: Locator) {
   // Let the previous action's intentional alert-focus animation frame finish.
-  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+  )
   await control.focus()
   await expect(control).toBeFocused()
   await control.press("Enter")
 }
 async function group(name: string, run: () => Promise<void>) {
   if (process.argv[3] && !name.includes(process.argv[3])) {
-    groups.push({ group: name, skipped: true, reason: "Explicit diagnostic group filter" })
+    groups.push({
+      group: name,
+      skipped: true,
+      reason: "Explicit diagnostic group filter",
+    })
     return
   }
   stage = name
@@ -59,6 +73,52 @@ async function view(page: Page, label: string) {
     ),
     true
   )
+  const controls = await page
+    .locator("header")
+    .getByRole("button")
+    .evaluateAll((buttons) =>
+      buttons.map((button) => {
+        const rect = button.getBoundingClientRect()
+        let left = 0,
+          right = innerWidth,
+          top = 0,
+          bottom = innerHeight
+        for (
+          let ancestor = button.parentElement;
+          ancestor;
+          ancestor = ancestor.parentElement
+        ) {
+          const style = getComputedStyle(ancestor),
+            box = ancestor.getBoundingClientRect()
+          if (/hidden|clip|auto|scroll/.test(style.overflowX)) {
+            left = Math.max(left, box.left)
+            right = Math.min(right, box.right)
+          }
+          if (/hidden|clip|auto|scroll/.test(style.overflowY)) {
+            top = Math.max(top, box.top)
+            bottom = Math.min(bottom, box.bottom)
+          }
+        }
+        return {
+          name: button.getAttribute("aria-label") ?? button.textContent?.trim(),
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          fullyVisible:
+            rect.left >= left &&
+            rect.right <= right &&
+            rect.top >= top &&
+            rect.bottom <= bottom,
+        }
+      })
+    )
+  for (const control of controls)
+    assert.ok(
+      control.fullyVisible,
+      `Header action clipped: ${JSON.stringify(control)}`
+    )
+  groups.push({ group: `${label} actual header action bounds`, controls })
   await page.screenshot({
     path: join(root, `writeoff-ui-${suffix}-${label}.png`),
     fullPage: true,
@@ -91,10 +151,44 @@ try {
       mobile = await reviewer.newPage(),
       other = await sameActor.newPage()
     pages.push(page, mobile, other)
-    for (const p of pages) p.on("response", response => {
-      const path = new URL(response.url()).pathname
-      if (path.startsWith("/api/v1/commands/")) responses.push({ path, status: response.status() })
-    })
+    for (const [index, p] of pages.entries()) {
+      p.on("request", (request) => {
+        if (request.isNavigationRequest())
+          navigation.push({
+            page: index,
+            event: "request",
+            path:
+              new URL(request.url()).pathname + new URL(request.url()).search,
+          })
+      })
+      p.on("requestfailed", (request) => {
+        if (request.isNavigationRequest())
+          navigation.push({
+            page: index,
+            event: "failed",
+            path:
+              new URL(request.url()).pathname + new URL(request.url()).search,
+            failure: request.failure()?.errorText,
+          })
+      })
+      p.on("framenavigated", (frame) => {
+        if (frame === p.mainFrame() && frame.url() !== "about:blank")
+          navigation.push({
+            page: index,
+            event: "commit",
+            path: new URL(frame.url()).pathname + new URL(frame.url()).search,
+          })
+      })
+      p.on("response", (response) => {
+        const path = new URL(response.url()).pathname
+        if (
+          path.startsWith("/api/v1/commands/") ||
+          path === "/api/auth/sign-out" ||
+          path === "/api/v1/queries/currentActor"
+        )
+          responses.push({ path, status: response.status() })
+      })
+    }
     const supplier = await f.command(
       admin,
       "createDirectoryParty",
@@ -145,6 +239,23 @@ try {
       reviewBodies: string[] = [],
       routeErrors: number[] = []
     let pending!: Pending
+    await group(
+      "P8 360 header controls are fully visible and keyboard reachable",
+      async () => {
+        await mobile.goto(`/purchases/${row.id}`)
+        await expect(
+          mobile.getByRole("button", { name: "Request write-off", exact: true })
+        ).toBeVisible()
+        await view(mobile, "header-360")
+        const controls = mobile.locator("header").getByRole("button")
+        await controls.first().focus()
+        for (let index = 0; index < (await controls.count()); index++) {
+          await expect(controls.nth(index)).toBeFocused()
+          if (index + 1 < (await controls.count()))
+            await mobile.keyboard.press("Tab")
+        }
+      }
+    )
     await group(
       "P8 1920 keyboard request, committed response loss, route unmount and failed ordinary read preserve exact envelope",
       async () => {
@@ -403,6 +514,11 @@ try {
           ]),
           201
         )
+        // The diagnostic filter must still create a genuinely active second context.
+        await other.goto(`/purchases/${created.result.id}`)
+        await expect(
+          other.getByRole("button", { name: "Request write-off", exact: true })
+        ).toBeVisible()
         await page.goto(`/purchases/${created.result.id}`)
         await key(
           page,
@@ -446,7 +562,22 @@ try {
           page.getByRole("button", { name: "Logout", exact: true })
         )
         await page.waitForURL(/\/login(?:\?|$)/)
+        await expect(
+          page.getByRole("button", { name: "Sign In", exact: true })
+        ).toBeVisible()
+        assert.equal(
+          (await requester.cookies()).filter((c) =>
+            c.name.includes("session_token")
+          ).length,
+          0
+        )
+        // Browser contexts are storage-isolated: the second context observes
+        // server-side session revocation on real focus, not a cross-context BC.
+        await other.bringToFront()
         await other.waitForURL(/\/login(?:\?|$)/)
+        await expect(
+          other.getByRole("button", { name: "Sign In", exact: true })
+        ).toBeVisible()
         await expect(
           page.getByLabel("Approval request reason", { exact: true })
         ).toHaveCount(0)
@@ -455,7 +586,60 @@ try {
         )
         assert.equal(denied.status(), 401)
         assert.match(denied.headers()["cache-control"], /no-store/)
+        const deniedOther = await sameActor.request.get(
+          `/api/v1/queries/purchase?cycleId=${created.result.id}`
+        )
+        assert.equal(deniedOther.status(), 401)
+        assert.match(deniedOther.headers()["cache-control"], /no-store/)
+        for (const p of [page, other]) {
+          const storage = await p.evaluate(async () => {
+            const urls: string[] = []
+            for (const name of await caches.keys())
+              for (const req of await (await caches.open(name)).keys())
+                urls.push(req.url)
+            return {
+              local: JSON.stringify({ ...localStorage, ...sessionStorage }),
+              urls,
+            }
+          })
+          assert.ok(!storage.local.includes("PRIVATE_UI_"))
+          assert.ok(
+            !storage.urls.some((url) =>
+              /\/api\/|\/approvals|\/purchases|\/vehicles/.test(url)
+            )
+          )
+        }
         await view(page, "logout-purge")
+        const accounts = await privateEnvironment(join(root, "accounts.env"))
+        await page.bringToFront()
+        await page
+          .getByLabel("Email Address")
+          .fill(accounts.BOOTSTRAP_SECOND_EMAIL!)
+        await page
+          .getByLabel("Password", { exact: true })
+          .fill(accounts.BOOTSTRAP_SECOND_PASSWORD!)
+        await key(
+          page,
+          page.getByRole("button", { name: "Sign In", exact: true })
+        )
+        await page.waitForURL("**/dashboard")
+        await page.goto(`/purchases/${created.result.id}`)
+        await expect(
+          page.getByRole("button", {
+            name: "Recover unresolved write-off request",
+            exact: true,
+          })
+        ).toHaveCount(0)
+        await key(
+          page,
+          page.getByRole("button", { name: "Request write-off", exact: true })
+        )
+        await expect(
+          page.getByLabel("Approval request reason", { exact: true })
+        ).toHaveValue("")
+        await expect(
+          page.getByLabel("Disposal reason", { exact: true })
+        ).toHaveValue("")
       }
     )
     await requester.close()
@@ -466,10 +650,37 @@ try {
     await second.dispose()
   }
 } catch (error) {
-  for (const [index, page] of pages.entries()) if (!page.isClosed()) {
-    await page.screenshot({ path: join(root, `writeoff-ui-${suffix}-failure-${index}.png`), fullPage: true }).catch(() => undefined)
-    await writeFile(join(root, `writeoff-ui-${suffix}-failure-${index}.json`), JSON.stringify({ stage, url: page.url(), responses, bodyText: await page.locator("body").innerText().catch(() => "UNAVAILABLE") }, null, 2), { mode: 0o600 })
-  }
+  for (const [index, page] of pages.entries())
+    if (!page.isClosed()) {
+      await page
+        .screenshot({
+          path: join(root, `writeoff-ui-${suffix}-failure-${index}.png`),
+          fullPage: true,
+        })
+        .catch(() => undefined)
+      await writeFile(
+        join(root, `writeoff-ui-${suffix}-failure-${index}.json`),
+        JSON.stringify(
+          {
+            stage,
+            url: page.url(),
+            responses,
+            navigation,
+            cookies: (await page.context().cookies()).map((c) => ({
+              name: c.name,
+              sessionToken: c.name.includes("session_token"),
+            })),
+            bodyText: await page
+              .locator("body")
+              .innerText()
+              .catch(() => "UNAVAILABLE"),
+          },
+          null,
+          2
+        ),
+        { mode: 0o600 }
+      )
+    }
   groups.push({
     group: stage,
     pass: false,
