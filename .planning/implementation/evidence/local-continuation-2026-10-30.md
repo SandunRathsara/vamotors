@@ -1,5 +1,15 @@
 # Local continuation — authorized candidate and baseline promotion
 
+## Current corrected-stock/file combination — 2026-10-30
+
+Parent accepts [bounded stock/R1 exacte27653b](T05b-R1-acceptance-attributed.md) and [18 original LOCAL scenarios exact0eaae8f](closure-0eaae8f-acceptance-attributed.md). Matrix now **21 LOCAL/113 U/134 IDs**, original three decisions unchanged/all21 bound0eaae8f; hosted FNDN-02 still deferred/not passed, VSTS-01–04/whole T05/G2 not accepted. Own ordinary no-ff stock merge from8ef6eb9 produced **4733375bcdefb2707c936b5be040431f49e66bd7**, no overlaps/conflicts/source fixes; all16 frozen reviewed stock paths carried exact, earlier accepted file28/lint4/CONTRACT8/PWA11 preserved. No unreviewed T11 work.
+
+[Combined checks/manifest/provenance](stock-file-combined-integration.md): install/generate/types/build/lint0/46/128units/5SW/contracts20/file20/9HTTP/6 finals92,169 bytes/audit32/stock16/acquisition15 PASS at clean4733375. Retained committed stock16 page-interception failure; real active-worker probe proved route bypass, external SW-aware context routing preserves all assertions and enabled SW. First external CJS launch failure retained; external-only module declaration fixed tooling. Both own new DBs stopped/retained. **Exact-final-SHA independent JOINT review NEXT, no reviewer/session supplied**; not acceptance from separate passes or own checks. Final containing records head/manifest returned, no runtime changes after4733375.
+
+**Primary remains clean0eaae8ff0c87875044500a6407b914c739797295**; main/remotes/protected interrupted checkout fingerprints preserved. T11a ses_e7457169effeQXhP5ZYm4T06R0 sole ACTIVE new schema/registry/grants writer; merge only already-reviewed frozen stock. Must rebase onto eventual parent-accepted stock-combined before final handback. T05c costs/reasoned edits queued next schema handoff; actual attachments/targets/current authority/post-IO/UI queued; no other new shared writer until release. Stock/whole-ID reviewers now completed, no new ID/gate beyond explicit21 decisions. Model unchanged; no cloud/push/PR/deploy/delegation/primary promotion. All earlier current/next labels below are retained historical snapshots.
+
+## Historical FILE-COMBINED / pending-stock checkpoint
+
 2026-10-30; sole integration/ledger owner. **FILE-COMBINED exact00ae05292278ec9807dbd605d6ca4eebc3ea3500 parent-ACCEPTED** after independent ses_e74b579e7ffelUbVg5HAIGMrmR PASS; [exact evidence/limits and live ownership](file-combined-00ae052-acceptance-attributed.md). Primary remains0eaae8ff0c87875044500a6407b914c739797295; newer records preserve identical runtime and **3 LOCAL/131 U/134 IDs**, FNDN-01/FNDN-02 LOCAL/CUST-01 still bound to [accepted0eaae8f](combined-0eaae8f-acceptance-attributed.md). **FNDN-02 Neon pooled/direct/provider TLS deferred/not passed.** Stocke27653b independent review running/author done; T11a sole active schema/registry/grants writer; T05c queued. No source/package/schema edits or ref moves now; model remains parent-verified openai/gpt-6.1-sol-fast#xhigh.
 
 ## Observed lineage / supplied active state
