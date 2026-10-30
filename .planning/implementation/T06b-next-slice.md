@@ -4,7 +4,7 @@
 
 Bounded T06b-d0/220-artifact proof/G2 human-d0 and [bounded T05c.1 accepted555/P3 closed](evidence/T05c1-55564b5-acceptance-attributed.md) remain source-bound history. Accepted primary555/15 migrations/registry11 and humanG2d0 unchanged; current separate [T05c.2 frozenfd7+4b REVIEW candidate](evidence/T05c2-fd7ddc7-review-assembly.md) is UNACCEPTED/16/registry12, all15 old SQL/005/stock formatting retained.26 LOCAL/108 U/134/VSTS-03 U/matrix/G3–G6/full T06/IMPT/restore/device/hosted/v1 limits and failures preserved, no primaryFF.
 
-T05c.2 authorfd7 remains frozen/released/AUTHOR PASS UNACCEPTED; parent settlement review **RUNNING exact52c/tree24715fe**, no verdict/acceptance, VPRC-02 U/C+1 closure pending. [Current HANDOFF](HANDOFF.md) records NEW sole [T07a/T08a WRITE_OFF writer](T07a-T08a-next-slice.md) from accepted555, allocated202610310001_approval_disposal and mandatory eventual accepted-settlement rebase/new proof. [Repairs/remaining approvals](T08-next-slice.md) queued/no dispatch/allocation. Docs descendant not replacement52c target; integration preserves source exact52c/no runtime/credentials/primaryFF. Scope/history below unchanged.
+T05c.2 authorfd7 remains frozen/released; [parent REJECTS exact52c/P2 after completed independent FAIL](evidence/T05c2-52c720d-rejection-attributed.md), VPRC-02 KEEP U/incurred-addCost closure pending. [Current HANDOFF](HANDOFF.md): WRITE_OFF freeze REQUESTED, ACK pending/active until ACK/no correction assigned; scope/metadata/repair queue unchanged. Source exactec2/52c/no runtime/credentials/rollback/primaryFF; prior acceptance and history below unchanged.
 
 ## Previous frozen1d REVIEW assembly / source-author release snapshot
 

@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md) and all failures/original clauses remain unchanged. [Current HANDOFF](HANDOFF.md): settlement review **RUNNING exact52c/tree24715fe**, no verdict/acceptance; VPRC-02 U/C+1 closure pending. NEW sole [T07a/T08a WRITE_OFF writer](T07a-T08a-next-slice.md) starts accepted555, unique202610310001_approval_disposal and mandatory eventual explicit accepted-settlement rebase/new proof; [repairs/remaining approvals](T08-next-slice.md) queued/no dispatch/allocation. This docs descendant preserves runtime/schema/16 SQL/contracts/tests/packages/native/PWA/matrix exact52c, never replaces the review target; primary555/humanG2d0 unchanged/no integration runtime/source fix.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md), all failures/original clauses remain unchanged. [Parent REJECTS settlement exact52c/P2](evidence/T05c2-52c720d-rejection-attributed.md), no acceptance/ID change; incurred-addCost closure distinct/pending. [Current HANDOFF](HANDOFF.md): WRITE_OFF freeze REQUESTED/not ACK, active until ACK/no correction assigned; scope/repair queue unchanged. Source/matrix exactec2/52c, primary555/humanG2d0 untouched/no rollback/runtime/FF.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 
