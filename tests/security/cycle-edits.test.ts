@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
+import { readFileSync } from "node:fs"
 import { cycleEditEnvelope, cycleEditInputs } from "../../lib/server/validators"
 import { abilityFor, grantSchema } from "../../lib/server/permissions"
+import type { Grant } from "../../.planning/implementation/contracts/api"
 
 const id = "03000000-0000-4000-8000-000000000011"
 const values = {
@@ -14,6 +16,33 @@ const values = {
   transmission: "AUTOMATIC",
 }
 describe("open-cycle mileage, asking price and physical wire boundaries", () => {
+  it("freezes unchanged compound authority, including the accepted uploads write gate", () => {
+    const sql = readFileSync(
+      "prisma/migrations/202610300005_cycle_edits/migration.sql",
+      "utf8"
+    )
+    const frozen = JSON.parse(sql.split("$v10$")[1]) as Record<
+      string,
+      Record<string, string[]>
+    >
+    for (const [subject, action, field] of [
+      ["ImportBatch", "read", "uploads"],
+      ["Settings", "update", "company"],
+      ["FinanceCompany", "create", "policy"],
+      ["PurchaseRecord", "read", "costs"],
+      ["Vehicle", "read", "identity"],
+    ]) {
+      expect(frozen[subject][action]).toContain(field)
+      const grant = grantSchema.parse({
+        subject,
+        action,
+        fields: frozen[subject][action],
+      }) as Grant
+      expect(abilityFor([grant], id).can(action, subject, field)).toBe(true)
+    }
+    expect(frozen.Vehicle.read).not.toContain("mileage")
+    expect(frozen.Vehicle.read).toContain("mileage.decreaseReason")
+  })
   it("retains zero and maximum canonical asking price, rejects unsafe wire money", () => {
     for (const amount of ["0", "99999999999999"])
       expect(

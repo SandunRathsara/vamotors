@@ -10,7 +10,6 @@ import { privateEnvironment } from "../../scripts/private-environment"
 import { canonical } from "../../lib/server/idempotency"
 import {
   expanded,
-  fieldsFor,
   grantSchema,
   registryVersion,
 } from "../../lib/server/permissions"
@@ -131,33 +130,25 @@ async function snapshot(): Promise<Snapshot> {
     ).rows,
   }
 }
-function atoms(grant: Grant, expand = expanded, universe = fieldsFor) {
-  return expand(grant)
-    .filter(
-      (f: string) =>
-        !universe(
-          grant.subject as Parameters<typeof fieldsFor>[0],
-          grant.action
-        ).some((child: string) => child.startsWith(`${f}.`))
+function atoms(grant: Grant, expand = expanded) {
+  return expand(grant).flatMap((field: string) =>
+    (field === "mileage" &&
+    grant.action === "read" &&
+    ["Vehicle", "PurchaseRecord"].includes(grant.subject)
+      ? (grant.subject === "Vehicle"
+          ? ["reading", "date", "remark", "decreaseReason"]
+          : ["id", "reading", "date", "remark", "decreaseReason"]
+        ).map((f) => `mileage.${f}`)
+      : [field]
+    ).map((field) =>
+      canonical({
+        subject: grant.subject,
+        action: grant.action,
+        field,
+        conditions: grant.conditions ?? {},
+      })
     )
-    .flatMap((field: string) =>
-      (field === "mileage" &&
-      grant.action === "read" &&
-      ["Vehicle", "PurchaseRecord"].includes(grant.subject)
-        ? (grant.subject === "Vehicle"
-            ? ["reading", "date", "remark", "decreaseReason"]
-            : ["id", "reading", "date", "remark", "decreaseReason"]
-          ).map((f) => `mileage.${f}`)
-        : [field]
-      ).map((field) =>
-        canonical({
-          subject: grant.subject,
-          action: grant.action,
-          field,
-          conditions: grant.conditions ?? {},
-        })
-      )
-    )
+  )
 }
 try {
   if (mode === "prepare") {
@@ -320,7 +311,7 @@ try {
           ...new Set(
             before.grants
               .filter((g) => g.roleId === r.id)
-              .flatMap((g) => atoms(g.rule, parent.expanded, parent.fieldsFor))
+              .flatMap((g) => atoms(g.rule, parent.expanded))
           ),
         ].sort(),
       ])

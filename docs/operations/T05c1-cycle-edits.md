@@ -58,11 +58,15 @@ lifecycle bypass, no new schema column, and no new dependency.
 Vehicle UPDATE grants are physical/normalized columns + revision/updatedAt only;
 PurchaseRecord adds listedPrice only. Mileage/payment/basis/audit/read history
 stays append-only; activePurchaseId/createdBy/ownership remain ungrantable.
-All16 subjects/50 actual accepted v10 action universes are frozen into exact
-leaves, including ImportBatch/Document and create/delegation/rate/quote. Old
-mileage compound already meant its known DTO leaves, now made explicit. Only
+All16 subjects/50 actual accepted v10 action universes are frozen into
+explicit accepted populations, including ImportBatch/Document and
+create/delegation/rate/quote. Unchanged compound gates (notably ImportBatch.read
+uploads, consumed by initUpload) remain present; only the growing mileage parent
+is expanded to its previously known DTO leaves. Only
 protected Administrator deliberately gets new operations. Upgrade proof checks
-every old role population, immutable Permission hashes and function metadata.
+every old role population including compound authority, immutable Permission
+hashes and function metadata. A retained unit guards the uploads/company/policy
+compound gates; the full post-upgrade command campaign exercises new uploads.
 
 Four retained unit registry-version assertions advance10→11, and the stock unit's
 exact PurchaseRecord.update list adds only amount + four mileage input leaves.
