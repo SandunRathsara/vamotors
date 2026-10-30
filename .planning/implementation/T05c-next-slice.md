@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md), all failures/original clauses remain unchanged. [Parent REJECTS settlement exact52c/P2](evidence/T05c2-52c720d-rejection-attributed.md), no acceptance/ID change; incurred-addCost closure distinct/pending. [Current HANDOFF](HANDOFF.md): WRITE_OFF freeze REQUESTED/not ACK, active until ACK/no correction assigned; scope/repair queue unchanged. Source/matrix exactec2/52c, primary555/humanG2d0 untouched/no rollback/runtime/FF.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md), original clauses/failures unchanged. [52c rejection/P2](evidence/T05c2-52c720d-rejection-attributed.md)/incurred-addCost independent closure pending remain. [Current HANDOFF](HANDOFF.md): WRITE_OFF freeze/release ACK cdedd2f WIP, parent authorized sole bounded settlement corrector from rejected52c/new head unknown/no fix result inferred. Full scopes/source/matrix exact4d/52c, primary555/humanG2d0 untouched/no ledger runtime/source/FF.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

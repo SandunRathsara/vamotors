@@ -4,7 +4,7 @@
 
 Bounded T06b-d0/220-artifact proof/G2 human-d0 and [bounded T05c.1 accepted555/P3 closed](evidence/T05c1-55564b5-acceptance-attributed.md) remain source-bound history. Accepted primary555/15 migrations/registry11 and humanG2d0 unchanged; current separate [T05c.2 frozenfd7+4b REVIEW candidate](evidence/T05c2-fd7ddc7-review-assembly.md) is UNACCEPTED/16/registry12, all15 old SQL/005/stock formatting retained.26 LOCAL/108 U/134/VSTS-03 U/matrix/G3–G6/full T06/IMPT/restore/device/hosted/v1 limits and failures preserved, no primaryFF.
 
-T05c.2 authorfd7 remains frozen/released; [parent REJECTS exact52c/P2 after completed independent FAIL](evidence/T05c2-52c720d-rejection-attributed.md), VPRC-02 KEEP U/incurred-addCost closure pending. [Current HANDOFF](HANDOFF.md): WRITE_OFF freeze REQUESTED, ACK pending/active until ACK/no correction assigned; scope/metadata/repair queue unchanged. Source exactec2/52c/no runtime/credentials/rollback/primaryFF; prior acceptance and history below unchanged.
+Frozenfd7/da56 evidence and [52c rejection/completed independent FAIL P2](evidence/T05c2-52c720d-rejection-attributed.md), VPRC-02 U/incurred-addCost closure pending remain. [Current HANDOFF](HANDOFF.md): WRITE_OFF FROZEN/released cdedd2f WIP, parent transferred sole bounded settlement correction authority/new head and progress unreported. Full scopes/repair queue/source exact4d/52c preserved; prior acceptance/history unchanged, no ledger runtime/source/credentials/primaryFF.
 
 ## Previous frozen1d REVIEW assembly / source-author release snapshot
 

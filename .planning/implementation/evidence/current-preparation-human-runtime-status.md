@@ -1,6 +1,6 @@
-# Current exact52c REJECTED P2, freeze ACK pending and retained preparation/G2 facts
+# Current WRITE_OFF released, bounded correction authorized and retained preparation/G2 facts
 
-Parent **[REJECTS exact52c/tree24715fe after independent COMPLETED FAIL P2](T05c2-52c720d-rejection-attributed.md)**; reviewer services stopped/retained/no bulk per seal. Source-gross defect is distinct from author-corrected incurred-addCost/independent closure pending. Genuine555 fixture remains15/registry11 UNUPGRADED; historical preparation facts below remain exact, not new live observations. Accepted555/P3/primary555/[humanG2d0](G2-d0-literal-acceptance-attributed.md)/matrix134/26 LOCAL108 U/VPRC-02 U/VSTS-03 U/G3–G6 pending unchanged; no rollback/FF/runtime/source edit.
+Original **[exact52c rejection/P2 OPEN/99-artifact proof](T05c2-52c720d-rejection-attributed.md)** remains; reviewer COMPLETED FAIL/closed roots awaits future corrected-combined target, not running. Genuine555 fixture remains15/registry11 UNUPGRADED; incurred-addCost independent closure pending. [WRITE_OFF freeze ACK and new bounded correction assignment](T07a-T08a-cdedd2f-freeze-transfer-attributed.md) are parent-attributed, no active-corrector/source/runtime inspection or progress inferred. Accepted555/P3/primary555/[humanG2d0](G2-d0-literal-acceptance-attributed.md)/matrix134/26 LOCAL108 U/VPRC-02 U/VSTS-03 U/G3–G6 pending unchanged; historical preparation facts below remain exact.
 
 ## Original T05c.1 preparation — sealed parent fixture history
 
@@ -8,7 +8,7 @@ Independent **ses_e73866f03ffef8LtV6wZH4jIq7** completed [PREPARATION.md](/Users
 
 New clean detached exactd0 source/own genuine NONEMPTY fixture:14 migrations/registry10,30 real HTTP envelopes; two lawful CASH/BRAND_NEW cycles, cost/payment/reversal/basis/P2/rates/quote and assigned wildcard/compound/createdBy/create/pay/update/delegation rules; two FINAL CSV/XLSX authenticated downloads plus one retained original-expiry INIT. Full rows/migrations/functions/ACLs/873 runtime-column privileges/source/build/file hashes captured. Initial packaging-permission exit1 retained/resolved without product/data changes. All prep-owned services stopped/data retained per final-state. **No candidate inspected or verdict.** Await parent exact frozen final combined SHA/tree and release; preserve PROJECT/source/root/all metadata+bytes, original INIT expires naturally without renewal. Prep capacity deadline **2026-10-31T16:12:20.432Z**; future new writes require actual capacity review, not automatic renewal.
 
-**T05c.1 closure remains COMPLETED PASS at555; that source ownership is released history. T05c.2 authorfd7 remains FROZEN/RELEASED**, author829 hashes/39 selected final receipts/163 total149 zero14 nonzero and all failures unchanged. All12 author roots stopped/apps closed per ACK, not fresh ledger inspection. C+1 AUTHOR-corrected/pending independent closure. New sole active WRITE_OFF ownership is a separate parent dispatch below, not T05c.1 resumption or settlement acceptance.
+**T05c.1 closure remains COMPLETED PASS at555; that source ownership is released history. Frozenfd7/da56 source/evidence remain preserved**, author829 hashes/39 selected final receipts/163 total149 zero14 nonzero and failures unchanged. All12 original author roots stopped/apps closed per ACK, not fresh ledger inspection. Incurred-addCost C+1 AUTHOR-corrected/independent closure pending. WRITE_OFF is now frozen/released; the new bounded settlement correction authority below is a separate parent assignment, not T05c.1 resumption or acceptance.
 
 ## T05c.2 — review COMPLETED FAIL; preparation preserved, never upgraded
 
@@ -20,9 +20,9 @@ Actual accepted inventory **15 migrations/registry11/16 subjects/51 action pairs
 
 Two real FINAL CSV/XLSX files had accepted stage/init/PUT/finalize/new authorized GET/metadata/hash proof; original additional INIT had **no PUT** and naturally expired at closeout without renewal/clock rewrite, no post-expiry HTTP experiment claimed. **Prep-owned PG/app/API contexts closed, data/bytes retained, no browser launched**, per sealed closeout, not a new live ledger check. **Seven corrected helper failures retained**, no product/source/schema/grant fix. Original capacity policy through **2026-10-31T17:44:40.064Z** unchanged/no automatic renewal; future new writes require actual capacity review as appropriate. Preserve this root/baselines/bytes/original INIT; no rerun-over/reset/reseed or human G2 adoption.
 
-## T07a/T08a — active WRITE_OFF owner freeze REQUESTED, not ACK
+## T07a/T08a — explicit FROZEN/SHARED RELEASE ACK; parent transfers bounded correction
 
-Parent REQUESTED **ses_e7376ed96ffe2a8RsopfGvBwgI** checkpoint/freeze/release; **ACK/HEAD/actual services NOT RETURNED**, active until ACK/no polling/assumed freeze. No correction assigned; obtain ACK before parent transfer. [WRITE_OFF brief](../T07a-T08a-next-slice.md)/base555/202610310001/[import metadata](T07a-T08a-prepared-brief-index.md)/[repair queue](../T08-next-slice.md) unchanged; original settlement authorfd7 remains frozen/released, not resumed. [Current HANDOFF](../HANDOFF.md).
+**ses_e7376ed96ffe2a8RsopfGvBwgI FROZEN/SHARED RELEASE ACK clean cdedd2f/treea3b6e9f**, incomplete PREBASE accepted555/202610310001/no006; jobs/owned PG stopped/no app/browser/storage daemon per [50-artifact seal/closeout](T07a-T08a-cdedd2f-freeze-transfer-attributed.md), not new live observations. WRITE_OFF needs parent resumption. Parent NOW authorizes **ses_e724e8803ffegV2I6w3qrj9OZS SOLE ACTIVE bounded gross-C01 corrector from rejected52c**, new own branch/worktree/head not yet reported/no fix progress claimed. Frozenfd7/da56/WRITE_OFF and [repair queue](../T08-next-slice.md)/full proof gates remain. [Current HANDOFF](../HANDOFF.md).
 
 ## Original G2 — independent review completed PASS; parent ACCEPTED
 

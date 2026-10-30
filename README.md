@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-Parent **[REJECTS exact52c settlement candidate, independent COMPLETED FAIL/P2](.planning/implementation/evidence/T05c2-52c720d-rejection-attributed.md)**; VPRC-02 stays U, no source fix/acceptance. WRITE_OFF freeze **REQUESTED, ACK pending**; owner remains active until ACK, correction unassigned. [Current HANDOFF](.planning/implementation/HANDOFF.md) owns status; imported WRITE_OFF/repair scope and all source/schema16SQL/contracts/tests/packages/native/PWA/matrix bytes remain unchanged. Primary accepted555/P3 closure/human G2 http://127.0.0.1:8000/login pinned d0/26 LOCAL108 U134/G3–G6 pending preserved. Rejection is not rollback or primaryFF; no integration runtime/source work.
+WRITE_OFF **[FROZEN/SHARED RELEASE ACK cdedd2f; incomplete WIP, not PASS](.planning/implementation/evidence/T07a-T08a-cdedd2f-freeze-transfer-attributed.md)**. Parent assigned the original settlement author as sole bounded gross-C01 corrector from rejected52c; new own branch/worktree/head unreported/no fix progress inferred. [Current HANDOFF](.planning/implementation/HANDOFF.md): original P2/99-artifact rejection/VPRC-02 U/incurred-addCost independent closure pending remain; reviewer completed FAIL/closed awaits corrected target. Full scopes/final acceptance gate and all source/schema16SQL/contracts/tests/packages/native/PWA/matrix bytes unchanged. Primary555/P3/human G2 http://127.0.0.1:8000/login pinned d0/26 LOCAL108 U134/G3–G6 pending preserved; no integration runtime/source/primary actions.
 
 ## Historical frontend-shell walkthrough
 
