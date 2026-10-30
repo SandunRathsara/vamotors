@@ -1,15 +1,16 @@
 # Local continuation — authorized candidate and baseline promotion
 
-2026-10-30; sole integration/ledger owner. **Accepted R2 component merge now authorized/executed; mixed candidate NOT accepted.** [Exact acceptance, no-ff98ce874, fresh own-root checks, sampled RSS/patch/runtime prerequisites](T06a2-R2-acceptance-integration.md). Prior lint/CONTRACT/PWA preserved; baseline/whole-ID verifier ses_e74b579e7ffelUbVg5HAIGMrmR remains ACTIVE at immutable0eaae8ff0c87875044500a6407b914c739797295. Additions do not alter its binding or matrix134 U. Primary accepteddb2580dd; model parent-verified openai/gpt-6.1-sol-fast#xhigh.
+2026-10-30; sole integration/ledger owner. **Bounded baseline0eaae8f accepted +3 LOCAL IDs; primary authorized ff-only db2580dd→exact0eaae8f succeeded.** [Independent report/parent adjudication/code+tests/actual refs](combined-0eaae8f-acceptance-attributed.md). FNDN-01/FNDN-02 LOCAL/CUST-01 accepted there, **3 LOCAL/131 U/134 retained; FNDN-02 Neon pooled/direct/provider TLS deferred/not passed**. Own file-inclusive candidate from00ae052 remains unaccepted/pending independent review; no source/package/schema changes by this records task. Model parent-verified openai/gpt-6.1-sol-fast#xhigh.
 
 ## Observed lineage / supplied active state
 
 | Artifact | Exact binding / state |
 | --- | --- |
-| Shared root / `integration/full-v1` | `/Users/alpha/Developer/Personal/vamotors`; authorized ff-only from exact cleanddd69fb to **`db2580dd7fa722489c591f3f9ed8ed0ea4d26a72` succeeded**. Main remains233249f6e874796df9ee80cd58c6d40040e1f84c; remotes unchanged. |
+| Shared root / `integration/full-v1` | /Users/alpha/Developer/Personal/vamotors; later authorized clean/exact/ancestry-checked ff-only **db2580dd→0eaae8ff0c87875044500a6407b914c739797295 succeeded**. Only accepted baseline promoted, not mixed00ae052/new records. Main remains233249f6e874796df9ee80cd58c6d40040e1f84c; remotes unchanged. |
 | Accepted continuation base | `db2580dd7fa722489c591f3f9ed8ed0ea4d26a72`, direct parent accepted T05a `def32caa482cffa794b98037e24b937dbff58b7d`; ddd69fb is an ancestor. db2580dd readiness reviewed PASS by original `82021a25`; accepted base supplied by parent. |
 | Own integration candidate / checkout | integration/local-v1-ledger-20261030, base/path unchanged; lint/CONTRACT/PWA and records11d3789 preserved, then authorized accepted R2 no-ff **98ce87469c98f9dad4d2640c93f52b536b2b7c9f**, no conflicts/source fixes. Final records head returned in handback. |
-| Combined baseline + whole-ID independent review | Reviewer ses_e74b579e7ffelUbVg5HAIGMrmR ACTIVE at exact0eaae8ff0c87875044500a6407b914c739797295; report/verdict pending; no whole-ID promotion or duplicate review |
+| Combined baseline + LOCAL-ID adjudication | Independent ses_e74b579e7ffelUbVg5HAIGMrmR PASS and parent accepts exact0eaae8ff0c87875044500a6407b914c739797295; only FNDN-01/FNDN-02 LOCAL/CUST-01 accepted. All LOCAL FNDN-02 clauses independently proved; hosted explicitly deferred/not passed. CUST-02 partial only. |
+| File-inclusive combined review | Later mixed candidate source98ce874/from00ae052 not accepted; independent file-inclusive review pending, no active reviewer/session supplied. Baseline report does not certify accepted R2 additions/new records head. |
 | T05b candidate, **REJECTED** | `490f7d3f960bafa604839fe8009f3a99272ba661`, six commits above db2580dd on `t3/recover-vehicle-availability` at `/Users/alpha/.t3/worktrees/vamotors/t3-96ced5a0`; parent rejects after recovered original FINAL FAIL |
 | T05b verdict recovery completed | `ses_e74ecf74cffeByaNSGYMFb7uoU` recovered original independent245230c4 FINAL FAIL; [R1 audit-reason leak/format/nonempty upgrade gaps and preserved positives](T05b-rejection-attributed.md). Not a new runtime campaign or model attestation. |
 | T05b minimal correction running | Author ses_e74e88a0bffebSzNViA9MzSLKw from490f7d3; handback narrowed to minimal projection + focused real HTTP; shared schema/registry/grants byte-identical. Remaining upgrade/retained regressions explicitly to independent verifier, not waived; replacement head not supplied. |
@@ -19,7 +20,7 @@
 | T17b bounded accepted/carried | Exactf27c1d9e788d1e11d56023596fb298216fd705e5, independent ses_e74c1a062ffe3MRCjHVHW5WoOf PASS + parent accepts; public shell/desktop proof only. [Source and fresh-candidate evidence](T17b-acceptance-integration.md); physical mobile/tablet home-screen install/relaunch/offline reopening still unobserved, no whole T17/FNDN-09/NFNL-01/NFNL-02. |
 | CONTRACT accepted contract only | Exact6c68a653178dab8a005d9d9df191864e04e59bcf; independent `ses_e74c0d61cffe5c1qniKnO3cSFr` PASS + parent acceptance; [20/strict compile/8+3/6 probes](CONTRACT-discovery-acceptance-attributed.md). Carried unchanged; importBatches/importBatchFiles still need runtime implementation/G2 proof. |
 
-Stock490f7d3 remains excluded. Historical failed25da9d8/e3ce420 now present **only as intermediate ancestors of independently acceptedc3153ee**, not failed final source; their FAIL records unchanged. Original adapter is now carried as authorized. Primary remains exact accepteddb2580dd, no mixed/shared-ref promotion; early file-lane assembly does not waive eventual corrected-stock + adapter final review.
+Stock490f7d3 excluded; failed25da9d8/e3ce420 retained only as ancestors of accepted finalc3153ee, prior FAIL records unchanged. Adapter carried as authorized on own mixed branch. Primary now accepted0eaae8f **only**, not mixed/file source; eventual corrected-stock + adapter final verification remains mandatory.
 
 Author-only T05b evidence pointer: `/Users/alpha/.config/vamotors/t05b-recovery-96ced5a0-evidence/HANDOFF.md` (reported by original completion message; contents not consumed here). It is not an independent verdict. Original candidate/worktree remains preserved, not replaced by the recovery branch.
 
@@ -40,16 +41,16 @@ No credentials, signed URLs, browser states or private byte contents copied. Ini
 ## Authorized outcomes / remaining integration gate
 
 1. **Never merge rejected490f7d3 as the accepted result.** Correction must return a replacement exact SHA; require distinct independent PASS addressing R1, owned-format and nonempty genuine-parent-upgrade proof, explicit parent acceptance and an integration instruction. Do not substitute a guessed SHA or author tests.
-2. Earlier lint/CONTRACT/PWA no-ff merges and baseline-only primary ff complete/preserved. Parent now independently accepts R2c3153ee and expressly permits early file-lane assembly; no-ff98ce874 **completed**, carrying original adapter and final R2 source without conflicts/fixes. Historical rejected ancestors retained, not final result.
+2. Earlier accepted-component merges/no-ff98ce874 retained. New parent decision accepts bounded baseline0eaae8f +3 LOCAL IDs and authorizes clean ff-only primary db2580dd→exact0eaae8f: **completed**. This current update on mixed branch is records-only; no source/package/schema edit or source merge.
 3. Wait minimal T05b handback/independent PASS/parent acceptance, then instructed corrected-stock carry into this assembled adapter/lint/CONTRACT/PWA candidate. **Joint corrected-stock/adapter final-combined verification remains required.** Accepted sources preserved; no competing writer/new authoring or mixed/ref promotion.
 4. Record resulting actual SHA and parent decisions; obtain **fresh independent exact-combined-SHA review**, including preservation, relevant stock/adapter/lint regressions and full-project typecheck with an appropriate generated client in the verifier's own environment. Old branch passes do not certify combination; no automatic whole-ID/gate promotion.
-5. **No further merge or candidate promotion now.** Primary stays accepteddb2580dd; main/remotes and other checkouts unchanged. Any later mixed-candidate promotion needs separate authorization after combined review. No push/PR/deploy/cloud.
+5. **No further merge or mixed-candidate promotion now.** Primary stays accepted0eaae8f; main/remotes/other checkouts unchanged. Later mixed/file promotion needs exact combined review and separate authorization. No push/PR/deploy/cloud.
 
 ## Next lawful work / unchanged gates
 
-Active: minimal T05b author and immutable0eaae8f baseline/whole-ID reviewer. R2 review finished bounded PASS/parent acceptance; original/diagnostic format authors done, no simultaneous package owner. Remaining stock upgrade/regressions to independent verifier, not waived. Eventual corrected-stock + now-assembled adapter final-combined review still mandatory; G2/runtime/device gaps unchanged, no full-ID promotion.
+Active: minimal T05b author. Baseline0eaae8f independent review complete/parent accepted with3 LOCAL IDs; R2 source/component review accepted separately, no simultaneous format/package owner. File-inclusive combined review pending (no active session supplied). Remaining stock upgrade/regressions to independent verifier, not waived; corrected-stock + adapter final review mandatory. Other131 IDs/runtime/G2/device/hosted gaps remain.
 
-Prior bounded acceptances plus R2c3153ee source accepted, no whole T02/T04/T05/T06/T17/G2–G6 or134-ID promotion; matrix unchanged pending baseline report/adjudication. New component checks are integration-owner, not independent combined acceptance. RSS sampled-not-hard, worker/private-patch/CWD prerequisites explicit; application file targets/auth/DB/restore and physical mobile/tablet PWA gaps remain. Local-only; hosted deferred/not passed.
+Prior bounded acceptances plus exact baseline0eaae8f and **3 LOCAL requirements** accepted; other131 IDs U, no whole T02/T04/T05/T06/T17/G2–G6. FNDN-02 LOCAL proof complete under D32 while Neon/provider hosted criteria deferred/not passed; original report's unqualified-hosted refusal retained. File-inclusive checks remain integration-owner, not independent combined acceptance; RSS/assets/patch/runtime/restore/mobile gaps unchanged.
 
 ## Initial records-only checks at53dcd84 — retained historical results
 
@@ -88,3 +89,7 @@ Only the supplied e3ce420 independent result was read; no author corpus/reproduc
 ## Current accepted R2 component checks
 
 [Independent source-bound R2 acceptance, actual98ce874 merge, own-root patched install/generation/types/build/lint/contracts/unit/26/68/94/real Next28HTTP/restart13 proof and prerequisites](T06a2-R2-acceptance-integration.md). Source/ref/matrix/protected-worktree preservation results recorded there. No final mixed acceptance; baseline0eaae8f binding unchanged.
+
+## Current baseline/local-ID records update
+
+[Baseline acceptance,3 LOCAL/131 U adjudication and exact primary promotion](combined-0eaae8f-acceptance-attributed.md). Only three accepted matrix rows gain full code/test/reviewer/SHA references; CUST-02 gets partial distinct-name closure, not acceptance. Other130 rows unchanged; source/packages/schema/prior evidence on own mixed candidate preserved. Final count/delta/ref/protected-worktree checks recorded there; no runtime campaign rerun by ledger.

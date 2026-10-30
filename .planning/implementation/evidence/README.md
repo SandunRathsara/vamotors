@@ -2,7 +2,9 @@
 
 ## Current local continuation — 2026-10-30
 
-**[Bounded R2 accepted / authorized component merge](T06a2-R2-acceptance-integration.md):** parent accepts exactc3153eef69900338031f4e8187e9ba2a4ce9ec9c after independent ses_e74d500a7ffeo065r9u4jlVqxr PASS; no-ff source **98ce87469c98f9dad4d2640c93f52b536b2b7c9f** now carries original adapter ancestry and final accepted R2 bytes with lint/CONTRACT/PWA. Prior rejected intermediates retained as history, not failed final source. Primary still exactdb2580dd/main/remotes unchanged; **mixed candidate NOT accepted, matrix134 U**. Baseline/whole-ID verifier ses_e74b579e7ffelUbVg5HAIGMrmR remains ACTIVE at immutable0eaae8ff0c87875044500a6407b914c739797295; additions do not change its binding.
+**[Bounded baseline accepted /3 LOCAL requirement decisions / actual primary ff](combined-0eaae8f-acceptance-attributed.md):** parent accepts exact0eaae8ff0c87875044500a6407b914c739797295 after independent ses_e74b579e7ffelUbVg5HAIGMrmR PASS. **Primary clean ff-only db2580dd→exact0eaae8f succeeded**; main/remotes unchanged. Matrix **3 locally accepted /131 U /134 retained**: FNDN-01, FNDN-02 LOCAL, CUST-01. **FNDN-02 hosted Neon pooled/direct/provider TLS DEFERRED DEPLOYMENT / NOT PASSED**, not an inferred hosted whole-ID pass. CUST-02 name-only search gap closes partially; other clauses U. Review complete, not an active/pending baseline verdict.
+
+**[Bounded R2 component acceptance/carry](T06a2-R2-acceptance-integration.md)** remains separate: exactc3153ee already carried with adapter ancestry into file-inclusive source98ce874/from00ae052; final R2 bytes preserved, prior FAILs historical. **File-inclusive mixed candidate NOT combined-accepted; independent file-combo review pending**, no active session supplied for the later SHA. This records-only update changes no source/packages/schema and does not promote mixed00ae052/new docs head to primary. Earlier134-U/rootdb/pending-baseline snapshots retain their original time/source binding.
 
 Independent R2 original15red→94green/prior68/new74,71HTTP/restart43 finals1,113,573 bytes attributed. Fresh integration own frozen-patched install/generate/build/types/121units+5SW/contracts20/8+3/lint0/46,26 dedicated +68/94 copied cases, real imported Next28HTTP/restart13 finals315,917 bytes PASS. **RSS100ms sampled, not hard384MiB;25ms observer405984KiB.** Node24/POSIX/bin/ps/application CWD, worker mjs assets/node_modules and exact private-export patches required; standalone/restore/hosted/full T06/G2 unaccepted.
 
@@ -18,7 +20,7 @@ T17b independent source-bound117units/5SW/build/types, actual headed+headless de
 
 [Bounded upload-discovery CONTRACT acceptance](CONTRACT-discovery-acceptance-attributed.md): exact6c68a653178dab8a005d9d9df191864e04e59bcf, parent accepts after independent `ses_e74c0d61cffe5c1qniKnO3cSFr` PASS (20/strict compile/8+3/6 probes). Carried unchanged; not runtime/G2. T17b is now bounded accepted/carried, not an active review; earlier pending/not-carried labels are preserved checkpoint history, not current instructions.
 
-User override **openai/gpt-6.1-sol-fast#xhigh** remains parent-verified. Early accepted file-lane assembly now authorized/done; await minimal T05b handback/independent PASS/parent decision, then instructed corrected-stock carry and **joint stock/adapter final-combined verification**, not waived. No mixed/shared-ref promotion, duplicate workers, push/PR/deploy/cloud; all134 U. Older current/next labels historical.
+User override **openai/gpt-6.1-sol-fast#xhigh** remains parent-verified. Await active minimal T05b handback/independent PASS/parent decision, then instructed corrected-stock carry and **joint stock/adapter final-combined verification**, not waived by accepted baseline/components. No further mixed/shared-ref promotion, duplicate workers, push/PR/deploy/cloud. Counts3 LOCAL/131 U; older snapshots historical.
 
 ## Historical T05a + R1 acceptance — 2026-10-27
 
