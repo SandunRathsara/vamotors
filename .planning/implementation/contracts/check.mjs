@@ -284,4 +284,19 @@ test('10001-row ORIGINAL export is stable across source changes with full contig
   assert.throws(() => completeExport(snapshot, [parts[0], parts[0], ...parts.slice(1)]), /manifest coverage/);
   assert.throws(() => exportParts(snapshot, 1000, 'revoked-authz'), /FORBIDDEN/);
 });
+test('additive import staging discovery is typed and indexed independently of preview/capabilities', () => {
+  for (const name of ['importBatches', 'importBatchFiles']) {
+    assert.match(apiText, new RegExp(`  ${name}:`));
+    assert.ok(readFileSync(resolve(dir, 'workflows.md'), 'utf8').includes(name));
+  }
+  assert.match(apiText, /importBatch: ImportPreview & \{ state:/); // Existing preview query stays compatible.
+  const summary = apiText.split('export type ImportSourceUploadDTO = ')[1].split('export type ImportBatchFilesDTO')[0];
+  for (const forbidden of ['putUrl:', 'requiredHeaders:', 'stagingKey:', 'finalKey:', 'attemptId:']) assert.ok(!summary.includes(forbidden));
+  assert.match(summary, /state: "FINAL"; attachmentId: Id; claimExpiresAt: null/);
+  assert.match(summary, /state: "FINALIZING"; attachmentId: null; claimExpiresAt: Instant/);
+  const index = readFileSync(resolve(dir, 'README.md'), 'utf8');
+  for (const file of ['roundtrip-check.ts', 'import-file-discovery.proposal.md']) {
+    assert.ok(index.includes(`](${file})`)); assert.ok(existsSync(resolve(dir, file)));
+  }
+});
 console.log(`PASS ${count} contract checks; pure specification only, not DB/HTTP/hosted acceptance.`);

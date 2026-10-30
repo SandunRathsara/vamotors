@@ -1,7 +1,8 @@
 /** Compile-time regressions for the seven review findings; no runtime/application imports. */
 import type { Commands, Dependency, Queries, QueryData, PurchaseCycleDTO, ImportRowInput,
   CurrentActorDTO, UserAdminDTO, RoleDTO, PermissionRegistryDTO, ExportManifestDTO,
-  ApprovalProvenance, ImportPayloads, Grant } from "./api";
+  ApprovalProvenance, ImportPayloads, Grant, ImportPreview, ImportBatchState,
+  ImportBatchSummaryDTO, ImportSourceUploadDTO, ImportBatchFilesDTO, ListParams, Page } from "./api";
 import type { PartyContribution, PartyDetailDTO, PartyHistoryLink } from "./api";
 import type { PartyContribution as ReviewedContribution, PartyDetailDTO as ReviewedDetail,
   PartyHistoryLink as ReviewedLink, ProposedQueries, ProposedQueryData } from "./party-detail-settings.proposal";
@@ -91,3 +92,26 @@ function selectAmbiguous(option: Extract<QueryData["compare"][number], { status:
   return { input, expected };
 }
 void [quoteGrant, falseReviewer, missingApproval, fabricatedImport, bypass, legacyDisposal, selectFromCompare, selectAmbiguous];
+
+type OldImportBatch = ImportPreview & { state: "STAGED" | "VALIDATED" | "COMMITTED" | "FAILED";
+  targets: { sourceKey: string; type: string; id: string }[] };
+type PreviewReadUnchanged = Assert<Same<QueryData["importBatch"], OldImportBatch>>;
+type BatchListParams = Assert<Same<Queries["importBatches"], ListParams & { state?: ImportBatchState; namespace?: string }>>;
+type BatchListData = Assert<Same<QueryData["importBatches"], Page<ImportBatchSummaryDTO>>>;
+type BatchFileData = Assert<Same<QueryData["importBatchFiles"], ImportBatchFilesDTO>>;
+type NoFileCapabilities = Assert<Extract<keyof ImportSourceUploadDTO,
+  "putUrl" | "requiredHeaders" | "stagingKey" | "finalKey" | "attemptId" | "token"> extends never ? true : false>;
+type OnlyFinalAttachment = Assert<Same<Extract<ImportSourceUploadDTO, { state: "FINAL" }>["attachmentId"], string>>;
+type NoUnlinkedAttachment = Assert<Same<Exclude<ImportSourceUploadDTO, { state: "FINAL" }>["attachmentId"], null>>;
+const stagedFiles: QueryData["importBatchFiles"] = { id: "batch", revision: 1, state: "STAGED",
+  types: ["CUSTOMERS"], namespace: "synthetic", createdAt: "2026-10-30T00:00:00.000Z", uploads: [] };
+const finalizingSource: ImportSourceUploadDTO = { uploadId: "upload", revision: 2, state: "FINALIZING",
+  filename: "customers.csv", expiresAt: "2026-10-30T00:05:00.000Z", attachmentId: null,
+  claimExpiresAt: "2026-10-30T00:06:00.000Z" };
+// @ts-expect-error FINAL always identifies a real linked attachment, never an orphan/null placeholder.
+const phantomFinal: ImportSourceUploadDTO = { ...finalizingSource, state: "FINAL", claimExpiresAt: null, attachmentId: null };
+// @ts-expect-error FINALIZING must expose its actual persisted lease deadline, not a fabricated null.
+const missingClaim: ImportSourceUploadDTO = { ...finalizingSource, claimExpiresAt: null };
+// @ts-expect-error Browser-supplied ownership is not a batch list selector.
+const guessedOwner: Queries["importBatches"] = { page: 1, pageSize: 10, sort: [], createdBy: "other" };
+void [stagedFiles, finalizingSource, phantomFinal, missingClaim, guessedOwner];

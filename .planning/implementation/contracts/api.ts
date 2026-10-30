@@ -422,6 +422,8 @@ export interface Queries {
   settings: Record<string, never>;
   importTemplate: { type: ImportType; format: "CSV" | "XLSX"; version: 1 };
   importBatch: { id: Id };
+  importBatches: ListParams & { state?: ImportBatchState; namespace?: string };
+  importBatchFiles: { id: Id };
   download: { attachmentId: Id };
   invoice: { saleId: Id; version?: number };
   jobHealth: Record<string, never>;
@@ -610,6 +612,19 @@ export type DealQuoteDTO = { id: Id; revision: 1; selectionId: Id; version: numb
 export type LoanMaximumDTO = { companyId: Id; companyRevision: Revision; companyName: string; asOf: DateOnly } &
   ({ status: "APPLICABLE"; sheetId: Id; sheetRevision: 1; maximum: Money; validFrom: DateOnly; validThrough: DateOnly } |
    { status: "UNAVAILABLE"; reason: "NO_SHEET" | "EXPIRED"; maximum: null; sheetId: null });
+/** Current staging reads, independent of whether a genuine preview exists. */
+export type ImportBatchState = "STAGED" | "VALIDATED" | "COMMITTED" | "FAILED";
+export type ImportBatchSummaryDTO = { id: Id; revision: Revision; state: ImportBatchState;
+  types: ImportType[]; namespace: string; createdAt: Instant };
+export type ImportSourceUploadDTO = { uploadId: Id; revision: Revision; filename: string;
+  expiresAt: Instant } & (
+    { state: "INIT" | "FAILED"; attachmentId: null; claimExpiresAt: null } |
+    { state: "FINALIZING"; attachmentId: null; claimExpiresAt: Instant } |
+    { state: "FINAL"; attachmentId: Id; claimExpiresAt: null }
+  ); // claimExpiresAt is the persisted F06 lease deadline, never an attempt/key/capability.
+export type ImportBatchFilesDTO = ImportBatchSummaryDTO & {
+  uploads: ImportSourceUploadDTO[]; // Complete authorized IMPORT_SOURCE intents; no per-owner truncation.
+};
 export type ImportGraphManifest = { schemaVersion: 1; types: ImportType[]; totalRows: number;
   nodes: { rowKey: string; sourceType: ImportType; sourceKey: string;
     targets: { type: "Vehicle" | "PurchaseRecord" | "SaleCase" | "Reservation" |
@@ -670,6 +685,8 @@ export interface QueryData {
     required: boolean; description: string }[]; download: DownloadDTO };
   importBatch: ImportPreview & { state: "STAGED" | "VALIDATED" | "COMMITTED" | "FAILED";
     targets: { sourceKey: string; type: string; id: Id }[] };
+  importBatches: Page<ImportBatchSummaryDTO>;
+  importBatchFiles: ImportBatchFilesDTO;
   download: DownloadDTO;
   invoice: { id: Id; revision: Revision; version: number; saleRevision: Revision; number: string;
     state: "PENDING" | "READY" | "FAILED"; download?: DownloadDTO };

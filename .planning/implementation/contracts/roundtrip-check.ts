@@ -3,7 +3,8 @@
  * No money/state/reference helpers are replaced by these bounded regression specimens. */
 import type { AllocationDTO, ApprovalProvenance, Commands, Dependency, DiscrepancyDTO,
   EntitlementDetailDTO, Envelope, Grant, ImportPayloads, PaymentDTO, PermissionRegistryDTO,
-  PurchaseCycleDTO, QuoteDTO, RemittanceDTO, ReportRow, RevisionRef, Visible, WriteOff } from "./api";
+  PurchaseCycleDTO, QuoteDTO, RemittanceDTO, ReportRow, RevisionRef, Visible, WriteOff,
+  ImportBatchSummaryDTO, ImportSourceUploadDTO, ImportBatchFilesDTO, Queries, Page } from "./api";
 import { commandRevisionRules } from "./api";
 
 function assert(value: unknown, message = "assertion failed"): asserts value {
@@ -339,5 +340,133 @@ test("grantable Quote creation/read/use enforces owner scope, policy/charge deni
   rejects(() => quoteUse({ ...row, companyId: "foreign" }, [handoff, ...domains], "other", "create"), "NOT_FOUND");
   rejects(() => quoteUse(row, [handoff], "other", "update"), "FORBIDDEN");
   rejects(() => quoteUse(row, domains, "other", "update"), "NOT_FOUND");
+});
+// Bounded source-shaped read specimens, not a substitute for runtime readScope/CASL/DB tests.
+type BatchRow = ImportBatchSummaryDTO & { createdBy: string };
+type UploadRow = ImportSourceUploadDTO & { batchId: string; purpose: string; createdBy: string;
+  stagingKey: string; attemptId: string | null };
+type ImportRows = { batches: BatchRow[]; uploads: UploadRow[];
+  attachments: { id: string; uploadId: string; batchId: string; createdBy: string }[] };
+function importCan(grants: Grant[], actor: string, type: "ImportBatch" | "Document",
+  row: { createdBy: string; state?: string }, field: string, action: Grant["action"] = "read") {
+  return grants.some(g => g.subject === type && g.action === action &&
+    Object.entries(g.conditions ?? {}).every(([key, value]) => key === "createdBy" ? row.createdBy ===
+      (value === "$actor.id" ? actor : value) : key === "status" ? row.state === value : false) &&
+    g.fields.some(f => f === "*" || field === f || field.startsWith(`${f}.`)));
+}
+const batchKeys = ["id", "revision", "state", "types", "namespace", "createdAt"] satisfies (keyof ImportBatchSummaryDTO)[];
+function batchRead(row: BatchRow, grants: Grant[], actor: string): Visible<ImportBatchSummaryDTO> {
+  if (!importCan(grants, actor, "ImportBatch", row, "id")) throw new Error("NOT_FOUND");
+  return Object.fromEntries(batchKeys.filter(k => importCan(grants, actor, "ImportBatch", row, k))
+    .map(k => [k, structuredClone(row[k])])) as Visible<ImportBatchSummaryDTO>;
+}
+function batchList(db: ImportRows, input: Queries["importBatches"], grants: Grant[], actor: string): Page<Visible<ImportBatchSummaryDTO>> {
+  const order = input.sort.length ? [...input.sort] : [{ field: "createdAt", direction: "desc" as const }];
+  if (!order.some(s => s.field === "id")) order.push({ field: "id", direction: "asc" });
+  if (order.some(s => !["id", "createdAt", "state", "namespace"].includes(s.field))) throw new Error("INVALID_INPUT");
+  const fields = [...order.map(s => s.field), ...(input.state ? ["state"] : []),
+    ...(input.namespace || input.q ? ["namespace"] : []), ...(input.from || input.through ? ["createdAt"] : [])];
+  const scope = db.batches.filter(r => importCan(grants, actor, "ImportBatch", r, "id"));
+  if (scope.some(r => fields.some(f => !importCan(grants, actor, "ImportBatch", r, f)))) throw new Error("FIELD_FORBIDDEN");
+  const localDate = (at: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Colombo" }).format(new Date(at));
+  const rows = scope.filter(r => (!input.state || r.state === input.state) && (!input.namespace || r.namespace === input.namespace) &&
+    (!input.q || r.namespace.toLowerCase().includes(input.q.toLowerCase())) && (!input.from || localDate(r.createdAt) >= input.from) &&
+    (!input.through || localDate(r.createdAt) <= input.through)).sort((a, b) => {
+      for (const s of order) { const key = s.field as "id" | "createdAt" | "state" | "namespace";
+        const cmp = a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0; if (cmp) return s.direction === "asc" ? cmp : -cmp; }
+      return 0;
+    });
+  return { ok: true, data: rows.slice((input.page - 1) * input.pageSize, input.page * input.pageSize).map(r => batchRead(r, grants, actor)),
+    total: rows.length, page: input.page, pageSize: input.pageSize, asOf: "2026-10-30T00:04:00.000Z", redactedFields: [] };
+}
+function batchFiles(db: ImportRows, id: string, grants: Grant[], actor: string): Visible<ImportBatchFilesDTO> {
+  const batch = required(db.batches.find(r => r.id === id)), result: Visible<ImportBatchFilesDTO> = batchRead(batch, grants, actor);
+  const keys = ["uploadId", "revision", "state", "filename", "expiresAt", "attachmentId", "claimExpiresAt"] satisfies (keyof ImportSourceUploadDTO)[];
+  const batchField = (field: string) => importCan(grants, actor, "ImportBatch", batch, `uploads.${field}`);
+  if (!keys.some(batchField)) return result;
+  result.uploads = db.uploads.filter(u => u.batchId === id && u.purpose === "IMPORT_SOURCE" &&
+    importCan(grants, actor, "Document", u, "uploadId")).sort((a, b) => a.uploadId.localeCompare(b.uploadId)).map(u => {
+      if (u.state === "FINAL") {
+        const a = required(db.attachments.find(a => a.id === u.attachmentId && a.uploadId === u.uploadId && a.batchId === id));
+        if (!importCan(grants, actor, "Document", a, "attachmentId")) return null;
+      }
+      return Object.fromEntries(keys.filter(k => batchField(k) && importCan(grants, actor, "Document", u, k))
+        .map(k => [k, u[k]])) as Visible<ImportSourceUploadDTO>;
+    }).filter((u): u is Visible<ImportSourceUploadDTO> => u !== null);
+  return result;
+}
+function importFixture(): ImportRows {
+  return { batches: ["own", "foreign"].map((id, i) => ({ id, revision: 1, state: "STAGED", types: ["CUSTOMERS"],
+    namespace: "synthetic", createdAt: "2026-10-30T00:00:00.000Z", createdBy: i ? "other" : "owner" })),
+    uploads: [{ batchId: "own", purpose: "IMPORT_SOURCE", uploadId: "upload", revision: 1, state: "INIT", filename: "customers.csv",
+      expiresAt: "2026-10-30T00:05:00.000Z", attachmentId: null, claimExpiresAt: null, createdBy: "owner",
+      stagingKey: "NEVER-OUTPUT-STORAGE-KEY", attemptId: null }], attachments: [] };
+}
+const ownBatch: Grant = { subject: "ImportBatch", action: "read", fields: ["*"], conditions: { createdBy: "$actor.id" } };
+const ownDocument: Grant = { subject: "Document", action: "read", fields: ["*"], conditions: { createdBy: "$actor.id" } };
+const ownImportReads = [ownBatch, ownDocument];
+test("restart discovery lists scoped staged batches and builds init/finalize/download from fresh roots without preview", () => {
+  const db = importFixture(), listInput: Queries["importBatches"] = { page: 1, pageSize: 10, sort: [], state: "STAGED", namespace: "synthetic" };
+  const page = batchList(db, listInput, ownImportReads, "owner"); equal(page.total, 1);
+  // A new browser has only the navigation list; no prior command body/receipt/capability is consumed.
+  const detail = batchFiles(JSON.parse(JSON.stringify(db)) as ImportRows, required(page.data[0].id), ownImportReads, "owner");
+  const root = dep("ImportBatch", { id: required(detail.id), revision: required(detail.revision) });
+  const init = envelope<Commands["initUpload"]>({ target: { type: "IMPORT_BATCH", id: root.id }, purpose: "IMPORT_SOURCE",
+    filename: "customers.csv", contentType: "text/csv", size: 10, sha256: "0".repeat(64) }, [root]);
+  const upload = required(detail.uploads?.[0]);
+  const finish = envelope<Commands["completeUpload"]>({ uploadId: required(upload.uploadId) },
+    [root, dep("UploadIntent", { id: required(upload.uploadId), revision: required(upload.revision) })]);
+  equal(init.expected, [root]); equal(finish.expected[1].revision, 1);
+  assert(!("rows" in detail) && !("previewHash" in detail) && !("graph" in detail) && !("controlTotals" in detail));
+  db.uploads[0] = { ...db.uploads[0], revision: 3, state: "FINAL", attachmentId: "attachment", claimExpiresAt: null };
+  db.attachments.push({ id: "attachment", uploadId: "upload", batchId: "own", createdBy: "owner" }); db.batches[0].revision++;
+  rejects(() => checkCurrent(finish.expected, [dep("ImportBatch", db.batches[0]), dep("UploadIntent", { id: "upload", revision: 3 })]), "STALE_REVISION");
+  const after = batchFiles(JSON.parse(JSON.stringify(db)) as ImportRows, "own", ownImportReads, "owner");
+  equal(after.revision, 2); equal(after.uploads?.[0].revision, 3);
+  const download: Queries["download"] = { attachmentId: required(after.uploads?.[0].attachmentId) };
+  equal(download.attachmentId, "attachment");
+  assert(!JSON.stringify(after).includes("NEVER-OUTPUT") && !JSON.stringify(after).includes("attemptId"));
+  db.attachments[0].createdBy = "other";
+  equal(batchFiles(db, "own", ownImportReads, "owner").uploads, []); // Intent read cannot launder a hidden final attachment.
+  db.batches.push(...Array.from({ length: 11 }, (_, i) => ({ ...db.batches[0], id: `own-${i}` })));
+  db.batches[0].createdAt = "2026-10-29T20:00:00.000Z"; // Still Oct30 in Colombo.
+  const secondPage = batchList(db, { ...listInput, page: 2, from: "2026-10-30", through: "2026-10-30", q: "SYNTHETIC" }, ownImportReads, "owner");
+  equal(secondPage.total, 12); equal(secondPage.data.length, 2);
+});
+test("finalizing discovery reports persisted lease with no orphan attachment, expiry extension or per-owner truncation", () => {
+  const db = importFixture();
+  db.uploads[0] = { ...db.uploads[0], revision: 2, state: "FINALIZING", attachmentId: null,
+    claimExpiresAt: "2026-10-30T00:06:00.000Z", attemptId: "NEVER-OUTPUT-ATTEMPT" };
+  const before = JSON.stringify(db), detail = batchFiles(db, "own", ownImportReads, "owner"), upload = required(detail.uploads?.[0]);
+  equal(upload.claimExpiresAt, "2026-10-30T00:06:00.000Z"); equal(upload.expiresAt, "2026-10-30T00:05:00.000Z");
+  equal(upload.attachmentId, null); equal(JSON.stringify(db), before); // Repeated reads never renew/recover a claim.
+  const recovery = envelope<Commands["completeUpload"]>({ uploadId: required(upload.uploadId) },
+    [dep("ImportBatch", { id: required(detail.id), revision: required(detail.revision) }),
+      dep("UploadIntent", { id: required(upload.uploadId), revision: required(upload.revision) })]);
+  equal(recovery.expected[1].revision, 2); assert(!JSON.stringify(detail).includes("NEVER-OUTPUT"));
+  db.uploads = Array.from({ length: 101 }, (_, i) => ({ ...db.uploads[0], uploadId: `upload-${String(i).padStart(3, "0")}` }));
+  equal(batchFiles(db, "own", ownImportReads, "owner").uploads?.length, 101);
+});
+test("delegated read scope is not import/finalize authority; hidden batch/document/field data never becomes discovery", () => {
+  const db = importFixture(), input: Queries["importBatches"] = { page: 1, pageSize: 10, sort: [] };
+  rejects(() => batchFiles(db, "foreign", ownImportReads, "owner"), "NOT_FOUND");
+  const delegated: Grant[] = [{ ...ownBatch, conditions: undefined }, { ...ownDocument, conditions: undefined }];
+  equal(batchList(db, input, delegated, "delegate").total, 2);
+  equal(batchList(db, input, [], "delegate").total, 0);
+  rejects(() => batchFiles(db, "own", [], "delegate"), "NOT_FOUND"); // Fresh read after revocation.
+  const noName = [ownBatch, { ...ownDocument, fields: ["uploadId", "revision", "state", "expiresAt", "claimExpiresAt", "attachmentId"] }];
+  assert(!JSON.stringify(batchFiles(db, "own", noName, "owner")).includes("customers.csv"));
+  equal(batchFiles(db, "own", [{ ...ownBatch, fields: ["id", "revision", "uploads.filename"] }, ownDocument], "owner").uploads,
+    [{ filename: "customers.csv" }]); // A leaf never authorizes its sibling IDs/revisions.
+  equal(batchFiles(db, "own", [ownBatch], "owner").uploads, []); // No document existence/count leak.
+  assert(!("uploads" in batchFiles(db, "own", [{ ...ownBatch, fields: batchKeys }], "owner")));
+  db.uploads.push({ ...db.uploads[0], uploadId: "other-document", createdBy: "other", filename: "HIDDEN-NAME.csv" });
+  assert(!JSON.stringify(batchFiles(db, "own", ownImportReads, "owner")).includes("HIDDEN-NAME"));
+  const hiddenNamespace = [{ ...ownBatch, fields: ["id", "revision", "createdAt"] }];
+  rejects(() => batchList(db, { ...input, namespace: "synthetic" }, hiddenNamespace, "owner"), "FIELD_FORBIDDEN");
+  const canConfirm = (administrator: boolean, grants: Grant[]) => administrator &&
+    importCan(grants, "delegate", "ImportBatch", db.batches[0], "types", "import");
+  const importGrant: Grant = { subject: "ImportBatch", action: "import", fields: ["types"] };
+  assert(!canConfirm(true, delegated) && !canConfirm(false, [...delegated, importGrant]));
 });
 console.log(`PASS ${checks} typed round-trip/provenance/authorization checks; specification only, not DB/HTTP acceptance.`);
