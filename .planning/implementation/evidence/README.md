@@ -2,7 +2,9 @@
 
 ## Current local continuation — 2026-10-30
 
-[Actual authorized merges and accepted-baseline ff](accepted-lint-contract-integration.md): primary `integration/full-v1` cleanly advanced **exactddd69fb→accepteddb2580dd**; main/remotes unchanged. Isolated lint68ee0d8 + CONTRACT6c68a653 no-ff candidate source **de4c467** is **NOT accepted**; own offline dependencies/generated Prisma client, contract20/strict compile/specimens8+3/types/focused11 PASS, lint **0 errors/46 warnings** (39 retained+7 contract assertions). No rejected sources/T06a2 carried. Earlier records-only/not-carried descriptions are historical snapshots superseded by these actual outcomes, not rewritten evidence.
+[Latest bounded PWA acceptance/authorized merge/checks](T17b-acceptance-integration.md): parent accepts exactf27c1d9e788d1e11d56023596fb298216fd705e5 after independent `ses_e74c1a062ffe3MRCjHVHW5WoOf` PASS. Lint/CONTRACT checkpoint748875f safely committed first; PWA no-ff source **f43ed33** now carries all three reviewed sources unchanged. Fresh build/types/121units+5SW/contract20/strict8+3 PASS; lint **0 errors/46 warnings**, unchanged from pre-PWA. **Mixed candidate NOT accepted**. Primary stays exact accepteddb2580dd after [authorized baseline-only ff](accepted-lint-contract-integration.md); main/remotes unchanged, failed sources/T06a2/original adapter not carried.
+
+T17b independent source-bound117units/5SW/build/types, actual headed+headless desktop install8 each/restart/offline relaunch, production10/auth4/adversarialSW7 and keyboard360/1920 remain attributed, not freshly rerun. **Whole T17/FNDN-09/NFNL-01/NFNL-02 NOT accepted:** physical supported mobile/tablet home-screen install, installed standalone launch/close-reopen/relaunch and offline reopening remain exact gap; desktop360px does not prove it.
 
 **T05b490f7d3 remains REJECTED** after recovered FINAL FAIL. [R1, retained positives, format/nonempty-fixture gaps](T05b-rejection-attributed.md); correction `ses_e74e88a0bffebSzNViA9MzSLKw` remains active. No acceptance or failed-candidate merge.
 
@@ -10,9 +12,9 @@
 
 [T06a2 rejection](T06a2-rejection-attributed.md): parent rejects25da9d81e1c7158b84f4151ec90d817a33f5a56a after independent `ses_e74d500a7ffeo065r9u4jlVqxr` FAIL F1–F5; retained16/101 PASS remains attributed, not erased. Original author `ses_e74ec4a83ffe256FD01xFxgSJf` correcting all5; no corrected head/acceptance. [T06a adapter-only acceptance](T06a-acceptance-attributed.md) at3cc43b3 is unaffected; full F06/T06/G2 still open.
 
-[Bounded upload-discovery CONTRACT acceptance](CONTRACT-discovery-acceptance-attributed.md): exact6c68a653178dab8a005d9d9df191864e04e59bcf, parent accepts after independent `ses_e74c0d61cffe5c1qniKnO3cSFr` PASS (20/strict compile/8+3/6 probes). Carried unchanged; not runtime/G2. T17b candidate **f27c1d9e788d1e11d56023596fb298216fd705e5** is under independent `ses_e74c1a062ffe3MRCjHVHW5WoOf`, author `ses_e74d46cf8ffeQ0rJu31V7qc7a6`; no acceptance/carry or duplicate workers.
+[Bounded upload-discovery CONTRACT acceptance](CONTRACT-discovery-acceptance-attributed.md): exact6c68a653178dab8a005d9d9df191864e04e59bcf, parent accepts after independent `ses_e74c0d61cffe5c1qniKnO3cSFr` PASS (20/strict compile/8+3/6 probes). Carried unchanged; not runtime/G2. T17b is now bounded accepted/carried, not an active review; earlier pending/not-carried labels are preserved checkpoint history, not current instructions.
 
-User override **`openai/gpt-6.1-sol-fast#xhigh`** remains parent-verified. Lint/CONTRACT carry and baseline-only ff are done; still wait corrected T05b independent PASS/parent acceptance, then instructed corrected T05b + accepted T06a carry and fresh independent final-combined review. No mixed-candidate/ref promotion; local-only/no push/PR/deploy/cloud, all134 U. Older current/next labels are historical, not duplicate dispatches.
+User override **`openai/gpt-6.1-sol-fast#xhigh`** remains parent-verified. Lint/CONTRACT/bounded PWA carry and baseline-only ff done; wait corrected T05b independent PASS/parent acceptance, then instructed corrected T05b + original accepted T06a carry and fresh independent final-combined review. No mixed-candidate/ref promotion; local-only/no push/PR/deploy/cloud, all134 U. Older current/next labels are historical, not duplicate dispatches.
 
 ## Historical T05a + R1 acceptance — 2026-10-27
 
