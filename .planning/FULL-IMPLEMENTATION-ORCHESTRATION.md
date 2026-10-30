@@ -171,6 +171,8 @@ Fresh independent verification against real isolated local PostgreSQL is require
 ### G2 — Early running dev
 A loopback local URL runs the verified SHA with real PostgreSQL login/sessions and persistent synthetic purchases. Two independent browser contexts/accounts see the same authorized purchase; app and database/storage process restarts preserve rows, sessions as intended, and private files. Runtime and migration credentials are separated; normal runtime has no test-reset capability. User receives private local login handoff, never a public default password. Hosted HTTPS is deferred, not passed. This is an intermediate milestone, not completion.
 
+**Current gate status (2026-10-30):** parent [ACCEPTS literal LOCAL G2 at EXACTd0b13455cdec498e0913c0b74566b90ee930e353 and http://127.0.0.1:8000/login](implementation/evidence/G2-d0-literal-acceptance-attributed.md), distinct completed seven-clause PASS. The G2 heading/criterion paragraph above is unchanged. No original-ID/primary promotion;26 LOCAL/108 U/134/VSTS-03 U unchanged. **G3 is next; G3–G6 remain unaccepted**, no full-v1/restore/physical-PWA/hosted claim or new implementation dispatch.
+
 ### G3 — Core dealership workflows
 T04–T10 and T14 accepted end to end. Verify: three purchase channels; repurchase history; repair dispatch/return; availability; four sale types; advance expiry/resolution; four approval types; write-off; audit and invoice versions. UI and direct HTTP share the same authoritative rules.
 

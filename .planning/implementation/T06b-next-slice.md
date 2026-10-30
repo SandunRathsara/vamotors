@@ -1,10 +1,10 @@
 # T06b — lawful staged-import private attachments
 
-## Current bounded ACCEPTED exact d0 — no whole-T06/G2/IMPT closure
+## Current bounded T06b accepted d0 / separate literal G2 accepted / G3 next
 
-Parent **ACCEPTS bounded T06b+combined EXACT d0b13455cdec498e0913c0b74566b90ee930e353**, distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 independent PASS/no product blockers, completed/services stopped retained. [Independent18+18/repeat/expiry/restart/downloads/security/limits/220 hashes and actual primary FF](evidence/T06b-d0b1345-acceptance-attributed.md). Source/14 migrations/registry10 exactd0;13 earlier SQL files retained, author1d/preparation/assembly pending history not deleted or relabelled. No new IDs/gates:26 LOCAL/108 U/134/VSTS-03 U/full T06/IMPT/G2–G6/restore/hosted/device unaccepted. Primary authorized clean FF-onlyac→exactd0 completed; newer records/T05c.1 not promoted.
+Bounded T06b acceptance at exactd0 and its independent220-artifact proof remain unchanged. Parent now separately [accepts literal LOCAL G2 on the actual named human runtime](evidence/G2-d0-literal-acceptance-attributed.md), not from T06 test roots alone. G3 next/G3–G6/full T06/IMPT/restore/physical/hosted/v1 unaccepted; no original-ID/primary promotion,26 LOCAL/108 U/134/VSTS-03 U/matrix bytes unchanged. Source14 migrations/registry10 remain exactd0; all historical source/failure evidence retained.
 
-T05c.1 remains sole ACTIVE source writer, instructed checkpoint/rebase accepted EXACTd0/14 migrations/own005/actual10→11 freeze/real attachments+bytes/NEW fresh and genuine-d0 NONEMPTY14→15 repeat/restart; latest head/outcome unknown. T05c.2 queued. Parent separately dispatches [original G2 operations-only human runtime](evidence/G2-human-d0-operations-dispatch.md), no shared source ownership and no launch/handoff success inferred. Earlier scope/security/tests and source observations below are historical dispatch specification, not current absent-code or pending-review claims.
+T05c.1 remains sole ACTIVE source writer/NOT RELEASED; checkpoint6412a4f/upgrade-repeat/static147 are author reports, full campaigns RUNNING, no final full SHA/tree/freeze or inspection. T05c.2 queued/no transfer; existing52 prep ready. G2 review completed/services intentionally left running; operations/review hold no source ownership. Earlier scope/security/tests/source observations below remain historical dispatch specification.
 
 ## Previous frozen1d REVIEW assembly / source-author release snapshot
 

@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-Accepted source/primary remains **d0b13455cdec498e0913c0b74566b90ee930e353**; **26 LOCAL/108 U/134**, no new acceptance/promotion, VSTS-03 U/G2–G6 unaccepted. [Current handoff](.planning/implementation/HANDOFF.md), [latest attributed status](.planning/implementation/evidence/current-preparation-human-runtime-status.md), [matrix](.planning/implementation/requirements-matrix.md). T05c.1 remains sole ACTIVE source writer; independent parent-fixture preparation complete, no candidate/verdict, final author head/rebase/freeze outcome unknown; T05c.2 queued. Parent reports G2 operator human URL **http://127.0.0.1:8000/login** and completed operator proof; distinct actual-human-runtime reviewer RUNNING/no verdict/**G2 NOT ACCEPTED**. Ledger has not tested the URL or inspected current service identity; private account values are never published.
+Parent **ACCEPTS literal LOCAL G2 early running dev** at **d0b13455cdec498e0913c0b74566b90ee930e353**, human **http://127.0.0.1:8000/login**, after distinct completed seven-clause PASS. [Acceptance/private path-only handoff/0600 sidecar/lifecycle/limits](.planning/implementation/evidence/G2-d0-literal-acceptance-attributed.md), [current HANDOFF](.planning/implementation/HANDOFF.md). Serving DEVELOPMENT; app+PG intentionally left running, no future uptime guarantee. **G3 next/G3–G6 unaccepted**, no full-v1 completion/new original-ID/primary promotion;26 LOCAL/108 U/134/VSTS-03 U/matrix bindings unchanged. T05c.1 sole author reports6412a4f/static147/upgrade-repeat, full campaigns RUNNING/NOT RELEASED/no final frozen source; T05c.2 queued. No ledger runtime/credential access; private login values are never published.
 
 ## Historical frontend-shell walkthrough
 

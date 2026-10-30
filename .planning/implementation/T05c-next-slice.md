@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1 acceptance remains at exactac; parent now [accepts bounded T06b+combined EXACTd0b13455cdec498e0913c0b74566b90ee930e353](evidence/T06b-d0b1345-acceptance-attributed.md), reviewer completed PASS. T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI remains SOLE ACTIVE shared source writer, parent-directed safe checkpoint/rebase EXACT ACCEPTEDd0/14 migrations/005/actual10→11 universes+real attachments/bytes/NEW fresh and genuine-d0 NONEMPTY14→15 repeat/restart; latest branch/head/outcome unknown. [Unchanged T05c.1 scope](T05c.1-next-slice.md); T05c.2 queued/NOT DISPATCHED. Separate [G2 operations-only owner](evidence/G2-human-d0-operations-dispatch.md) adds no source writer or G2 acceptance.26 bindings/VSTS-03 U/full T05/T06/G2–G6 limits unchanged; primary FF-onlyac→exactd0 succeeded, newer records not promoted.
+Bounded costs/P2/F1 atac and bounded T06b/d0 acceptance unchanged. Parent separately [accepts literal LOCAL G2](evidence/G2-d0-literal-acceptance-attributed.md), G3 next/G3–G6 unaccepted,26 original bindings/VSTS-03 U/full T05/T06 limits unchanged/no primary promotion. T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI remains SOLE ACTIVE source writer/NOT RELEASED: parent-reported6412a4f/upgrade-repeat/static147, full fresh/upgraded campaigns RUNNING, no returned full final SHA/tree/freeze or inspection. [Scope/final proof](T05c.1-next-slice.md) and52-artifact prep ready unchanged; T05c.2 queued/no transfer. No new implementation dispatch.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

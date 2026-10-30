@@ -1,12 +1,12 @@
 # Evidence index
 
-## Current accepted d0 / T05c.1 prep complete / G2 independent review RUNNING
+## Current literal LOCAL G2 ACCEPTED at d0 / next G3 / T05c.1 NOT RELEASED
 
 **[Independent bounded acceptance,220 artifact hashes, exact proof/limits/four helper failures/original clauses and actual primary FF](T06b-d0b1345-acceptance-attributed.md):** parent accepts EXACTd0b13455cdec498e0913c0b74566b90ee930e353 after distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 PASS/no product blockers, completed/owned services closed retained. Fresh18+genuine-ac18/repeat/expiry/restart/independent11+5/36 authenticated downloads/9 storage guards/retained costs17 each and other regressions are independent executions, not author counts. All limits remain explicit, including headless-CDP not physical PWA,1081 payloads/two nonidentical path launchers/parser corpus not rerun/coordinator supplements/bounded inventory wrapper.
 
-Accepted primaryd0/26 LOCAL/108 U/134 bindings/VSTS-03 U and P2/bounded F1 atac unchanged; no new gate/ID acceptance. T05c.1 remains sole ACTIVE source writer, final head/rebase/freeze outcome unknown; T05c.2 queued. **[New independent T05c.1 preparation complete, no candidate/verdict](current-preparation-human-runtime-status.md)**: exactd0 NONEMPTY14/registry10 fixture,52 hashes parent-verified, stopped/retained, awaiting frozen final combined SHA+release; original INIT/capacity constraints retained.
+Accepted primaryd0/26 LOCAL/108 U/134 bindings/VSTS-03 U and P2/bounded F1 atac unchanged; no original-ID/primary promotion. T05c.1 sole ACTIVE author reports checkpoint6412a4f/upgrade-repeat/static147 PASS; full campaigns RUNNING/NOT RELEASED, no final full SHA/tree/freeze or inspection. Existing52-artifact [independent preparation](current-preparation-human-runtime-status.md) stays ready; T05c.2 queued/no transfer.
 
-**[G2 operator proof complete; distinct review RUNNING](G2-human-d0-operations-dispatch.md)**: parent reports operator ses_e7292066cffe6V6B7QIdB6hQpe humanURL http://127.0.0.1:8000/login/persistence/restart/controller-exit/left running;55-file index operator claim, no ledger live-state check. Reviewer ses_e734bc50bffeWMSjm7Ed2xdxA2 already dispatched/running, must leave human services running; no verdict/G2 acceptance. [Detailed attribution and two capacity deadlines](current-preparation-human-runtime-status.md). No source/service/credential access or promotion in this update; earlier pending snapshots remain history.
+**[Parent literal LOCAL G2 acceptance /109 hashes/seven-clause independent PASS](G2-d0-literal-acceptance-attributed.md)** at named human http://127.0.0.1:8000/login/exactd0; reviewer completed, app+PG intentionally left running. New0600 private G2-ACCEPTED.md sidecar preserves original sealed HANDOFF/index/configs. Parent timestamped binding check is attributed, no invented raw artifact/ledger runtime check; tested lifecycle/capacity/DEVELOPMENT/uptime limits explicit. G3 next/G3–G6 unaccepted, no full-v1/restore/physical/hosted claim. Earlier pending-review states remain history.
 
 ## Previous frozen T06b1d + current13277 REVIEW assembly / T05c.1 initial-dispatch snapshot
 
