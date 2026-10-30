@@ -4,7 +4,7 @@
 
 Bounded T06b acceptance at exactd0 and its independent220-artifact proof remain unchanged. Parent now separately [accepts literal LOCAL G2 on the actual named human runtime](evidence/G2-d0-literal-acceptance-attributed.md), not from T06 test roots alone. G3 next/G3–G6/full T06/IMPT/restore/physical/hosted/v1 unaccepted; no original-ID/primary promotion,26 LOCAL/108 U/134/VSTS-03 U/matrix bytes unchanged. Source14 migrations/registry10 remain exactd0; all historical source/failure evidence retained.
 
-T05c.1 remains sole ACTIVE source writer/NOT RELEASED; checkpoint6412a4f/upgrade-repeat/static147 are author reports, full campaigns RUNNING, no final full SHA/tree/freeze or inspection. T05c.2 queued/no transfer; existing52 prep ready. G2 review completed/services intentionally left running; operations/review hold no source ownership. Earlier scope/security/tests/source observations below remain historical dispatch specification.
+T05c.1 COMPLETED FROZEN SOURCE/RELEASE ACK at84; [ordinary frozen84 + current1ee REVIEW assembly](evidence/T05c1-84cb87f-review-assembly.md), not acceptance. Existing52 prep ready awaits exact final combined SHA/tree/parent dispatch, no review running. Parent NOW DISPATCHED T05c.2 ses_e724e8803ffegV2I6w3qrj9OZS sole ACTIVE NEW writer from acceptedd0/unknown head,006 reserved/no unreviewed84 import/eventual accepted-T05c.1 rebase+new genuine-parent proof mandatory; T05c.1 fix first needs T05c.2 checkpoint/freeze/ACK. G2 human source/runtime stayd0, no update; operations/review hold no source ownership. Earlier scope/security/tests/source observations below remain historical dispatch specification.
 
 ## Previous frozen1d REVIEW assembly / source-author release snapshot
 

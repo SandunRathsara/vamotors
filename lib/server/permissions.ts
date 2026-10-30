@@ -23,6 +23,26 @@ export const sourcePaymentFields = [
   "reversalOf",
   "reason",
 ] as const
+export const mileageReadFields = [
+  "id",
+  "reading",
+  "date",
+  "remark",
+  "decreaseReason",
+] as const
+export const physicalFields = [
+  "engineNumber",
+  "chassisNumber",
+  "make",
+  "model",
+  "year",
+  "colour",
+  "fuelType",
+  "transmission",
+  "vin",
+  "crNumber",
+  "notes",
+] as const
 export const costReadFields = [
   "id",
   "revision",
@@ -96,6 +116,7 @@ export const registry = {
       "identityRevision",
       "holdReason",
       "mileage",
+      ...mileageReadFields.filter((f) => f !== "id").map((f) => `mileage.${f}`),
       "provenance",
       "identity.engineNumber",
       "identity.chassisNumber",
@@ -126,6 +147,11 @@ export const registry = {
       "vin",
       "crNumber",
       "notes",
+    ],
+    update: [
+      "vehicleId",
+      "reason",
+      ...physicalFields.map((f) => `values.${f}`),
     ],
   },
   Customer: {
@@ -190,6 +216,7 @@ export const registry = {
       "costs",
       "repairs",
       "mileage",
+      ...mileageReadFields.map((f) => `mileage.${f}`),
       "financial",
       "basisVersions",
       "sales",
@@ -240,6 +267,11 @@ export const registry = {
     update: [
       "reason",
       "cycleId",
+      "amount",
+      "mileage.reading",
+      "mileage.date",
+      "mileage.remark",
+      "mileage.decreaseReason",
       "patch.purchaseDate",
       "patch.purchasePrice",
       "patch.notes",
@@ -565,8 +597,8 @@ export const registry = {
     update: ["uploadId"],
   },
 } as const
-// Accepted v9 universes remain fixed; T06b adds only two independent subjects.
-export const registryVersion = 10
+// Freeze all accepted T06b v10 populations before exposing cycle-edit paths.
+export const registryVersion = 11
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],

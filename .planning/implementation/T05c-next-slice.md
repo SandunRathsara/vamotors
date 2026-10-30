@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1 atac and bounded T06b/d0 acceptance unchanged. Parent separately [accepts literal LOCAL G2](evidence/G2-d0-literal-acceptance-attributed.md), G3 next/G3–G6 unaccepted,26 original bindings/VSTS-03 U/full T05/T06 limits unchanged/no primary promotion. T05c.1 ses_e7376ed96ffe2a8RsopfGvBwgI remains SOLE ACTIVE source writer/NOT RELEASED: parent-reported6412a4f/upgrade-repeat/static147, full fresh/upgraded campaigns RUNNING, no returned full final SHA/tree/freeze or inspection. [Scope/final proof](T05c.1-next-slice.md) and52-artifact prep ready unchanged; T05c.2 queued/no transfer. No new implementation dispatch.
+Bounded costs/P2/F1 atac/T06b-d0 and [literal G2 acceptance atd0](evidence/G2-d0-literal-acceptance-attributed.md) unchanged; G3 next/G3–G6/full T05/T06 unaccepted,26 bindings/VSTS-03 U/no primary promotion. T05c.1 COMPLETED FROZEN SOURCE/RELEASE ACK at84, [current-records REVIEW assembly only](evidence/T05c1-84cb87f-review-assembly.md), AUTHOR PASS/UNACCEPTED;641 full campaigns and84 affected reruns separately attributed. Independent52 prep ready awaits exact final combined SHA/tree/parent dispatch. Parent NOW DISPATCHED T05c.2 ses_e724e8803ffegV2I6w3qrj9OZS sole ACTIVE NEW writer from acceptedd0/unknown head,006 reserved/no unreviewed84 import/eventual accepted-T05c.1 rebase+new genuine-parent proof required. T05c.1 fix requires T05c.2 checkpoint/freeze/ACK then parent reassignment; no concurrent authors.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

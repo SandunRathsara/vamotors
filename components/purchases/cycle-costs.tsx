@@ -696,8 +696,9 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
       )}
       <p>
         Repairs, closed-cycle restatement, sales/repurchase, settlement-channel
-        changes, mileage/listed-price and physical-identity edits remain queued;
-        none are fabricated here.
+        changes remain queued; none are fabricated here. Authorized open-cycle
+        mileage, asking-price and physical corrections use the separate edit
+        panel.
       </p>
     </section>
   )

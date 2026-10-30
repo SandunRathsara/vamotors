@@ -606,7 +606,7 @@ try {
           a.request,
           name,
           envelope({ cycleId: row.id }, [ref(row)]),
-          ["editPurchase", "addCost"].includes(name) ? 422 : 404
+          ["editPurchase", "addCost", "setListedPrice"].includes(name) ? 422 : 404
         )
       assert.equal(await snapshot(), before)
     }
