@@ -137,6 +137,24 @@ object, not newer records. Sole shared-source ownership remains active here.
   rows/receipt absence, preserve the negative, positively delegate only existing
   broad Supplier.id, add staged bytes, and snapshot. No gross/channel reseed.
 
+- At cleandffaee3, all five affected/unstarted UI selections exited0 sequentially:
+  actual keyboard rejection (including immediate response evidence), stale/failed-
+  read explicit new-key reconfirmation, same-cookie grant loss/deactivation purge,
+  real bell read-one/all/private-cache exclusion and strengthened logout purge.
+  Initial three current-base UI groups remain attributed to clean6db86df; runtime
+  source is unchanged from the successfulb4c1aac production build. No suppressions.
+- The first bounded parent resume retained the403 arbitrary-holder ceiling and
+  exact no-effects snapshot, then found the separate legitimate Role.read result
+  ceiling: Supplier-only role creation returns404 because the existing useful
+  delegate has no Role.read id/revision. Do NOT add those grants. Both failures
+  remain receipts; the runner now asserts403 and404/no-effects explicitly while
+  keeping its already proven real acquisition/read/foreign404 usefulness. Any
+  earlier proposed positive delegation language is superseded by these measured
+  unchanged-role premises. Gross/channel facts still must not be reseeded.
+- Added native A/C/C+1 review proof consuming the genuine C−99 parent witness only
+  AFTER successful forward retention/repeat. It is authored/type/lint checked,
+  not executed yet. Fresh-root security/SQL/regressions and final quality remain.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,

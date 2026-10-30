@@ -437,10 +437,10 @@ async function enrich() {
         ).status(),
         404
       )
-      await f.command(
-        delegate,
-        "saveRole",
-        envelope({
+      const beforeDelegation = await snapshot()
+      const delegation = await delegate.post("/api/v1/commands/saveRole", {
+        headers: { Origin: f.origin },
+        data: envelope({
           name: `Lawful parent236 delegated child ${suffix}`,
           grants: [
             {
@@ -450,10 +450,12 @@ async function enrich() {
             },
           ],
           reason:
-            "Actual broad supplier authority permits bounded delegation; own-record authority does not",
+            "Existing delegate lacks Role.read result fields; do not repair fixture grants",
         }),
-        201
-      )
+      })
+      assert.equal(delegation.status(), 404)
+      assert.equal((await delegation.json()).error.code, "NOT_FOUND")
+      assert.deepEqual(await snapshot(), beforeDelegation)
     } finally {
       await delegate.dispose()
     }
@@ -609,17 +611,19 @@ async function resumeEnrichment(): Promise<Awaited<ReturnType<typeof enrich>>> {
     assert.equal(denied.status(), 403)
     assert.equal((await denied.json()).error.code, "FORBIDDEN")
     assert.deepEqual(await snapshot(), before)
-    await f.command(
-      reader,
-      "saveRole",
-      envelope({
+    const beforeSupplierDelegation = await snapshot()
+    const supplierDelegation = await reader.post("/api/v1/commands/saveRole", {
+      headers: { Origin: f.origin },
+      data: envelope({
         name: `Lawful supplier-only delegation ${randomUUID()}`,
         grants: [{ subject: "Supplier", action: "read", fields: ["id"] }],
         reason:
-          "Existing broad Supplier grant covers arbitrary eventual holders; own-record grant does not",
+          "Existing broad Supplier ceiling is not Role.read result authority; no fixture grant repair",
       }),
-      201
-    )
+    })
+    assert.equal(supplierDelegation.status(), 404)
+    assert.equal((await supplierDelegation.json()).error.code, "NOT_FOUND")
+    assert.deepEqual(await snapshot(), beforeSupplierDelegation)
     const retained = {
       cycles,
       grossCycle: row.id,
