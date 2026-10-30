@@ -1,8 +1,11 @@
 allowBuilds:
-  '@prisma/client': true
-  '@prisma/engines': true
+  "@prisma/client": true
+  "@prisma/engines": true
   prisma: true
   esbuild: true
   msw: true
   sharp: true
   unrs-resolver: true
+patchedDependencies:
+  pdfjs-dist@6.4.299: patches/pdfjs-dist@6.4.299.patch
+  "@stacksjs/ts-webp@0.1.7": patches/@stacksjs__ts-webp@0.1.7.patch
