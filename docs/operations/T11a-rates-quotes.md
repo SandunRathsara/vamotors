@@ -2,6 +2,8 @@
 
 This bounded vertical implements LBRK-01–05 and the **selection/charges/snapshot part** of LBRK-06. It does not accept full T11, T06 or G4. Brokerage intake/customer/guarantor/eligibility and execution remain explicit later tasks. “Open brokerage intake” is truthfully disabled. No quote operation creates a Vehicle, PurchaseRecord or BrokerageDeal.
 
+The independently verified rebase parent is exact `b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3`. The prebase author checkpoint remains preserved on `t11a-rates-prebase-1ed9867`; its earlier counts are historical, not final rebased evidence.
+
 ## Runtime
 
 - `/lease-rate-sheets`: authorized persisted sheets/cards and immutable publication form. Active companies come from the persisted directory, through every authorized page; no fixture companies.
@@ -47,7 +49,7 @@ pnpm typecheck
 pnpm lint
 ```
 
-The single maintained campaign launches a production Next server on a random loopback port, signs in three real accounts using Chromium, publishes synthetic A/B cards via UI at1920/360px, verifies HTTP/database snapshots, exercises exact lookup/negative/security/race/rollback/retry cases, and stops its own server/browser. It retains synthetic database rows. No auth state, credentials or unredacted server diagnostics are written to repository evidence.
+The single maintained campaign launches a production Next server on a random loopback port with the actual controlling `/sw.js`, signs in three real accounts using Chromium, publishes synthetic A/B cards via UI at1920/360px, verifies HTTP/database snapshots, exercises exact lookup/negative/security/race/rollback/retry cases, and stops its own server/browser. A context-level transport fault commits through real HTTP before aborting the response; the identical retry must return the original receipt with zero new effects. Same-membership grant revocation retains rate drafts while clearing private reads; changed membership/identity discards them. No worker bypass or mocked finance/auth/transaction invariant is used. It retains synthetic database rows. No auth state, credentials or unredacted server diagnostics are written to repository evidence.
 
 ### Genuine exact-parent upgrade
 
@@ -61,3 +63,5 @@ node --import tsx tests/security/rates-check.ts "$PRIVATE_UPGRADE_ROOT" verify-u
 ```
 
 `prepare-upgrade` adds a synthetic retained finance policy/company and non-admin wildcard/conditional ceiling in the genuinely old schema, then captures private row/permission/join/ACL/migration-checksum evidence. `verify-upgrade` requires parent ancestry, exact unchanged old migrations/business rows/Permission bytes/joins, unchanged non-admin role revisions, only four new protected-admin joins, preserved old column privileges and insert/read-only new table grants. This is upgrade proof, not final v1/deployment acceptance.
+
+Before prepare, run the normal committed parent `stock-receipt-check.ts` and `purchase-acquisition-check.ts` against that exact parent installation, then run this campaign from the parent checkout with `seed-parent` (the script may be addressed by its absolute candidate path). That mode uses genuine parent HTTP commands to populate finance policy/contact revisions, customer and supplier/contact rows. Prepare fails closed if the required parent populations, received/held stock, payments/status/audit histories, ten old migrations or actual source SHA are missing. The added non-admin metadata includes assigned wildcard/conditional and Role/User delegation ceilings. Snapshot coverage includes StatusEvent, SupplierContact and BusinessSequence. Verify requires eleven migrations and can be repeated after repeated setup without reseeding or deleting anything.

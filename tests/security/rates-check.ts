@@ -47,6 +47,7 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
       "SettingsVersion",
       "Customer",
       "Supplier",
+      "SupplierContact",
       "FinanceCompany",
       "FinanceContact",
       "FinancePolicyVersion",
@@ -55,6 +56,8 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
       "PurchasePayment",
       "CycleBasisVersion",
       "MileageReading",
+      "StatusEvent",
+      "BusinessSequence",
       "CommandReceipt",
       "AuditEntry",
       "EntityReadVersion",
@@ -90,6 +93,13 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
   }
   try {
     if (process.argv[3] === "prepare-upgrade") {
+      assert.equal(
+        execFileSync("git", ["rev-parse", "HEAD"], {
+          cwd: cluster.PROJECT,
+          encoding: "utf8",
+        }).trim(),
+        process.argv[4]
+      )
       assert.equal(
         (
           await db.query(
@@ -136,6 +146,16 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
         )
         for (const rule of [
           { subject: "FinanceCompany", action: "read", fields: ["*"] },
+          { subject: "Vehicle", action: "read", fields: ["*"] },
+          { subject: "PurchaseRecord", action: "update", fields: ["*"] },
+          { subject: "Role", action: "read", fields: ["*"] },
+          { subject: "Role", action: "update", fields: ["name", "grants"] },
+          {
+            subject: "User",
+            action: "read",
+            fields: ["id", "revision", "roles"],
+          },
+          { subject: "User", action: "update", fields: ["roleIds"] },
           {
             subject: "Vehicle",
             action: "read",
@@ -155,6 +175,15 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
             [roleId, hash]
           )
         }
+        const staffId = (
+          await connection.query(
+            'SELECT u.id FROM vamotors."user" u WHERE NOT EXISTS(SELECT 1 FROM vamotors."UserRole" ur JOIN vamotors."Role" r ON r.id=ur."roleId" WHERE ur."userId"=u.id AND r."systemKey"=\'ADMINISTRATOR\') ORDER BY u.id LIMIT 1'
+          )
+        ).rows[0].id
+        await connection.query(
+          'INSERT INTO vamotors."UserRole"("userId","roleId","assignedBy") VALUES($1,$2,$3)',
+          [staffId, roleId, owner]
+        )
         await connection.query("SET CONSTRAINTS ALL IMMEDIATE")
         await connection.query("COMMIT")
       } catch (error) {
@@ -165,9 +194,33 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
       }
       const parent = process.argv[4]
       assert.match(parent ?? "", /^[a-f0-9]{40}$/)
+      const before = await snapshot()
+      for (const name of [
+        "FinanceCompany",
+        "FinanceContact",
+        "FinancePolicyVersion",
+        "Supplier",
+        "SupplierContact",
+        "Customer",
+        "PurchaseRecord",
+        "PurchasePayment",
+        "StatusEvent",
+        "AuditEntry",
+        "EntityReadVersion",
+      ])
+        assert.ok(before.tables[name].length > 0, `EMPTY_PARENT_${name}`)
+      assert.ok(before.tables.FinancePolicyVersion.length >= 2)
+      assert.ok(
+        before.tables.PurchaseRecord.some(
+          (r) =>
+            r.status === "IN_STOCK" && r.available === false && !!r.holdReason
+        ),
+        "parent must contain received and held stock"
+      )
+      assert.equal(before.migrations.length, 10)
       await writeFile(
         join(root, "t11a-parent-snapshot.json"),
-        JSON.stringify({ parent, ...(await snapshot()) }),
+        JSON.stringify({ parent, ...before }),
         { mode: 0o600, flag: "wx" }
       )
       console.log(
@@ -183,6 +236,7 @@ if (["prepare-upgrade", "verify-upgrade"].includes(process.argv[3])) {
         { stdio: "pipe" }
       )
       const after = await snapshot()
+      assert.equal(after.migrations.length, 11)
       assert.deepEqual(after.migrations.slice(0, -1), before.migrations)
       assert.equal(
         after.migrations.at(-1)!.migration_name,
@@ -306,6 +360,7 @@ await new Promise<void>((resolve, reject) => {
 const browser = await chromium.launch({ headless: true })
 const a = await browser.newContext({
     baseURL: origin,
+    serviceWorkers: "allow",
     viewport: { width: 1920, height: 1080 },
   }),
   b = await browser.newContext({
@@ -451,10 +506,15 @@ const counters = async () =>
   ).rows[0]
 let stage = "initialize",
   groups = 0
+const results: string[] = []
+const sourceSHA = execFileSync("git", ["rev-parse", "HEAD"], {
+  encoding: "utf8",
+}).trim()
 async function group(name: string, run: () => Promise<void>) {
   stage = name
   await run()
   groups++
+  results.push(name)
   console.log(`PASS ${name}`)
 }
 let ca: PartyDTO,
@@ -464,942 +524,1309 @@ let ca: PartyDTO,
   quoteRequest: ReturnType<typeof env>,
   quoteCommandId: string
 try {
-  await group(
-    "real administrator/staff browser sessions; anonymous/origin denial",
-    async () => {
-      await login(page, "ADMIN")
-      await login(mobile, "SECOND")
-      await login(staffPage, "STAFF")
-      assert.equal(
-        (
-          await anonymous.request.post("/api/v1/queries/loanMaxima", {
-            headers: { origin },
-            data: maxima(),
-          })
-        ).status(),
-        401
+  if (process.argv[3] === "seed-parent") {
+    assert.equal(sourceSHA, "b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3")
+    await login(page, "ADMIN")
+    const s = await settings()
+    const created = await applied(
+      a.request,
+      "createFinanceCompany",
+      env(
+        {
+          name: `Retained parent finance ${suffix}`,
+          contacts: [contact],
+          policy,
+        },
+        [ref("Settings", s)]
       )
-      assert.equal(
-        (
-          await a.request.post("/api/v1/queries/loanMaxima", {
-            headers: { origin: "http://foreign.invalid" },
-            data: maxima(),
-          })
-        ).status(),
-        403
+    )
+    const owner = await company(created.result.id)
+    await applied(
+      a.request,
+      "updateFinanceCompany",
+      env(
+        {
+          id: owner.id,
+          name: owner.name,
+          contacts: [contact],
+          policy: {
+            ...policy,
+            processingFee: "123450",
+            commission: { ...policy.commission, rateBps: 175 },
+          },
+          reason: "Retained second parent policy",
+        },
+        [ref("FinanceCompany", owner), ref("Settings", s)]
       )
-      assert.equal(
-        (await anonymous.request.get("/api/lease-rate-sheets")).status(),
-        401
-      )
-    }
-  )
-  await group(
-    "persistent finance directory and desktop/mobile UI publication exact synthetic A/B cards",
-    async () => {
-      const s = await settings()
-      ca = await company(
-        (
-          await applied(
-            a.request,
-            "createFinanceCompany",
-            env(
-              { name: `Synthetic A ${suffix}`, contacts: [contact], policy },
-              [ref("Settings", s)]
+    )
+    await applied(
+      a.request,
+      "createDirectoryParty",
+      env({
+        type: "SUPPLIER",
+        values: {
+          name: `Retained parent supplier ${suffix}`,
+          category: "COMPANY",
+          contacts: [contact],
+        },
+      })
+    )
+    await applied(
+      a.request,
+      "createCustomer",
+      env({
+        fullName: `Retained parent customer ${suffix}`,
+        callingName: "Retained",
+        nicOrPassport: `PARENT-${suffix}`,
+        address: "Synthetic Colombo",
+        phone: "0771234567",
+      })
+    )
+    console.log(
+      `PASS exact-parent ${sourceSHA} real HTTP finance/policy/contact/customer/supplier fixtures`
+    )
+  } else {
+    await group(
+      "real administrator/staff browser sessions; anonymous/origin denial",
+      async () => {
+        await login(page, "ADMIN")
+        await page.waitForFunction(
+          () => navigator.serviceWorker.controller?.state === "activated",
+          undefined,
+          { timeout: 5000 }
+        )
+        assert.deepEqual(
+          await page.evaluate(async () => {
+            const r = await navigator.serviceWorker.ready
+            return {
+              scope: r.scope,
+              active: r.active?.scriptURL,
+              controller: navigator.serviceWorker.controller?.scriptURL,
+            }
+          }),
+          {
+            scope: `${origin}/`,
+            active: `${origin}/sw.js`,
+            controller: `${origin}/sw.js`,
+          }
+        )
+        await login(mobile, "SECOND")
+        await login(staffPage, "STAFF")
+        assert.equal(
+          (
+            await anonymous.request.post("/api/v1/queries/loanMaxima", {
+              headers: { origin },
+              data: maxima(),
+            })
+          ).status(),
+          401
+        )
+        assert.equal(
+          (
+            await a.request.post("/api/v1/queries/loanMaxima", {
+              headers: { origin: "http://foreign.invalid" },
+              data: maxima(),
+            })
+          ).status(),
+          403
+        )
+        assert.equal(
+          (await anonymous.request.get("/api/lease-rate-sheets")).status(),
+          401
+        )
+      }
+    )
+    await group(
+      "persistent finance directory and desktop/mobile UI publication exact synthetic A/B cards",
+      async () => {
+        const s = await settings()
+        ca = await company(
+          (
+            await applied(
+              a.request,
+              "createFinanceCompany",
+              env(
+                { name: `Synthetic A ${suffix}`, contacts: [contact], policy },
+                [ref("Settings", s)]
+              )
             )
-          )
-        ).result.id
-      )
-      cb = await company(
-        (
-          await applied(
-            a.request,
-            "createFinanceCompany",
-            env(
-              {
-                name: `Synthetic B ${suffix}`,
-                contacts: [contact],
-                policy: { ...policy, path: "REFERRAL" },
-              },
-              [ref("Settings", s)]
+          ).result.id
+        )
+        cb = await company(
+          (
+            await applied(
+              a.request,
+              "createFinanceCompany",
+              env(
+                {
+                  name: `Synthetic B ${suffix}`,
+                  contacts: [contact],
+                  policy: { ...policy, path: "REFERRAL" },
+                },
+                [ref("Settings", s)]
+              )
             )
+          ).result.id
+        )
+        for (const [p, owner, max, installments] of [
+          [page, ca, "1200", ["90", "50"]],
+          [mobile, cb, "1100", ["95", "55"]],
+        ] as const) {
+          await p.goto("/lease-rate-sheets")
+          await p
+            .getByLabel("Finance company", { exact: true })
+            .selectOption(owner.id)
+          for (const [label, value] of [
+            ["Make", vehicle.make],
+            ["Model", vehicle.model],
+            ["Manufacture year", "2026"],
+            ["Valid from", dateOffset(-1)],
+            ["Valid through (inclusive)", dateOffset(30)],
+            ["Maximum loan", max],
+            ["Principal 1", "1000"],
+            ["Months 1", "12"],
+            ["Installment 1", installments[0]],
+          ])
+            await p.getByLabel(label, { exact: true }).fill(value)
+          await p.getByRole("button", { name: "Add card", exact: true }).click()
+          await p.getByLabel("Principal 2").fill("1000")
+          await p.getByLabel("Months 2").fill("24")
+          await p.getByLabel("Installment 2").fill(installments[1])
+          const response = p.waitForResponse((r) =>
+            r.url().endsWith("/commands/publishRates")
           )
-        ).result.id
-      )
-      for (const [p, owner, max, installments] of [
-        [page, ca, "1200", ["90", "50"]],
-        [mobile, cb, "1100", ["95", "55"]],
-      ] as const) {
-        await p.goto("/lease-rate-sheets")
-        await p
-          .getByLabel("Finance company", { exact: true })
-          .selectOption(owner.id)
+          await p
+            .getByRole("button", { name: "Publish rates", exact: true })
+            .click()
+          assert.equal((await response).status(), 201)
+          await expect(
+            p
+              .getByRole("status")
+              .filter({ hasText: "Published immutable sheet" })
+          ).toBeVisible()
+          assert.ok(
+            await p.evaluate(
+              () => document.documentElement.scrollWidth <= window.innerWidth
+            ),
+            "horizontal overflow"
+          )
+        }
+        const rows = (
+          await db.query(
+            'SELECT s.maximum::text,c.principal::text,c.months,c.installment::text FROM vamotors."RateSheetVersion" s JOIN vamotors."RateCardEntry" c ON c."sheetVersionId"=s.id WHERE s."companyId"=ANY($1::uuid[]) ORDER BY s.maximum DESC,c.months',
+            [[ca.id, cb.id]]
+          )
+        ).rows
+        assert.deepEqual(rows, [
+          {
+            maximum: "120000",
+            principal: "100000",
+            months: 12,
+            installment: "9000",
+          },
+          {
+            maximum: "120000",
+            principal: "100000",
+            months: 24,
+            installment: "5000",
+          },
+          {
+            maximum: "110000",
+            principal: "100000",
+            months: 12,
+            installment: "9500",
+          },
+          {
+            maximum: "110000",
+            principal: "100000",
+            months: 24,
+            installment: "5500",
+          },
+        ])
+      }
+    )
+    await group(
+      "maxima before principal is read-only; both directions identical exact cards; unsupported/over-limit/expired",
+      async () => {
+        const before = await counters()
+        const max = await read<LoanMaximumDTO[]>(
+          a.request,
+          "loanMaxima",
+          maxima()
+        )
+        assert.equal(max.find((r) => r.companyId === ca.id)?.maximum, "120000")
+        assert.equal(max.find((r) => r.companyId === cb.id)?.maximum, "110000")
+        for (const months of [12, 24]) {
+          const byMonths = await read<CompareResult[]>(
+            a.request,
+            "compare",
+            compare("100000", { months })
+          )
+          for (const result of byMonths.filter((r) =>
+            [ca.id, cb.id].includes(r.companyId)
+          )) {
+            assert.equal(result.status, "SUPPORTED")
+            if (result.status !== "SUPPORTED") throw new Error("NO_EXACT_CARD")
+            const reverse = await read<CompareResult[]>(
+              a.request,
+              "compare",
+              compare("100000", { installment: result.installment })
+            )
+            assert.deepEqual(
+              reverse.find((r) => r.companyId === result.companyId),
+              result
+            )
+            if (months === 12 && result.companyId === ca.id) option = result
+          }
+        }
+        const unsupported = await read<CompareResult[]>(
+          a.request,
+          "compare",
+          compare("100100")
+        )
+        assert.deepEqual(
+          unsupported
+            .filter((r) => [ca.id, cb.id].includes(r.companyId))
+            .map((r) => r.status === "UNSUPPORTED" && r.reason),
+          ["NO_CARD", "NO_CARD"]
+        )
+        const over = (
+          await read<CompareResult[]>(a.request, "compare", compare("120100"))
+        ).find((r) => r.companyId === ca.id)!
+        assert.equal(over.maximum, "120000")
+        assert.equal(over.status === "UNSUPPORTED" && over.reason, "OVER_LIMIT")
+        assert.equal(over.sheetRevision, 1)
+        const expired = (
+          await read<CompareResult[]>(
+            a.request,
+            "compare",
+            compare("100000", { months: 12 }, vehicle.model, dateOffset(31))
+          )
+        ).find((r) => r.companyId === ca.id)!
+        assert.equal(
+          expired.status === "UNSUPPORTED" && expired.reason,
+          "EXPIRED"
+        )
+        assert.equal(expired.maximum, null)
+        assert.deepEqual(await counters(), before)
+        await mobile.goto("/lease-comparison")
         for (const [label, value] of [
           ["Make", vehicle.make],
           ["Model", vehicle.model],
           ["Manufacture year", "2026"],
-          ["Valid from", dateOffset(-1)],
-          ["Valid through (inclusive)", dateOffset(30)],
-          ["Maximum loan", max],
-          ["Principal 1", "1000"],
-          ["Months 1", "12"],
-          ["Installment 1", installments[0]],
         ])
-          await p.getByLabel(label, { exact: true }).fill(value)
-        await p.getByRole("button", { name: "Add card", exact: true }).click()
-        await p.getByLabel("Principal 2").fill("1000")
-        await p.getByLabel("Months 2").fill("24")
-        await p.getByLabel("Installment 2").fill(installments[1])
-        const response = p.waitForResponse((r) =>
-          r.url().endsWith("/commands/publishRates")
-        )
-        await p
-          .getByRole("button", { name: "Publish rates", exact: true })
+          await mobile.getByLabel(label, { exact: true }).fill(value)
+        await mobile
+          .getByRole("button", { name: "Check loan maxima", exact: true })
           .click()
-        assert.equal((await response).status(), 201)
         await expect(
-          p.getByRole("status").filter({ hasText: "Published immutable sheet" })
-        ).toBeVisible()
+          mobile.getByRole("region", { name: "Company loan maxima" })
+        ).toContainText("Maximum 1200.00")
+        await expect(mobile.getByLabel("Requested principal")).toHaveValue("")
+        await mobile.getByLabel("Requested principal").fill("1000")
+        await mobile.getByLabel("Period (months)", { exact: true }).fill("12")
+        await mobile
+          .getByRole("button", { name: "Compare exact cards", exact: true })
+          .click()
+        await expect(
+          mobile.getByRole("region", { name: "Exact comparison results" })
+        ).toContainText("installment 90.00")
         assert.ok(
-          await p.evaluate(
+          await mobile.evaluate(
             () => document.documentElement.scrollWidth <= window.innerWidth
-          ),
-          "horizontal overflow"
-        )
-      }
-      const rows = (
-        await db.query(
-          'SELECT s.maximum::text,c.principal::text,c.months,c.installment::text FROM vamotors."RateSheetVersion" s JOIN vamotors."RateCardEntry" c ON c."sheetVersionId"=s.id WHERE s."companyId"=ANY($1::uuid[]) ORDER BY s.maximum DESC,c.months',
-          [[ca.id, cb.id]]
-        )
-      ).rows
-      assert.deepEqual(rows, [
-        {
-          maximum: "120000",
-          principal: "100000",
-          months: 12,
-          installment: "9000",
-        },
-        {
-          maximum: "120000",
-          principal: "100000",
-          months: 24,
-          installment: "5000",
-        },
-        {
-          maximum: "110000",
-          principal: "100000",
-          months: 12,
-          installment: "9500",
-        },
-        {
-          maximum: "110000",
-          principal: "100000",
-          months: 24,
-          installment: "5500",
-        },
-      ])
-    }
-  )
-  await group(
-    "maxima before principal is read-only; both directions identical exact cards; unsupported/over-limit/expired",
-    async () => {
-      const before = await counters()
-      const max = await read<LoanMaximumDTO[]>(
-        a.request,
-        "loanMaxima",
-        maxima()
-      )
-      assert.equal(max.find((r) => r.companyId === ca.id)?.maximum, "120000")
-      assert.equal(max.find((r) => r.companyId === cb.id)?.maximum, "110000")
-      for (const months of [12, 24]) {
-        const byMonths = await read<CompareResult[]>(
-          a.request,
-          "compare",
-          compare("100000", { months })
-        )
-        for (const result of byMonths.filter((r) =>
-          [ca.id, cb.id].includes(r.companyId)
-        )) {
-          assert.equal(result.status, "SUPPORTED")
-          if (result.status !== "SUPPORTED") throw new Error("NO_EXACT_CARD")
-          const reverse = await read<CompareResult[]>(
-            a.request,
-            "compare",
-            compare("100000", { installment: result.installment })
           )
-          assert.deepEqual(
-            reverse.find((r) => r.companyId === result.companyId),
-            result
-          )
-          if (months === 12 && result.companyId === ca.id) option = result
-        }
+        )
+        await mobile.getByLabel("Known term").selectOption("installment")
+        await mobile
+          .getByLabel("Installment amount", { exact: true })
+          .fill("90")
+        await mobile
+          .getByRole("button", { name: "Compare exact cards", exact: true })
+          .click()
+        await expect(
+          mobile.getByRole("region", { name: "Exact comparison results" })
+        ).toContainText("12 months · installment 90.00")
       }
-      const unsupported = await read<CompareResult[]>(
-        a.request,
-        "compare",
-        compare("100100")
-      )
-      assert.deepEqual(
-        unsupported
-          .filter((r) => [ca.id, cb.id].includes(r.companyId))
-          .map((r) => r.status === "UNSUPPORTED" && r.reason),
-        ["NO_CARD", "NO_CARD"]
-      )
-      const over = (
-        await read<CompareResult[]>(a.request, "compare", compare("120100"))
-      ).find((r) => r.companyId === ca.id)!
-      assert.equal(over.maximum, "120000")
-      assert.equal(over.status === "UNSUPPORTED" && over.reason, "OVER_LIMIT")
-      assert.equal(over.sheetRevision, 1)
-      const expired = (
-        await read<CompareResult[]>(
+    )
+    await group(
+      "desktop keyboard quote selection → HTTP → immutable snapshot; same-key replay and snapshot policy retention",
+      async () => {
+        await page.goto("/lease-comparison")
+        for (const [label, value] of [
+          ["Make", vehicle.make],
+          ["Model", vehicle.model],
+          ["Manufacture year", "2026"],
+          ["Requested principal", "1000"],
+          ["Period (months)", "12"],
+        ])
+          await page.getByLabel(label, { exact: true }).fill(value)
+        const compareButton = page.getByRole("button", {
+          name: "Compare exact cards",
+          exact: true,
+        })
+        await compareButton.focus()
+        await page.keyboard.press("Enter")
+        const card = page
+          .getByRole("article")
+          .filter({
+            has: page.getByRole("heading", { name: ca.name, exact: true }),
+          })
+          .filter({ hasText: "installment 90.00" })
+        await card.getByRole("button", { name: "Select exact option" }).click()
+        await expect(
+          page.getByText("Processing path", { exact: true })
+        ).toBeVisible()
+        await page.getByLabel("Document fees", { exact: true }).fill("25")
+        await page.getByLabel("Government fees", { exact: true }).fill("10")
+        const pending = page.waitForResponse((r) =>
+          r.url().endsWith("/commands/selectQuote")
+        )
+        await page
+          .getByRole("button", { name: "Save quote snapshot", exact: true })
+          .click()
+        const response = await pending
+        assert.equal(response.status(), 201)
+        quoteRequest = response.request().postDataJSON()
+        const result = (await response.json()) as Applied
+        quoteCommandId = result.commandId
+        quote = await query<QuoteDTO>(
           a.request,
-          "compare",
-          compare("100000", { months: 12 }, vehicle.model, dateOffset(31))
+          "quote",
+          `?id=${result.result.id}`
         )
-      ).find((r) => r.companyId === ca.id)!
-      assert.equal(
-        expired.status === "UNSUPPORTED" && expired.reason,
-        "EXPIRED"
-      )
-      assert.equal(expired.maximum, null)
-      assert.deepEqual(await counters(), before)
-      await mobile.goto("/lease-comparison")
-      for (const [label, value] of [
-        ["Make", vehicle.make],
-        ["Model", vehicle.model],
-        ["Manufacture year", "2026"],
-      ])
-        await mobile.getByLabel(label, { exact: true }).fill(value)
-      await mobile
-        .getByRole("button", { name: "Check loan maxima", exact: true })
-        .click()
-      await expect(
-        mobile.getByRole("region", { name: "Company loan maxima" })
-      ).toContainText("Maximum 1200.00")
-      await expect(mobile.getByLabel("Requested principal")).toHaveValue("")
-      await mobile.getByLabel("Requested principal").fill("1000")
-      await mobile.getByLabel("Period (months)", { exact: true }).fill("12")
-      await mobile
-        .getByRole("button", { name: "Compare exact cards", exact: true })
-        .click()
-      await expect(
-        mobile.getByRole("region", { name: "Exact comparison results" })
-      ).toContainText("installment 90.00")
-      assert.ok(
-        await mobile.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth
-        )
-      )
-      await mobile.getByLabel("Known term").selectOption("installment")
-      await mobile.getByLabel("Installment amount", { exact: true }).fill("90")
-      await mobile
-        .getByRole("button", { name: "Compare exact cards", exact: true })
-        .click()
-      await expect(
-        mobile.getByRole("region", { name: "Exact comparison results" })
-      ).toContainText("12 months · installment 90.00")
-    }
-  )
-  await group(
-    "desktop keyboard quote selection → HTTP → immutable snapshot; same-key replay and snapshot policy retention",
-    async () => {
-      await page.goto("/lease-comparison")
-      for (const [label, value] of [
-        ["Make", vehicle.make],
-        ["Model", vehicle.model],
-        ["Manufacture year", "2026"],
-        ["Requested principal", "1000"],
-        ["Period (months)", "12"],
-      ])
-        await page.getByLabel(label, { exact: true }).fill(value)
-      const compareButton = page.getByRole("button", {
-        name: "Compare exact cards",
-        exact: true,
-      })
-      await compareButton.focus()
-      await page.keyboard.press("Enter")
-      const card = page
-        .getByRole("article")
-        .filter({
-          has: page.getByRole("heading", { name: ca.name, exact: true }),
-        })
-        .filter({ hasText: "installment 90.00" })
-      await card.getByRole("button", { name: "Select exact option" }).click()
-      await expect(
-        page.getByText("Processing path", { exact: true })
-      ).toBeVisible()
-      await page.getByLabel("Document fees", { exact: true }).fill("25")
-      await page.getByLabel("Government fees", { exact: true }).fill("10")
-      const pending = page.waitForResponse((r) =>
-        r.url().endsWith("/commands/selectQuote")
-      )
-      await page
-        .getByRole("button", { name: "Save quote snapshot", exact: true })
-        .click()
-      const response = await pending
-      assert.equal(response.status(), 201)
-      quoteRequest = response.request().postDataJSON()
-      const result = (await response.json()) as Applied
-      quoteCommandId = result.commandId
-      quote = await query<QuoteDTO>(
-        a.request,
-        "quote",
-        `?id=${result.result.id}`
-      )
-      assert.equal(quote.principal, "100000")
-      assert.equal(quote.maximum, "120000")
-      assert.deepEqual(quote.charges, [
-        { category: "DOCUMENT_FEES", amount: "2500" },
-        { category: "GOVERNMENT_FEES", amount: "1000" },
-      ])
-      assert.deepEqual(quote.policy, policy)
-      await expect(
-        page.getByRole("heading", { name: "Saved quote handoff" })
-      ).toBeVisible()
-      await expect(
-        page.getByRole("button", {
-          name: "Open brokerage intake — not implemented",
-        })
-      ).toBeDisabled()
-      const old = (
-        await db.query(
-          'SELECT to_jsonb(q) AS snapshot FROM vamotors."Quote" q WHERE id=$1',
-          [quote.id]
-        )
-      ).rows[0].snapshot
-      assert.equal(old.commissionExpected, 1000)
-      assert.equal(old.companySnapshot.contacts[0].name, contact.name)
-      assert.equal(old.settingsSnapshot.currency, "LKR")
-      assert.ok(new Date(quote.expiresAt).valueOf() > Date.now())
-      assert.ok(
-        new Date(quote.expiresAt).valueOf() <=
-          new Date(`${old.createdAt}Z`).valueOf() + 86400000,
-        "expiry must not exceed UTC createdAt plus 24 hours"
-      )
-      const updated = await applied(
-        a.request,
-        "updateFinanceCompany",
-        env(
-          {
-            id: ca.id,
-            name: ca.name,
-            contacts: [contact],
-            policy: {
-              ...policy,
-              path: "REFERRAL",
-              commission: { basis: "FINANCED_PRINCIPAL", rateBps: 300 },
-              processingFee: "999900",
-            },
-            reason: "Synthetic future policy",
-          },
-          [ref("FinanceCompany", ca), ref("Settings", await settings())]
-        )
-      )
-      ca = await company(updated.result.id)
-      assert.deepEqual(
-        (
+        assert.equal(quote.principal, "100000")
+        assert.equal(quote.maximum, "120000")
+        assert.deepEqual(quote.charges, [
+          { category: "DOCUMENT_FEES", amount: "2500" },
+          { category: "GOVERNMENT_FEES", amount: "1000" },
+        ])
+        assert.deepEqual(quote.policy, policy)
+        await expect(
+          page.getByRole("heading", { name: "Saved quote handoff" })
+        ).toBeVisible()
+        await expect(
+          page.getByRole("button", {
+            name: "Open brokerage intake — not implemented",
+          })
+        ).toBeDisabled()
+        const old = (
           await db.query(
             'SELECT to_jsonb(q) AS snapshot FROM vamotors."Quote" q WHERE id=$1',
             [quote.id]
           )
-        ).rows[0].snapshot,
-        old
-      )
-      const loaded = await query<QuoteDTO>(
-        a.request,
-        "quote",
-        `?id=${quote.id}`
-      )
-      assert.deepEqual(loaded.policy, policy)
-      assert.equal(loaded.companyRevision, ca.revision)
-      const before = await counters()
-      const replay = await applied(a.request, "selectQuote", quoteRequest)
-      assert.equal(replay.commandId, quoteCommandId)
-      assert.equal(replay.replayed, true)
-      assert.deepEqual(await counters(), before)
-      await denied(
-        await post(a.request, "selectQuote", {
-          ...quoteRequest,
-          idempotencyKey: randomUUID(),
-        }),
-        409,
-        "STALE_REVISION"
-      )
-      await denied(
-        await post(a.request, "selectQuote", {
-          ...quoteRequest,
-          input: { ...(quoteRequest.input as object), charges: [] },
-        }),
-        409,
-        "IDEMPOTENCY_MISMATCH"
-      )
-      await mobile.goto(`/lease-comparison?quote=${quote.id}`)
-      await expect(
-        mobile.getByRole("heading", { name: "Saved quote handoff" })
-      ).toBeVisible()
-      await expect(
-        mobile.getByText(`Quote ${quote.id}`, { exact: true })
-      ).toBeVisible()
-    }
-  )
-  await group(
-    "strict duplicate/overlap/bounds/CAS/expiry/ambiguous negatives with zero writes",
-    async () => {
-      const before = await counters(),
-        base = publishInput(ca)
-      for (const patch of [
-        { cards: [...base.cards, base.cards[0]] },
-        { maximum: "99999" },
-        { validFrom: dateOffset(40) },
-        { actor: "forged" },
-        { maximum: 120000 },
-        { cards: [{ principal: "abc", months: 12, installment: "1" }] },
-        { cards: [{ principal: "100000", months: 121, installment: "1" }] },
-      ])
+        ).rows[0].snapshot
+        assert.equal(old.commissionExpected, 1000)
+        assert.equal(old.companySnapshot.contacts[0].name, contact.name)
+        assert.equal(old.settingsSnapshot.currency, "LKR")
+        assert.ok(new Date(quote.expiresAt).valueOf() > Date.now())
+        assert.ok(
+          new Date(quote.expiresAt).valueOf() <=
+            new Date(`${old.createdAt}Z`).valueOf() + 86400000,
+          "expiry must not exceed UTC createdAt plus 24 hours"
+        )
+        const updated = await applied(
+          a.request,
+          "updateFinanceCompany",
+          env(
+            {
+              id: ca.id,
+              name: ca.name,
+              contacts: [contact],
+              policy: {
+                ...policy,
+                path: "REFERRAL",
+                commission: { basis: "FINANCED_PRINCIPAL", rateBps: 300 },
+                processingFee: "999900",
+              },
+              reason: "Synthetic future policy",
+            },
+            [ref("FinanceCompany", ca), ref("Settings", await settings())]
+          )
+        )
+        ca = await company(updated.result.id)
+        assert.deepEqual(
+          (
+            await db.query(
+              'SELECT to_jsonb(q) AS snapshot FROM vamotors."Quote" q WHERE id=$1',
+              [quote.id]
+            )
+          ).rows[0].snapshot,
+          old
+        )
+        const loaded = await query<QuoteDTO>(
+          a.request,
+          "quote",
+          `?id=${quote.id}`
+        )
+        assert.deepEqual(loaded.policy, policy)
+        assert.equal(loaded.companyRevision, ca.revision)
+        const before = await counters()
+        const replay = await applied(a.request, "selectQuote", quoteRequest)
+        assert.equal(replay.commandId, quoteCommandId)
+        assert.equal(replay.replayed, true)
+        assert.deepEqual(await counters(), before)
+        await denied(
+          await post(a.request, "selectQuote", {
+            ...quoteRequest,
+            idempotencyKey: randomUUID(),
+          }),
+          409,
+          "STALE_REVISION"
+        )
+        await denied(
+          await post(a.request, "selectQuote", {
+            ...quoteRequest,
+            input: { ...(quoteRequest.input as object), charges: [] },
+          }),
+          409,
+          "IDEMPOTENCY_MISMATCH"
+        )
+        await mobile.goto(`/lease-comparison?quote=${quote.id}`)
+        await expect(
+          mobile.getByRole("heading", { name: "Saved quote handoff" })
+        ).toBeVisible()
+        await expect(
+          mobile.getByText(`Quote ${quote.id}`, { exact: true })
+        ).toBeVisible()
+      }
+    )
+    await group(
+      "strict duplicate/overlap/bounds/CAS/expiry/ambiguous negatives with zero writes",
+      async () => {
+        const before = await counters(),
+          base = publishInput(ca)
+        for (const patch of [
+          { cards: [...base.cards, base.cards[0]] },
+          { maximum: "99999" },
+          { validFrom: dateOffset(40) },
+          { actor: "forged" },
+          { maximum: 120000 },
+          { cards: [{ principal: "abc", months: 12, installment: "1" }] },
+          { cards: [{ principal: "100000", months: 121, installment: "1" }] },
+        ])
+          await denied(
+            await post(
+              a.request,
+              "publishRates",
+              env({ ...base, ...patch }, [ref("FinanceCompany", ca)])
+            ),
+            422,
+            "INVALID_INPUT"
+          )
         await denied(
           await post(
             a.request,
             "publishRates",
-            env({ ...base, ...patch }, [ref("FinanceCompany", ca)])
+            env(base, [ref("FinanceCompany", ca)])
+          ),
+          409,
+          "IDENTITY_CONFLICT"
+        )
+        await denied(
+          await post(
+            a.request,
+            "publishRates",
+            env({ ...base, model: "missing-cas" })
+          ),
+          428,
+          "REVISION_REQUIRED"
+        )
+        await denied(
+          await post(
+            a.request,
+            "selectQuote",
+            env(
+              {
+                sheetId: option.sheetId,
+                cardId: randomUUID(),
+                vehicle,
+                charges: [],
+              },
+              [
+                ref("FinanceCompany", ca),
+                { type: "RateSheet", id: option.sheetId, revision: 1 },
+                ref("Settings", await settings()),
+              ]
+            )
           ),
           422,
-          "INVALID_INPUT"
+          "UNSUPPORTED_RATE"
         )
-      await denied(
-        await post(
+        assert.deepEqual(await counters(), before)
+        const expiredModel = `expired-${suffix}`
+        const expiredSheet = await applied(
           a.request,
           "publishRates",
-          env(base, [ref("FinanceCompany", ca)])
-        ),
-        409,
-        "IDENTITY_CONFLICT"
-      )
-      await denied(
-        await post(
+          env(
+            {
+              ...base,
+              model: expiredModel,
+              validFrom: dateOffset(-3),
+              validThrough: dateOffset(-1),
+            },
+            [ref("FinanceCompany", ca)]
+          )
+        )
+        const expiredCard = (
+          await db.query(
+            'SELECT id FROM vamotors."RateCardEntry" WHERE "sheetVersionId"=$1 LIMIT 1',
+            [expiredSheet.result.id]
+          )
+        ).rows[0].id
+        await denied(
+          await post(
+            a.request,
+            "selectQuote",
+            env(
+              {
+                sheetId: expiredSheet.result.id,
+                cardId: expiredCard,
+                vehicle: { ...vehicle, model: expiredModel },
+                charges: [],
+              },
+              [
+                ref("FinanceCompany", ca),
+                { type: "RateSheet", id: expiredSheet.result.id, revision: 1 },
+                ref("Settings", await settings()),
+              ]
+            )
+          ),
+          409,
+          "QUOTE_EXPIRED"
+        )
+        const ambiguousModel = `ambiguous-${suffix}`
+        await applied(
           a.request,
           "publishRates",
-          env({ ...base, model: "missing-cas" })
-        ),
-        428,
-        "REVISION_REQUIRED"
-      )
-      await denied(
-        await post(
+          env(
+            {
+              ...base,
+              model: ambiguousModel,
+              cards: [
+                { principal: "100000", months: 12, installment: "9000" },
+                { principal: "100000", months: 24, installment: "9000" },
+              ],
+            },
+            [ref("FinanceCompany", ca)]
+          )
+        )
+        const result = (
+          await read<CompareResult[]>(
+            a.request,
+            "compare",
+            compare("100000", { installment: "9000" }, ambiguousModel)
+          )
+        ).find((r) => r.companyId === ca.id)!
+        assert.equal(result.status, "UNSUPPORTED")
+        if (result.status !== "UNSUPPORTED")
+          throw new Error("AMBIGUITY_NOT_EXPLICIT")
+        assert.equal(result.reason, "AMBIGUOUS")
+        assert.equal(result.choices!.length, 2)
+        assert.equal(result.maximum, "120000")
+        assert.equal(result.sheetRevision, 1)
+        const selected = await applied(
           a.request,
           "selectQuote",
           env(
             {
+              sheetId: result.sheetId,
+              cardId: result.choices![1].cardId,
+              vehicle: { ...vehicle, model: ambiguousModel },
+              charges: [],
+            },
+            [
+              ref("FinanceCompany", ca),
+              { type: "RateSheet", id: result.sheetId!, revision: 1 },
+              ref("Settings", await settings()),
+            ]
+          )
+        )
+        assert.equal(
+          (
+            await query<QuoteDTO>(
+              a.request,
+              "quote",
+              `?id=${selected.result.id}`
+            )
+          ).months,
+          24
+        )
+      }
+    )
+    await group(
+      "real permissions: own/foreign quote, company scoped rows, hidden policy/charges, explicit delegated handoff, immediate revocation",
+      async () => {
+        const actor = await query<QueryData["currentActor"]>(
+          staff.request,
+          "currentActor"
+        )
+        const baseGrants: Grant[] = [
+          { subject: "FinanceCompany", action: "read", fields: ["*"] },
+          { subject: "Settings", action: "read", fields: ["id", "revision"] },
+          {
+            subject: "RateSheet",
+            action: "read",
+            fields: ["*"],
+            conditions: { financeCompanyId: ca.id },
+          },
+          { subject: "Quote", action: "create", fields: ["*"] },
+          {
+            subject: "Quote",
+            action: "read",
+            fields: ["*"],
+            conditions: { createdBy: "$actor.id" },
+          },
+        ]
+        const createdRole = await applied(
+          a.request,
+          "saveRole",
+          env({
+            name: `Rates scoped ${suffix}`,
+            grants: baseGrants,
+            reason: "Synthetic exact-rate proof",
+          })
+        )
+        let role = await query<RoleDTO>(
+          a.request,
+          "role",
+          `?id=${createdRole.result.id}`
+        )
+        const user = await query<UserAdminDTO>(
+          a.request,
+          "user",
+          `?id=${actor.user.id}`
+        )
+        await applied(
+          a.request,
+          "updateUser",
+          env(
+            {
+              id: user.id,
+              name: user.name,
+              active: true,
+              roleIds: [role.id],
+              reason: "Synthetic rate scope",
+            },
+            [ref("User", user), ref("Role", role)]
+          )
+        )
+        const scoped = await read<CompareResult[]>(
+          staff.request,
+          "compare",
+          compare()
+        )
+        assert.deepEqual(
+          scoped.map((r) => r.companyId),
+          [ca.id]
+        )
+        await denied(
+          await staff.request.get(`/api/v1/queries/quote?id=${quote.id}`),
+          404,
+          "NOT_FOUND"
+        )
+        const s = await settings(),
+          body = env(
+            {
               sheetId: option.sheetId,
-              cardId: randomUUID(),
+              cardId: option.cardId,
               vehicle,
               charges: [],
             },
             [
               ref("FinanceCompany", ca),
               { type: "RateSheet", id: option.sheetId, revision: 1 },
-              ref("Settings", await settings()),
+              ref("Settings", s),
             ]
           )
-        ),
-        422,
-        "UNSUPPORTED_RATE"
-      )
-      assert.deepEqual(await counters(), before)
-      const expiredModel = `expired-${suffix}`
-      const expiredSheet = await applied(
-        a.request,
-        "publishRates",
-        env(
-          {
-            ...base,
-            model: expiredModel,
-            validFrom: dateOffset(-3),
-            validThrough: dateOffset(-1),
-          },
-          [ref("FinanceCompany", ca)]
+        const own = await applied(staff.request, "selectQuote", body)
+        const ownQuote = await query<QuoteDTO>(
+          staff.request,
+          "quote",
+          `?id=${own.result.id}`
         )
-      )
-      const expiredCard = (
-        await db.query(
-          'SELECT id FROM vamotors."RateCardEntry" WHERE "sheetVersionId"=$1 LIMIT 1',
-          [expiredSheet.result.id]
+        assert.equal(ownQuote.createdBy, user.id)
+        async function grants(next: Grant[]) {
+          await applied(
+            a.request,
+            "saveRole",
+            env(
+              {
+                id: role.id,
+                name: role.name,
+                grants: next,
+                reason: "Synthetic current authority",
+              },
+              [ref("Role", role)]
+            )
+          )
+          role = await query<RoleDTO>(a.request, "role", `?id=${role.id}`)
+        }
+        await grants(
+          baseGrants.filter(
+            (g) => !(g.subject === "Quote" && g.action === "read")
+          )
         )
-      ).rows[0].id
-      await denied(
-        await post(
-          a.request,
+        const createOnly = await applied(
+          staff.request,
           "selectQuote",
+          env(body.input, body.expected)
+        )
+        await denied(
+          await staff.request.get(
+            `/api/v1/queries/quote?id=${createOnly.result.id}`
+          ),
+          404,
+          "NOT_FOUND"
+        )
+        await grants(
+          baseGrants.map((g) =>
+            g.subject === "Quote" && g.action === "create"
+              ? { ...g, fields: ["sheetId", "cardId", "vehicle"] }
+              : g
+          )
+        )
+        const noCharges = await counters()
+        await denied(
+          await post(
+            staff.request,
+            "selectQuote",
+            env(
+              {
+                ...(body.input as object),
+                charges: [{ category: "DOCUMENT_FEES", amount: "1" }],
+              },
+              body.expected
+            )
+          ),
+          403,
+          "FIELD_FORBIDDEN"
+        )
+        assert.deepEqual(await counters(), noCharges)
+        await grants(baseGrants)
+        await grants([
+          ...baseGrants.filter(
+            (g) => !(g.subject === "Quote" && g.action === "read")
+          ),
+          {
+            subject: "Quote",
+            action: "read",
+            fields: [
+              "id",
+              "revision",
+              "companyId",
+              "companyRevision",
+              "policy.path",
+            ],
+            conditions: { financeCompanyId: ca.id },
+          },
+        ])
+        const partial = await query<Partial<QuoteDTO>>(
+          staff.request,
+          "quote",
+          `?id=${quote.id}`
+        )
+        assert.equal(partial.policy?.path, "APPLICATION")
+        assert.equal(partial.policy?.commission, undefined)
+        assert.equal(partial.charges, undefined)
+        await grants([
+          ...baseGrants.filter((g) => g.subject !== "FinanceCompany"),
+          {
+            subject: "FinanceCompany",
+            action: "read",
+            fields: ["id", "name", "active"],
+          },
+          {
+            subject: "Quote",
+            action: "read",
+            fields: ["*"],
+            conditions: { financeCompanyId: ca.id },
+          },
+        ])
+        const hiddenReference = await query<Partial<QuoteDTO>>(
+          staff.request,
+          "quote",
+          `?id=${quote.id}`
+        )
+        assert.equal(hiddenReference.companyRevision, undefined)
+        await denied(
+          await post(
+            staff.request,
+            "selectQuote",
+            env(body.input, body.expected)
+          ),
+          403,
+          "FIELD_FORBIDDEN"
+        )
+        await grants([
+          ...baseGrants,
+          {
+            subject: "Quote",
+            action: "read",
+            fields: ["*"],
+            conditions: { financeCompanyId: ca.id },
+          },
+        ])
+        assert.equal(
+          (await query<QuoteDTO>(staff.request, "quote", `?id=${quote.id}`))
+            .principal,
+          "100000"
+        )
+        await staffPage.goto("/lease-comparison")
+        for (const [label, value] of [
+          ["Make", vehicle.make],
+          ["Model", vehicle.model],
+          ["Manufacture year", "2026"],
+          ["Requested principal", "1000"],
+          ["Period (months)", "12"],
+        ])
+          await staffPage.getByLabel(label, { exact: true }).fill(value)
+        await staffPage
+          .getByRole("button", { name: "Compare exact cards", exact: true })
+          .click()
+        await staffPage
+          .getByRole("button", { name: "Select exact option" })
+          .click()
+        await staffPage.getByLabel("Document fees", { exact: true }).fill("25")
+        await expect(
+          staffPage.getByText("Processing path", { exact: true })
+        ).toBeVisible()
+        const blocker = await db.connect()
+        try {
+          await blocker.query("BEGIN")
+          await blocker.query(
+            'SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE'
+          )
+          const pending = staffPage.waitForResponse((r) =>
+            r.url().endsWith("/commands/selectQuote")
+          )
+          await staffPage
+            .getByRole("button", { name: "Save quote snapshot", exact: true })
+            .click()
+          let waiting = false
+          for (let attempt = 0; attempt < 50; attempt++) {
+            waiting =
+              Number(
+                (
+                  await monitor.query(
+                    "SELECT count(*) AS n FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE '%BusinessSequence%'"
+                  )
+                ).rows[0].n
+              ) > 0
+            if (waiting) break
+            await new Promise((resolve) => setTimeout(resolve, 10))
+          }
+          assert.ok(
+            waiting,
+            "command must really wait before authority revocation"
+          )
+          await grants(
+            baseGrants.filter(
+              (g) => !(g.subject === "Quote" && g.action === "create")
+            )
+          )
+          const counts = await counters()
+          await blocker.query("COMMIT")
+          assert.equal((await pending).status(), 403)
+          await expect(
+            staffPage.getByRole("alert").filter({ hasText: "FORBIDDEN" })
+          ).toBeVisible()
+          await expect(
+            staffPage.getByLabel("Document fees", { exact: true })
+          ).toHaveValue("25")
+          await expect(
+            staffPage.getByRole("region", { name: "Exact comparison results" })
+          ).toHaveCount(0)
+          await staffPage
+            .getByRole("button", {
+              name: "Retry identical quote request",
+              exact: true,
+            })
+            .click()
+          await expect(
+            staffPage.getByRole("alert").filter({ hasText: "FORBIDDEN" })
+          ).toBeVisible()
+          assert.deepEqual(await counters(), counts)
+        } finally {
+          await blocker.query("ROLLBACK")
+          blocker.release()
+        }
+        const before = await counters()
+        await denied(
+          await post(
+            staff.request,
+            "selectQuote",
+            env(body.input, body.expected)
+          ),
+          403,
+          "FORBIDDEN"
+        )
+        await denied(
+          await post(staff.request, "selectQuote", body),
+          403,
+          "FORBIDDEN"
+        )
+        assert.deepEqual(await counters(), before)
+        await grants([
+          { subject: "FinanceCompany", action: "read", fields: ["*"] },
+          {
+            subject: "RateSheet",
+            action: "read",
+            fields: [
+              "id",
+              "revision",
+              "companyId",
+              "make",
+              "model",
+              "year",
+              "validFrom",
+              "validThrough",
+            ],
+          },
+        ])
+        await denied(
+          await staff.request.post("/api/v1/queries/loanMaxima", {
+            headers: { origin },
+            data: maxima(),
+          }),
+          403,
+          "FIELD_FORBIDDEN"
+        )
+        const extraResult = await applied(
+          a.request,
+          "saveRole",
+          env({
+            name: `Membership boundary ${suffix}`,
+            grants: [],
+            reason: "Synthetic changed-membership proof",
+          })
+        )
+        const extra = await query<RoleDTO>(
+          a.request,
+          "role",
+          `?id=${extraResult.result.id}`
+        )
+        const currentUser = await query<UserAdminDTO>(
+          a.request,
+          "user",
+          `?id=${user.id}`
+        )
+        await applied(
+          a.request,
+          "updateUser",
           env(
             {
-              sheetId: expiredSheet.result.id,
-              cardId: expiredCard,
-              vehicle: { ...vehicle, model: expiredModel },
+              id: user.id,
+              name: currentUser.name,
+              active: true,
+              roleIds: [role.id, extra.id],
+              reason: "Synthetic changed membership",
+            },
+            [ref("User", currentUser), ref("Role", role), ref("Role", extra)]
+          )
+        )
+        const reload = staffPage.waitForEvent("domcontentloaded")
+        await staffPage.evaluate(() =>
+          window.dispatchEvent(new Event("auth-check"))
+        )
+        await reload
+        await expect(
+          staffPage.getByLabel("Document fees", { exact: true })
+        ).toHaveCount(0)
+        await expect(
+          staffPage.getByLabel("Requested principal", { exact: true })
+        ).toHaveValue("")
+        await staffPage
+          .getByLabel("Make", { exact: true })
+          .fill(`Private identity draft ${suffix}`)
+        await staff.clearCookies()
+        await staff.addCookies(await b.cookies(origin))
+        const identityReload = staffPage.waitForEvent("domcontentloaded")
+        await staffPage.evaluate(() =>
+          window.dispatchEvent(new Event("auth-check"))
+        )
+        await identityReload
+        await expect(staffPage.getByLabel("Make", { exact: true })).toHaveValue(
+          ""
+        )
+        assert.equal(
+          (
+            await query<QueryData["currentActor"]>(
+              staff.request,
+              "currentActor"
+            )
+          ).user.id,
+          (await query<QueryData["currentActor"]>(b.request, "currentActor"))
+            .user.id
+        )
+        assert.equal(
+          await staffPage.evaluate(
+            (marker) =>
+              JSON.stringify({ ...localStorage, ...sessionStorage }).includes(
+                marker
+              ),
+            suffix
+          ),
+          false
+        )
+      }
+    )
+    await group(
+      "concurrent identical select exactly once; overlap race; essential audit fault atomic rollback; restricted grants",
+      async () => {
+        const s = await settings(),
+          body = env(
+            {
+              sheetId: option.sheetId,
+              cardId: option.cardId,
+              vehicle,
               charges: [],
             },
             [
               ref("FinanceCompany", ca),
-              { type: "RateSheet", id: expiredSheet.result.id, revision: 1 },
-              ref("Settings", await settings()),
+              { type: "RateSheet", id: option.sheetId, revision: 1 },
+              ref("Settings", s),
             ]
           )
-        ),
-        409,
-        "QUOTE_EXPIRED"
-      )
-      const ambiguousModel = `ambiguous-${suffix}`
-      await applied(
-        a.request,
-        "publishRates",
-        env(
-          {
-            ...base,
-            model: ambiguousModel,
-            cards: [
-              { principal: "100000", months: 12, installment: "9000" },
-              { principal: "100000", months: 24, installment: "9000" },
-            ],
-          },
-          [ref("FinanceCompany", ca)]
+        const before = await counters(),
+          results = await Promise.all([
+            applied(a.request, "selectQuote", body),
+            applied(a.request, "selectQuote", body),
+          ])
+        assert.equal(results[0].commandId, results[1].commandId)
+        assert.equal(results[0].result.id, results[1].result.id)
+        assert.equal(results.filter((r) => r.replayed).length, 1)
+        const after = await counters()
+        assert.equal(BigInt(after.quotes) - BigInt(before.quotes), 1n)
+        assert.equal(BigInt(after.audits) - BigInt(before.audits), 1n)
+        const overlap = publishInput(ca, `race-${suffix}`)
+        const race = await Promise.all([
+          post(
+            a.request,
+            "publishRates",
+            env(overlap, [ref("FinanceCompany", ca)])
+          ),
+          post(
+            b.request,
+            "publishRates",
+            env(overlap, [ref("FinanceCompany", ca)])
+          ),
+        ])
+        assert.deepEqual(race.map((r) => r.status()).sort(), [201, 409])
+        await db.query(
+          `CREATE FUNCTION vamotors.t11a_audit_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."entityType" IN ('RateSheet','Quote') THEN RAISE EXCEPTION 'SYNTHETIC_AUDIT_FAULT'; END IF; RETURN NEW; END $$; CREATE TRIGGER t11a_audit_fault BEFORE INSERT ON vamotors."AuditEntry" FOR EACH ROW EXECUTE FUNCTION vamotors.t11a_audit_fault()`
         )
-      )
-      const result = (
-        await read<CompareResult[]>(
-          a.request,
-          "compare",
-          compare("100000", { installment: "9000" }, ambiguousModel)
-        )
-      ).find((r) => r.companyId === ca.id)!
-      assert.equal(result.status, "UNSUPPORTED")
-      if (result.status !== "UNSUPPORTED")
-        throw new Error("AMBIGUITY_NOT_EXPLICIT")
-      assert.equal(result.reason, "AMBIGUOUS")
-      assert.equal(result.choices!.length, 2)
-      assert.equal(result.maximum, "120000")
-      assert.equal(result.sheetRevision, 1)
-      const selected = await applied(
-        a.request,
-        "selectQuote",
-        env(
-          {
-            sheetId: result.sheetId,
-            cardId: result.choices![1].cardId,
-            vehicle: { ...vehicle, model: ambiguousModel },
-            charges: [],
-          },
-          [
-            ref("FinanceCompany", ca),
-            { type: "RateSheet", id: result.sheetId!, revision: 1 },
-            ref("Settings", await settings()),
-          ]
-        )
-      )
-      assert.equal(
-        (await query<QuoteDTO>(a.request, "quote", `?id=${selected.result.id}`))
-          .months,
-        24
-      )
-    }
-  )
-  await group(
-    "real permissions: own/foreign quote, company scoped rows, hidden policy/charges, explicit delegated handoff, immediate revocation",
-    async () => {
-      const actor = await query<QueryData["currentActor"]>(
-        staff.request,
-        "currentActor"
-      )
-      const baseGrants: Grant[] = [
-        { subject: "FinanceCompany", action: "read", fields: ["*"] },
-        { subject: "Settings", action: "read", fields: ["id", "revision"] },
-        {
-          subject: "RateSheet",
-          action: "read",
-          fields: ["*"],
-          conditions: { financeCompanyId: ca.id },
-        },
-        { subject: "Quote", action: "create", fields: ["*"] },
-        {
-          subject: "Quote",
-          action: "read",
-          fields: ["*"],
-          conditions: { createdBy: "$actor.id" },
-        },
-      ]
-      const createdRole = await applied(
-        a.request,
-        "saveRole",
-        env({
-          name: `Rates scoped ${suffix}`,
-          grants: baseGrants,
-          reason: "Synthetic exact-rate proof",
-        })
-      )
-      let role = await query<RoleDTO>(
-        a.request,
-        "role",
-        `?id=${createdRole.result.id}`
-      )
-      const user = await query<UserAdminDTO>(
-        a.request,
-        "user",
-        `?id=${actor.user.id}`
-      )
-      await applied(
-        a.request,
-        "updateUser",
-        env(
-          {
-            id: user.id,
-            name: user.name,
-            active: true,
-            roleIds: [role.id],
-            reason: "Synthetic rate scope",
-          },
-          [ref("User", user), ref("Role", role)]
-        )
-      )
-      const scoped = await read<CompareResult[]>(
-        staff.request,
-        "compare",
-        compare()
-      )
-      assert.deepEqual(
-        scoped.map((r) => r.companyId),
-        [ca.id]
-      )
-      await denied(
-        await staff.request.get(`/api/v1/queries/quote?id=${quote.id}`),
-        404,
-        "NOT_FOUND"
-      )
-      const s = await settings(),
-        body = env(
-          {
-            sheetId: option.sheetId,
-            cardId: option.cardId,
-            vehicle,
-            charges: [],
-          },
-          [
-            ref("FinanceCompany", ca),
-            { type: "RateSheet", id: option.sheetId, revision: 1 },
-            ref("Settings", s),
-          ]
-        )
-      const own = await applied(staff.request, "selectQuote", body)
-      const ownQuote = await query<QuoteDTO>(
-        staff.request,
-        "quote",
-        `?id=${own.result.id}`
-      )
-      assert.equal(ownQuote.createdBy, user.id)
-      async function grants(next: Grant[]) {
-        await applied(
-          a.request,
-          "saveRole",
-          env(
-            {
-              id: role.id,
-              name: role.name,
-              grants: next,
-              reason: "Synthetic current authority",
-            },
-            [ref("Role", role)]
+        try {
+          const counts = await counters()
+          assert.equal(
+            (
+              await post(
+                a.request,
+                "selectQuote",
+                env(body.input, body.expected)
+              )
+            ).status(),
+            500
           )
-        )
-        role = await query<RoleDTO>(a.request, "role", `?id=${role.id}`)
-      }
-      await grants(
-        baseGrants.filter(
-          (g) => !(g.subject === "Quote" && g.action === "read")
-        )
-      )
-      const createOnly = await applied(
-        staff.request,
-        "selectQuote",
-        env(body.input, body.expected)
-      )
-      await denied(
-        await staff.request.get(
-          `/api/v1/queries/quote?id=${createOnly.result.id}`
-        ),
-        404,
-        "NOT_FOUND"
-      )
-      await grants(
-        baseGrants.map((g) =>
-          g.subject === "Quote" && g.action === "create"
-            ? { ...g, fields: ["sheetId", "cardId", "vehicle"] }
-            : g
-        )
-      )
-      const noCharges = await counters()
-      await denied(
-        await post(
-          staff.request,
-          "selectQuote",
-          env(
-            {
-              ...(body.input as object),
-              charges: [{ category: "DOCUMENT_FEES", amount: "1" }],
-            },
-            body.expected
+          assert.deepEqual(await counters(), counts)
+          await page.goto("/lease-rate-sheets")
+          await page
+            .getByLabel("Finance company", { exact: true })
+            .selectOption(ca.id)
+          for (const [label, value] of [
+            ["Make", vehicle.make],
+            ["Model", `transient-${suffix}`],
+            ["Manufacture year", "2026"],
+            ["Valid from", dateOffset(-1)],
+            ["Valid through (inclusive)", dateOffset(30)],
+            ["Maximum loan", "1200"],
+            ["Principal 1", "1000"],
+            ["Months 1", "12"],
+            ["Installment 1", "90"],
+          ])
+            await page.getByLabel(label, { exact: true }).fill(value)
+          await page
+            .getByRole("button", { name: "Publish rates", exact: true })
+            .click()
+          await expect(
+            page.getByRole("alert").filter({ hasText: "INTERNAL_ERROR" })
+          ).toBeVisible()
+          await expect(
+            page.getByLabel("Maximum loan", { exact: true })
+          ).toHaveValue("1200")
+          assert.deepEqual(await counters(), counts)
+        } finally {
+          await db.query(
+            'DROP TRIGGER t11a_audit_fault ON vamotors."AuditEntry"; DROP FUNCTION vamotors.t11a_audit_fault()'
           )
-        ),
-        403,
-        "FIELD_FORBIDDEN"
-      )
-      assert.deepEqual(await counters(), noCharges)
-      await grants(baseGrants)
-      await grants([
-        ...baseGrants.filter(
-          (g) => !(g.subject === "Quote" && g.action === "read")
-        ),
-        {
-          subject: "Quote",
-          action: "read",
-          fields: [
-            "id",
-            "revision",
-            "companyId",
-            "companyRevision",
-            "policy.path",
-          ],
-          conditions: { financeCompanyId: ca.id },
-        },
-      ])
-      const partial = await query<Partial<QuoteDTO>>(
-        staff.request,
-        "quote",
-        `?id=${quote.id}`
-      )
-      assert.equal(partial.policy?.path, "APPLICATION")
-      assert.equal(partial.policy?.commission, undefined)
-      assert.equal(partial.charges, undefined)
-      await grants([
-        ...baseGrants.filter((g) => g.subject !== "FinanceCompany"),
-        {
-          subject: "FinanceCompany",
-          action: "read",
-          fields: ["id", "name", "active"],
-        },
-        {
-          subject: "Quote",
-          action: "read",
-          fields: ["*"],
-          conditions: { financeCompanyId: ca.id },
-        },
-      ])
-      const hiddenReference = await query<Partial<QuoteDTO>>(
-        staff.request,
-        "quote",
-        `?id=${quote.id}`
-      )
-      assert.equal(hiddenReference.companyRevision, undefined)
-      await denied(
-        await post(
-          staff.request,
-          "selectQuote",
-          env(body.input, body.expected)
-        ),
-        403,
-        "FIELD_FORBIDDEN"
-      )
-      await grants([
-        ...baseGrants,
-        {
-          subject: "Quote",
-          action: "read",
-          fields: ["*"],
-          conditions: { financeCompanyId: ca.id },
-        },
-      ])
-      assert.equal(
-        (await query<QuoteDTO>(staff.request, "quote", `?id=${quote.id}`))
-          .principal,
-        "100000"
-      )
-      await staffPage.goto("/lease-comparison")
-      for (const [label, value] of [
-        ["Make", vehicle.make],
-        ["Model", vehicle.model],
-        ["Manufacture year", "2026"],
-        ["Requested principal", "1000"],
-        ["Period (months)", "12"],
-      ])
-        await staffPage.getByLabel(label, { exact: true }).fill(value)
-      await staffPage
-        .getByRole("button", { name: "Compare exact cards", exact: true })
-        .click()
-      await staffPage
-        .getByRole("button", { name: "Select exact option" })
-        .click()
-      await staffPage.getByLabel("Document fees", { exact: true }).fill("25")
-      await expect(
-        staffPage.getByText("Processing path", { exact: true })
-      ).toBeVisible()
-      const blocker = await db.connect()
-      try {
-        await blocker.query("BEGIN")
-        await blocker.query(
-          'SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE'
-        )
-        const pending = staffPage.waitForResponse((r) =>
-          r.url().endsWith("/commands/selectQuote")
-        )
-        await staffPage
-          .getByRole("button", { name: "Save quote snapshot", exact: true })
-          .click()
-        let waiting = false
-        for (let attempt = 0; attempt < 50; attempt++) {
-          waiting =
-            Number(
-              (
-                await monitor.query(
-                  "SELECT count(*) AS n FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE '%BusinessSequence%'"
-                )
-              ).rows[0].n
-            ) > 0
-          if (waiting) break
-          await new Promise((resolve) => setTimeout(resolve, 10))
         }
-        assert.ok(
-          waiting,
-          "command must really wait before authority revocation"
+        const retry = page.waitForResponse((r) =>
+          r.url().endsWith("/commands/publishRates")
         )
-        await grants(
-          baseGrants.filter(
-            (g) => !(g.subject === "Quote" && g.action === "create")
-          )
-        )
-        const counts = await counters()
-        await blocker.query("COMMIT")
-        assert.equal((await pending).status(), 403)
-        await expect(
-          staffPage.getByRole("alert").filter({ hasText: "FORBIDDEN" })
-        ).toBeVisible()
-        await expect(
-          staffPage.getByLabel("Document fees", { exact: true })
-        ).toHaveValue("25")
-        await staffPage
+        await page
           .getByRole("button", {
-            name: "Retry identical quote request",
+            name: "Retry identical publication",
             exact: true,
           })
           .click()
-        await expect(
-          staffPage.getByRole("alert").filter({ hasText: "FORBIDDEN" })
-        ).toBeVisible()
-        assert.deepEqual(await counters(), counts)
-      } finally {
-        await blocker.query("ROLLBACK")
-        blocker.release()
-      }
-      const before = await counters()
-      await denied(
-        await post(
-          staff.request,
-          "selectQuote",
-          env(body.input, body.expected)
-        ),
-        403,
-        "FORBIDDEN"
-      )
-      await denied(
-        await post(staff.request, "selectQuote", body),
-        403,
-        "FORBIDDEN"
-      )
-      assert.deepEqual(await counters(), before)
-      await grants([
-        { subject: "FinanceCompany", action: "read", fields: ["*"] },
-        {
-          subject: "RateSheet",
-          action: "read",
-          fields: [
-            "id",
-            "revision",
-            "companyId",
-            "make",
-            "model",
-            "year",
-            "validFrom",
-            "validThrough",
-          ],
-        },
-      ])
-      await denied(
-        await staff.request.post("/api/v1/queries/loanMaxima", {
-          headers: { origin },
-          data: maxima(),
-        }),
-        403,
-        "FIELD_FORBIDDEN"
-      )
-    }
-  )
-  await group(
-    "concurrent identical select exactly once; overlap race; essential audit fault atomic rollback; restricted grants",
-    async () => {
-      const s = await settings(),
-        body = env(
-          {
-            sheetId: option.sheetId,
-            cardId: option.cardId,
-            vehicle,
-            charges: [],
-          },
-          [
-            ref("FinanceCompany", ca),
-            { type: "RateSheet", id: option.sheetId, revision: 1 },
-            ref("Settings", s),
-          ]
-        )
-      const before = await counters(),
-        results = await Promise.all([
-          applied(a.request, "selectQuote", body),
-          applied(a.request, "selectQuote", body),
-        ])
-      assert.equal(results[0].commandId, results[1].commandId)
-      assert.equal(results[0].result.id, results[1].result.id)
-      assert.equal(results.filter((r) => r.replayed).length, 1)
-      const after = await counters()
-      assert.equal(BigInt(after.quotes) - BigInt(before.quotes), 1n)
-      assert.equal(BigInt(after.audits) - BigInt(before.audits), 1n)
-      const overlap = publishInput(ca, `race-${suffix}`)
-      const race = await Promise.all([
-        post(
-          a.request,
-          "publishRates",
-          env(overlap, [ref("FinanceCompany", ca)])
-        ),
-        post(
-          b.request,
-          "publishRates",
-          env(overlap, [ref("FinanceCompany", ca)])
-        ),
-      ])
-      assert.deepEqual(race.map((r) => r.status()).sort(), [201, 409])
-      await db.query(
-        `CREATE FUNCTION vamotors.t11a_audit_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW."entityType" IN ('RateSheet','Quote') THEN RAISE EXCEPTION 'SYNTHETIC_AUDIT_FAULT'; END IF; RETURN NEW; END $$; CREATE TRIGGER t11a_audit_fault BEFORE INSERT ON vamotors."AuditEntry" FOR EACH ROW EXECUTE FUNCTION vamotors.t11a_audit_fault()`
-      )
-      try {
-        const counts = await counters()
+        const retried = await retry
+        assert.equal(retried.status(), 201)
+        const retryBody = retried.request().postDataJSON() as {
+          idempotencyKey: string
+        }
         assert.equal(
-          (
-            await post(a.request, "selectQuote", env(body.input, body.expected))
-          ).status(),
-          500
+          Number(
+            (
+              await db.query(
+                'SELECT count(*) AS n FROM vamotors."CommandReceipt" WHERE "idempotencyKey"=$1',
+                [retryBody.idempotencyKey]
+              )
+            ).rows[0].n
+          ),
+          1
         )
-        assert.deepEqual(await counters(), counts)
+        await page
+          .getByLabel("Model", { exact: true })
+          .fill(`lost-response-${suffix}`)
+        let committed: Applied | undefined,
+          exactLostBody: string | null = null,
+          workerOwned = false
+        const lostPath = "**/api/v1/commands/publishRates"
+        await a.route(lostPath, async (route) => {
+          exactLostBody = route.request().postData()
+          workerOwned = !!route.request().serviceWorker()
+          const result = await route.fetch()
+          assert.equal(result.status(), 201)
+          committed = (await result.json()) as Applied
+          await route.abort("failed")
+        })
+        try {
+          await page
+            .getByRole("button", { name: "Publish rates", exact: true })
+            .click()
+          await expect(
+            page.getByRole("alert").filter({ hasText: "NETWORK_ERROR" })
+          ).toBeVisible()
+          assert.ok(committed)
+          assert.ok(
+            workerOwned,
+            "fault must traverse the active service worker"
+          )
+        } finally {
+          await a.unroute(lostPath)
+        }
+        const committedCounts = await counters()
+        const lostReplay = page.waitForResponse((r) =>
+          r.url().endsWith("/commands/publishRates")
+        )
+        await page
+          .getByRole("button", {
+            name: "Retry identical publication",
+            exact: true,
+          })
+          .click()
+        const replayResponse = await lostReplay
+        assert.equal(replayResponse.status(), 200)
+        assert.equal(replayResponse.request().postData(), exactLostBody)
+        const replayed = (await replayResponse.json()) as Applied
+        assert.equal(replayed.replayed, true)
+        assert.equal(replayed.commandId, committed!.commandId)
+        assert.equal(replayed.result.id, committed!.result.id)
+        assert.deepEqual(await counters(), committedCounts)
+        for (const sql of [
+          'UPDATE vamotors."Quote" SET revision=2',
+          'DELETE FROM vamotors."RateSheetVersion"',
+          'TRUNCATE vamotors."RateCardEntry"',
+          "CREATE TABLE vamotors.t11a_forbidden(id int)",
+        ])
+          await assert.rejects(restricted.query(sql))
+        const cardSQL =
+          'INSERT INTO vamotors."RateCardEntry"(id,"sheetVersionId",principal,months,installment) VALUES($1,$2,$3,$4,$5)'
+        await assert.rejects(
+          restricted.query(cardSQL, [
+            randomUUID(),
+            option.sheetId,
+            "100000",
+            36,
+            "3000",
+          ]),
+          { code: "23514", message: "IMMUTABLE_RATE_CARDS" }
+        )
+        await assert.rejects(
+          restricted.query(cardSQL, [
+            randomUUID(),
+            option.sheetId,
+            "100000",
+            12,
+            "9000",
+          ]),
+          { code: "23505" }
+        )
+        await assert.rejects(
+          restricted.query(cardSQL, [
+            randomUUID(),
+            option.sheetId,
+            "120001",
+            36,
+            "3000",
+          ]),
+          { code: "23514", message: "RATE_BOUNDS" }
+        )
+        const evidence = (
+          await db.query(
+            'SELECT (SELECT count(*) FROM vamotors."AuditEntry" WHERE "commandId"=$1)::int AS audits,(SELECT count(*) FROM vamotors."EntityReadVersion" WHERE "commandId"=$1)::int AS versions',
+            [quoteCommandId]
+          )
+        ).rows[0]
+        assert.deepEqual(evidence, { audits: 1, versions: 1 })
+        assert.equal(after.vehicles, before.vehicles)
+        assert.equal(after.purchases, before.purchases)
+      }
+    )
+    await group(
+      "inactive company excluded and cannot publish; retained UI validation values and identical retry after server rejection",
+      async () => {
+        await applied(
+          a.request,
+          "archiveParty",
+          env(
+            {
+              type: "FINANCE_COMPANY",
+              id: cb.id,
+              active: false,
+              reason: "Synthetic inactive proof",
+            },
+            [ref("FinanceCompany", cb)]
+          )
+        )
+        cb = await company(cb.id)
+        assert.ok(
+          !(
+            await read<LoanMaximumDTO[]>(a.request, "loanMaxima", maxima())
+          ).some((r) => r.companyId === cb.id)
+        )
+        assert.ok(
+          !(await read<CompareResult[]>(a.request, "compare", compare())).some(
+            (r) => r.companyId === cb.id
+          )
+        )
+        await denied(
+          await post(
+            a.request,
+            "publishRates",
+            env(publishInput(cb, `inactive-${suffix}`), [
+              ref("FinanceCompany", cb),
+            ])
+          ),
+          409,
+          "INVALID_STATE"
+        )
         await page.goto("/lease-rate-sheets")
         await page
           .getByLabel("Finance company", { exact: true })
           .selectOption(ca.id)
         for (const [label, value] of [
           ["Make", vehicle.make],
-          ["Model", `transient-${suffix}`],
+          ["Model", vehicle.model],
           ["Manufacture year", "2026"],
           ["Valid from", dateOffset(-1)],
           ["Valid through (inclusive)", dateOffset(30)],
@@ -1409,196 +1836,74 @@ try {
           ["Installment 1", "90"],
         ])
           await page.getByLabel(label, { exact: true }).fill(value)
+        const requests: string[] = []
+        page.on("request", (r) => {
+          if (r.url().endsWith("/commands/publishRates"))
+            requests.push(r.postData()!)
+        })
         await page
           .getByRole("button", { name: "Publish rates", exact: true })
           .click()
         await expect(
-          page.getByRole("alert").filter({ hasText: "INTERNAL_ERROR" })
+          page.getByRole("alert").filter({ hasText: "IDENTITY_CONFLICT" })
         ).toBeVisible()
         await expect(
           page.getByLabel("Maximum loan", { exact: true })
         ).toHaveValue("1200")
-        assert.deepEqual(await counters(), counts)
-      } finally {
-        await db.query(
-          'DROP TRIGGER t11a_audit_fault ON vamotors."AuditEntry"; DROP FUNCTION vamotors.t11a_audit_fault()'
-        )
+        await page
+          .getByRole("button", {
+            name: "Retry identical publication",
+            exact: true,
+          })
+          .click()
+        await expect(
+          page.getByRole("alert").filter({ hasText: "IDENTITY_CONFLICT" })
+        ).toBeVisible()
+        assert.equal(requests.length, 2)
+        assert.equal(requests[0], requests[1])
+        await page
+          .getByRole("button", {
+            name: "Confirm new request with refreshed references",
+          })
+          .click()
+        await expect(
+          page.getByLabel("Maximum loan", { exact: true })
+        ).toHaveValue("1200")
+        await page.getByLabel("Principal 1").fill("1201")
+        await page
+          .getByRole("button", { name: "Publish rates", exact: true })
+          .click()
+        await expect(
+          page.getByRole("alert").filter({ hasText: "Check dates" })
+        ).toBeVisible()
+        await expect(page.getByLabel("Principal 1")).toHaveValue("1201")
       }
-      const retry = page.waitForResponse((r) =>
-        r.url().endsWith("/commands/publishRates")
-      )
-      await page
-        .getByRole("button", {
-          name: "Retry identical publication",
-          exact: true,
-        })
-        .click()
-      const retried = await retry
-      assert.equal(retried.status(), 201)
-      const retryBody = retried.request().postDataJSON() as {
-        idempotencyKey: string
-      }
-      assert.equal(
-        Number(
-          (
-            await db.query(
-              'SELECT count(*) AS n FROM vamotors."CommandReceipt" WHERE "idempotencyKey"=$1',
-              [retryBody.idempotencyKey]
-            )
-          ).rows[0].n
-        ),
-        1
-      )
-      for (const sql of [
-        'UPDATE vamotors."Quote" SET revision=2',
-        'DELETE FROM vamotors."RateSheetVersion"',
-        'TRUNCATE vamotors."RateCardEntry"',
-        "CREATE TABLE vamotors.t11a_forbidden(id int)",
-      ])
-        await assert.rejects(restricted.query(sql))
-      const cardSQL =
-        'INSERT INTO vamotors."RateCardEntry"(id,"sheetVersionId",principal,months,installment) VALUES($1,$2,$3,$4,$5)'
-      await assert.rejects(
-        restricted.query(cardSQL, [
-          randomUUID(),
-          option.sheetId,
-          "100000",
-          36,
-          "3000",
-        ]),
-        { code: "23514", message: "IMMUTABLE_RATE_CARDS" }
-      )
-      await assert.rejects(
-        restricted.query(cardSQL, [
-          randomUUID(),
-          option.sheetId,
-          "100000",
-          12,
-          "9000",
-        ]),
-        { code: "23505" }
-      )
-      await assert.rejects(
-        restricted.query(cardSQL, [
-          randomUUID(),
-          option.sheetId,
-          "120001",
-          36,
-          "3000",
-        ]),
-        { code: "23514", message: "RATE_BOUNDS" }
-      )
-      const evidence = (
-        await db.query(
-          'SELECT (SELECT count(*) FROM vamotors."AuditEntry" WHERE "commandId"=$1)::int AS audits,(SELECT count(*) FROM vamotors."EntityReadVersion" WHERE "commandId"=$1)::int AS versions',
-          [quoteCommandId]
-        )
-      ).rows[0]
-      assert.deepEqual(evidence, { audits: 1, versions: 1 })
-      assert.equal(after.vehicles, before.vehicles)
-      assert.equal(after.purchases, before.purchases)
-    }
-  )
-  await group(
-    "inactive company excluded and cannot publish; retained UI validation values and identical retry after server rejection",
-    async () => {
-      await applied(
-        a.request,
-        "archiveParty",
-        env(
-          {
-            type: "FINANCE_COMPANY",
-            id: cb.id,
-            active: false,
-            reason: "Synthetic inactive proof",
-          },
-          [ref("FinanceCompany", cb)]
-        )
-      )
-      cb = await company(cb.id)
-      assert.ok(
-        !(await read<LoanMaximumDTO[]>(a.request, "loanMaxima", maxima())).some(
-          (r) => r.companyId === cb.id
-        )
-      )
-      assert.ok(
-        !(await read<CompareResult[]>(a.request, "compare", compare())).some(
-          (r) => r.companyId === cb.id
-        )
-      )
-      await denied(
-        await post(
-          a.request,
-          "publishRates",
-          env(publishInput(cb, `inactive-${suffix}`), [
-            ref("FinanceCompany", cb),
-          ])
-        ),
-        409,
-        "INVALID_STATE"
-      )
-      await page.goto("/lease-rate-sheets")
-      await page
-        .getByLabel("Finance company", { exact: true })
-        .selectOption(ca.id)
-      for (const [label, value] of [
-        ["Make", vehicle.make],
-        ["Model", vehicle.model],
-        ["Manufacture year", "2026"],
-        ["Valid from", dateOffset(-1)],
-        ["Valid through (inclusive)", dateOffset(30)],
-        ["Maximum loan", "1200"],
-        ["Principal 1", "1000"],
-        ["Months 1", "12"],
-        ["Installment 1", "90"],
-      ])
-        await page.getByLabel(label, { exact: true }).fill(value)
-      const requests: string[] = []
-      page.on("request", (r) => {
-        if (r.url().endsWith("/commands/publishRates"))
-          requests.push(r.postData()!)
-      })
-      await page
-        .getByRole("button", { name: "Publish rates", exact: true })
-        .click()
-      await expect(
-        page.getByRole("alert").filter({ hasText: "IDENTITY_CONFLICT" })
-      ).toBeVisible()
-      await expect(
-        page.getByLabel("Maximum loan", { exact: true })
-      ).toHaveValue("1200")
-      await page
-        .getByRole("button", {
-          name: "Retry identical publication",
-          exact: true,
-        })
-        .click()
-      await expect(
-        page.getByRole("alert").filter({ hasText: "IDENTITY_CONFLICT" })
-      ).toBeVisible()
-      assert.equal(requests.length, 2)
-      assert.equal(requests[0], requests[1])
-      await page
-        .getByRole("button", {
-          name: "Confirm new request with refreshed references",
-        })
-        .click()
-      await expect(
-        page.getByLabel("Maximum loan", { exact: true })
-      ).toHaveValue("1200")
-      await page.getByLabel("Principal 1").fill("1201")
-      await page
-        .getByRole("button", { name: "Publish rates", exact: true })
-        .click()
-      await expect(
-        page.getByRole("alert").filter({ hasText: "Check dates" })
-      ).toBeVisible()
-      await expect(page.getByLabel("Principal 1")).toHaveValue("1201")
-    }
-  )
-  console.log(
-    `PASS ${groups} T11a real production groups; Chromium ${browser.version()}; desktop1920/mobile360; local PostgreSQL ${cluster.PORT}; no mock invariant proof, brokerage or inventory intake.`
-  )
+    )
+    console.log(
+      `PASS ${groups} T11a real production groups; Chromium ${browser.version()}; desktop1920/mobile360; local PostgreSQL ${cluster.PORT}; no mock invariant proof, brokerage or inventory intake.`
+    )
+    await writeFile(
+      join(root, `rates-${suffix}.json`),
+      JSON.stringify(
+        {
+          sourceSHA,
+          dirty:
+            execFileSync("git", ["status", "--porcelain"], {
+              encoding: "utf8",
+            }).trim().length > 0,
+          groups,
+          results,
+          browser: browser.version(),
+          activeServiceWorker: `${origin}/sw.js`,
+          viewport: [1920, 360],
+          counts: await counters(),
+        },
+        null,
+        2
+      ),
+      { mode: 0o600 }
+    )
+  }
 } catch (error) {
   console.error(
     `FAIL T11a stage=${stage} ${error instanceof Error ? error.message.slice(0, 1200) : "unknown"}`
