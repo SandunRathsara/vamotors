@@ -1,6 +1,12 @@
 # Evidence index
 
-## Current T05a + R1 acceptance — 2026-10-27
+## Current local continuation — 2026-10-30
+
+[Current ancestry/preservation and conditional merge plan](local-continuation-2026-10-30.md): accepted base `db2580dd`; records-only branch, shared `integration/full-v1` unchanged at `ddd69fb`. **T05b490f7d3 NOT accepted**, independent `ses_e74ecf74cffeByaNSGYMFb7uoU` active per parent; await verdict and explicit parent acceptance/integration instruction. No source combination here.
+
+[T06a adapter-only acceptance attribution](T06a-acceptance-attributed.md): exact `3cc43b3`, original independent `e3c05722` PASS and explicit parent acceptance; filesystem10/supplemental4/security101, owned strict types/lint/format and retained subprocess read attributed, not rerun. Independent full-project typecheck unconfirmed (identical borrowed-client diagnostics). Strict CSV subset only; full F06/T06 and G2 remain open. Current harness `openai/gpt-6.1-sol-fast` / OpenAI; historical Sol labels below retained. Local-only/no push/PR/deploy/cloud; all134 U, no whole-ID promotion. Next is active review/parent decision, then authorized integration/combined independent verification; purchase mileage/listed-price follows accepted stock. Older current/next entries below are historical, not duplicate dispatches.
+
+## Historical T05a + R1 acceptance — 2026-10-27
 
 Parent accepts bounded exact `def32caa482cffa794b98037e24b937dbff58b7d` after independent `5d416215` PASS. [Sanitized attribution, prior ae3295f/9a785097 R1 FAIL, correction20/15/3/117 and original-ID evidence map](T05a-acceptance-attributed.md); [fresh records-only preservation/spec/types/links](T05a-integration-checks.md). No runtime rerun by integration. **Next [T05b receipt/hold/release](../T05b-next-slice.md)**; independent **[T06a private local bytes](../T06a-next-slice.md)** task-ready with concrete target-integration gaps, neither dispatched. Whole T05/G2 pending; all134 U; full lint3/40 retained. Literal G2 URL/private human handoff/private application-file restart gaps remain; later G3 workflows are not added G2 prerequisites. All earlier current/next entries below are historical snapshots.
 
