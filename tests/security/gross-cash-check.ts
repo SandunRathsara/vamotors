@@ -47,7 +47,7 @@ type Prepared = {
   cost: Source
   leasePay: Source
   recoveryCostId: string
-  keys: { cash: string; lease: string; cost: string }
+  keys: Record<"cash" | "lease" | "cost", ReturnType<typeof randomUUID>>
 }
 const hash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex")
