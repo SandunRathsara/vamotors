@@ -936,6 +936,17 @@ try {
         ),
         409
       )
+      // UUID spelling cannot turn a valid foreign-facing reference into a raw
+      // adapter-key failure. FK lookup still resolves the persisted typed owner.
+      const canonical = await makeStaged(),
+        canonicalBody = completeBody(canonical.batch, canonical.upload.uploadId)
+      const uppercase = await ok<Applied>(
+        await post(a.request, "completeUpload", {
+          ...canonicalBody,
+          input: { uploadId: canonical.upload.uploadId.toUpperCase() },
+        })
+      )
+      await retained(uppercase.result.id)
     }
   )
   await group(
