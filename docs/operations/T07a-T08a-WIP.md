@@ -230,6 +230,31 @@ object, not newer records. Sole shared-source ownership remains active here.
   final source/evidence seal and service closeout remain pending; no acceptance or
   shared ownership release is claimed.
 
+- All five required tail campaigns are terminal PASS: F1 attachments18,
+  settlement20, gross6, incurred-basis BOTH and retained FC selector UI. Each
+  exact source/dirty state/argv/exit remains in its receipt; late dirty states
+  are only new unrelated proof files, not app/SQL/test-assertion mutations in
+  those executing campaigns. No broad reruns are needed for those passed seams.
+- Clean5a3674b (`5a3674b3ab646493fc3fb5937f0abe83bd565ad5`, tree
+  `d20ade188de47fe70eed38f6c223b9f902c5df17`) passed19 unit files/156 tests,
+  all owned lint/format and full-repository ESLint (exit0; retained pre-existing
+  warnings, not a warning-free claim). Native current build, Prisma format and
+  generation passed in the separate own PROJECT. Actual generated client schema
+  matched byte-for-byte; source17/v13 and all16 accepted SQL/old registry populations
+  were reverified. Every runtime byte outside tests/docs is still exactb4c1aac.
+- The post-application parent app+PG/file-runtime restart passed at clean5a3674b:
+  exact native-text hashes of every business row, final/staged file bytes/modes,
+  NEW authenticated terminal/notification/commandStatus reads and every final
+  download remained identical, with no report-business mutation.
+- Final focused additions now include independent reviewer action/proposal/read
+  leaf execution/replay denials, authorization-before-mismatch and reviewer-name
+  privacy through disposal and both parent audit histories; and actual1920/360
+  keyboard write-off journeys over the three retained236 lease histories. These
+  additions pass types/lint but still need runtime execution. Ordered source-
+  edit/stock waits, deactivation waits and directory/Settings nondependency cases
+  also remain unexecuted. Only then finalize source quality/seal/owned-service
+  stop. No final acceptance or shared-source release is implied by these passes.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,

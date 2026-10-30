@@ -456,6 +456,139 @@ try {
     }
   )
   await group(
+    "P3 reviewer saved-field execution and replay gates plus reviewer-name audit privacy",
+    async () => {
+      const row = await make("reviewer-fields"),
+        p = await pending(row)
+      const review = {
+        ...p.review,
+        input: {
+          approvalId: p.p.approvalId,
+          decision: "APPROVE",
+          note: "Actual independent reviewer note",
+        },
+      }
+      const checks: [Grant["subject"], Grant["action"], string[]][] = [
+        ["ApprovalRequest", "approve", ["approvalId", "decision", "note"]],
+        [
+          "ApprovalRequest",
+          "read",
+          [
+            "id",
+            "revision",
+            "proposal.kind",
+            "proposal.input.cycleId",
+            "proposal.input.date",
+            "proposal.input.reason",
+            "proposal.input.method",
+            "proposal.input.proceeds",
+            "proposal.input.receipt.amount",
+            "proposal.input.receipt.date",
+            "proposal.input.receipt.method",
+            "proposal.input.receipt.reference",
+            "expected",
+            "payloadHash",
+            "reason",
+          ],
+        ],
+        [
+          "Disposal",
+          "read",
+          [
+            "date",
+            "reason",
+            "method",
+            "proceeds",
+            "payments.amount",
+            "payments.date",
+            "payments.method",
+            "payments.reference",
+          ],
+        ],
+      ]
+      for (const [subject, action, fields] of checks)
+        for (const field of fields) {
+          await assign(without(authority, subject, action, field))
+          await denied(staff, "reviewApproval", review, 403, "FIELD_FORBIDDEN")
+        }
+      await assign(authority)
+      const committed = await f.command(staff, "reviewApproval", review)
+      for (const [subject, action, fields] of checks)
+        for (const field of fields) {
+          await assign(without(authority, subject, action, field))
+          await denied(staff, "reviewApproval", review, 403, "FIELD_FORBIDDEN")
+          await denied(
+            staff,
+            "reviewApproval",
+            {
+              ...review,
+              input: {
+                ...review.input,
+                note: "Different unauthorized envelope",
+              },
+            },
+            403,
+            "FIELD_FORBIDDEN"
+          )
+        }
+      await assign(authority)
+      assert.equal(
+        (await f.command(staff, "reviewApproval", review)).commandId,
+        committed.commandId
+      )
+      await denied(
+        staff,
+        "reviewApproval",
+        {
+          ...review,
+          input: { ...review.input, note: "Different authorized envelope" },
+        },
+        409,
+        "IDEMPOTENCY_MISMATCH"
+      )
+      const positive = await current(row.id, staff)
+      assert.equal(positive.disposal!.approval.kind, "CURRENT")
+      if (positive.disposal!.approval.kind !== "CURRENT")
+        throw Error("wrong approval provenance")
+      assert.equal(positive.disposal!.approval.reviewerName, original.user.name)
+      for (const [type, id] of [
+        ["Disposal", positive.disposal!.id],
+        ["PurchaseRecord", row.id],
+      ])
+        assert.ok(
+          JSON.stringify(
+            await f.query<unknown>(
+              staff,
+              "audit",
+              `?type=${type}&id=${id}&pageSize=100`
+            )
+          ).includes(original.user.name),
+          `Positive reviewer name missing from ${type} audit`
+        )
+      await assign(without(reads, "Disposal", "read", "approval.reviewerName"))
+      const hidden = await current(row.id, staff)
+      assert.equal(
+        (hidden.disposal!.approval as { reviewerName?: string }).reviewerName,
+        undefined
+      )
+      for (const [type, id] of [
+        ["Disposal", positive.disposal!.id],
+        ["PurchaseRecord", row.id],
+        ["Vehicle", row.vehicleId],
+      ]) {
+        const audit = await f.query<unknown>(
+          staff,
+          "audit",
+          `?type=${type}&id=${id}&pageSize=100`
+        )
+        assert.ok(
+          !JSON.stringify(audit).includes(original.user.name),
+          `Hidden reviewer name leaked through ${type} audit`
+        )
+      }
+    }
+  )
+  await group(
     "P3 current requester revocation/deactivation makes a pending request stale",
     async () => {
       for (const deactivate of [false, true]) {
