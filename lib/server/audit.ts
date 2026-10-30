@@ -98,6 +98,8 @@ export async function writeReadVersion(
       | "RepairVendor"
       | "FinanceCompany"
       | "Settings"
+      | "RateSheet"
+      | "Quote"
     entityId: string
     revision: number
     payload: Record<string, unknown>

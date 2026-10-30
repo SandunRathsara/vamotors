@@ -1,6 +1,10 @@
 # Evidence index
 
-## Current local continuation — 2026-10-30
+## Current T11a + docs review assembly — 2026-10-30
+
+**[Exact review union / pending independent verification](T11a-review-assembly.md):** frozen author-PASS **ef9b7b7fe81b16edf2cb2f42165719680054fab2** + docs **a9ea1a85857895f5d41e2b43403691ec1bfd2c18**, conflict-free ordinary merge. Source exactef9b7b7; seven inherited docs/briefs retained, current status reconciled only. [Author dossier](T11a-author-rebased.md)/external final manifest/composition and original failure/recovery history preserved, not independent acceptance. One distinct verifier on final containing SHA next via parent. T11a exclusive correction ownership retained; primary clean acceptedb7ac9af/main/remotes/protected unchanged.21 LOCAL/113 U/134, VSTS-03 U, T05c NEXT/T06b queued; no dispatch/transfer/promotion/runtime rerun.
+
+## Prior accepted-status/docs input a9ea1a8 — retained snapshot
 
 **[Parent accepts bounded JOINT-STOCK-FILES exactb7ac9af / actual primary FF](joint-stock-files-acceptance-attributed.md):** independent ses_e741684d8ffeWOKAFoZu5LAVRe PASS/no findings, completed; parent read REVIEW/manifest/upgrade/restart/assertion proof and explicitly accepted exactb7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3. Authorized primary integration/full-v1 **clean FF-only0eaae8f→exactb7ac9af succeeded**. Later docs/unreviewed T11a not promoted; main/remotes/protected unchanged. Matrix byte-identical21 LOCAL/113 U/134, accepted ID bindings0eaae8f. No actual app upload/full T05/T06/G2/G6/restore/device/deployment/new-ID acceptance; hosted FNDN-02 deferred/not passed.
 

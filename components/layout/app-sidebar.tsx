@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import { Car, LayoutDashboard, Users } from "lucide-react"
+import { Car, LayoutDashboard, Users, Calculator } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +24,11 @@ export function AppSidebar() {
   const parties = ["Supplier", "RepairVendor", "FinanceCompany"].some((type) =>
     abilityFor(actor.presentationGrants, actor.user.id).can("read", type)
   )
+  const finance = abilityFor(actor.presentationGrants, actor.user.id)
+  const compareRates =
+    finance.can("read", "RateSheet") && finance.can("read", "FinanceCompany")
+  const publishRates =
+    finance.can("create", "RateSheet") && finance.can("read", "FinanceCompany")
   return (
     <Sidebar>
       <SidebarHeader>
@@ -34,6 +39,26 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
+          {(compareRates || publishRates) && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/lease-rate-sheets" prefetch={false}>
+                  <Calculator />
+                  Rate sheets
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+          {compareRates && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/lease-comparison" prefetch={false}>
+                  <Calculator />
+                  Lease comparison
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           {parties && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>

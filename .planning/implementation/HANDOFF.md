@@ -1,6 +1,10 @@
 # Full-v1 execution handoff — LOCAL implementation; deployment deferred
 
-## Current continuation — 2026-10-30
+## Current T11a + docs review assembly — 2026-10-30
+
+**REVIEW CANDIDATE ONLY:** frozen author-PASS/unaccepted **ef9b7b7fe81b16edf2cb2f42165719680054fab2** ordinarily merged into docs **a9ea1a85857895f5d41e2b43403691ec1bfd2c18**, conflict-free. [Exact union/evidence/author failure history and final-SHA verification handoff](evidence/T11a-review-assembly.md). Every source/test/schema/package/private-files/PWA/contract byte remains exactef9b7b7; both briefs/joint-acceptance evidence exacta9ea1a8. Parent dispatches one distinct full verifier on returned containing SHA; no independent verdict/acceptance yet. T11a ses_e7457169effeQXhP5ZYm4T06R0 retains exclusive correction ownership pending review. Primary stays clean acceptedb7ac9af; main/remotes/protected unchanged.21 LOCAL/113 U/134 and VSTS-03 U unchanged, T05c NEXT/T06b queued without dispatch/transfer. Lightweight union/links/spec/diff only, no runtime campaign or promotion.
+
+## Prior accepted-status/docs input a9ea1a8 — retained snapshot
 
 **Parent ACCEPTS bounded JOINT-STOCK-FILES at exact b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3**, independent **ses_e741684d8ffeWOKAFoZu5LAVRe PASS**, no findings; review completed. [Fresh independent attribution, precise limits and actual primary FF evidence](evidence/joint-stock-files-acceptance-attributed.md). Authorized branch/cleanliness/ancestry/ref-checked **primary integration/full-v1 FF-only0eaae8f→exactb7ac9af succeeded, clean**. Newer docs/T11a not promoted; main/remotes/protected unchanged. Matrix byte-identical **21 LOCAL/113 U/134**, every requirement binding still exact0eaae8f. No actual app upload/full T05/T06/G2/G6/restore/device/deployment/new-ID acceptance. FNDN-02 Neon pooled/direct/provider TLS deferred/not passed.
 
@@ -200,7 +204,7 @@ The following snapshot retains the earlier pending review/dispatch state; curren
 2. Inspect `git status --short`, branch/head and worktrees. Do not overwrite unrelated edits, reset, clean, or launch duplicate workers. T00 task identity is in the ledger; downstream workers are not dispatched by this worker.
 3. Read [attributed T00 acceptance](evidence/T00-acceptance-attributed.md): reviewer confirmed ancestry, eleven hashes/blobs, exact 134 IDs/owners/scenarios/defaults, eight intended docs, no app/test diff, heuristic secret screen and clean checkout. Orchestrator accepted exact SHA after readiness reconciliation; no self-acceptance by this ledger worker.
 4. Retain [attributed readiness findings](evidence/T00-readiness-attributed.md), supplied by reviewer suffix `72173ee0-5850-4fac-9990-2250ee82e0cb`. This worker did not reproduce cloud findings; readiness is not feature acceptance.
-5. Follow [accepted exactb7ac9af joint review / actual primary FF](evidence/joint-stock-files-acceptance-attributed.md): ses_e741684d8ffeWOKAFoZu5LAVRe PASS, parent accepted; primary cleanb7ac9af, matrix21 LOCAL/113 U bound0eaae8f, hosted FNDN-02 deferred/not passed. Existing exclusive T11a rebase/fresh NONEMPTY stockv7→v8 upgrade/final acceptance remain pending. [T05c](T05c-next-slice.md)/[T06b](T06b-next-slice.md) future only, exact accepted final T11a combination/ownership transfer before implementation, T05c next. No newer docs/T11a promotion, duplicate dispatch/ID/gate acceptance/cloud/push/PR/deploy.
+5. Follow [T11a + docs final review assembly](evidence/T11a-review-assembly.md): author exactef9b7b7 + docsa9ea1a8, ordinary conflict-free union, one distinct final-composition verifier next via parent. Author rebase/upgrade campaign complete but independently unaccepted; exclusive T11a correction owner retained. Primary clean acceptedb7ac9af, matrix21 LOCAL/113 U bound0eaae8f, VSTS-03 U/hosted FNDN-02 deferred. T05c/T06b future only after final acceptance/exact base/explicit transfer; no promotion/duplicate dispatch/cloud/push/PR/deploy.
 
 ## Preservation and coverage
 

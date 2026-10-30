@@ -5,11 +5,9 @@ export const legacyAPIs = [
   "/api/customers",
   "/api/customers/[id]",
   "/api/dashboard",
-  "/api/lease-comparison",
   "/api/lease-deals",
   "/api/lease-deals/[id]",
   "/api/lease-dispatch",
-  "/api/lease-rate-sheets",
   "/api/lease-reconciliation",
   "/api/notifications",
   "/api/purchases",
@@ -30,15 +28,18 @@ export const legacyAPIs = [
   "/api/vehicles",
   "/api/vehicles/[id]",
 ]
+export const persistedRateAPIs = {
+  "/api/lease-comparison": "POST",
+  "/api/lease-rate-sheets": "GET",
+} as const
+export const persistedRatePages = ["/lease-comparison", "/lease-rate-sheets"]
 export const unavailablePages = [
   "/approvals",
   "/cash-flow",
   "/dashboard",
-  "/lease-comparison",
   "/lease-deals",
   "/lease-deals/[id]",
   "/lease-dispatch",
-  "/lease-rate-sheets",
   "/lease-reconciliation",
   "/repairs",
   "/reports",
@@ -62,6 +63,7 @@ export const methods = [
   "DELETE",
 ] as const
 export const queryNames = [
+  "quote",
   "purchases",
   "purchase",
   "inventory",
@@ -81,6 +83,8 @@ export const queryNames = [
   "audit",
 ]
 export const commandNames = [
+  "publishRates",
+  "selectQuote",
   "recordPurchase",
   "updateSettings",
   "createFinanceCompany",

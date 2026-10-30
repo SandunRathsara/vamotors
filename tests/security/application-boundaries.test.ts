@@ -4,7 +4,13 @@ import { join } from "node:path"
 import { adminList } from "@/lib/server/admin-list"
 import { administratorGrants } from "@/lib/server/permissions"
 import { safeReturnPath } from "@/lib/security-client"
-import { legacyAPIs, unavailablePages, methods } from "./route-inventory"
+import {
+  legacyAPIs,
+  unavailablePages,
+  methods,
+  persistedRateAPIs,
+  persistedRatePages,
+} from "./route-inventory"
 
 function files(root: string): string[] {
   return readdirSync(root, { withFileTypes: true }).flatMap((entry) =>
@@ -22,6 +28,7 @@ describe("global entry-point inventory", () => {
     expect(actual).toEqual(
       [
         ...legacyAPIs,
+        ...Object.keys(persistedRateAPIs),
         "/api/auth/[...all]",
         "/api/v1/commands/[name]",
         "/api/v1/queries/[name]",
@@ -34,6 +41,15 @@ describe("global entry-point inventory", () => {
         expect(text).toContain(`unavailable as ${method}`)
       expect(text).not.toMatch(/mock-data|from ["']\.\/prototype["'](?!\s*$)/m)
     }
+    for (const [route, method] of Object.entries(persistedRateAPIs)) {
+      const text = readFileSync(`app${route}/route.ts`, "utf8")
+      expect(text).toContain(`export async function ${method}`)
+      expect(text).toContain("await authenticate(request.headers)")
+      expect(text).toContain("await rateRead(")
+      expect(text).toContain("noStoreJSON(")
+      if (method === "POST") expect(text).toContain("sameOrigin(request)")
+      expect(text).not.toMatch(/mock-data|prototype/)
+    }
   })
   it("covers every page, including detail RSCs, not only its layout", () => {
     const actual = files("app/(app)")
@@ -43,6 +59,7 @@ describe("global entry-point inventory", () => {
     expect(actual).toEqual(
       [
         ...unavailablePages,
+        ...persistedRatePages,
         "/users",
         "/customers",
         "/customers/[id]",
@@ -72,6 +89,7 @@ describe("global entry-point inventory", () => {
       "/purchases/[id]",
       "/vehicles",
       "/vehicles/[id]",
+      ...persistedRatePages,
     ])
       expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8")).toContain(
         "await pageActor()"

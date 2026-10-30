@@ -1,6 +1,10 @@
 # Local continuation — authorized candidate and baseline promotion
 
-## Current accepted exactb7ac9af / actual primary promotion / future briefs
+## Current frozen T11a + docs review assembly
+
+Parent authorized **ordinary local merge only** of frozen author-PASS/unaccepted **ef9b7b7fe81b16edf2cb2f42165719680054fab2** into clean docs **a9ea1a85857895f5d41e2b43403691ec1bfd2c18**. [Exact union/author evidence/failures/final-SHA review handoff](T11a-review-assembly.md): no conflicts/source fix; all nonrecord bytes exactef9b7b7, existing briefs/joint acceptance evidence exacta9ea1a8. T11a ses_e7457169effeQXhP5ZYm4T06R0 retains exclusive correction ownership pending distinct review, not new feature dispatch/acceptance. Primary stays clean parent-acceptedb7ac9af, main/remotes/protected unchanged;21 LOCAL/113 U/134 and VSTS-03 U retained, T05c NEXT/T06b queued. One distinct full verifier on final containing SHA next via parent. This assembly runs only equality/ancestry/links/spec/diff, no DB/build/runtime campaign or primary promotion.
+
+## Prior accepted-status/docs input a9ea1a8 — retained snapshot
 
 **Parent ACCEPTS bounded JOINT-STOCK-FILES exactb7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3**, independent **ses_e741684d8ffeWOKAFoZu5LAVRe PASS/no findings**, completed. [Fresh independent REVIEW/manifest attribution, precise limits and actual primary FF evidence](joint-stock-files-acceptance-attributed.md). After parent authorization, verified clean exact0eaae8f/branch integration/full-v1/ancestry/ref preservation, executed FF-ONLY to **exactb7ac9af**, primary clean afterward. No newer docs/T11a promotion; main/remotes/protected fingerprints unchanged, all prior registrations retained (concurrent T11a parent-upgrade addition untouched). Matrix byte-identical21 LOCAL/113 U/134, all accepted requirement bindings stay0eaae8f; no actual app upload/full T05/T06/G2/G6/restore/device/deployment/new-ID acceptance. Hosted FNDN-02 deferred/not passed.
 

@@ -19,6 +19,7 @@ import { customerQuery } from "./customers"
 import { partiesQuery, partyQuery } from "./parties"
 import { settingsQuery } from "./settings"
 import { purchaseQuery } from "./purchases"
+import { rateQuery } from "./rates"
 
 const canAdminister = (actor: Actor) =>
   ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
@@ -91,6 +92,7 @@ export async function securityQuery(
       await assertEnvironment(tx)
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
+      if (name === "quote") return rateQuery(tx, actor, name, args)
       if (name === "audit" && ["Vehicle", "PurchaseRecord"].includes(args.type))
         return purchaseQuery(tx, actor, name, args)
       if (

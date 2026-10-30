@@ -53,3 +53,5 @@ GRANT INSERT (id, "vehicleId", "cycleId", reading, "recordedDate", remark, "decr
 GRANT INSERT (id, "cycleId", version, purchase, components, total, currency, scale, reason, "commandId", "recordedAt") ON vamotors."CycleBasisVersion" TO vamotors_runtime;
 -- T05b: command-evidenced stock state only; identity, provenance and money stay immutable.
 GRANT UPDATE (status, available, "holdReason", "receivedDate", revision, "updatedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+-- T11a immutable published cards and quote candidates only; never update/delete.
+GRANT SELECT, INSERT ON vamotors."RateSheetVersion", vamotors."RateCardEntry", vamotors."Quote" TO vamotors_runtime;

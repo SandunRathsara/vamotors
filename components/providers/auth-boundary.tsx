@@ -1,6 +1,13 @@
 "use client"
 
-import { Activity, createContext, useContext, useEffect, useState } from "react"
+import {
+  Activity,
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import { flushSync } from "react-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import type { CurrentActorDTO } from "@/.planning/implementation/contracts/api"
@@ -22,6 +29,8 @@ export function AuthBoundary({
   children: React.ReactNode
 }) {
   const queries = useQueryClient()
+  const [context, setContext] = useState(initial)
+  const current = useRef(initial)
   const [ready, setReady] = useState(false)
   const [verified, setVerified] = useState(false)
   useEffect(() => {
@@ -59,12 +68,31 @@ export function AuthBoundary({
         )
         if (!alive) return
         if (
-          data.user.id !== initial.actor.user.id ||
-          data.authzRevision !== initial.actor.authzRevision
+          data.user.id !== current.current.actor.user.id ||
+          data.authzRevision !== current.current.actor.authzRevision
         ) {
-          discard()
-          window.location.reload()
-          return
+          const sameMembership =
+            data.user.id === current.current.actor.user.id &&
+            JSON.stringify(data.roles.map((r) => r.id).sort()) ===
+              JSON.stringify(
+                current.current.actor.roles.map((r) => r.id).sort()
+              )
+          if (
+            sameMembership &&
+            ["/lease-rate-sheets", "/lease-comparison"].includes(
+              window.location.pathname
+            )
+          ) {
+            // Preserve exact-request drafts, never the old read authority.
+            await queries.cancelQueries()
+            queries.clear()
+            current.current = { ...current.current, actor: data }
+            setContext(current.current)
+          } else {
+            discard()
+            window.location.reload()
+            return
+          }
         }
         setReady(!obscured)
         setVerified(true)
@@ -122,7 +150,7 @@ export function AuthBoundary({
     }
   }, [initial, queries])
   return (
-    <AuthContext.Provider value={initial}>
+    <AuthContext.Provider value={context}>
       {!ready && (
         <p role="status" className="p-6">
           Checking access…
