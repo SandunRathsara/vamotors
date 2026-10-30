@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md), original clauses/failures unchanged. [Frozen6cc+95c REVIEW assembly](evidence/T05c2-gross-6cc7c93-review-assembly.md) only: AUTHOR-corrected/UNACCEPTED, all owners released, separate gross+incurred independent closure pending. [Current HANDOFF](HANDOFF.md): final combined campaign awaits parent dispatch, WRITE_OFFcdedd2f not resumed/full scopes/repair queue/matrix retained; source exact6cc, primary555/humanG2d0 untouched/no ledger runtime/source fix/FF.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md), original clauses/failures unchanged. [Exact038 full review NOW RUNNING](evidence/T05c2-gross-6cc7c93-review-assembly.md), separate gross/incurred/ORIGINAL VPRC-02, no results/fixture upgrade/completion inferred. [Current HANDOFF](HANDOFF.md): WRITE_OFF RESUMED sole shared writer from preservedcdedd2f/accepted555, post-resume outcome unknown, author6cc released. Source/matrix/full scopes/gates exact038; new records not replacement target/acceptance, primary555/humanG2d0 untouched/no ledger runtime/source/FF.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

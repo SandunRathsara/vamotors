@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-**[Frozen gross-C01 correction6cc + current95c ordinary REVIEW assembly](.planning/implementation/evidence/T05c2-gross-6cc7c93-review-assembly.md)** only: AUTHOR-corrected/UNACCEPTED, exact6cc source/test/schema16SQL/operations, current matrix/history/full scopes preserved. All owners frozen/released; WRITE_OFF incompletecdedd2f not resumed. Verifier awaits exact final COMBINED target for parent full review, not running/no verdict; prior52c FAIL/99 proof, gross+incurred independent closure and VPRC-02 full scenario remain pending. [Current HANDOFF](.planning/implementation/HANDOFF.md). Primary555/P3/human G2 http://127.0.0.1:8000/login pinned d0/26 LOCAL108 U134/G3–G6 pending preserved; no ledger runtime/source fix/primaryFF/acceptance.
+Parent dispatched FULL settlement review **RUNNING exact038e53f4a5f05496cdf58dcdcbe001079792e38c/treef387bfcc4a83ba8305709c5751cdd7363ccbbaf4**, not this docs descendant or acceptance; no result/fixture upgrade/completion inferred. Parent RESUMED WRITE_OFF sole shared writer from preservedcdedd2f/accepted555, current head/types/UI/outcome unknown/not inspected; author6cc remains released. [Current HANDOFF](.planning/implementation/HANDOFF.md), [parent verification/dispatch attribution and original assembly seal](.planning/implementation/evidence/T05c2-gross-6cc7c93-review-assembly.md). Source/schema16SQL/contracts/tests/packages/native/PWA/operations/matrix/full scopes/gates unchanged; primary555/P3/human G2 http://127.0.0.1:8000/login pinned d0/26 LOCAL108 U134/G3–G6 pending preserved. No ledger runtime/source/FF/acceptance.
 
 ## Historical frontend-shell walkthrough
 

@@ -1,5 +1,15 @@
 # Frozen gross-C01 correction6cc + current95c — ordinary REVIEW assembly only
 
+## Current parent dispatch — exact038 remains the review target
+
+**038e53f4a5f05496cdf58dcdcbe001079792e38c/treef387bfcc4a83ba8305709c5751cdd7363ccbbaf4 remains the EXACT corrected settlement REVIEW target**; this new docs descendant is not its replacement or acceptance. Parent reports reading the [unchanged45-artifact assembly manifest](/private/var/folders/gb/j8pkyq8j0rd50dzkps44xgh40000gn/T/opencode/vamotors-gross-c01-review-assembly-_uoygxqc/manifest.json), SHA256 **cd13fabf638af6dbef0c41c8d235df96cff4138e94723e9b1a5526c5c08a18f8**, independently verifying all45 sizes/hashes/clean HEAD/tree/ordered parents/exact6cc source/remaining95c entries/whole matrix. **Parent observation attributed, no new raw observation artifact supplied or invented.**
+
+Parent actual dispatch: **ses_e734bc50bffeWMSjm7Ed2xdxA2 FULL review RUNNING exact038**, including gross-C01, separate incurred-addCost and ALL stopped campaigns/ORIGINAL VPRC-02 whole scenario; no result/fixture upgrade/completion inferred/P2 OPEN/VPRC-02 U. Parent also explicitly **RESUMED WRITE_OFF ses_e7376ed96ffe2a8RsopfGvBwgI as sole active shared writer from preservedcdedd2f/accepted555**, post-resume head/types/UI/outcome unknown/not inspected; prior WIP/freeze50 facts remain history. Correction author6cc stays frozen/released. [Current HANDOFF](../HANDOFF.md) and [resumed full WRITE_OFF scope/gates](../T07a-T08a-next-slice.md) govern current status.
+
+The complete original assembly snapshot below is retained verbatim; its pending-dispatch/all-owners-frozen wording and “containing merge” refer to **038 at assembly time**, not this records descendant or current resumed ownership. All source/matrix bytes remain exact038. This docs descendant's preservation manifest: `/private/var/folders/gb/j8pkyq8j0rd50dzkps44xgh40000gn/T/opencode/vamotors-038-dispatch-records-yur8ijen/manifest.json`.
+
+## Original assembly snapshot — unchanged
+
 Parent authorizes the ordinary **no-FF merge** of frozen **6cc7c93cf6b4a29a039de945a179aa6b7b966e2a**, tree **d7766102f413dbabdccbd3320b572ed74ed7e287**, into clean current records **95cffb4c7d67d9a1cd3bd1e65fbde933ce095ec6**, common **rejected52c720d0831a712b98c1b54ed008faec27acb27c**. Three correction paths and16 current-record paths are disjoint. Automatic merge: **zero conflicts,812 entries exactly their union**; only named integration-owned current status headers reconcile afterward. **AUTHOR PASS/UNACCEPTED; no independent P2 closure, ID promotion or primary FF.** Final source/test/schema/migration/authored-operations bytes remain **exact6cc**, not integration edits.
 
 ## Explicit release and immutable source/proof binding
