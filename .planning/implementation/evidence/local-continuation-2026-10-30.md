@@ -1,6 +1,12 @@
 # Local continuation — authorized candidate and baseline promotion
 
-## Current frozen T05c review assembly / pending author packaging
+## Current acknowledged freeze / resumed recovery / T06b sole-owner dispatch
+
+Follow [parent-attributed current authority/evidence](T06b-active-ownership.md): T05c original author ACKNOWLEDGED frozen98/RELEASED active ownership, future corrections by reassignment only, no known correction queued. Acquisition job sh_18c5e1e930011XG6EnepboxH16 **UNKNOWN/no completion notification/no PASS**. Recovery ses_e73984cfdffetqQ2tKxiAwF31b last completed HANDOFF **BLOCKED**, now resumed **RUNNING evidence/service-only, outcome pending**; legitimate existing outcome/capture/identity shutdown/seal only, failed/blocked provenance and missing metadata retained. **T05c combined exacte9a9b0bfb515bca254b7b3aaa35ba65386fa67ef remains FROZEN REVIEW TARGET / UNACCEPTED**, distinct verifier not yet dispatched pending recovery; later docs do not replace it.
+
+Parent dispatched **T06b ses_e738d7ffaffeXx7RewTpqYvIg0 SOLE NEW schema/registry/grants/dispatcher/config owner**, exact accepted e9ba1a939667fc46178f89cccae1022a4bbcfb7e base, parent-resolved openai/gpt-6.1-sol-fast#xhigh. Reserve202610300004_import_attachments after costs002/F1-003; actual acceptedv8 prebase, eventual accepted-cost reconciliation, final fresh/genuine-parent upgrade/integrated review mandatory. T05c corrections require **T06b checkpoint+freeze+ACK before reassignment**, never concurrent writers. Primary remains parent-inspected clean acceptede9; **F1 OPEN/VSTS-03 U/26 LOCAL/108 U/134**, no promotions/G2–G6/new IDs. Docs checks only; no live recovery inspection/polling/rerun or GSD claim. Historical sections below remain source-bound.
+
+## Previous frozen T05c review assembly / pending author packaging snapshot
 
 Parent-frozen **98fd8aaf02f28dcda8d47bb199971de895a960c8** ordinarily merged into docs **2895950b7f02f3bbcc108dda476f70b80c05cc2a**, no conflict/source fix; [exact union/test deltas/recovery binding](T05c-98fd8aa-review-assembly.md). Runtime exact98/unaccepted, six retained tests changed. Original author PARTIAL then EMPTY/no freeze ACK; recovery **ses_e73984cfdffetqQ2tKxiAwF31b RUNNING evidence/service-finalization ONLY**, no code/schema. Seal unexecuted/final packaging-cleanup missing at dispatch, historical upgraded acquisition15 partial not a completed receipt. Await sealed complete evidence or precise blocker, no author PASS/ACK/cleanup/polling/rerun inferred. One combined-SHA verification after recovery return; primary accepted exacte9/main/remotes/protected/author checkpoint/26 LOCAL/108 U/134/VSTS-03 U/F1 OPEN/T06b queue unchanged.
 

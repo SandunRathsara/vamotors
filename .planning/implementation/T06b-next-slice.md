@@ -1,6 +1,12 @@
-# FUTURE T06b — lawful staged-import private attachments
+# T06b — lawful staged-import private attachments
 
-## Current queued status / accepted rates / T05c same-owner correction
+## Current explicit dispatch / sole shared owner / accepted prebase — 2026-10-30
+
+**[Parent explicitly DISPATCHED](evidence/T06b-active-ownership.md) ses_e738d7ffaffeXx7RewTpqYvIg0**, model **openai/gpt-6.1-sol-fast#xhigh** live-resolved by parent, as **SOLE NEW shared schema/registry/grants/dispatcher/config owner** from exact **ACCEPTED e9ba1a939667fc46178f89cccae1022a4bbcfb7e**, never unaccepted98fd8aa/e9a9b0b. Original T05c author genuinely ACKNOWLEDGED frozen98/released active ownership, no known correction queued; recovery is evidence/service-only, not a source writer. T05c combined **exact e9a9b0bfb515bca254b7b3aaa35ba65386fa67ef stays FROZEN REVIEW TARGET / UNACCEPTED**, verifier not dispatched pending recovery, no author PASS.
+
+Reserve **202610300004_import_attachments** after costs002/F1-003. Prebase schema/registry/grants follow actual accepted **v8 / eleven migrations**, later reconcile with eventual accepted costs; do not import unaccepted T05c to assume v9. Before final handback **rebase onto parent-accepted T05c-combined source**, then final fresh/genuine NONEMPTY exact-parent upgrade, retained regressions and distinct integrated review. If T05c needs source correction, parent **FIRST T06b checkpoint + freeze + ACK, THEN reassignment**; no overlapping active writers. Functionality/security/tests from “Deliver only this real vertical” onward remain unchanged; earlier queued/start-gate text is historical, superseded only by this explicit dispatch. **F1 OPEN / VSTS-03 U /26 LOCAL/108 U/134**; no feature/gate/ID acceptance or primary promotion.
+
+## Historical queued status / accepted rates / T05c same-owner correction
 
 **T06b remains QUEUED, NOT dispatched**, pending T05c source freeze and explicit parent dispatch/sole-owner transfer on an exact accepted base. [Bounded rates+combined accepted exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e](evidence/T11a-e9ba1a9-acceptance-attributed.md); T05c ses_e73d53f14ffe6mFcfMW8lxAINw remains SOLE ACTIVE shared writer, instructed checkpoint/rebase accepted e9 and forward003 F1 correction after costs002 without rewriting accepted001. F1 OPEN/pending independent validation; T11a author frozen, no transfer/concurrent writer. No T05c freeze needed for its same-owner fix; future reassignment still requires prior freeze/checkpoint+ACK. Original T06b scope/tests and final accepted-source reconciliation obligations below remain unchanged.26 LOCAL/108 U/134, VSTS-03 U; no actual file workflow/gate acceptance from rates.
 

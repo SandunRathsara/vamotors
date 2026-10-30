@@ -2,6 +2,8 @@
 
 Parent-authorized ordinary merge on **integration/local-v1-ledger-20261030**, own checkout `/private/var/folders/gb/j8pkyq8j0rd50dzkps44xgh40000gn/T/opencode/vamotors-local-v1-ledger-20261030`. **No acceptance, primary promotion or new shared-source authorship.**
 
+**Later parent coordination, not a rewrite of the assembly snapshot:** containing **EXACT e9a9b0bfb515bca254b7b3aaa35ba65386fa67ef is the FROZEN T05c REVIEW TARGET**, unchanged by later docs SHAs; distinct verifier not yet dispatched pending recovery. [Genuine author freeze ACK/release, resumed BLOCKED recovery, UNKNOWN acquisition job and explicit T06b sole-owner dispatch](T06b-active-ownership.md) supersede only the current-authority/missing-ACK/queued labels below. Original assembly checks and packaging history remain at their original bindings; no author PASS or acceptance is added.
+
 | Exact input | Authority / state |
 | --- | --- |
 | Docs **2895950b7f02f3bbcc108dda476f70b80c05cc2a** | Clean current26 LOCAL/108 U/134, exact21@0eaae8f/five@e9 bindings, VSTS-03 U, F1 OPEN, accepted-rate evidence and both briefs; nine paths retained. |

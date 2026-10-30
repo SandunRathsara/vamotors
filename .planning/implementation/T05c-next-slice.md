@@ -1,6 +1,12 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current accepted-parent rebase / same-owner OPEN F1 correction — 2026-10-30
+## Current acknowledged freeze / released ownership / recovery pending — 2026-10-30
+
+**[Parent-attributed current coordination](evidence/T06b-active-ownership.md):** original author **ses_e73d53f14ffe6mFcfMW8lxAINw ACKNOWLEDGED frozen98fd8aaf02f28dcda8d47bb199971de895a960c8 and RELEASED active shared ownership**; no known source correction queued, future corrections require reassignment. Combined **EXACT e9a9b0bfb515bca254b7b3aaa35ba65386fa67ef remains FROZEN REVIEW TARGET / UNACCEPTED**, not this docs descendant. Distinct verifier not yet dispatched pending recovery. Acquisition job sh_18c5e1e930011XG6EnepboxH16 **UNKNOWN/no notification/no PASS**; recovery ses_e73984cfdffetqQ2tKxiAwF31b last HANDOFF **BLOCKED**, now resumed **RUNNING evidence/service-only, outcome pending**. Preserve failed/blocked provenance and missing metadata; no live-file inspection/polling/rerun here.
+
+Parent dispatched **T06b ses_e738d7ffaffeXx7RewTpqYvIg0 as SOLE NEW schema/registry/grants/dispatcher/config owner** from accepted exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e; its final source must reconcile onto eventual parent-accepted T05c combination. Any T05c source correction requires parent **FIRST T06b checkpoint + freeze + ACK, THEN reassignment**. No overlapping source writers. Costs002/F1-003/frozen source and all bounds/tests below retained; **F1 OPEN / VSTS-03 U /26 LOCAL/108 U/134**, no author/independent PASS or new acceptance inferred. Earlier ownership/start-gate sections are historical, not renewed source authority.
+
+## Historical accepted-parent rebase / same-owner OPEN F1 correction — 2026-10-30
 
 **T05c ses_e73d53f14ffe6mFcfMW8lxAINw remains SOLE ACTIVE shared writer.** Parent now [accepts bounded rates+combined EXACT e9ba1a939667fc46178f89cccae1022a4bbcfb7e](evidence/T11a-e9ba1a9-acceptance-attributed.md) and instructs safe checkpoint/rebase from the acceptedb7 dispatch onto that accepted combination before final fresh/genuine-parent-upgrade handback/review. Preserve accepted11 migrations/registryv8/rate grants/quote history. Costs functionality/bounds/tests below remain unchanged; retain reserved **202610300002_cycle_costs_corrections**.
 
