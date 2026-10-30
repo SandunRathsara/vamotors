@@ -383,3 +383,84 @@ export const listParams = z
       .default(20),
   })
   .strict()
+
+export const externalVehicle = vehicleInput
+  .pick({ make: true, model: true, year: true })
+  .extend({
+    description: text,
+    engineNumber: text.max(100).optional(),
+    chassisNumber: text.max(100).optional(),
+  })
+  .strict()
+export const rateVehicle = externalVehicle.pick({
+  make: true,
+  model: true,
+  year: true,
+})
+const positiveMoney = moneyInput.refine((v) => v !== "0")
+export const rateCommands = {
+  publishRates: z
+    .object({
+      companyId: id,
+      ...rateVehicle.shape,
+      validFrom: dateOnly,
+      validThrough: dateOnly,
+      maximum: positiveMoney,
+      cards: z
+        .array(
+          z
+            .object({
+              principal: positiveMoney,
+              months: z.number().int().min(1).max(120),
+              installment: positiveMoney,
+            })
+            .strict()
+        )
+        .min(1)
+        .max(100),
+    })
+    .strict()
+    .superRefine((v, ctx) => {
+      if (
+        v.validFrom > v.validThrough ||
+        (moneyInput.safeParse(v.maximum).success &&
+          v.cards.some(
+            (c) =>
+              moneyInput.safeParse(c.principal).success &&
+              BigInt(c.principal) > BigInt(v.maximum)
+          )) ||
+        new Set(v.cards.map((c) => `${c.principal}:${c.months}`)).size !==
+          v.cards.length
+      )
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid validity, bounds or duplicate card",
+        })
+    }),
+  selectQuote: z
+    .object({
+      sheetId: id,
+      cardId: id,
+      vehicle: externalVehicle,
+      charges: z
+        .array(z.object({ category: name, amount: moneyInput }).strict())
+        .max(100),
+    })
+    .strict(),
+} as const
+export type RateCommandName = keyof typeof rateCommands
+export const rateEnvelope = (name: RateCommandName) =>
+  customerEnvelope("createCustomer").extend({ input: rateCommands[name] })
+export const maximaInput = z
+  .object({ vehicle: rateVehicle, asOf: dateOnly })
+  .strict()
+export const compareInput = z
+  .object({
+    vehicle: externalVehicle,
+    asOf: dateOnly,
+    principal: positiveMoney,
+    months: z.number().int().min(1).max(120).optional(),
+    installment: positiveMoney.optional(),
+  })
+  .strict()
+  .refine((v) => (v.months === undefined) !== (v.installment === undefined))

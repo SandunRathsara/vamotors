@@ -372,6 +372,65 @@ export const registry = {
     read: ["id", "revision", "kind", "target", "createdAt", "readAt"],
     update: ["readAt"],
   },
+  RateSheet: {
+    read: [
+      "id",
+      "revision",
+      "companyId",
+      "version",
+      "make",
+      "model",
+      "year",
+      "maximum",
+      "validFrom",
+      "validThrough",
+      "publishedAt",
+      "cards",
+    ],
+    create: [
+      "companyId",
+      "make",
+      "model",
+      "year",
+      "maximum",
+      "validFrom",
+      "validThrough",
+      "cards",
+    ],
+  },
+  Quote: {
+    read: [
+      "id",
+      "revision",
+      "createdBy",
+      "vehicle",
+      "vehicle.make",
+      "vehicle.model",
+      "vehicle.year",
+      "vehicle.description",
+      "vehicle.engineNumber",
+      "vehicle.chassisNumber",
+      "sheetId",
+      "sheetRevision",
+      "cardId",
+      "companyId",
+      "companyRevision",
+      "principal",
+      "months",
+      "installment",
+      "maximum",
+      "charges",
+      "policy",
+      "policy.path",
+      "policy.commission.basis",
+      "policy.commission.fixed",
+      "policy.commission.rateBps",
+      "policy.processingFee",
+      "policy.reconciliationMethod",
+      "expiresAt",
+    ],
+    create: ["sheetId", "cardId", "vehicle", "charges"],
+  },
   AuditLog: {
     read: [
       "id",
@@ -385,7 +444,7 @@ export const registry = {
     ],
   },
 } as const
-export const registryVersion = 7
+export const registryVersion = 8
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],
@@ -399,6 +458,8 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   Settings: [],
   Notification: ["recipientUserId"],
   AuditLog: [],
+  RateSheet: ["createdBy", "financeCompanyId"],
+  Quote: ["createdBy", "financeCompanyId"],
 }
 const conditionSchema = z
   .object({
@@ -671,7 +732,9 @@ export function readScope(
     OR: candidates.map((g) =>
       Object.fromEntries(
         Object.entries(g.conditions ?? {}).map(([k, v]) => [
-          k,
+          (type === "RateSheet" || type === "Quote") && k === "financeCompanyId"
+            ? "companyId"
+            : k,
           v === "$actor.id" ? userId : v,
         ])
       )
@@ -777,10 +840,18 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
                       : "STRING",
         })),
         conditions: conditionKeys[type as EnabledSubject].map((key) => ({
-          key: key as "createdBy" | "status" | "recipientUserId",
+          key: key as
+            | "createdBy"
+            | "status"
+            | "recipientUserId"
+            | "financeCompanyId",
           operator: "EQ" as const,
           valueType:
-            key === "status" ? ("STATUS" as const) : ("ACTOR_ID" as const),
+            key === "status"
+              ? ("STATUS" as const)
+              : key === "financeCompanyId"
+                ? ("UUID" as const)
+                : ("ACTOR_ID" as const),
           ...(key === "status" ? { allowedValues: [...states] } : {}),
         })),
       })),

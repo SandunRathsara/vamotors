@@ -13,6 +13,8 @@ import { executeParty } from "@/lib/server/parties"
 import { executeSettings } from "@/lib/server/settings"
 import { recordPurchase, executeStock } from "@/lib/server/purchases"
 import { stockInputs, type StockCommand } from "@/lib/server/validators"
+import { executeRates } from "@/lib/server/rates"
+import { rateCommands, type RateCommandName } from "@/lib/server/validators"
 import { partyCommands, type PartyCommandName } from "@/lib/server/validators"
 import {
   customerCommands,
@@ -30,12 +32,14 @@ export async function POST(
     const { name } = await context.params
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
+    const rates = Object.hasOwn(rateCommands, name)
     if (
       name !== "updateSettings" &&
       name !== "recordPurchase" &&
       !Object.hasOwn(stockInputs, name) &&
       !customer &&
       !party &&
+      !rates &&
       !Object.hasOwn(commandInputs, name)
     )
       fail("NOT_FOUND", 404)
@@ -44,8 +48,9 @@ export async function POST(
       party &&
       (name !== "archiveParty" ||
         (raw as { input?: { type?: string } })?.input?.type !== "CUSTOMER")
-    const result =
-      name === "recordPurchase"
+    const result = rates
+      ? await executeRates(identity, name as RateCommandName, raw)
+      : name === "recordPurchase"
         ? await recordPurchase(identity, raw)
         : Object.hasOwn(stockInputs, name)
           ? await executeStock(identity, name as StockCommand, raw)
@@ -66,6 +71,7 @@ export async function POST(
       name === "createCustomer" ||
       name === "createDirectoryParty" ||
       name === "createFinanceCompany" ||
+      rates ||
       (name === "saveRole" && !(raw as { input: { id?: string } }).input.id)
     return noStoreJSON(result, !result.replayed && created ? 201 : 200)
   })

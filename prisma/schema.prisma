@@ -287,8 +287,77 @@ model FinanceCompany {
   currentPolicy   FinancePolicyVersion   @relation("currentPolicy", fields: [currentPolicyId, id], references: [id, companyId], onDelete: Restrict)
   policies        FinancePolicyVersion[] @relation("policies")
   contacts        FinanceContact[]
+  rateSheets      RateSheetVersion[]
+  quotes          Quote[]
 
   @@unique([currentPolicyId, id])
+  @@schema("vamotors")
+}
+
+model RateSheetVersion {
+  id           String          @id @default(uuid()) @db.Uuid
+  companyId    String          @db.Uuid
+  company      FinanceCompany  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  version      Int
+  revision     Int             @default(1)
+  make         String
+  model        String
+  year         Int
+  maximum      BigInt
+  validFrom    DateTime        @db.Date
+  validThrough DateTime        @db.Date
+  publishedAt  DateTime        @default(now())
+  createdBy    String          @db.Uuid
+  commandId    String          @unique @db.Uuid
+  cards        RateCardEntry[]
+  quotes       Quote[]
+
+  @@unique([companyId, make, model, year, version])
+  @@index([companyId, make, model, year, validFrom])
+  @@schema("vamotors")
+}
+
+model RateCardEntry {
+  id             String           @id @default(uuid()) @db.Uuid
+  sheetVersionId String           @db.Uuid
+  sheet          RateSheetVersion @relation(fields: [sheetVersionId], references: [id], onDelete: Restrict)
+  principal      BigInt
+  months         Int
+  installment    BigInt
+  quotes         Quote[]
+
+  @@unique([sheetVersionId, principal, months])
+  @@unique([id, sheetVersionId])
+  @@schema("vamotors")
+}
+
+model Quote {
+  id                 String           @id @default(uuid()) @db.Uuid
+  revision           Int              @default(1)
+  sheetId            String           @db.Uuid
+  sheet              RateSheetVersion @relation(fields: [sheetId], references: [id], onDelete: Restrict)
+  cardId             String           @db.Uuid
+  card               RateCardEntry    @relation(fields: [cardId, sheetId], references: [id, sheetVersionId], onDelete: Restrict)
+  companyId          String           @db.Uuid
+  company            FinanceCompany   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  vehicle            Json
+  principal          BigInt
+  months             Int
+  installment        BigInt
+  maximum            BigInt
+  charges            Json
+  policyVersionId    String           @db.Uuid
+  policySnapshot     Json
+  companySnapshot    Json
+  settingsVersionId  String           @db.Uuid
+  settingsSnapshot   Json
+  commissionExpected BigInt
+  createdBy          String           @db.Uuid
+  createdAt          DateTime         @default(now())
+  expiresAt          DateTime
+  commandId          String           @unique @db.Uuid
+
+  @@index([createdBy, createdAt, id])
   @@schema("vamotors")
 }
 
