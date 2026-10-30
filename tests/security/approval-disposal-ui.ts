@@ -543,6 +543,7 @@ try {
         )
         const result = await reviewed
         assert.equal(result.status(), 200)
+        const committedReview = await result.json()
         await expect(
           mobile.getByText("REJECTED", { exact: true })
         ).toBeVisible()
@@ -564,7 +565,7 @@ try {
           group: "actual rejection evidence",
           approvalId: p.approvalId,
           requestCommandId: p.commandId,
-          reviewCommandId: (await result.json()).commandId,
+          reviewCommandId: committedReview.commandId,
           domainBeforeAfterSha256: createHash("sha256")
             .update(before)
             .digest("hex"),

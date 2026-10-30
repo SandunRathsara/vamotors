@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process"
 import { readFile, writeFile, readdir, lstat } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
-import { request } from "@playwright/test"
+import { request, type APIRequestContext } from "@playwright/test"
 import type {
   Grant,
   PurchaseCycleDTO,
@@ -17,8 +17,8 @@ import { fixture, envelope, purchaseInput, ref } from "./cycle-edits-fixture"
 import { verifyFiles } from "./cycle-edits-files"
 
 process.umask(0o077)
-const [root, mode] = process.argv.slice(2)
-assert.ok(root && ["prepare", "verify"].includes(mode))
+const [root, mode, resumeLog] = process.argv.slice(2)
+assert.ok(root && ["prepare", "resume", "verify"].includes(mode))
 const parent = "2360cbb92658d8b0c4cd0a38e3de14ef38efdeaa"
 const cluster = await privateEnvironment(join(root, "cluster.env"))
 const source = cluster.PROJECT!
@@ -444,70 +444,218 @@ async function enrich() {
           name: `Lawful parent236 delegated child ${suffix}`,
           grants: [
             {
-              subject: "PurchaseRecord",
+              subject: "Supplier",
               action: "read",
               fields: ["id"],
-              conditions: { createdBy: "$actor.id" },
             },
           ],
-          reason: "Actual retained bounded delegation",
+          reason:
+            "Actual broad supplier authority permits bounded delegation; own-record authority does not",
         }),
         201
       )
     } finally {
       await delegate.dispose()
     }
-    const batch = await f.command(
-      admin,
-      "stageImport",
-      envelope({
-        types: ["SUPPLIERS"],
-        namespace: `parent236-staged-${suffix}`,
-      }),
-      201
-    )
-    const bytes = Buffer.from("name,value\nActual retained staged bytes,236\n")
-    const init = await admin.post("/api/v1/commands/initUpload", {
-      headers: { Origin: f.origin },
-      data: envelope(
-        {
-          target: { type: "IMPORT_BATCH", id: batch.result.id },
-          purpose: "IMPORT_SOURCE",
-          filename: "retained-staged.csv",
-          contentType: "text/csv",
-          size: bytes.length,
-          sha256: hash(bytes),
-        },
-        [ref(batch.result, "ImportBatch")]
-      ),
-    })
-    assert.equal(init.status(), 201)
-    const ready = await init.json()
-    assert.equal(
-      (
-        await admin.put(ready.putUrl, {
-          headers: { Origin: f.origin, ...ready.requiredHeaders },
-          data: bytes,
-        })
-      ).status(),
-      204
-    )
     return {
       cycles,
       grossCycle: row.id,
       delegate: { email, cycleId: delegateCycle },
-      stagedBatch: batch.result.id,
+      stagedBatch: await stageBytes(admin),
     }
   } finally {
     await admin.dispose()
     await f.stop()
   }
 }
+async function stageBytes(admin: APIRequestContext) {
+  const batch = await f.command(
+    admin,
+    "stageImport",
+    envelope({
+      types: ["SUPPLIERS"],
+      namespace: `parent236-staged-${randomUUID()}`,
+    }),
+    201
+  )
+  const bytes = Buffer.from("name,value\nActual retained staged bytes,236\n")
+  const init = await admin.post("/api/v1/commands/initUpload", {
+    headers: { Origin: f.origin },
+    data: envelope(
+      {
+        target: { type: "IMPORT_BATCH", id: batch.result.id },
+        purpose: "IMPORT_SOURCE",
+        filename: "retained-staged.csv",
+        contentType: "text/csv",
+        size: bytes.length,
+        sha256: hash(bytes),
+      },
+      [ref(batch.result, "ImportBatch")]
+    ),
+  })
+  assert.equal(init.status(), 201)
+  const ready = await init.json()
+  assert.equal(
+    (
+      await admin.put(ready.putUrl, {
+        headers: { Origin: f.origin, ...ready.requiredHeaders },
+        data: bytes,
+      })
+    ).status(),
+    204
+  )
+  return batch.result.id
+}
+async function resumeEnrichment(): Promise<Awaited<ReturnType<typeof enrich>>> {
+  assert.match(resumeLog, /^cycle-edits-http-[a-f0-9]{8}\.json$/)
+  const text = await readFile(join(root, resumeLog), "utf8")
+  const log = JSON.parse(text)
+  assert.equal(log.source, source)
+  const commands = log.transcript.filter(
+    (e: { kind: string }) => e.kind === "command"
+  )
+  const failed = commands.at(-1)
+  assert.equal(failed.name, "saveRole")
+  assert.equal(failed.status, 403)
+  assert.equal(failed.value.error.code, "FORBIDDEN")
+  assert.deepEqual(failed.body.input.grants, [
+    {
+      subject: "PurchaseRecord",
+      action: "read",
+      fields: ["id"],
+      conditions: { createdBy: "$actor.id" },
+    },
+  ])
+  const purchases = commands.filter(
+    (c: { name: string; status: number }) =>
+      c.name === "recordPurchase" && c.status === 201
+  )
+  const cycles = purchases
+    .filter(
+      (c: { body: { input: { vehicle: { engineNumber: string } } } }) =>
+        !/-(delegate|gross)$/.test(c.body.input.vehicle.engineNumber)
+    )
+    .map(
+      (c: { result?: unknown; value: { result: { id: string } } }) =>
+        c.value.result.id
+    ) as string[]
+  assert.equal(cycles.length, 4)
+  const gross = purchases.find(
+    (c: { body: { input: { purchasePrice: string } } }) =>
+      c.body.input.purchasePrice === "99999999999999"
+  )
+  const delegateCycle = purchases.at(-1).value.result.id as string
+  const user = (
+    await f.db.query(
+      'SELECT u.id,u.email FROM vamotors."user" u JOIN vamotors."PurchaseRecord" p ON p."createdBy"=u.id WHERE p.id=$1',
+      [delegateCycle]
+    )
+  ).rows[0]
+  assert.match(user.email, /^parent236-delegate-[a-f0-9]{8}@example\.test$/)
+  assert.equal(
+    (
+      await f.db.query(
+        'SELECT count(*)::integer n FROM vamotors."CommandReceipt" WHERE "idempotencyKey"=$1',
+        [failed.body.idempotencyKey]
+      )
+    ).rows[0].n,
+    0
+  )
+  await f.start()
+  const admin = await f.login("ADMIN"),
+    reader = await request.newContext({ baseURL: f.origin })
+  try {
+    const row = await f.query<PurchaseCycleDTO>(
+      admin,
+      "purchase",
+      `?cycleId=${gross.value.result.id}`
+    )
+    assert.equal(row.financial!.cashIn, "9999999999999900")
+    assert.equal(row.financial!.cashOut, "9999999999999900")
+    assert.equal(row.payments.length, 200)
+    assert.equal(
+      (
+        await reader.post("/api/auth/sign-in/email", {
+          headers: { Origin: f.origin },
+          data: {
+            email: user.email,
+            password: hash(`${f.runtime.BETTER_AUTH_SECRET}:${user.email}`),
+          },
+        })
+      ).status(),
+      200
+    )
+    assert.equal(
+      (
+        await f.query<PurchaseCycleDTO>(
+          reader,
+          "purchase",
+          `?cycleId=${delegateCycle}`
+        )
+      ).id,
+      delegateCycle
+    )
+    assert.equal(
+      (
+        await reader.get(`/api/v1/queries/purchase?cycleId=${cycles[0]}`)
+      ).status(),
+      404
+    )
+    const before = await snapshot()
+    const denied = await reader.post("/api/v1/commands/saveRole", {
+      headers: { Origin: f.origin },
+      data: failed.body,
+    })
+    assert.equal(denied.status(), 403)
+    assert.equal((await denied.json()).error.code, "FORBIDDEN")
+    assert.deepEqual(await snapshot(), before)
+    await f.command(
+      reader,
+      "saveRole",
+      envelope({
+        name: `Lawful supplier-only delegation ${randomUUID()}`,
+        grants: [{ subject: "Supplier", action: "read", fields: ["id"] }],
+        reason:
+          "Existing broad Supplier grant covers arbitrary eventual holders; own-record grant does not",
+      }),
+      201
+    )
+    const retained = {
+      cycles,
+      grossCycle: row.id,
+      delegate: { email: user.email as string, cycleId: delegateCycle },
+      stagedBatch: await stageBytes(admin),
+    }
+    await writeFile(
+      join(root, `approval-disposal-enrichment-resume-${randomUUID()}.json`),
+      JSON.stringify(
+        {
+          parent,
+          preservedFailure: {
+            transcript: resumeLog,
+            sha256: hash(text),
+            error: "Wrong expected201; actual403 preserved",
+          },
+          noGrossOrChannelReseed: true,
+          retained,
+        },
+        null,
+        2
+      ),
+      { flag: "wx", mode: 0o600 }
+    )
+    return retained
+  } finally {
+    await admin.dispose()
+    await reader.dispose()
+    await f.stop()
+  }
+}
 try {
-  if (mode === "prepare") {
+  if (mode === "prepare" || mode === "resume") {
     assert.equal(head, parent)
     await assert.rejects(readFile(record))
-    const retained = await enrich(),
+    const retained = await (mode === "resume" ? resumeEnrichment() : enrich()),
       before = await snapshot()
     assert.equal(before.source.registryVersion, 12)
     assert.equal(before.migrations.length, 16)

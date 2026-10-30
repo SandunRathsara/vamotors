@@ -121,6 +121,22 @@ object, not newer records. Sole shared-source ownership remains active here.
   reviewer security assertions are authored, not passed by this journal entry.
   No final proof seal, acceptance or ownership release is claimed.
 
+- Clean6db86df fresh UI run passed header/request-response-loss/review-response-loss;
+  actual keyboard rejection then committed REJECTED, verified exact domain bytes,
+  note and reload, but evidence collection failed reading its response body AFTER
+  navigation (`Network.getResponseBody` resource gone). Capture the same body
+  immediately after its HTTP200; retain failure and all committed effects. Do not
+  weaken the rejection/domain/reload/bounds assertions. Later UI groups unstarted.
+- Clean6db86df exact236 parent enrichment created all channels/A→B correction and
+  the actual100-OUT/100-IN A-sized C−99 gross witness, plus a useful nonadmin who
+  acquired/read its own cycle and received404 for foreign stock. It then failed
+  an incorrect201 expectation for delegating own-record read to arbitrary future
+  holders; accepted attenuation correctly returned403 FORBIDDEN. Do NOT widen that
+  role. The retained HTTP transcript `parent236/cycle-edits-http-92128d8d.json`
+  binds every prior command. The bounded resume must revalidate those actual
+  rows/receipt absence, preserve the negative, positively delegate only existing
+  broad Supplier.id, add staged bytes, and snapshot. No gross/channel reseed.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,
