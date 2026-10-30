@@ -4,6 +4,8 @@ Author: foundation owner, 2026-10-25. Base verified before edits: `f51b1648bbbda
 
 ## Contract index
 
+Pending additive candidate: [import staging/file discovery](import-file-discovery.proposal.md) adds only importBatches/importBatchFiles reads and typed specimens. Independent review/parent acceptance required before runtime adoption; no feature/gate acceptance is asserted.
+
 2026-10-26 bounded amendment: parent explicitly accepted proposal `da040cf9d1da91c1885326b0edcccae8b48e0f96` after independent `433aae87` PASS (dispatch attribution). [Promoted normative semantics](party-detail-settings.md) and [T04c brief](../T04c-next-slice.md) apply on accepted runtime base `dda76e3f9c078360118722feee1f14f23fdd7fa3`. The three `party-detail-settings.proposal*` files remain byte-identical historical review artifacts; their pending labels describe that earlier submission, not current amendment authority. This accepts contract policy only, not implementation, whole T04, any whole requirement or G2–G6. Shared acceptance records remain integration-owned.
 
 Fresh promotion checks: PASS contracts19; strict standalone compile of `api.ts`, `api-check.ts`, `roundtrip-check.ts` and both proposal TS files; CommonJS execution of existing5 + reviewed3 specimens; 315 local Markdown targets (path existence, not anchors). Use the five-file compile/emission commands preserved in proposal §Contract-only checks; existing installed TypeScript, no install. `api-check.ts` now asserts exact equality between reviewed and promoted query/detail/contribution/link types. These checks are specification only, not DB/HTTP/browser proof.
@@ -20,6 +22,8 @@ Fresh promotion checks: PASS contracts19; strict standalone compile of `api.ts`,
 | [reference.mjs](reference.mjs) | Dependency-free executable reference for exact money, dates, lifecycle and overdue semantics; not installed in runtime |
 | [check.mjs](check.mjs) | Runnable assertions and exhaustive catalog/DTO/index coverage check |
 | [api-check.ts](api-check.ts) | Compile-time review regressions: formerly missing dependency types, admin/actor reads, cycle edit roundtrip, graph import/maxima/requote/export interfaces |
+| [roundtrip-check.ts](roundtrip-check.ts) | Executable typed read-to-command specimens, including current import staging/file discovery without receipt/error lookup |
+| [import-file-discovery.proposal.md](import-file-discovery.proposal.md) | Pending additive read candidate, compatibility/scope and contract-only validation evidence |
 | [party-detail-settings.md](party-detail-settings.md) | Accepted bounded party detail and persisted Settings/finance prerequisites; no new write/policy protocol |
 | [party-detail-settings.proposal-check.ts](party-detail-settings.proposal-check.ts) | Preserved three reviewed typed specimens; api-check.ts binds their query/DTO/link types exactly to promoted api.ts |
 | [review-handoff.md](review-handoff.md) | Integration-owner update proposal, defaults, review scenarios, exact T03 prerequisites and validation scope |
