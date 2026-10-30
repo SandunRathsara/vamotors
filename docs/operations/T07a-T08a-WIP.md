@@ -86,6 +86,22 @@ its no-work/released statements no longer describe current ownership.
   proxy preflight now calls the same authenticated detail owner as the RSC;
   the page independently repeats that lookup. This change is not verified yet.
 
+- Clean `e85e6fd` build/150 units passed. Full authored authority/privacy and
+  essential-write fault campaign now exited0, including hard foreign-detail404.
+  The expanded HTTP campaign subsequently exited0 after correcting its pageSize
+  fixture to the accepted10/20/50/100 selector. It covers seven real dependency
+  mutations, strict refs/input, reject/replay, races and notification reads.
+- Generated schema bytes match via the actual pnpm-resolved client. An earlier
+  probe's guessed node_modules/.prisma path failed ENOENT and is retained.
+- First UI probe incorrectly expected POST to be SW-owned; the active worker
+  intentionally leaves writes on the native network. That failed assertion is
+  retained, and inspection found no surviving owned app from it. The corrected
+  run reached the real form/committed response-loss retry but exposed a missing
+  sidebar inbox link; an authorized Approvals entry is now added, not yet rebuilt.
+- Added two-reviewer/approve-vs-reject/competing-proposal and observed-lock
+  revocation tests; these newest tests and the full browser campaign remain
+  unexecuted/unverified at this checkpoint. No final P1–P8/upgrade claim.
+
 ## Historical frozen checkpoint — preserved verbatim below
 
 Parent requested safe checkpoint/freeze/release before reassigning a bounded

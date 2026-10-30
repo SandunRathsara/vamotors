@@ -692,7 +692,7 @@ try {
       const one = await f.query<{ unreadCount: number }>(
         reviewer,
         "notifications",
-        "?pageSize=1"
+        "?pageSize=10"
       )
       assert.equal(one.unreadCount, inbox.unreadCount - 1)
       const all = envelope({ through: "9999-01-01T00:00:00.000Z" })

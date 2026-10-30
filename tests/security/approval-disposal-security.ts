@@ -3,7 +3,9 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import type { APIRequestContext } from "@playwright/test"
+import { expect, type APIRequestContext } from "@playwright/test"
+import pg from "pg"
+import { privateEnvironment } from "../../scripts/private-environment"
 import type {
   ApprovalDTO,
   CurrentActorDTO,
@@ -470,6 +472,151 @@ try {
       )
       assert.equal(foreign.status(), 404)
       assert.ok(!html.includes("PRIVATE_REQUEST_REASON"))
+    }
+  )
+  await group(
+    "P5 two separate reviewers, approve-reject race, duplicate request and competing proposals",
+    async () => {
+      await assign(authority)
+      for (const reject of [false, true]) {
+        const row = await make(`race-${reject}`),
+          body = propose(row)
+        const requests = (await Promise.all([
+          f.command(staff, "requestApproval", body, 202),
+          f.command(staff, "requestApproval", body, 202),
+        ])) as unknown as Pending[]
+        assert.equal(requests[0].approvalId, requests[1].approvalId)
+        assert.equal(requests[0].commandId, requests[1].commandId)
+        assert.equal(requests.filter((r) => !r.replayed).length, 1)
+        const input = {
+          approvalId: requests[0].approvalId,
+          decision: "APPROVE",
+        }
+        const expected = [
+          {
+            type: "ApprovalRequest" as const,
+            id: requests[0].approvalId,
+            revision: 1,
+          },
+          ...cycleRefs(row),
+        ]
+        const responses = await Promise.all(
+          [admin, second].map((client, index) =>
+            client.post("/api/v1/commands/reviewApproval", {
+              headers: { Origin: f.origin },
+              data: envelope(
+                reject && index
+                  ? {
+                      ...input,
+                      decision: "REJECT",
+                      note: "Actual competing rejection",
+                    }
+                  : input,
+                expected
+              ),
+            })
+          )
+        )
+        assert.deepEqual(responses.map((r) => r.status()).sort(), [200, 409])
+        const values = await Promise.all(responses.map((r) => r.json()))
+        assert.equal(values.find((v) => !v.ok).error.code, "ALREADY_REVIEWED")
+        const state = (
+          await f.db.query(
+            'SELECT state FROM vamotors."ApprovalRequest" WHERE id=$1',
+            [requests[0].approvalId]
+          )
+        ).rows[0].state
+        assert.equal(
+          (await current(row.id)).status,
+          state === "APPROVED" ? "WRITTEN_OFF" : "PURCHASED"
+        )
+      }
+      const row = await make("competing"),
+        first = await pending(row, staff),
+        secondProposal = await pending(row, staff)
+      await f.command(admin, "reviewApproval", first.review)
+      await denied(
+        second,
+        "reviewApproval",
+        secondProposal.review,
+        409,
+        "APPROVAL_STALE"
+      )
+    }
+  )
+  await group(
+    "P3/P5 observed sequence wait rechecks current execution and replay authority",
+    async () => {
+      const env = await privateEnvironment(join(root, "admin.env")),
+        url = new URL(env.ADMIN_URL!)
+      url.pathname = "/vamotors_local"
+      const monitor = new pg.Pool({ connectionString: url.href, max: 1 })
+      try {
+        for (const name of ["requestApproval", "reviewApproval"]) {
+          await assign(authority)
+          const row = await make(`locked-${name}`),
+            committed =
+              name === "requestApproval"
+                ? propose(row)
+                : (await pending(row)).review
+          await f.command(
+            staff,
+            name,
+            committed,
+            name === "requestApproval" ? 202 : 200
+          )
+          for (const replay of [false, true]) {
+            await assign(authority)
+            const source = await make(`wait-${randomUUID().slice(0, 8)}`)
+            const body = replay
+              ? committed
+              : name === "requestApproval"
+                ? propose(source)
+                : (await pending(source)).review
+            const blocker = await f.db.connect()
+            try {
+              await blocker.query("BEGIN")
+              await blocker.query(
+                'SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE'
+              )
+              const response = staff.post(`/api/v1/commands/${name}`, {
+                data: body,
+                headers: { Origin: f.origin },
+              })
+              await expect
+                .poll(
+                  async () =>
+                    Number(
+                      (
+                        await monitor.query(
+                          "SELECT count(*) FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE '%BusinessSequence%'"
+                        )
+                      ).rows[0].count
+                    ),
+                  { timeout: 1200 }
+                )
+                .toBeGreaterThan(0)
+              await assign(reads)
+              const before = await f.snapshot(tables)
+              await blocker.query("COMMIT")
+              assert.equal((await response).status(), 403)
+              assert.equal(await f.snapshot(tables), before)
+              groups.push({
+                group: "observed lock revocation",
+                command: name,
+                replay,
+                observedBusinessSequenceWait: true,
+                pass: true,
+              })
+            } finally {
+              await blocker.query("ROLLBACK")
+              blocker.release()
+            }
+          }
+        }
+      } finally {
+        await monitor.end()
+      }
     }
   )
   await group(
