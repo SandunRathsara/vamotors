@@ -192,3 +192,55 @@ remain with their original tasks. No fake sold/repair history was added.
 No public contract edit, cloud operation, human G2 root/URL8000 access, push/PR,
 deployment, primary/default-branch change, self-acceptance or count/gate decision.
 Counts remain 26 LOCAL / 108 U / 134; VSTS-03 U; G3–G6 pending.
+
+## IV-T05c2-GROSS-C01 — bounded author correction
+
+The distinct final-combined review rejected exact
+`52c720d0831a712b98c1b54ed008faec27acb27c` for source cumulative gross cash
+C+1 returning 500 rather than 422. This is separate from the original incurred
+`addCost` basis boundary. The independent stack established an escaping
+`RangeError("MONEY_OVERFLOW")` in `checkCap`, not a failed SQL constraint or an
+error-mapper defect. A new isolated author fixture reproduces the HTTP failures
+before the correction, including unconditional zero effects on 13 populations.
+The original red evidence remains red.
+
+Only the two gross-direction checks in that shared command guard change to
+explicit `fail("MONEY_OVERFLOW", 422)`. Inclusive signed C bounds, net/liability
+checks, recipient partitioning, original source/category/payee context and
+transaction rollback remain unchanged. The guard is called for purchase totals,
+SELLER/SETTLEMENT partitions and every cost source after the six existing money
+intents. The money primitive, transaction wrapper, global error mapper, all 16
+migrations, schema, registry12, grants, contracts and native/PWA bytes are unchanged.
+
+The committed regression reuses the real production HTTP/restricted-PG fixture:
+
+```sh
+node --import tsx tests/security/gross-cash-check.ts "$OWN_ROOT" prepare
+# Fast repeatable probe: rejected requests never mutate the prepared boundaries.
+node --import tsx tests/security/gross-cash-check.ts "$OWN_ROOT" probe
+# Consumes the prepared controls; or use `all` on a new unprepared owned root.
+node --import tsx tests/security/gross-cash-check.ts "$OWN_ROOT" controls
+```
+
+Preparation uses actual A payments and 99 reasoned reversals/replacements, never
+SQL business fabrication or lowered caps. Coverage includes the CASH reversal,
+truthful reverse→CASH-to-bank-LEASE correction and institution payment, COST
+reversal/pay, purchase cash corrections, exact OUT=C and IN=C, failed-key recovery
+with valid current intent and immutable replay. For a lease already at gross C,
+failed pay-key recovery uses an explicitly different eligible lease source at
+exact C; no zero payment or recipient-replacement field is invented.
+
+IN>C cannot arise from a committed OUT<=C prefix: each IN must reverse one unique
+existing OUT exactly once. The test proves IN=C via lawful clearing reversals,
+rather than inventing impossible rows. Exact PostgreSQL row hashes cover business,
+history, audit, receipt, basis, read-version and sequence populations before any
+HTTP status assertion. AdminGuard remains mutable synchronization, not business
+immutability; credential-bearing bootstrap content is never exported by these
+snapshots.
+
+This bounded author correction does not close the P2 or the original independent
+incurred-basis checklist, accept the combined candidate or promote VPRC-02. The
+distinct full final-combined fresh/genuine555-upgrade/repeat/retained/UI review
+remains required. Earlier fd7 campaign results stay attributed to fd7. New author
+receipts and service closeout are sealed separately under the owned private
+`t05c2-gross-c01-20261031` directory.

@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-WRITE_OFF **[FROZEN/SHARED RELEASE ACK cdedd2f; incomplete WIP, not PASS](.planning/implementation/evidence/T07a-T08a-cdedd2f-freeze-transfer-attributed.md)**. Parent assigned the original settlement author as sole bounded gross-C01 corrector from rejected52c; new own branch/worktree/head unreported/no fix progress inferred. [Current HANDOFF](.planning/implementation/HANDOFF.md): original P2/99-artifact rejection/VPRC-02 U/incurred-addCost independent closure pending remain; reviewer completed FAIL/closed awaits corrected target. Full scopes/final acceptance gate and all source/schema16SQL/contracts/tests/packages/native/PWA/matrix bytes unchanged. Primary555/P3/human G2 http://127.0.0.1:8000/login pinned d0/26 LOCAL108 U134/G3–G6 pending preserved; no integration runtime/source/primary actions.
+**[Frozen gross-C01 correction6cc + current95c ordinary REVIEW assembly](.planning/implementation/evidence/T05c2-gross-6cc7c93-review-assembly.md)** only: AUTHOR-corrected/UNACCEPTED, exact6cc source/test/schema16SQL/operations, current matrix/history/full scopes preserved. All owners frozen/released; WRITE_OFF incompletecdedd2f not resumed. Verifier awaits exact final COMBINED target for parent full review, not running/no verdict; prior52c FAIL/99 proof, gross+incurred independent closure and VPRC-02 full scenario remain pending. [Current HANDOFF](.planning/implementation/HANDOFF.md). Primary555/P3/human G2 http://127.0.0.1:8000/login pinned d0/26 LOCAL108 U134/G3–G6 pending preserved; no ledger runtime/source fix/primaryFF/acceptance.
 
 ## Historical frontend-shell walkthrough
 

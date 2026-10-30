@@ -4,7 +4,7 @@
 
 Bounded T06b-d0/220-artifact proof/G2 human-d0 and [bounded T05c.1 accepted555/P3 closed](evidence/T05c1-55564b5-acceptance-attributed.md) remain source-bound history. Accepted primary555/15 migrations/registry11 and humanG2d0 unchanged; current separate [T05c.2 frozenfd7+4b REVIEW candidate](evidence/T05c2-fd7ddc7-review-assembly.md) is UNACCEPTED/16/registry12, all15 old SQL/005/stock formatting retained.26 LOCAL/108 U/134/VSTS-03 U/matrix/G3–G6/full T06/IMPT/restore/device/hosted/v1 limits and failures preserved, no primaryFF.
 
-Frozenfd7/da56 evidence and [52c rejection/completed independent FAIL P2](evidence/T05c2-52c720d-rejection-attributed.md), VPRC-02 U/incurred-addCost closure pending remain. [Current HANDOFF](HANDOFF.md): WRITE_OFF FROZEN/released cdedd2f WIP, parent transferred sole bounded settlement correction authority/new head and progress unreported. Full scopes/repair queue/source exact4d/52c preserved; prior acceptance/history unchanged, no ledger runtime/source/credentials/primaryFF.
+Frozenfd7/da56 and [52c independent FAIL/P2](evidence/T05c2-52c720d-rejection-attributed.md) remain history. [Frozen6cc+95c ordinary REVIEW assembly](evidence/T05c2-gross-6cc7c93-review-assembly.md) only, AUTHOR-corrected/UNACCEPTED; gross+incurred independent closure/VPRC-02 full scenario pending. [Current HANDOFF](HANDOFF.md): all writers released/WRITE_OFFcdedd2f not resumed, full scopes/repair queue/matrix/prior acceptance retained, source exact6cc/no ledger runtime/source fix/credentials/FF.
 
 ## Previous frozen1d REVIEW assembly / source-author release snapshot
 

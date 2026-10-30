@@ -2745,8 +2745,10 @@ export async function executeCycleMoney(
             amount: p.amount.toString(),
           }))
         )
-      bounded(BigInt(cash.incoming), C)
-      bounded(BigInt(cash.outgoing), C)
+      const incoming = BigInt(cash.incoming),
+        outgoing = BigInt(cash.outgoing)
+      if (incoming < -C || incoming > C || outgoing < -C || outgoing > C)
+        fail("MONEY_OVERFLOW", 422)
       if (paid < 0n || paid > maximum) fail("BALANCE_MISMATCH", 422)
     }
     checkCap(after.payments, after.purchasePrice)
