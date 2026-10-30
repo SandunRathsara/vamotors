@@ -1,6 +1,7 @@
 import { execFile, spawn } from "node:child_process"
-import { fileURLToPath } from "node:url"
-import { PrivateFileError } from "./validation.js"
+import { realpathSync } from "node:fs"
+import { join } from "node:path"
+import { PrivateFileError } from "./validation"
 
 let active = 0
 /** Fixed local budget, not a queue or a user-configurable parser/plugin seam. */
@@ -11,6 +12,10 @@ export async function decodeDocument(
   if (active >= 2) throw new PrivateFileError("STORAGE_UNAVAILABLE")
   active++
   try {
+    // A Next server bundle's import.meta.url names a generated chunk, not this
+    // source directory. Workers are unbundled server assets in the app root.
+    const directory = join(process.cwd(), "lib/server/private-files")
+    const modules = realpathSync(join(process.cwd(), "node_modules"))
     await new Promise<void>((resolve, reject) => {
       const child = spawn(
         process.execPath,
@@ -19,9 +24,10 @@ export async function decodeDocument(
           "--max-semi-space-size=8",
           "--permission",
           "--allow-addons",
-          `--allow-fs-read=${fileURLToPath(new URL("../../../node_modules/", import.meta.url))}`,
-          `--allow-fs-read=${fileURLToPath(new URL("./", import.meta.url))}`,
-          fileURLToPath(new URL("./document-worker.mjs", import.meta.url)),
+          `--allow-fs-read=${modules}`,
+          `--allow-fs-read=${join(process.cwd(), "node_modules")}`,
+          `--allow-fs-read=${directory}`,
+          join(directory, "document-worker.mjs"),
           mime,
         ],
         {
@@ -79,12 +85,15 @@ export async function decodeDocument(
           reject(
             new PrivateFileError(
               failure ??
-                (code === 70 ? "STORAGE_UNAVAILABLE" : "UPLOAD_MISMATCH")
+                (code === 65 ? "UPLOAD_MISMATCH" : "STORAGE_UNAVAILABLE")
             )
           )
       })
       child.stdin.end(bytes)
     })
+  } catch (e) {
+    if (e instanceof PrivateFileError) throw e
+    throw new PrivateFileError("STORAGE_UNAVAILABLE")
   } finally {
     active--
   }

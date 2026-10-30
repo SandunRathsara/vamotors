@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { decodeDocument } from "./decoder.js"
+import { decodeDocument } from "./decoder"
 
 export type Declaration = {
   size: number

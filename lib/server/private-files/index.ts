@@ -17,9 +17,9 @@ import {
   PrivateFileError,
   validateDocument,
   type Declaration,
-} from "./validation.js"
+} from "./validation"
 
-export { PrivateFileError, type Declaration } from "./validation.js"
+export { PrivateFileError, type Declaration } from "./validation"
 
 const uuid = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
 const idPattern = new RegExp(`^${uuid}$`)
