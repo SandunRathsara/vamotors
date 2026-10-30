@@ -2,9 +2,9 @@
 
 Recorded 2026-10-25 by T00 integration/ledger worker. Authority: `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md` explicit decisions and user dispatch. These are **approved development direction**, not proof of implementation, independent acceptance, legal wording approval or live-launch authorization. C4 recommendations are only adopted where the orchestration contract adopts them. No new cloud action is authorized by this record.
 
-## Current ordinary frozeneaa+6eb REVIEW assembly — no acceptance/active source writer
+## Current dispatch/ownership — canonical handoff; exact236 remains review target
 
-Parent authorizes **[ordinary frozenUIeaa+current6eb REVIEW merge](evidence/T05c2-fc-ui-eaa567f-review-assembly.md)**, common rejected038, zero overlap/conflicts; source/tests/schema/ops exacteaa/current records preserved6eb except named headers. Author FROZEN/releasedeaa/268 hashes/3-path delta/unified24 source history; AUTHOR RED/GREEN/static only/no independent P2 closure/acceptance/VPRC-02 U. WRITE_OFF712 frozen/incomplete/not resumed/no active writer. Same completed reviewer/genuine upgraded03816/12 fixture awaits containing merge's exact final SHA/tree for parent equivalence+affected all3 UI/ALL paused original proof/full VPRC-02 dispatch, no new running review/fake555 reset/new-revision normal-run claim. All historical rejection/seals/at038 boundary decisions/full scopes/allocation/final gate/matrix/primary555/humanG2d0 unchanged; [HANDOFF](HANDOFF.md), no integration runtime/FF/delegation.
+[Current HANDOFF](HANDOFF.md) owns actual dispatch/ownership, [exact236 target/parent47-artifact observation attribution](evidence/T05c2-fc-ui-eaa567f-review-assembly.md) unchanged by this records descendant. No results/closure/ID promotion/acceptance inferred. Historical rejection/seals/AT038 boundary decisions/full scopes/allocation/final accepted-base gate/matrix/primary555/humanG2d0 unchanged; source exact236, no integration runtime/FF/delegation. Original approved decisions below remain unchanged.
 
 ## Previous parent review-assembly and ownership record — no new policy choice
 

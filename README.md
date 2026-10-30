@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-**[Ordinary frozenUIeaa+records6eb REVIEW assembly](.planning/implementation/evidence/T05c2-fc-ui-eaa567f-review-assembly.md)** only: AUTHOR-corrected/UNACCEPTED/source exacteaa, no independent P2 closure/VPRC-02 U. All source owners frozen/released/WRITE_OFF712 incomplete/not resumed. Same completed reviewer/genuine fixture already upgraded03816/12 awaits this containing merge's exact final target for parent dispatch/equivalence+affected/ALL paused original proof; no fake555 reset or new-revision normal-run claim. [HANDOFF](.planning/implementation/HANDOFF.md). Matrix/scopes/gates/history/primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged; no integration runtime/FF/acceptance.
+[Current HANDOFF](.planning/implementation/HANDOFF.md) owns current dispatch and ownership. **[236 remains the exact final settlement REVIEW target](.planning/implementation/evidence/T05c2-fc-ui-eaa567f-review-assembly.md)**, not this records descendant or acceptance; no new results/closure/ID promotion inferred. Source/tests/schema/operations/matrix/scopes/gates/history exact236; primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged. No integration runtime/primary FF.
 
 ## Historical frontend-shell walkthrough
 

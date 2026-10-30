@@ -4,7 +4,7 @@
 
 Bounded T06b-d0/220-artifact proof/G2 human-d0 and [bounded T05c.1 accepted555/P3 closed](evidence/T05c1-55564b5-acceptance-attributed.md) remain source-bound history. Accepted primary555/15 migrations/registry11 and humanG2d0 unchanged; current separate [T05c.2 frozenfd7+4b REVIEW candidate](evidence/T05c2-fd7ddc7-review-assembly.md) is UNACCEPTED/16/registry12, all15 old SQL/005/stock formatting retained.26 LOCAL/108 U/134/VSTS-03 U/matrix/G3–G6/full T06/IMPT/restore/device/hosted/v1 limits and failures preserved, no primaryFF.
 
-Frozenfd7/da56/[52c FAIL](evidence/T05c2-52c720d-rejection-attributed.md)/038 rejection remain history. [Ordinary frozenUIeaa+records6eb REVIEW assembly](evidence/T05c2-fc-ui-eaa567f-review-assembly.md), AUTHOR only/source exacteaa/no independent P2 closure/VPRC-02 U; all owners released/WRITE_OFF712 not resumed. Same completed reviewer/upgraded03816/12 fixture awaits exact combined target for parent equivalence+affected/ALL paused proof dispatch/no fake555 reset. [HANDOFF](HANDOFF.md); scopes/gates/queue/matrix/history unchanged/no integration runtime/credentials/FF.
+Frozenfd7/da56/[52c FAIL](evidence/T05c2-52c720d-rejection-attributed.md)/038 rejection remain history. [Current HANDOFF](HANDOFF.md) owns dispatch/ownership; [exact236 target/parent observation attribution](evidence/T05c2-fc-ui-eaa567f-review-assembly.md) unchanged by this records descendant. Source/scopes/gates/queue/matrix/history exact236/VPRC-02 U; no results/acceptance/integration runtime/credentials/FF inferred.
 
 ## Previous frozen1d REVIEW assembly / source-author release snapshot
 

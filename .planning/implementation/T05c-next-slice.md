@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md)/failures unchanged. [Ordinary frozenUIeaa+records6eb REVIEW assembly](evidence/T05c2-fc-ui-eaa567f-review-assembly.md), AUTHOR only/no independent P2 closure/VPRC-02 U/source exacteaa; all owners released/WRITE_OFF712 not resumed. Same completed reviewer/upgraded03816/12 fixture awaits exact final combined target for parent equivalence+affected/ALL paused proof dispatch/no fake555 reset. [HANDOFF](HANDOFF.md); matrix/scopes/gates/history/primary555/humanG2d0 preserved/no integration runtime/FF.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md)/failures unchanged. [Current HANDOFF](HANDOFF.md) owns dispatch/ownership; [exact236 target/parent observation attribution](evidence/T05c2-fc-ui-eaa567f-review-assembly.md) unchanged by this records descendant. Source/matrix/full scopes/gates/history exact236/VPRC-02 U/primary555/humanG2d0 preserved; no results/acceptance/integration runtime/FF inferred.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 
