@@ -1,5 +1,11 @@
 # WRITE_OFF712 frozen/released; parent assigns bounded settlement UI correction
 
+## Current status supersedes original6eb correction-assignment timing below
+
+Correction author **FROZEN/SHARED RELEASE ACK exacteaa**, [ordinaryeaa+current6eb REVIEW assembly/268 hashes/3 paths/unified24 source map](T05c2-fc-ui-eaa567f-review-assembly.md); AUTHOR-corrected/UNACCEPTED/no independent P2 closure. **No active source writer; WRITE_OFF712 still frozen/released/incomplete/not resumed**, full scope/allocation/header-logout/final accepted-base gate unchanged. Same completed reviewer/genuine upgraded03816/12 fixture awaits containing merge's exact combined target for parent dispatch/equivalence+affected/ALL paused original proof/no fake555 rebuild. Original6eb handback/assignment/proof-boundary body below is retained verbatim, not a current active-writer/unknown-correction-HEAD claim. [HANDOFF](../HANDOFF.md).
+
+## Original6eb attribution body — unchanged
+
 ## Frozen WRITE_OFF checkpoint, not acceptance
 
 Parent received **FROZEN SOURCE / SHARED OWNERSHIP RELEASE ACK** from **ses_e7376ed96ffe2a8RsopfGvBwgI** at **712af18981a8fd1487f6e82e31db7c5196dc3b1f**, tree **26cb2f1e6d769d442e203e480a49abcb04725a4c**, clean `feat/t07a-t08a-writeoff`, `/Users/alpha/Developer/Personal/vamotors-writeoff`. Accepted555 base and originalcdedd2f ancestry/checkpoint retained, **no unaccepted settlement import/fix**. WRITE_OFF is **incomplete PREBASE WIP, frozen pending explicit parent resumption**, not completed feature/candidate/P1–P8/standalone UI-issue acceptance.

@@ -196,7 +196,7 @@ export function SettlementFields({
           </div>
           <p>
             Selected revision:{" "}
-            {company?.id === draft.companyId
+            {company?.id && company.id === draft.companyId
               ? (company.revision ?? "Unavailable")
               : "Unavailable"}
           </p>

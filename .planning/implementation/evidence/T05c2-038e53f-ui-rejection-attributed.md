@@ -2,7 +2,7 @@
 
 ## Current ownership supersedes the historical freeze-request timing below
 
-WRITE_OFF now **FROZEN/SHARED RELEASE ACK712**; parent **NOW assigns original settlement author sole bounded UI correction from rejected038**, NEW own worktree/branch/HEAD/results unknown/not inspected. [712 handback/2023 parent verification/current assignment and next-proof boundary](T07a-T08a-712af18-freeze-ui-transfer-attributed.md), [HANDOFF](../HANDOFF.md).038 rejection/gross+incurred decisions remain unchanged. The original9a adjudication body below is retained verbatim; “no ACK/no correction assigned/future plan” describes that earlier decision time, **not current ownership**. No review until a future frozen exact corrected-combined target; same genuine fixture already upgraded03816/12, equivalence-based reuse+ALL remaining original proof/no fake555 rebuild.
+Correction author now **FROZEN/releasedeaa** and WRITE_OFF712 remains frozen/not resumed/**no active writer**. [Ordinaryeaa+6eb corrected REVIEW assembly](T05c2-fc-ui-eaa567f-review-assembly.md) supplies the new containing merge's exact target; AUTHOR-corrected/UNACCEPTED/no independent P2 closure/VPRC-02 U.038 rejection/gross+incurred decisions unchanged. Same completed reviewer/genuine already-upgraded03816/12 fixture awaits exact combined SHA/tree for parent equivalence+affected/all paused proof dispatch/no fake555 rebuild. [HANDOFF](../HANDOFF.md). The original9a body below remains verbatim: no ACK/no correction assigned/future-plan timing is **historical, not current ownership**.
 
 ## Original9a adjudication body — unchanged
 

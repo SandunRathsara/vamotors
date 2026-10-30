@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-**WRITE_OFF712 FROZEN/released, incomplete PREBASE WIP**; parent NOW assigns original settlement author sole bounded FC-UI-C01 correction from rejected038, new branch/worktree/HEAD/results unknown/no polling. [Current HANDOFF](.planning/implementation/HANDOFF.md), [712 handback/parent2023 verification/assignment limits](.planning/implementation/evidence/T07a-T08a-712af18-freeze-ui-transfer-attributed.md).038 remains REJECTED/UI P2 OPEN/VPRC-02 U, gross/incurred at038 decisions unchanged. Same completed reviewer/genuine fixture already upgraded03816/12 awaits future frozen corrected-combined target. Source/matrix/scopes/gates exact9a/038, primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged; no runtime/FF/feature fix here.
+**[Ordinary frozenUIeaa+records6eb REVIEW assembly](.planning/implementation/evidence/T05c2-fc-ui-eaa567f-review-assembly.md)** only: AUTHOR-corrected/UNACCEPTED/source exacteaa, no independent P2 closure/VPRC-02 U. All source owners frozen/released/WRITE_OFF712 incomplete/not resumed. Same completed reviewer/genuine fixture already upgraded03816/12 awaits this containing merge's exact final target for parent dispatch/equivalence+affected/ALL paused original proof; no fake555 reset or new-revision normal-run claim. [HANDOFF](.planning/implementation/HANDOFF.md). Matrix/scopes/gates/history/primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged; no integration runtime/FF/acceptance.
 
 ## Historical frontend-shell walkthrough
 
