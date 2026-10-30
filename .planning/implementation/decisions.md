@@ -2,9 +2,9 @@
 
 Recorded 2026-10-25 by T00 integration/ledger worker. Authority: `.planning/FULL-IMPLEMENTATION-ORCHESTRATION.md` explicit decisions and user dispatch. These are **approved development direction**, not proof of implementation, independent acceptance, legal wording approval or live-launch authorization. C4 recommendations are only adopted where the orchestration contract adopts them. No new cloud action is authorized by this record.
 
-## Current dispatch/ownership — canonical handoff; exact236 remains review target
+## Current bounded settlement acceptance — exact236/VPRC-02 LOCAL27/107
 
-[Current HANDOFF](HANDOFF.md) owns actual dispatch/ownership, [exact236 target/parent47-artifact observation attribution](evidence/T05c2-fc-ui-eaa567f-review-assembly.md) unchanged by this records descendant. No results/closure/ID promotion/acceptance inferred. Historical rejection/seals/AT038 boundary decisions/full scopes/allocation/final accepted-base gate/matrix/primary555/humanG2d0 unchanged; source exact236, no integration runtime/FF/delegation. Original approved decisions below remain unchanged.
+Parent **[ACCEPTS bounded T05c.2+combined exact236/CLOSES FC-UI-C01 P2/separately ACCEPTS complete ORIGINAL VPRC-02 LOCAL236](evidence/T05c2-2360cbb-acceptance-attributed.md)** after distinct COMPLETED bounded PASS/all49/no open relevant finding. Effective27 LOCAL107 U134, only VPRC-02 result/header count delta; other133/old26 bindings/owners/scenarios unchanged/VSTS-03 U/G2 human-d0/G3–G6 pending/no wholeT05/G3/v1 acceptance. Actual authorized primary FF-only236 clean/protected fingerprints preserved, primary historical26 matrix/new effective27 acceptance records not promoted. [HANDOFF](HANDOFF.md) owns WRITE_OFF SAME-task checkpoint/reconcile onto exactaccepted236→NEW full exact-parent proof, no outcome inferred/fixture dispatch pending. Source236/583/full scopes/raw failures/seals/original approved decisions below unchanged; no integration runtime/human sidecar/delegation.
 
 ## Previous parent review-assembly and ownership record — no new policy choice
 

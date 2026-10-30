@@ -2,7 +2,7 @@
 
 ## Current status supersedes original6eb correction-assignment timing below
 
-[Current HANDOFF](../HANDOFF.md)/[WRITE_OFF full scope and current resumption/transfer gates](../T07a-T08a-next-slice.md) own current status. [236 exact-target/current parent47 verification attribution](T05c2-fc-ui-eaa567f-review-assembly.md); records descendant not replacement/acceptance. Original6eb handback/assignment/proof-boundary body below remains verbatim; frozen/no-implementation/service-closeout statements are **historical712 checkpoint facts, not current resumed ownership or outcomes**. Original2023 seal/partial passes+failures unchanged; no live worker inspection here.
+[Current HANDOFF](../HANDOFF.md)/[full WRITE_OFF scope and exact accepted236 same-task reconciliation steering](../T07a-T08a-next-slice.md) own current status; [236 acceptance/proof limits](T05c2-2360cbb-acceptance-attributed.md). Latest WRITE_OFF HEAD/rebase/outcomes unknown/not inspected, distinct fixture preparation separate/dispatch pending. Original6eb body remains verbatim; frozen/no-implementation/service-closeout statements are **historical712 facts, not current ownership/outcomes**.2023 seal/partials/failures unchanged; no new-docs import or live worker inspection.
 
 ## Original6eb attribution body — unchanged
 

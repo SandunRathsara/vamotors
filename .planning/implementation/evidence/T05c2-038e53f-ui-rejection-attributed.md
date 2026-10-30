@@ -2,7 +2,7 @@
 
 ## Current ownership supersedes the historical freeze-request timing below
 
-[Current HANDOFF](../HANDOFF.md) owns current dispatch/ownership; [236 exact-target/current parent47 verification attribution](T05c2-fc-ui-eaa567f-review-assembly.md) supersedes earlier pending/released timing. This records descendant is not replacement/acceptance.038 rejection/gross+incurred decisions remain unchanged; original9a body below is verbatim, with no-ACK/no-correction-assigned/future-plan wording **historical, not current ownership or review status**. No new independent P2 closure/VPRC-02 promotion inferred.
+[Later parent236 bounded acceptance/FC-UI-C01 closure/ORIGINAL VPRC-02 LOCAL/per-clause evidence](T05c2-2360cbb-acceptance-attributed.md) supersedes current pending status only, **not this definitive038 FAIL**. Gross/incurred AT038 proof carried verified equivalent236; raw failures/seals unchanged. [HANDOFF](../HANDOFF.md) owns current steering. Original9a body below is verbatim; OPEN-at038/no-ACK/future-plan/count26 wording is historical, not236 findings/current27 acceptance or ownership.
 
 ## Original9a adjudication body — unchanged
 
