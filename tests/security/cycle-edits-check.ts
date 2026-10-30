@@ -69,7 +69,10 @@ async function create(
 ) {
   const result = await cmd(
     "recordPurchase",
-    purchaseInput(supplier.id, suffix, tag, reading, date),
+    {
+      ...purchaseInput(supplier.id, suffix, tag, reading, date),
+      purchaseType: "CASH",
+    },
     [ref(supplier, "Supplier")],
     201,
     client
