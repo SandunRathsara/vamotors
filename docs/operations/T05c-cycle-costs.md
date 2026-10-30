@@ -58,6 +58,10 @@ basis and original read/audit versions remain immutable.
 - `lib/server/purchases.ts`: strict bounded handlers, trusted FK/CAS/lock/replay
   resolution, source cash/basis calculations, nested independent cost/payment
   projection, audit reason/value masking, coherent cycle/Vehicle versions.
+  Duplicated post-acquisition basis reasons inherit the same current source-field
+  checks as audit reasons; an amount-only reader cannot recover a hidden cost
+  description/reason through basis history. Immutable initial generic reason
+  remains separately readable under its original field grant.
 - `lib/server/{validators,permissions,queries}.ts`: exact accepted inputs,
   registry/read/audit dispatch. No shared transaction/auth/idempotency primitive
   or dependency changes.

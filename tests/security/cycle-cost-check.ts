@@ -1164,6 +1164,26 @@ try {
       )
       assert.ok(!JSON.stringify(costAudit).includes("PRIVATE_REASON_MARKER"))
       assert.ok(!JSON.stringify(costAudit).includes('"600"'))
+      await assign([
+        ...reads.filter((g) => g.subject !== "VehicleCost"),
+        {
+          subject: "VehicleCost",
+          action: "read",
+          fields: ["id", "revision", "amount"],
+        },
+      ])
+      const amountOnly = await query<PurchaseCycleDTO>(
+        staff.request,
+        "purchase",
+        `?cycleId=${row.id}`
+      )
+      assert.equal(amountOnly.financial?.basis, "10600")
+      assert.ok(
+        !JSON.stringify(amountOnly.basisVersions).includes(
+          "PRIVATE_REASON_MARKER"
+        ),
+        "Basis reasons must not launder a source-hidden correction reason"
+      )
       await restoreStaff()
     }
   )

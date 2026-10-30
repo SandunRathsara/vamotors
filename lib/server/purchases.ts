@@ -334,6 +334,33 @@ function visibleCost(
   return projected
 }
 
+function correctionSourceReadable(actor: Actor, row: Row) {
+  const source = subject("PurchaseRecord", auth(row))
+  return (
+    [
+      "purchaseDate",
+      "purchasePrice",
+      "notes",
+      "payments.amount",
+      "payments.reason",
+    ].every((f) => actor.ability.can("read", source, f)) &&
+    row.costs.every((c) =>
+      [
+        "category",
+        "description",
+        "amount",
+        "incurredDate",
+        "payments.amount",
+        "payments.reason",
+      ].every(
+        (f) =>
+          actor.ability.can("read", source, `costs.${f}`) &&
+          actor.ability.can("read", subject("VehicleCost", costAuth(c)), f)
+      )
+    )
+  )
+}
+
 /** Independently authorize both roots and linked seller, then project every read.
  * A broad Vehicle/party grant never launders a hidden purchase or its money. */
 export function visiblePurchase(actor: Actor, row: Row) {
@@ -375,6 +402,7 @@ export function visiblePurchase(actor: Actor, row: Row) {
         )
     )
   )
+  const reasonsReadable = correctionSourceReadable(actor, row)
   if (result.financial) {
     const financial = result.financial as Record<string, unknown>
     if (!allCosts)
@@ -399,11 +427,15 @@ export function visiblePurchase(actor: Actor, row: Row) {
   )
     result.basisVersions = purchaseDTO(row).basisVersions.map((b) =>
       Object.fromEntries(
-        Object.entries(b).filter(([f]) =>
-          actor.ability.can("read", root, `basisVersions.${f}`)
+        Object.entries(b).filter(
+          ([f]) =>
+            actor.ability.can("read", root, `basisVersions.${f}`) &&
+            (f !== "reason" || b.version === 1 || reasonsReadable)
         )
       )
     )
+  if (!reasonsReadable && row.basisVersions.some((b) => b.version > 1))
+    result.redactedFields.push("basisVersions.reason")
   const purchaseCashReadable = ["amount", "direction"].every((f) =>
     actor.ability.can("read", root, `payments.${f}`)
   )
@@ -2110,34 +2142,7 @@ export async function purchaseQuery(
       if (
         ["editCost", "editPurchase", "reversePayment"].includes(entry.action)
       ) {
-        const source = subject("PurchaseRecord", auth(row))
-        const sourceReadable =
-          [
-            "purchaseDate",
-            "purchasePrice",
-            "notes",
-            "payments.amount",
-            "payments.reason",
-          ].every((f) => actor.ability.can("read", source, f)) &&
-          row.costs.every((c) =>
-            [
-              "category",
-              "description",
-              "amount",
-              "incurredDate",
-              "payments.amount",
-              "payments.reason",
-            ].every(
-              (f) =>
-                actor.ability.can("read", source, `costs.${f}`) &&
-                actor.ability.can(
-                  "read",
-                  subject("VehicleCost", costAuth(c)),
-                  f
-                )
-            )
-          )
-        if (!sourceReadable && "reason" in result) {
+        if (!correctionSourceReadable(actor, row) && "reason" in result) {
           delete result.reason
           redactedFields.push("reason")
         }
