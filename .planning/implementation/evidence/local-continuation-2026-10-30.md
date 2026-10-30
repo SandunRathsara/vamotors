@@ -1,6 +1,10 @@
 # Local continuation — authorized candidate and baseline promotion
 
-## Current frozen T11a + docs review assembly
+## Current running final review / T05c sole active ownership
+
+Parent decisions [recorded exactly](T05c-active-ownership.md): reviewer **ses_e741684d8ffeWOKAFoZu5LAVRe RUNNING exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e**, sourceef9b7b7 unaccepted, one final-composition source+joint campaign. T11a author freeze ACK/active shared ownership RELEASED; no edits/tests until reassigned, future corrections only. **T05c ses_e73d53f14ffe6mFcfMW8lxAINw RUNNING/SOLE ACTIVE schema/registry/grants/shared-dispatch owner from accepted exactb7ac9af**; narrow start-gate override, no unaccepted rates or functional/test changes. Migration costs002 after rates001; PREBASE if needed then later parent-accepted rates rebase/final fresh+genuine-parent upgrade before handback/review. Any rates correction requires parent FIRST freeze T05c/checkpoint+receive ACK, THEN reassign ownership. T06b queued/not dispatched;21 LOCAL/113 U/134/VSTS-03 U unchanged, primary clean acceptedb7ac9af/main/remotes/protected held. This docs descendant does not replace frozen review source or confer acceptance/promotion.
+
+## Previous frozen T11a + docs review assembly — e9ba1a9 snapshot
 
 Parent authorized **ordinary local merge only** of frozen author-PASS/unaccepted **ef9b7b7fe81b16edf2cb2f42165719680054fab2** into clean docs **a9ea1a85857895f5d41e2b43403691ec1bfd2c18**. [Exact union/author evidence/failures/final-SHA review handoff](T11a-review-assembly.md): no conflicts/source fix; all nonrecord bytes exactef9b7b7, existing briefs/joint acceptance evidence exacta9ea1a8. T11a ses_e7457169effeQXhP5ZYm4T06R0 retains exclusive correction ownership pending distinct review, not new feature dispatch/acceptance. Primary stays clean parent-acceptedb7ac9af, main/remotes/protected unchanged;21 LOCAL/113 U/134 and VSTS-03 U retained, T05c NEXT/T06b queued. One distinct full verifier on final containing SHA next via parent. This assembly runs only equality/ancestry/links/spec/diff, no DB/build/runtime campaign or primary promotion.
 

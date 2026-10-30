@@ -1,4 +1,12 @@
-# FUTURE T05c — cycle costs and bounded reasoned money/term corrections
+# T05c — cycle costs and bounded reasoned money/term corrections
+
+## Current parent dispatch / sole active owner — 2026-10-30
+
+**RUNNING: ses_e73d53f14ffe6mFcfMW8lxAINw**, SOLE ACTIVE new schema/registry/grants/shared-dispatch owner, from **exact ACCEPTED `b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3`**. [Explicit release/override/sequencing](evidence/T05c-active-ownership.md): T11a ses_e7457169effeQXhP5ZYm4T06R0 acknowledged source freeze and released active ownership; future corrections only, no edits/tests until reassignment. Parent overrides **only the wait-final-T11a start gate**: independent costs use accepted purchase/stock; verified-base rule and **every functionality/bound/test below remain unchanged**. No unaccepted rates imported.
+
+Reserved migration **`202610300002_cycle_costs_corrections`** follows rates `202610300001_exact_rates_quotes`, pinning the generic allocation placeholder below without importing unaccepted001. Return an exact **PREBASE checkpoint if necessary**; later rebase onto a **parent-accepted rates combination** before final fresh/genuine NONEMPTY exact-parent-upgrade handback and distinct review, preserving rate/quote migrations/registry/grants/history. Review ses_e741684d8ffeWOKAFoZu5LAVRe remains RUNNING on frozen **`e9ba1a939667fc46178f89cccae1022a4bbcfb7e`**, sourceef9b7b7 unaccepted. If rates needs correction, parent FIRST freezes T05c/checkpoint and receives ACK, THEN reassigns shared ownership. No parallel shared writers. T06b queued/not dispatched;21 LOCAL/113 U/134 and VSTS-03 U unchanged.
+
+## Historical pre-dispatch start gate — superseded only as stated above
 
 **QUEUED NEXT; brief only, NOT dispatched/implementation authority.** [Joint stock/files baseline is parent-accepted](evidence/joint-stock-files-acceptance-attributed.md) at exact `b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3`; the runtime trace below binds that SHA. Still wait for **parent-accepted final T11a-integrated combination**, exact verified dispatch SHA/author/distinct verifier and explicit sole schema/registry/grants transfer. T11a ses_e7457169effeQXhP5ZYm4T06R0 remains exclusive ACTIVE owner, resumed to rebase onto exactb7ac9af/fresh install/genuine NONEMPTY stockv7→v8 upgrade; no result inferred. Recheck paths/migration sequence after accepted T11a. Current21 LOCAL/113 U/134 and all requirement bindings at0eaae8f remain unchanged. No contract/policy cycle: reuse [api.ts](contracts/api.ts), [W05](contracts/workflows.md#w05-purchaseavailability-t05), [E2/E3](contracts/entities.md), [M1/M2](contracts/money-state.md), [A1/A3R](contracts/access-transactions.md).
 

@@ -1,5 +1,11 @@
 # FUTURE T06b — lawful staged-import private attachments
 
+## Current queued status / active owner elsewhere — 2026-10-30
+
+**T06b QUEUED, NOT dispatched.** [Parent coordination](evidence/T05c-active-ownership.md) released T11a active ownership after acknowledged freeze; **T05c ses_e73d53f14ffe6mFcfMW8lxAINw is now SOLE ACTIVE schema/registry/grants/shared-dispatch owner** from acceptedb7ac9af. The start-gate override is T05c-only: T06b's accepted final-combination/exact verified base/explicit transfer gates and all scope/tests below remain unchanged. Independent reviewer ses_e741684d8ffeWOKAFoZu5LAVRe RUNNING on exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e, sourceef9b7b7 unaccepted. T11a author has only future correction responsibility/no edits/tests until reassigned; rates corrections require T05c checkpoint freeze+ACK BEFORE ownership reassignment. No competing writer or T06b dispatch inferred.
+
+## Historical pre-dispatch owner snapshot — not current ownership
+
 **Future brief only; NOT implementation/dispatch authority.** [Joint stock/files baseline is parent-accepted](evidence/joint-stock-files-acceptance-attributed.md) at exact `b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3`, the inspection source below. Still wait for **parent-accepted final T11a-integrated combination**, exact verified base/author/distinct verifier and explicit sole shared-owner transfer. **T05c is queued next**; do not displace it or compete with exclusive ACTIVE T11a ses_e7457169effeQXhP5ZYm4T06R0, resumed for exactb7ac9af rebase/fresh install/genuine NONEMPTY stockv7→v8 upgrade, not yet accepted. Recheck accepted schema/registry/migration sequence at dispatch. Accepted [api.ts](contracts/api.ts), [F06](contracts/files-runtime.md#f06-stagingfinalizationdownload), [W16](contracts/workflows.md#w16-historical-import-t16), [E4/E5](contracts/entities.md), [A1/A3R](contracts/access-transactions.md) govern; discovery amendment [6c68a653 acceptance](evidence/CONTRACT-discovery-acceptance-attributed.md) is already accepted despite historical pending labels. No new policy/contract cycle.
 
 ## Deliver only this real vertical

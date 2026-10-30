@@ -1,6 +1,10 @@
 # Evidence index
 
-## Current T11a + docs review assembly — 2026-10-30
+## Current review / T05c active ownership — 2026-10-30
+
+**[Explicit parent ownership transfer / precise sequence](T05c-active-ownership.md):** independent ses_e741684d8ffeWOKAFoZu5LAVRe RUNNING exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e, sourceef9b7b7 unaccepted; one final-composition source+joint campaign. T11a freeze ACK/active ownership RELEASED, future correction only/no edits/tests before reassignment. **T05c ses_e73d53f14ffe6mFcfMW8lxAINw RUNNING/SOLE ACTIVE schema/registry/grants/shared-dispatch writer from accepted exactb7ac9af**, narrow wait-final-T11 start override only. Reserved costs002 follows rates001; PREBASE if needed, later accepted-rates rebase/final fresh+genuine upgrade/review required. Rates corrections only AFTER parent freezes T05c/checkpoint+ACK then reassigns. T06b queued;21 LOCAL/113 U/134/VSTS-03 U and primary/main/remotes/protected unchanged; docs only, no source acceptance/promotion/runtime tests.
+
+## Previous T11a + docs review assembly — frozen e9ba1a9 snapshot
 
 **[Exact review union / pending independent verification](T11a-review-assembly.md):** frozen author-PASS **ef9b7b7fe81b16edf2cb2f42165719680054fab2** + docs **a9ea1a85857895f5d41e2b43403691ec1bfd2c18**, conflict-free ordinary merge. Source exactef9b7b7; seven inherited docs/briefs retained, current status reconciled only. [Author dossier](T11a-author-rebased.md)/external final manifest/composition and original failure/recovery history preserved, not independent acceptance. One distinct verifier on final containing SHA next via parent. T11a exclusive correction ownership retained; primary clean acceptedb7ac9af/main/remotes/protected unchanged.21 LOCAL/113 U/134, VSTS-03 U, T05c NEXT/T06b queued; no dispatch/transfer/promotion/runtime rerun.
 
