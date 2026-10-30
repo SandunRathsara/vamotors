@@ -1,15 +1,15 @@
-# Original LOCAL G2 — parent-dispatched OPERATIONS ONLY
+# Original LOCAL G2 — operator proof complete / distinct review RUNNING
 
-Parent explicitly dispatches **ses_e7292066cffe6V6B7QIdB6hQpe**, using **EXACT ACCEPTEDd0b13455cdec498e0913c0b74566b90ee930e353**, tree1ce2785e4af2c34bc35981d6539c66db14dc2dfd, existing code and a new immutable human checkout/root. **No shared source ownership**; T05c.1 remains the sole ACTIVE source writer. [Bounded T06 acceptance](T06b-d0b1345-acceptance-attributed.md) resolves the earlier candidate dependency, not G2 itself.
+Parent reports **ses_e7292066cffe6V6B7QIdB6hQpe COMPLETED operator proof** on existing immutable **ACCEPTEDd0b13455cdec498e0913c0b74566b90ee930e353**. [Current proof refs, parent-read HANDOFF hash, private path/key-name-only access and deadlines](current-preparation-human-runtime-status.md).55-file evidence index remains **operator claim, not parent hash-checked**. No shared source ownership; T05c.1 remains the sole ACTIVE source writer.
 
-Authorized **future** destinations (new unused suffix if necessary, no overwrite/adoption):
+Operator-reported actual human destinations (not inspected/adopted by ledger):
 
 - Checkout: `/Users/alpha/Developer/Personal/vamotors-g2-human-d0b13455cdec-01`
 - Retained private runtime root: `/Users/alpha/.config/vamotors/local-g2-human-20261030-01`
 
-**No actual existence, initialization, running URL, private human-account delivery or success is claimed yet.** Ledger does not inspect or operate these destinations, expose account values, invent a port/URL, or start services. Keep the runtime immutable at d0, not a moving primary/T05c.1 checkout or another worker's test root.
+Parent-reported URL: **http://127.0.0.1:8000/login**. Operator reports two-account purchase+STAGED attachment persistence, identity-checked app/PG/adapter restart without setup, controller exit and app+PG left running. Serving DEVELOPMENT/separate production build; handback PIDs are historical. Ledger neither tests the URL nor reads credentials/runtime files or claims current live identity. Private account path/key names and tested operator lifecycle command are in the linked status record; no values copied.
 
-The original literal G2 objective is an enduring loopback app + PG, privately delivered human account access, two-account real purchase persistence and lawful independent STAGED IMPORT_BATCH/IMPORT_SOURCE attachment retention, actual app/PG/adapter close-reopen restart and fresh authenticated rereads/downloads, then **leave the reviewed runtime running** for the human. Record actual nonsecret source/process/root/policy bindings and exercised lifecycle commands only after execution. A STAGED source attachment is not preview/business import; filesystem adapter reopen is not a separate object daemon or full restore.
+Distinct **ses_e734bc50bffeWMSjm7Ed2xdxA2 already DISPATCHED/RUNNING** on actual human-URL proof and identity-checked restart, **must leave human services running**. No returned verdict/**G2 NOT ACCEPTED**. Human capacity deadline2026-10-31T15:57:55.787Z/manual actual review; no auto-renewal/auto-restart/sleep/reboot guarantee. A STAGED source attachment is not preview/business import; adapter reopen is not a separate object daemon or full restore.
 
 **Distinct review of that actual human runtime, then parent G2 adjudication, is mandatory.** T06 author/verifier test-root receipts alone do not establish enduring human delivery. Do not add full T05 completion or T18 isolated restore as new literal-G2 prerequisites; those remain later full-v1 obligations. No hosted/TLS/physical-device/full T06/IMPT or G3–G6 acceptance.
 

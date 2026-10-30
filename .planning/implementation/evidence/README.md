@@ -1,12 +1,12 @@
 # Evidence index
 
-## Current parent-ACCEPTED T06b+combined exact d0 / G2 operations-only dispatch
+## Current accepted d0 / T05c.1 prep complete / G2 independent review RUNNING
 
 **[Independent bounded acceptance,220 artifact hashes, exact proof/limits/four helper failures/original clauses and actual primary FF](T06b-d0b1345-acceptance-attributed.md):** parent accepts EXACTd0b13455cdec498e0913c0b74566b90ee930e353 after distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 PASS/no product blockers, completed/owned services closed retained. Fresh18+genuine-ac18/repeat/expiry/restart/independent11+5/36 authenticated downloads/9 storage guards/retained costs17 each and other regressions are independent executions, not author counts. All limits remain explicit, including headless-CDP not physical PWA,1081 payloads/two nonidentical path launchers/parser corpus not rerun/coordinator supplements/bounded inventory wrapper.
 
-Primary clean authorized FF-onlyac→EXACTd0 succeeded, no newer docs/T05c.1 promotion/main/remotes/protected change. Matrix134 rows/26 LOCAL/108 U/original bindings unchanged/VSTS-03 U/full T06/IMPT/G2–G6/restore/hosted/device unaccepted; P2/bounded F1 remain closed atac. T05c.1 sole ACTIVE shared source writer now parent-steered accepted-d0 checkpoint/rebase/14 migrations/005/actual10→11 universes+attachments/NEW fresh/genuine-d0 NONEMPTY14→15 repeat/restart; latest head/outcome unknown. T05c.2 queued.
+Accepted primaryd0/26 LOCAL/108 U/134 bindings/VSTS-03 U and P2/bounded F1 atac unchanged; no new gate/ID acceptance. T05c.1 remains sole ACTIVE source writer, final head/rebase/freeze outcome unknown; T05c.2 queued. **[New independent T05c.1 preparation complete, no candidate/verdict](current-preparation-human-runtime-status.md)**: exactd0 NONEMPTY14/registry10 fixture,52 hashes parent-verified, stopped/retained, awaiting frozen final combined SHA+release; original INIT/capacity constraints retained.
 
-**[NEW original G2 OPERATIONS-ONLY dispatch](G2-human-d0-operations-dispatch.md)** ses_e7292066cffe6V6B7QIdB6hQpe uses new immutable-d0 human checkout/root/existing code with no source ownership. No path existence/live URL/account handoff/success yet. Literal enduring-runtime journey then distinct review/parent G2 adjudication; no T06-test shortcut or extra full-T05/T18-restore dependency. Earlier pending labels/author/prep/assembly records below remain historical, not current verdicts.
+**[G2 operator proof complete; distinct review RUNNING](G2-human-d0-operations-dispatch.md)**: parent reports operator ses_e7292066cffe6V6B7QIdB6hQpe humanURL http://127.0.0.1:8000/login/persistence/restart/controller-exit/left running;55-file index operator claim, no ledger live-state check. Reviewer ses_e734bc50bffeWMSjm7Ed2xdxA2 already dispatched/running, must leave human services running; no verdict/G2 acceptance. [Detailed attribution and two capacity deadlines](current-preparation-human-runtime-status.md). No source/service/credential access or promotion in this update; earlier pending snapshots remain history.
 
 ## Previous frozen T06b1d + current13277 REVIEW assembly / T05c.1 initial-dispatch snapshot
 
