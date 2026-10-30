@@ -11,7 +11,8 @@ import { fail } from "@/lib/server/errors"
 import { executeCustomer } from "@/lib/server/customers"
 import { executeParty } from "@/lib/server/parties"
 import { executeSettings } from "@/lib/server/settings"
-import { recordPurchase } from "@/lib/server/purchases"
+import { recordPurchase, executeStock } from "@/lib/server/purchases"
+import { stockInputs, type StockCommand } from "@/lib/server/validators"
 import { partyCommands, type PartyCommandName } from "@/lib/server/validators"
 import {
   customerCommands,
@@ -32,6 +33,7 @@ export async function POST(
     if (
       name !== "updateSettings" &&
       name !== "recordPurchase" &&
+      !Object.hasOwn(stockInputs, name) &&
       !customer &&
       !party &&
       !Object.hasOwn(commandInputs, name)
@@ -45,17 +47,19 @@ export async function POST(
     const result =
       name === "recordPurchase"
         ? await recordPurchase(identity, raw)
-        : name === "updateSettings"
-          ? await executeSettings(identity, raw)
-          : directory
-            ? await executeParty(identity, name as PartyCommandName, raw)
-            : customer
-              ? await executeCustomer(
-                  identity,
-                  name as CustomerCommandName,
-                  raw
-                )
-              : await executeAdmin(identity, name as CommandName, raw)
+        : Object.hasOwn(stockInputs, name)
+          ? await executeStock(identity, name as StockCommand, raw)
+          : name === "updateSettings"
+            ? await executeSettings(identity, raw)
+            : directory
+              ? await executeParty(identity, name as PartyCommandName, raw)
+              : customer
+                ? await executeCustomer(
+                    identity,
+                    name as CustomerCommandName,
+                    raw
+                  )
+                : await executeAdmin(identity, name as CommandName, raw)
     const created =
       name === "createUser" ||
       name === "recordPurchase" ||

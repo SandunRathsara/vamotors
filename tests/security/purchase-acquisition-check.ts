@@ -478,12 +478,7 @@ try {
         ]),
         409
       )
-      for (const name of [
-        "payPurchase",
-        "receiveStock",
-        "intakeTradeIn",
-        "editPurchase",
-      ])
+      for (const name of ["payPurchase", "intakeTradeIn", "editPurchase"])
         await command(a.request, name, envelope({ cycleId: cash.id }), 404)
       assert.equal(await snapshot(), before)
     }

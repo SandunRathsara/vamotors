@@ -307,6 +307,24 @@ export const purchaseInput = z
 export const purchaseEnvelope = customerEnvelope("createCustomer").extend({
   input: purchaseInput,
 })
+export const stockInputs = {
+  receiveStock: z
+    .object({
+      cycleId: id,
+      date: dateOnly,
+      disposition: z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("RELEASE") }).strict(),
+        z.object({ kind: z.literal("HOLD"), reason: text }).strict(),
+      ]),
+    })
+    .strict(),
+  holdStock: z.object({ cycleId: id, reason: text }).strict(),
+  releaseStock: z.object({ cycleId: id }).strict(),
+} as const
+export type StockCommand = keyof typeof stockInputs
+export function stockEnvelope(name: StockCommand) {
+  return customerEnvelope("createCustomer").extend({ input: stockInputs[name] })
+}
 export const settingsEnvelope = customerEnvelope("createCustomer").extend({
   input: settingsCommand,
 })

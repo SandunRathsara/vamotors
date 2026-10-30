@@ -22,6 +22,8 @@ import {
   vehicleInput,
   dateOnly,
   listParams,
+  stockEnvelope,
+  type StockCommand,
 } from "./validators"
 import { project, readScope, requireFields } from "./permissions"
 import { fail, CommandError } from "./errors"
@@ -191,6 +193,47 @@ const vehicleAuth = (row: Row) => ({
  * A broad Vehicle/party grant never launders a hidden purchase or its money. */
 export function visiblePurchase(actor: Actor, row: Row) {
   const result = project(actor.ability, "PurchaseRecord", auth(row))
+  if ("nextActions" in result) {
+    const readable =
+      [
+        "id",
+        "revision",
+        "status",
+        "available",
+        "receivedDate",
+        "holdReason",
+      ].every((f) =>
+        actor.ability.can("read", subject("PurchaseRecord", auth(row)), f)
+      ) &&
+      ["id", "identityRevision"].every((f) =>
+        actor.ability.can("read", subject("Vehicle", vehicleAuth(row)), f)
+      )
+    result.nextActions =
+      readable &&
+      row.acquisitionCommandId &&
+      !row.closedAt &&
+      row.vehicle.activePurchaseId === row.id
+        ? (["receiveStock", "holdStock", "releaseStock"] as const).filter(
+            (name) => {
+              if (
+                name === "receiveStock"
+                  ? row.status !== "PURCHASED"
+                  : row.status !== "IN_STOCK"
+              )
+                return false
+              if (name === "releaseStock" && row.available) return false
+              const { action, fields } = stockCapability(name)
+              return fields.every((f) =>
+                actor.ability.can(
+                  action,
+                  subject("PurchaseRecord", auth(row)),
+                  f
+                )
+              )
+            }
+          )
+        : []
+  }
   const v = subject("Vehicle", vehicleAuth(row))
   for (const field of [
     "identity",
@@ -623,6 +666,229 @@ export async function recordPurchase(
   })
 }
 
+/** Business input paths only. No Vehicle write authority is consumed by a view change. */
+export function stockCapability(name: StockCommand, held = false) {
+  return name === "receiveStock"
+    ? {
+        action: "receive",
+        fields: [
+          "date",
+          "disposition.kind",
+          ...(held ? ["disposition.reason"] : []),
+        ],
+      }
+    : name === "holdStock"
+      ? { action: "update", fields: ["reason"] }
+      : { action: "release", fields: ["cycleId"] }
+}
+
+export async function executeStock(
+  identity: Identity,
+  name: StockCommand,
+  raw: unknown
+): Promise<Applied> {
+  await database().$transaction(async (tx) => {
+    await assertEnvironment(tx)
+    await currentActor(tx, identity)
+  })
+  const parsed = stockEnvelope(name).safeParse(raw)
+  if (!parsed.success) fail("INVALID_INPUT", 422)
+  const envelope = parsed.data,
+    input = envelope.input,
+    config = runtimeConfig()
+  const digest = inputDigest(envelope, config.BETTER_AUTH_SECRET)
+  const held = "disposition" in input && input.disposition.kind === "HOLD"
+  const capability = stockCapability(name, held)
+  return transaction(async (tx) => {
+    await tx.$queryRaw`SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE`
+    await tx.$queryRaw`SELECT vamotors.lock_admin_guard()`
+    const actor = await currentActor(tx, identity)
+    const scope = {
+      environmentId: config.ENVIRONMENT_ID,
+      actorKey: `USER:${actor.userId}`,
+      commandName: name,
+      idempotencyKey: envelope.idempotencyKey,
+    }
+    const prior = await tx.commandReceipt.findUnique({
+      where: { environmentId_actorKey_commandName_idempotencyKey: scope },
+    })
+    // Resolve FK on the server; lock physical root before cycle. No identity edit.
+    const targetId = prior
+      ? (prior.result as Applied["result"]).id
+      : input.cycleId
+    const planned = await load(tx, targetId)
+    if (!planned) fail("NOT_FOUND", 404)
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`Vehicle:${planned.vehicleId}`}, 0))::text`
+    await tx.$queryRaw`SELECT id FROM vamotors."PurchaseRecord" WHERE id=${targetId}::uuid FOR UPDATE`
+    const row = (await load(tx, targetId))!
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "id",
+      "revision",
+    ])
+    requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
+      "id",
+      "identityRevision",
+    ])
+    requireFields(
+      actor.ability,
+      "PurchaseRecord",
+      capability.action,
+      auth(row),
+      capability.fields
+    )
+    const affected = () => [
+      { type: "PurchaseRecord" as const, id: row.id, revision: row.revision },
+      {
+        type: "Vehicle" as const,
+        id: row.vehicleId,
+        revision: row.vehicle.revision,
+      },
+    ]
+    const invalidate: Applied["invalidate"] = [
+      "inventory",
+      "purchases",
+      "parties",
+      "reports",
+      "dashboard",
+    ]
+    if (prior) {
+      const result = prior.result as Applied["result"]
+      if (result.type !== "PurchaseRecord" || result.id !== input.cycleId)
+        fail("IDEMPOTENCY_MISMATCH")
+      if (prior.inputHash !== digest) fail("IDEMPOTENCY_MISMATCH")
+      // No execution-only state/CAS checks on recovery of a committed intent.
+      return {
+        ok: true,
+        status: "APPLIED",
+        commandId: prior.id,
+        replayed: true,
+        result,
+        affected: affected(),
+        invalidate,
+      }
+    }
+    requireRef(envelope.expected, {
+      type: "PurchaseRecord",
+      id: row.id,
+      revision: row.revision,
+    })
+    if (
+      !row.acquisitionCommandId ||
+      row.closedAt ||
+      row.vehicle.activePurchaseId !== row.id ||
+      (name === "receiveStock"
+        ? row.status !== "PURCHASED"
+        : row.status !== "IN_STOCK")
+    )
+      fail("INVALID_STATE")
+    if (row.revision === 2147483647) fail("REVISION_EXHAUSTED")
+    const received = "date" in input ? input.date : undefined
+    if (
+      received &&
+      (received < date(row.purchaseDate) || received > colomboToday())
+    )
+      fail("INVALID_INPUT", 422)
+    const reason =
+      "reason" in input
+        ? input.reason
+        : "disposition" in input && input.disposition.kind === "HOLD"
+          ? input.disposition.reason
+          : null
+    const available =
+      name === "releaseStock" || (name === "receiveStock" && !held)
+    // A fresh no-change intent is not a mutation; an exact retry uses its receipt above.
+    if (
+      name !== "receiveStock" &&
+      row.available === available &&
+      row.holdReason === reason
+    )
+      fail("INVALID_STATE")
+    const sequence = await nextBusinessSequence(tx),
+      commandId = randomUUID()
+    const result = {
+      type: "PurchaseRecord" as const,
+      id: row.id,
+      revision: row.revision + 1,
+    }
+    await tx.commandReceipt.create({
+      data: {
+        id: commandId,
+        ...scope,
+        inputHash: digest,
+        result,
+        businessSequence: sequence,
+      },
+    })
+    const updated = await tx.purchaseRecord.updateMany({
+      where: { id: row.id, revision: row.revision },
+      data: {
+        status: "IN_STOCK",
+        available,
+        holdReason: reason,
+        ...(received ? { receivedDate: new Date(received) } : {}),
+        revision: { increment: 1 },
+      },
+    })
+    if (updated.count !== 1) fail("STALE_REVISION")
+    await tx.statusEvent.create({
+      data: {
+        cycleId: row.id,
+        commandId,
+        from: row.status,
+        to: "IN_STOCK",
+        action: name,
+        userId: actor.userId,
+        occurredAt: received ? new Date(received) : new Date(),
+      },
+    })
+    const after = (await load(tx, row.id))!
+    for (const [entityType, entityId, before, payload, revision] of [
+      [
+        "PurchaseRecord",
+        row.id,
+        purchaseDTO(row),
+        purchaseDTO(after),
+        after.revision,
+      ],
+      [
+        "Vehicle",
+        row.vehicleId,
+        vehicleDTO(row),
+        vehicleDTO(after),
+        row.vehicle.revision,
+      ],
+    ] as const) {
+      await audit(tx, {
+        commandId,
+        userId: actor.userId,
+        entityType,
+        entityId,
+        action: name,
+        ...(reason ? { reason } : {}),
+        before,
+        after: payload,
+      })
+      await writeReadVersion(tx, {
+        commandId,
+        sequence,
+        entityType,
+        entityId,
+        revision,
+        payload,
+      })
+    }
+    return {
+      ok: true,
+      status: "APPLIED",
+      commandId,
+      replayed: false,
+      result,
+      affected: [result, affected()[1]],
+      invalidate,
+    }
+  })
+}
+
 export async function purchaseQuery(
   tx: Tx,
   actor: Actor,
@@ -661,6 +927,20 @@ export async function purchaseQuery(
         ? visiblePurchase(actor, row)
         : visibleVehicle(actor, row)
     if (!visible.id) fail("FIELD_FORBIDDEN", 403)
+    // Historical hold values (including duplicated stock audit reasons) inherit
+    // current source-field authority, not presence of an optional current value.
+    const holdReasonReadable =
+      actor.ability.can(
+        "read",
+        subject("PurchaseRecord", auth(row)),
+        "holdReason"
+      ) &&
+      (input.type === "PurchaseRecord" ||
+        actor.ability.can(
+          "read",
+          subject("Vehicle", vehicleAuth(row)),
+          "holdReason"
+        ))
     const where = {
       entityType: input.type,
       entityId: input.id,
@@ -706,7 +986,12 @@ export async function purchaseQuery(
       const fields = Object.entries(
         entry.fieldDiff as Record<string, { before: unknown; after: unknown }>
       ).flatMap(([path, delta]) => {
-        const witness = at(visible, path)
+        const witness =
+          path === "holdReason"
+            ? holdReasonReadable
+              ? row.holdReason
+              : undefined
+            : at(visible, path)
         if (witness === undefined) {
           redactedFields.push(`fields.${path}`)
           return []
@@ -729,6 +1014,14 @@ export async function purchaseQuery(
         reason: entry.reason,
         fields,
       })
+      if (
+        ["receiveStock", "holdStock", "releaseStock"].includes(entry.action) &&
+        !holdReasonReadable &&
+        "reason" in result
+      ) {
+        delete result.reason
+        redactedFields.push("reason")
+      }
       result.redactedFields.push(...redactedFields)
       return result
     })
