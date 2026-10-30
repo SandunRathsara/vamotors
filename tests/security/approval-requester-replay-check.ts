@@ -415,7 +415,7 @@ try {
       const after = await snapshot()
       for (const t of tables.slice(0, 9)) assert.deepEqual(after[t], before[t])
       assert.equal(terminal.status, "PURCHASED")
-      assert.equal(terminal.disposal, undefined)
+      assert.equal(terminal.disposal, null)
       // New lawful business revision AFTER rejection must not turn replay into CAS.
       await f.command(
         control,
@@ -724,24 +724,6 @@ try {
         404,
         "NOT_FOUND"
       )
-      // Invalidate the ORIGINAL requester's same session, not the user authority.
-      assert.equal(
-        (
-          await requester!.post("/api/auth/sign-out", {
-            headers: { Origin: f.origin },
-            data: {},
-          })
-        ).status(),
-        200
-      )
-      await inspect(
-        `${tag} original requester session logged out`,
-        () => post(requester!, s.request, "requestApproval"),
-        401,
-        "UNAUTHENTICATED"
-      )
-      await pair(s, `${tag} active authorized requester LOGGED OUT`)
-      requester = await f.login("STAFF")
     }
     await change(requesterId, true, [roles.full.id])
     const pending = await prepare("2000", "APPROVE")
@@ -869,6 +851,30 @@ try {
     } finally {
       await monitor.end()
     }
+    // Invalidate the ORIGINAL same session once, after all same-cookie controls.
+    // No redundant logins or rate-limit bypass: all four receipts must recover
+    // with that originator logged out; subsequent changes use the real admin.
+    await change(requesterId, true, [roles.full.id])
+    assert.equal(
+      (
+        await requester!.post("/api/auth/sign-out", {
+          headers: { Origin: f.origin },
+          data: {},
+        })
+      ).status(),
+      200
+    )
+    await inspect(
+      "original requester session logged out",
+      () => post(requester!, positive.request, "requestApproval"),
+      401,
+      "UNAUTHENTICATED"
+    )
+    for (const s of scenarios)
+      await pair(
+        s,
+        `${s.decision}/${s.proceeds} active authorized requester LOGGED OUT`
+      )
     // A short REAL app+PG restart tests durable denial and original receipt recovery.
     await change(requesterId, false, [roles.full.id])
     const before = await snapshot()

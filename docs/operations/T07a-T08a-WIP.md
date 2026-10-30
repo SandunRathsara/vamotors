@@ -1,5 +1,73 @@
 # T07a/T08a — author-frozen accepted236 candidate (parent acceptance pending)
 
+## Bounded REPLAY_REQUESTER_AUTHORITY correction — exact rejected92
+
+This is a new correction from `92c465b0903a64570fc42645e95d6af0abe10ad9`,
+tree `adef3b256e82cd7acf3d02143df5834dc3a52ad5`. The older journal below and
+all prior frozen write-off/T05c2/repair histories remain separate, unchanged
+attributions. Accepted primary remains236/16 migrations/registry12; this branch's
+17-migration/registry13 write-off candidate is for review only. Parent alone accepts.
+
+The distinct92 probe found that successful review replay and `commandStatus`
+checked the reviewer but omitted the current requester check used by new review.
+Own exact92 production HTTP reproduces both unexpected200 results after actual
+requester action removal and deactivation, plus premature envelope-mismatch
+disclosure. Requester's own request replay still returns403. All17 business,
+history, audit, receipt, notification, read-version and sequence populations are
+unconditionally unchanged. This is receipt-recovery authority, not duplicated
+money, history undo or blanket hiding of authorized terminal reads.
+
+`currentRequesterAuthority` now shares the existing activation/originating domain
+read/action check between ordinary review and reviewed-receipt replay. It loads
+actual current grants with the server-only persisted-user loader under the caller's
+auth guard. It neither authenticates an old requester session nor reruns PENDING,
+old CAS, availability, basis-revision or terminal business eligibility. Existing
+reviewer checks run first; requester failure remains409 `APPROVAL_STALE`, and
+changed-envelope mismatch remains behind authority. Request replay and independent
+history projections retain their own existing semantics.
+
+`commandStatus` acquires the existing AdminGuard before current actor/receipt
+reads. Only that receipt query uses ReadCommitted, so statements after a real
+guard wait see the winning committed auth change. Adding a mutating guard to its
+old RepeatableRead snapshot without retry would instead produce a serialization
+failure. Other queries stay RepeatableRead; environment read checks, scoped key
+lookup, supported names and wire shapes are unchanged. No transaction-wrapper,
+global auth framework, SQL/schema/registry/grant, money, UI, package or PWA change.
+
+```sh
+node --import tsx tests/security/approval-requester-replay-check.ts "$OWN_ROOT" probe
+node --import tsx tests/security/approval-requester-replay-check.ts "$OWN_ROOT" all
+```
+
+The regression was committed before the server correction and runs real
+production HTTP/PG through the existing fixture. Source cycles are actually
+created by the nonadmin requester for supported `createdBy:$actor.id` conditions;
+separate reviewers receive explicit foreign-source authority, not an ownership
+bypass. Zero/positive proceeds and approved/rejected receipts cover actual action,
+submitted-leaf, consumed-read and current source-condition loss, deactivation,
+restoration, original-request denial, reviewer revocation/scoped404, foreign and
+unknown keys, mismatch precedence, logged-out-but-authorized requester recovery
+and original successful identity after later business revisions. Zero proceeds
+needs no pay grant; loss of workflow-create alone does not invent a new domain
+authority requirement. Authorized terminal history stays readable after action loss.
+
+The four queue probes observe real `pg_locks`/blocking PIDs, with actual updateUser
+queued before each recovery entrypoint. Only that exact admin mutation's receipt
+and audit are excluded from the concurrent delta comparison; every other row of
+all17 populations must match. Serial replay checks exclude nothing. AdminGuard is
+mutable synchronization, not business immutability. The short real app+PG restart
+retains an inactive requester denial and recovers the original receipt after real
+reactivation with new reviewer authentication, without reseeding/reapplying business.
+
+Own raw RED/GREEN, helper failures, command/source bindings, capacity review,
+protected blob/test-meaning map and service closeout are sealed separately under
+`t07a-replay-requester-20261031`. Original P1–P8 assertions remain intact; bounded
+focused executions are not full independent acceptance. The next distinct verifier
+still owns genuine236 upgrade/repeat, both-root full P1–P8/retained/UI/restart/files
+and all four original scenarios. No92 bulk pass or old author pass is carried over.
+27 LOCAL/107 U/134, VPRC-02 LOCAL236, VSTS-03 U, G2 pinned d0 and G3–G6 pending
+remain unchanged; no shared ledger/default/primary/protected ref is promoted here.
+
 ## Final author handback / shared ownership release
 
 **FROZEN SHARED RELEASE ACK**
@@ -281,7 +349,7 @@ object, not newer records. Sole shared-source ownership remains active here.
   correctly returned429. Respect the accepted file helper's three-sign-in app
   boundary: perform the distinct delegate login first, then let verifyFiles use
   its existing clean app restart. No limiter change/spoofed header/sleep. Original
- 429 and all effects remain. Core sentinel alone is NOT complete P7: money proof
+  429 and all effects remain. Core sentinel alone is NOT complete P7: money proof
   now requires two actual completed native retention/restart PASS receipts before
   consuming the old gross witness. Repeated installation/native verification and
   A/C money remain pending; full P1–P8 still not claimed.
@@ -411,7 +479,7 @@ are historical and superseded by that explicit resumption, not deleted.
   and strengthens actual URL/login UI/cookie/private-query/draft/cache assertions,
   including focus-driven verification in the storage-isolated second context.
 - A separate actual-bound repro failed on360 Logout x321,width68.703125 (right edge
- 389.703125). Minimal existing flex/truncation changes keep the action fixed-size
+  389.703125). Minimal existing flex/truncation changes keep the action fixed-size
   while allowing name/title shrinkage; no redesign or settlement/UI import.
 - Full owned TS/TSX format, full owned lint and types exited0 after these changes.
   A new clean production build and green focused browser verification are still
@@ -689,7 +757,7 @@ Each long-command receipt records cwd, head/tree, arguments, stdout/stderr and e
   type). Both sites were changed afterward; **no subsequent typecheck was run**.
   Newer UI/source is unchecked and may contain additional errors.
 - First draft migration setup: exit1, retained. Rolled-back SQL probe reproduced
- 42601 CASE parsing failure; corrected parenthesized IF expressions; probe exit0
+  42601 CASE parsing failure; corrected parenthesized IF expressions; probe exit0
   and rolled back all probe DDL. Prisma documented failed-migration resolution
   marked only that failed attempt rolled back; all history retained.
 - Retried own draft setup: exit0, real PostgreSQL18.6, synthetic accounts/settings,
