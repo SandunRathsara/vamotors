@@ -95,6 +95,7 @@ async function stop() {
 const browser = await chromium.launch({ headless: true }),
   a = await browser.newContext({
     baseURL: origin,
+    serviceWorkers: "allow",
     viewport: { width: 1920, height: 1080 },
   }),
   b = await browser.newContext({
@@ -108,7 +109,8 @@ const page = await a.newPage(),
   limited = await staff.newPage()
 const suffix = randomUUID().slice(0, 8),
   results: string[] = [],
-  cycles: string[] = []
+  cycles: string[] = [],
+  serviceWorker: Record<string, string | undefined> = {}
 let stage = "initialize",
   originalStaff: CurrentActorDTO | undefined
 async function group(name: string, run: () => Promise<void>) {
@@ -343,6 +345,32 @@ try {
     "private production accounts, strict anonymous boundary, acquired immutable facts",
     async () => {
       await login(page, "ADMIN")
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller?.state === "activated",
+        undefined,
+        { timeout: 5000 }
+      )
+      Object.assign(
+        serviceWorker,
+        await page.evaluate(async () => {
+          const registration = await navigator.serviceWorker.ready
+          return {
+            scope: registration.scope,
+            script: registration.active?.scriptURL,
+            controller: navigator.serviceWorker.controller?.scriptURL,
+            state: navigator.serviceWorker.controller?.state,
+          }
+        })
+      )
+      assert.deepEqual(serviceWorker, {
+        scope: `${origin}/`,
+        script: `${origin}/sw.js`,
+        controller: `${origin}/sw.js`,
+        state: "activated",
+      })
+      console.log(
+        "PASS activated application service worker controls stock page"
+      )
       await login(mobile, "SECOND")
       await login(limited, "STAFF")
       originalStaff = await query(staff.request, "currentActor")
@@ -648,7 +676,8 @@ try {
         .click()
       await page.getByLabel("Actual received date").fill("2026-10-02")
       let committed!: Applied
-      await page.route("**/api/v1/commands/receiveStock", async (route) => {
+      // Context routing also reaches GETs fetched by the controlling worker.
+      await a.route("**/api/v1/commands/receiveStock", async (route) => {
         bodies.push(route.request().postData()!)
         if (bodies.length === 1) {
           const response = await route.fetch()
@@ -679,7 +708,7 @@ try {
         page.getByRole("button", { name: "Retry unchanged stock intent" })
       ).toBeVisible()
       console.log("PASS pending envelope survives first focus/refetch")
-      await page.route("**/api/v1/queries/currentActor", (route) =>
+      await a.route("**/api/v1/queries/currentActor", (route) =>
         route.fulfill({
           status: 503,
           contentType: "application/json",
@@ -693,7 +722,7 @@ try {
       await expect(
         page.getByText("Checking access…", { exact: true })
       ).toBeVisible()
-      await page.unroute("**/api/v1/queries/currentActor")
+      await a.unroute("**/api/v1/queries/currentActor")
       await page.evaluate(() => window.dispatchEvent(new Event("focus")))
       await expect(
         page.getByRole("button", { name: "Retry unchanged stock intent" }),
@@ -729,7 +758,7 @@ try {
         },
         409
       )
-      await page.unroute("**/api/v1/commands/receiveStock")
+      await a.unroute("**/api/v1/commands/receiveStock")
     }
   )
   await group(
@@ -747,7 +776,7 @@ try {
         envelope({ cycleId: row.id, reason: "Intervening hold" }, [ref(row)])
       )
       const bodies: string[] = []
-      await page.route("**/api/v1/commands/holdStock", async (route) => {
+      await a.route("**/api/v1/commands/holdStock", async (route) => {
         bodies.push(route.request().postData()!)
         await route.continue()
       })
@@ -757,8 +786,12 @@ try {
       await expect(
         page.getByRole("status").filter({ hasText: "STALE_REVISION" })
       ).toBeVisible()
-      await page.route("**/api/v1/queries/purchase?**", (route) =>
-        route.fulfill({
+      await a.route("**/api/v1/queries/purchase?**", (route) => {
+        assert.ok(
+          route.request().serviceWorker(),
+          "Current-read fault must reach the controlling worker's network request"
+        )
+        return route.fulfill({
           status: 503,
           contentType: "application/json",
           body: JSON.stringify({
@@ -766,7 +799,7 @@ try {
             error: { code: "RETRYABLE_TRANSACTION", retryable: true },
           }),
         })
-      )
+      })
       await page
         .getByRole("button", { name: "Reload current stock", exact: true })
         .click()
@@ -776,7 +809,7 @@ try {
       await expect(page.getByLabel("Hold reason")).toHaveValue(
         "Retained stale reason"
       )
-      await page.unroute("**/api/v1/queries/purchase?**")
+      await a.unroute("**/api/v1/queries/purchase?**")
       await page
         .getByRole("button", { name: "Reload current stock", exact: true })
         .click()
@@ -799,7 +832,7 @@ try {
       )
       row = await current(row.id)
       assert.equal(JSON.parse(bodies[1]).expected[0].revision, row.revision - 1)
-      await page.unroute("**/api/v1/commands/holdStock")
+      await a.unroute("**/api/v1/commands/holdStock")
     }
   )
   await group(
@@ -1310,6 +1343,7 @@ try {
       encoding: "utf8",
     }).trim(),
     origin,
+    serviceWorker,
     groups: results,
     cycles,
     migrations: (
