@@ -22,6 +22,7 @@ export async function decodeDocument(
         [
           "--max-old-space-size=192",
           "--max-semi-space-size=8",
+          "--expose-gc",
           "--permission",
           "--allow-addons",
           `--allow-fs-read=${modules}`,

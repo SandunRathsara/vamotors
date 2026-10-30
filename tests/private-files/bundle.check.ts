@@ -1,6 +1,6 @@
 // Real, test-owned Next/Turbopack production app. No permanent application route.
 import assert from "node:assert/strict"
-import { spawn } from "node:child_process"
+import { spawn, spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import {
   cp,
@@ -70,6 +70,8 @@ await writeFile(
 import {openPrivateFiles} from "../../../lib/server/private-files/index"
 import {digest} from "../../../lib/server/private-files/validation"
 import {randomUUID} from "node:crypto"
+import {writeFile} from "node:fs/promises"
+import {join} from "node:path"
 export const runtime="nodejs"
 export async function POST(request:Request){
  const bytes=Buffer.from(await request.arrayBuffer());
@@ -79,9 +81,12 @@ export async function POST(request:Request){
   const intent=randomUUID(),stage=store.newStageKey(intent),final=store.newFinalKey(intent,randomUUID());
   await store.writeStage(stage,(async function*(){yield bytes})(),d);
   const snapshot=await store.validateStage(stage,d);
+  await writeFile(join(${JSON.stringify(bytesRoot)},stage),"changed after validation");
   const metadata=await store.finalize(final,snapshot);
   const retained=await store.readFinal(final,metadata);
-  return Response.json({accepted:true,sha256:digest(retained),size:retained.length});
+  const replay=await store.finalize(final,snapshot);
+  if(JSON.stringify(replay)!==JSON.stringify(metadata))throw Error("replay");
+  return Response.json({accepted:true,sha256:digest(retained),size:retained.length,key:final,metadata});
  }catch(e){const code=(e as {code:string}).code;return Response.json({accepted:false,code},{status:code==="STORAGE_UNAVAILABLE"?503:422})}finally{await store.close()}
 }
 `
@@ -122,6 +127,7 @@ const child = spawn(
     stdio: ["ignore", "pipe", "pipe"],
   }
 )
+const checkpoints: { path: string; sha256: string }[] = []
 try {
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(
@@ -142,21 +148,62 @@ try {
   const root = process.env.T06A_REVIEW_FIXTURES
   assert(root)
   const results = []
-  for (const [name, mime, expected] of [
-    ["pillow-exif.jpg", "image/jpeg", 200],
-    ["pillow-icc.png", "image/png", 200],
-    ["pillow-exif.webp", "image/webp", 200],
-    ["reportlab-scan.pdf", "application/pdf", 200],
-    [
-      "openpyxl.xlsx",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      200,
-    ],
-    ["equivalent.csv", "text/csv", 200],
-    ["in-chunk-polyglot.webp", "image/webp", 422],
-    ["pypdf-image-short-flate.pdf", "application/pdf", 422],
-  ] as const) {
-    const bytes: Buffer = await readFile(join(root, "fixtures", name))
+  const cases: [string, string, number, string][] = [
+    ...(
+      [
+        ["pillow-exif.jpg", "image/jpeg", 200],
+        ["pillow-icc.png", "image/png", 200],
+        ["pillow-exif.webp", "image/webp", 200],
+        ["reportlab-scan.pdf", "application/pdf", 200],
+        [
+          "openpyxl.xlsx",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          200,
+        ],
+        ["equivalent.csv", "text/csv", 200],
+        ["in-chunk-polyglot.webp", "image/webp", 422],
+        ["pypdf-image-short-flate.pdf", "application/pdf", 422],
+      ] as [string, string, number][]
+    ).map(
+      ([name, mime, status]) =>
+        [name, mime, status, join(root, "fixtures", name)] as [
+          string,
+          string,
+          number,
+          string,
+        ]
+    ),
+  ]
+  const r2 = process.env.T06A_R2_FIXTURES
+  if (r2) {
+    const red = JSON.parse(
+      await readFile(join(r2, "red-results.json"), "utf8")
+    ) as { name: string; expected: boolean; accepted: boolean }[]
+    const focus = new Set(
+      red.filter((r) => r.expected !== r.accepted).map((r) => r.name)
+    )
+    for (const group of ["extended", "limits"]) {
+      const manifest = JSON.parse(
+        await readFile(join(r2, group, "manifest.json"), "utf8")
+      ) as { name: string; expected: boolean }[]
+      for (const f of manifest) {
+        if (
+          !focus.has(f.name) &&
+          !f.name.includes("inline") &&
+          group !== "limits"
+        )
+          continue
+        cases.push([
+          f.name,
+          f.name.endsWith(".pdf") ? "application/pdf" : "image/webp",
+          f.expected ? 200 : 422,
+          join(r2, group, f.name),
+        ])
+      }
+    }
+  }
+  for (const [name, mime, expected, path] of cases) {
+    const bytes: Buffer = await readFile(path)
     const response: Response = await fetch(
       `http://127.0.0.1:${port}/api/probe`,
       {
@@ -170,10 +217,13 @@ try {
       code?: string
       sha256?: string
       size?: number
+      key?: string
+      metadata?: unknown
     } = await response.json()
     results.push({ name, status: response.status, body })
     assert.equal(response.status, expected, JSON.stringify(results))
-    if (expected === 422) assert.equal(body.code, "UPLOAD_MISMATCH")
+    if (expected === 422)
+      assert.deepEqual(body, { accepted: false, code: "UPLOAD_MISMATCH" })
     else {
       assert.equal(body.accepted, true)
       assert.equal(
@@ -181,6 +231,13 @@ try {
         createHash("sha256").update(bytes).digest("hex")
       )
       assert.equal(body.size, bytes.length)
+      const checkpoint = join(project, `checkpoint-${checkpoints.length}.json`)
+      await writeFile(
+        checkpoint,
+        JSON.stringify({ key: body.key, metadata: body.metadata }),
+        { mode: 0o600 }
+      )
+      checkpoints.push({ path: checkpoint, sha256: body.sha256! })
     }
   }
   const worker = join(project, "lib/server/private-files/document-worker.mjs")
@@ -210,3 +267,29 @@ try {
   child.kill("SIGTERM")
   await new Promise<void>((r) => child.on("close", () => r()))
 }
+// The actual Next writer is stopped. Re-open every immutable final in a fresh
+// independent process using the same adapter, exact metadata and original hash.
+for (const checkpoint of checkpoints) {
+  const restarted = spawnSync(
+    process.execPath,
+    [
+      "--conditions=react-server",
+      "--import",
+      "tsx",
+      "tests/private-files/restart.ts",
+      "read",
+      bytesRoot,
+      "11111111-1111-4111-8111-111111111111",
+      checkpoint.path,
+    ],
+    { encoding: "utf8", timeout: 15000 }
+  )
+  assert.equal(restarted.status, 0, restarted.stderr)
+  assert.equal(JSON.parse(restarted.stdout).sha256, checkpoint.sha256)
+}
+await writeFile(
+  join(project, "restart-results.json"),
+  JSON.stringify(checkpoints),
+  { mode: 0o600 }
+)
+console.log(`HTTP finals restarted exactly: ${checkpoints.length}`)

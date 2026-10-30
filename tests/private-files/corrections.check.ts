@@ -261,3 +261,84 @@ test("PDF actual raster footprints, predictors, JPEG dimensions and aggregate pi
     false
   )
 })
+
+test("R2 inline images in Form XObjects share the original raster validator", async () => {
+  await check(
+    pdf([
+      "<< /Type /Catalog /Pages 2 0 R >>",
+      "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+      "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>",
+    ]),
+    "application/pdf",
+    "blank-page.pdf",
+    true
+  )
+  const raw = Buffer.alloc(32 * 32 * 3, 81)
+  for (const good of [true, false]) {
+    const objects = pdfObjects()
+    objects[3] = stream(Buffer.from("q /Fm Do Q"))
+    objects[4] =
+      "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 3 0 R >> /XObject << /Fm 6 0 R >> >> /Contents 4 0 R >>"
+    const content = Buffer.concat([
+      Buffer.from("q BI /W 32 /H 32 /CS /RGB /BPC 8 /F /Fl ID "),
+      deflateSync(good ? raw : Buffer.alloc(0)),
+      Buffer.from(" EI Q\n"),
+    ])
+    objects.push(
+      stream(content, "/Type /XObject /Subtype /Form /BBox [0 0 200 200]")
+    )
+    await check(pdf(objects), "application/pdf", "inline-form.pdf", good)
+  }
+  const jpeg = await sharp({
+    create: { width: 3000, height: 3000, channels: 3, background: "#336699" },
+  })
+    .jpeg()
+    .toBuffer()
+  const objects = pdfObjects()
+  objects[3] = stream(
+    Buffer.concat([
+      Buffer.from("q /Im Do BI /W 3000 /H 3000 /CS /RGB /BPC 8 /F /DCT ID "),
+      jpeg,
+      Buffer.from(" EI Q\n"),
+    ])
+  )
+  objects[4] =
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 3 0 R >> /XObject << /Im 6 0 R >> >> /Contents 4 0 R >>"
+  objects.push(
+    stream(
+      jpeg,
+      "/Type /XObject /Subtype /Image /Width 3000 /Height 3000 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode"
+    )
+  )
+  await check(pdf(objects), "application/pdf", "mixed-aggregate.pdf", false)
+})
+
+test("R2 real WebP entropy positions support dimension boundaries, reject added payloads", async () => {
+  for (const lossless of [false, true]) {
+    const bytes = await sharp({
+      create: {
+        width: 8192,
+        height: 1953,
+        channels: 4,
+        background: { r: 31, g: 63, b: 127, alpha: 0.5 },
+      },
+    })
+      .webp({ lossless })
+      .toBuffer()
+    await check(bytes, "image/webp", "boundary.webp", true)
+    for (const suffix of [
+      Buffer.from("<script>bad()</script>"),
+      Buffer.alloc(16),
+    ]) {
+      const tailed = webp(
+        chunks(bytes).map(([name, data]) => [
+          name,
+          name === (lossless ? "VP8L" : "VP8 ")
+            ? Buffer.concat([data, suffix])
+            : data,
+        ])
+      )
+      await check(tailed, "image/webp", "boundary-tail.webp", false)
+    }
+  }
+})

@@ -1,0 +1,6 @@
+diff --git a/legacy/build/pdf.worker.mjs b/legacy/build/pdf.worker.mjs
+--- a/legacy/build/pdf.worker.mjs
++++ b/legacy/build/pdf.worker.mjs
+@@ -71122,1 +71122,1 @@
+-export { WorkerMessageHandler };
++export { WorkerMessageHandler, Parser, Lexer, Stream, Dict, Name, Cmd, EOF, EvaluatorPreprocessor };

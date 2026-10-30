@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@stacksjs/ts-webp@0.1.7': 70c04a69f3785ac245ebad348a8c35479e1d7c0792852401d0f9cfcad2b79b52
+  pdfjs-dist@6.4.299: a1cd393ccf4272850dd7041b9bd101f8ebe5ffa77ce4c8d8d139ed16439fdb5d
+
 importers:
 
   .:
@@ -32,6 +36,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.14)(react@19.2.5)
+      '@stacksjs/ts-webp':
+        specifier: 0.1.7
+        version: 0.1.7(patch_hash=70c04a69f3785ac245ebad348a8c35479e1d7c0792852401d0f9cfcad2b79b52)
       '@tanstack/react-form':
         specifier: 1.29.0
         version: 1.29.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -79,7 +86,7 @@ importers:
         version: 2.8.9(next@16.1.7(@babel/core@7.29.0(supports-color@7.2.0))(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5)
       pdfjs-dist:
         specifier: 6.4.299
-        version: 6.4.299
+        version: 6.4.299(patch_hash=a1cd393ccf4272850dd7041b9bd101f8ebe5ffa77ce4c8d8d139ed16439fdb5d)
       pg:
         specifier: 8.16.3
         version: 8.16.3
@@ -2221,6 +2228,9 @@ packages:
   '@sindresorhus/merge-streams@4.0.0':
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
+
+  '@stacksjs/ts-webp@0.1.7':
+    resolution: {integrity: sha512-MKIO37g9Y1kIOCeAkrctT2yM5wFwKCL6IY+K7QeLifIq504S1n2bK20OR/AsUecQwmSuK4eXECXhcb7as8m5LA==}
 
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
@@ -7517,6 +7527,8 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
+  '@stacksjs/ts-webp@0.1.7(patch_hash=70c04a69f3785ac245ebad348a8c35479e1d7c0792852401d0f9cfcad2b79b52)': {}
+
   '@standard-schema/spec@1.0.0': {}
 
   '@standard-schema/spec@1.1.0': {}
@@ -9951,7 +9963,7 @@ snapshots:
 
   pathe@2.0.3: {}
 
-  pdfjs-dist@6.4.299:
+  pdfjs-dist@6.4.299(patch_hash=a1cd393ccf4272850dd7041b9bd101f8ebe5ffa77ce4c8d8d139ed16439fdb5d):
     optionalDependencies:
       '@napi-rs/canvas': 1.0.13
 

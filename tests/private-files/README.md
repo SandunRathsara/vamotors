@@ -1,8 +1,9 @@
 # T06a2 document-validation candidate
 
 Adapter base: `3cc43b3b89fd52038a8e0339c3eafdb40f966f52` (common `db2580dd`).
-The first candidate `25da9d81` was **rejected** by the independent verifier.
-See [CORRECTIONS.md](CORRECTIONS.md) for its five findings and red→green checks.
+Candidates `25da9d81` and `e3ce4207` were **rejected** by the independent verifier.
+See [CORRECTIONS.md](CORRECTIONS.md) for the original five findings and the R2
+inline-PDF / 16MP-WebP corrections and red→green checks.
 This is not T06/G2/requirement acceptance, schema/HTTP workflow integration or a
 deployment/restore certification. The old operations runbook's unsupported-parser
 section describes the adapter base, not this candidate.
@@ -28,10 +29,12 @@ All formats: extension/MIME/exact size/SHA256 agree; <=5 MiB, images <=2 MiB.
   <=16,000,000 pixels, <=8192/dimension, <=4 channels, one frame. JPEG <=1024
   markers, PNG <=256 chunks, WebP <=8 chunks; exact container endpoints/CRC.
   PNG IDAT inflation <=128,065,536 bytes (16-bit RGBA/Adam7 overhead included),
-  with exact zlib consumption. WebP VP8/VP8L/ALPH payloads additionally undergo
-  native decode-prefix consumption checks; only <=4 **zero** VP8 bool-coder flush
-  bytes are permitted, not ignored arbitrary payload tails. VP8L/ALPH permit no
-  whole-byte tail. This is not a handwritten VP8 decoder or a re-encoder.
+  with exact zlib consumption. WebP VP8/VP8L/ALPH entropy is parsed once using the
+  pinned decoder's bit readers, then Sharp performs **one** native full-raster
+  decode. No shortened-prefix/pixel-equality heuristic or repeated native trial
+  decodes. Only <=4 **zero** VP8 bool-coder flush bytes are permitted. Lossless
+  payloads must end at the byte containing the final consumed bit, with zero
+  unused high bits; raw ALPH must have its exact footprint. No re-encoding.
 - **Passive image metadata:** EXIF/ICC/XMP/text/comments are supported, combined
   <=256 KiB. TIFF spans/IFD references are checked, <=512 entries/depth 8, then
   exifr parses tags. JPEG EXIF thumbnails are fully decoded with <=1 MP. ICC
@@ -49,7 +52,13 @@ All formats: extension/MIME/exact size/SHA256 agree; <=5 MiB, images <=2 MiB.
   100:1; absolute decoded limits remain. Raw/Flate raster row footprints and
   predictor bytes must match and undergo native pixel decode. JPEG streams
   <=2 MiB; actual decoded dimensions must match their dictionaries. Aggregate
-  image pixels <=16 MP, <=8192/dimension. Reject encryption (including empty
+  image pixels <=16 MP, <=8192/dimension. **Inline BI/ID/EI images in page and
+  Form content use the same original-byte filter/raster/dimension/aggregate
+  checks as Image XObjects**, before PDF.js pads or rescales them. PDF.js's actual
+  content lexer/parser locates inline data; EI may not skip bytes after JPEG EOI
+  or ASCII85 EOD. Each content stream must be independently lexable: splitting
+  tokens or inline images across /Contents entries is unsupported and fails
+  closed. Reject encryption (including empty
   passwords), actions/scripts, attachments, external streams, forms/XFA,
   annotations, opaque/orphan streams and trailing content. PDF 2.0, object/xref
   streams, incremental/linearized/signed revisions, indexed/ICC raster color
@@ -74,7 +83,9 @@ All formats: extension/MIME/exact size/SHA256 agree; <=5 MiB, images <=2 MiB.
 
 Two heavy validation children per server process, no queue; 10s deadline including
 startup. V8 old-space 192 MiB/semi-space 8 MiB; one native decode thread, no Sharp
-cache. Parent `/bin/ps` samples RSS every 100ms and kills above 384 MiB. This is a
+cache. Worker GC is exposed only to reclaim discarded lossless-parser workspace
+before the single native raster decode. Parent `/bin/ps` samples RSS every 100ms
+and kills above 384 MiB. This is a
 **sampled limit, not a hard OS/native sandbox**; transient overshoot is possible.
 No inherited runtime secrets/preload flags. Node read permissions cover only the
 worker subtree and lexical/real node_modules paths; no writes/child processes/
@@ -90,7 +101,12 @@ retryably rather than silently validating or claiming an upload mismatch.
 ## Dependencies / checks
 
 Pinned: sharp 0.35.5, pdfjs-dist 6.4.299, read-excel-file 9.3.13, saxes 6.0.0,
-exifr 7.1.3 (no transitive dependencies). Context7 library→docs, npm metadata,
+exifr 7.1.3 and @stacksjs/ts-webp 0.1.7 (both have no transitive dependencies).
+The two export-only patches in `patches/`, configured by `pnpm-workspace.yaml`
+and hashed in the lockfile, expose existing private PDF content and WebP entropy
+parser facilities. Their upstream decode algorithms are unchanged; version
+upgrades require rechecking these private seams and the corpus. The WebP
+package's encoder/Bun/CLI paths are not called. Context7 library→docs, npm metadata,
 exact-version OSV and transitive npm audit checked; no current findings in these
 parser trees. Existing unrelated repository audit findings remain. Node 24.16.0
 and pnpm 12.4.1 used; `/bin/ps` and a private POSIX durable root required.
@@ -106,7 +122,7 @@ pnpm exec prettier --check lib/server/private-files tests/private-files
 pnpm exec vitest run tests/security
 ```
 
-The original 16 checks plus four infrastructure checks remain real parser/IO
+The original 24 dedicated checks plus two generated R2 checks remain real parser/IO
 tests, not mocks. Each five-format run retains five finals/2,874 exact bytes and
 per-file hashes/checkpoints. Restart after writers exit:
 
