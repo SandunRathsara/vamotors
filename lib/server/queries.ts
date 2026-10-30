@@ -95,6 +95,8 @@ export async function securityQuery(
   return database().$transaction(
     async (tx) => {
       await assertEnvironment(tx)
+      if (name === "commandStatus")
+        await tx.$queryRaw`SELECT vamotors.lock_admin_guard()`
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
       if (name === "approvals") return approvalQuery(tx, actor, args)
@@ -404,6 +406,12 @@ export async function securityQuery(
       }
       fail("NOT_FOUND", 404)
     },
-    { isolationLevel: "RepeatableRead", timeout: 5000 }
+    {
+      // The guard serializes auth mutations; each post-wait statement must see
+      // their committed grants, not an earlier repeatable-read auth snapshot.
+      isolationLevel:
+        name === "commandStatus" ? "ReadCommitted" : "RepeatableRead",
+      timeout: 5000,
+    }
   )
 }

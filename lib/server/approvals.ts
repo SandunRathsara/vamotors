@@ -139,6 +139,21 @@ function domainAuthority(actor: Authority, row: Cycle, input: WriteOff) {
     input
   )
 }
+/** Caller holds the auth guard. No requester session or old business/CAS checks. */
+async function currentRequesterAuthority(
+  tx: Tx,
+  row: Cycle,
+  a: ApprovalRequest
+) {
+  const requester = await userAuthority(tx, a.requestedBy)
+  if (!requester?.user.active) fail("APPROVAL_STALE")
+  try {
+    domainAuthority(requester, row, saved(a).proposal.input)
+  } catch (e) {
+    if (e instanceof CommandError) fail("APPROVAL_STALE")
+    throw e
+  }
+}
 function requestAuthority(actor: Authority, row: Cycle, input: WriteOff) {
   requireWriteOffAuthority(
     actor,
@@ -527,6 +542,7 @@ export async function approvalReplay(
   if (a.reviewCommandId !== prior.id || a.reviewedBy !== actor.userId)
     fail("INTERNAL_ERROR", 500)
   reviewAuthority(actor, row, a, a.reviewNote !== null)
+  await currentRequesterAuthority(tx, row, a)
   return {
     ok: true,
     status: "APPLIED",
@@ -844,14 +860,7 @@ export async function executeApproval(
         fail("REVISION_REQUIRED", 428)
     if (envelope.expected.length !== savedValue.expected.length + 1)
       fail("INVALID_INPUT", 422)
-    const requester = await userAuthority(tx, a.requestedBy)
-    if (!requester?.user.active) fail("APPROVAL_STALE")
-    try {
-      domainAuthority(requester, row, savedValue.proposal.input)
-    } catch (e) {
-      if (e instanceof CommandError) fail("APPROVAL_STALE")
-      throw e
-    }
+    await currentRequesterAuthority(tx, row, a)
     if (
       a.payloadHash !==
         proposalHash(a.proposal, a.expected, a.snapshot, a.reason) ||
