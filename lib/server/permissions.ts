@@ -484,6 +484,16 @@ export const registry = {
     ],
     archive: ["active"],
   },
+  ApprovalRequest: {
+    read: ["id", "revision", "proposal.kind", "proposal.input.cycleId", "proposal.input.date", "proposal.input.reason", "proposal.input.method", "proposal.input.proceeds", "proposal.input.receipt.amount", "proposal.input.receipt.date", "proposal.input.receipt.method", "proposal.input.receipt.reference", "expected", "payloadHash", "reason", "requestedBy", "requestedAt", "state", "reviewedBy", "reviewedAt", "reviewNote", "appliedCommandId"],
+    create: ["proposal", "proposal.kind", "proposal.input.cycleId", "proposal.input.date", "proposal.input.reason", "proposal.input.method", "proposal.input.proceeds", "proposal.input.receipt.amount", "proposal.input.receipt.date", "proposal.input.receipt.method", "proposal.input.receipt.reference", "reason"],
+    approve: ["approvalId", "decision", "note"],
+  },
+  Disposal: {
+    read: ["id", "date", "reason", "method", "proceeds", "basisVersionId", "approval.kind", "approval.approvalId", "approval.reviewerId", "approval.reviewerName", "approval.reviewedAt", "payments", ...sourcePaymentFields.map(f => `payments.${f}`)],
+    create: ["cycleId", "date", "reason", "method", "proceeds", "receipt.amount", "receipt.date", "receipt.method", "receipt.reference"],
+    pay: ["receipt.amount", "receipt.date", "receipt.method", "receipt.reference"],
+  },
   Notification: {
     read: ["id", "revision", "kind", "target", "createdAt", "readAt"],
     update: ["readAt"],
@@ -598,9 +608,11 @@ export const registry = {
   },
 } as const
 // Freeze all accepted T06b v10 populations before exposing cycle-edit paths.
-export const registryVersion = 11
+export const registryVersion = 12
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
+  ApprovalRequest: ["createdBy"],
+  Disposal: ["createdBy"],
   User: [],
   Role: [],
   Vehicle: ["createdBy", "status"],
@@ -891,7 +903,7 @@ export function readScope(
         Object.entries(g.conditions ?? {}).map(([k, v]) => [
           (type === "RateSheet" || type === "Quote") && k === "financeCompanyId"
             ? "companyId"
-            : k,
+            : type === "ApprovalRequest" && k === "createdBy" ? "requestedBy" : k,
           v === "$actor.id" ? userId : v,
         ])
       )

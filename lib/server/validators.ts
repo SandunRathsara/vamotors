@@ -348,6 +348,30 @@ export const cashInput = z
     reference: text.max(200).optional(),
   })
   .strict()
+export const writeOffInput = z.object({
+  cycleId: id,
+  date: dateOnly,
+  reason: text,
+  method: z.enum(["SCRAPPED", "AUCTIONED", "DONATED", "OTHER"]),
+  proceeds: moneyInput,
+  receipt: cashInput.optional(),
+}).strict()
+export const approvalInputs = {
+  requestApproval: z.object({
+    proposal: z.object({ kind: z.literal("WRITE_OFF"), input: writeOffInput }).strict(),
+    reason: text,
+  }).strict(),
+  reviewApproval: z.object({ approvalId: id, decision: z.enum(["APPROVE", "REJECT"]), note: text.optional() }).strict()
+    .refine(v => v.decision !== "REJECT" || !!v.note),
+} as const
+export type ApprovalCommand = keyof typeof approvalInputs
+export const approvalEnvelope = (name: ApprovalCommand) => customerEnvelope("createCustomer").extend({ input: approvalInputs[name] })
+export const notificationInputs = {
+  markNotificationRead: z.object({ notificationId: id }).strict(),
+  markAllNotificationsRead: z.object({ through: z.string().datetime({ precision: 3, offset: false }) }).strict(),
+} as const
+export type NotificationCommand = keyof typeof notificationInputs
+export const notificationEnvelope = (name: NotificationCommand) => customerEnvelope("createCustomer").extend({ input: notificationInputs[name] })
 const costTerms = {
   category: text,
   description: text,

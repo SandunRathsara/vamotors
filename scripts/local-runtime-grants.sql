@@ -69,3 +69,8 @@ GRANT UPDATE (revision, state, "currentAttemptId", "claimExpiresAt") ON vamotors
 -- T05c.1: exact current physical/asking columns; append-only mileage stays INSERT only.
 GRANT UPDATE ("engineNumber", "chassisNumber", "normalizedEngine", "normalizedChassis", make, model, year, colour, "fuelType", transmission, vin, "crNumber", notes, revision, "updatedAt") ON vamotors."Vehicle" TO vamotors_runtime;
 GRANT UPDATE ("listedPrice") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+-- T07a/T08a: final-graph evidenced CURRENT approval/disposal only.
+GRANT SELECT, INSERT ON vamotors."ApprovalRequest", vamotors."Disposal", vamotors."DisposalReceipt" TO vamotors_runtime;
+GRANT UPDATE (state, revision, "reviewedBy", "reviewedAt", "reviewNote", "reviewerName", "reviewCommandId", "appliedCommandId") ON vamotors."ApprovalRequest" TO vamotors_runtime;
+GRANT UPDATE ("closedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT UPDATE ("activePurchaseId") ON vamotors."Vehicle" TO vamotors_runtime;

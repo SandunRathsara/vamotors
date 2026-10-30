@@ -36,8 +36,15 @@ export async function currentActor(tx: Tx, identity: Identity) {
     session.expiresAt <= new Date()
   )
     fail("UNAUTHENTICATED", 401)
+  const authority = await userAuthority(tx, identity.userId)
+  if (!authority) fail("UNAUTHENTICATED", 401)
+  if (!authority.user.active) fail("ACCOUNT_INACTIVE", 403)
+  return { ...authority, sessionId: session.id }
+}
+/** Persisted IDs only, under the caller's auth lock. Never an authenticated Identity. */
+export async function userAuthority(tx: Tx, userId: string) {
   const user = await tx.user.findUnique({
-    where: { id: identity.userId },
+    where: { id: userId },
     include: {
       roles: {
         include: {
@@ -46,8 +53,7 @@ export async function currentActor(tx: Tx, identity: Identity) {
       },
     },
   })
-  if (!user) fail("UNAUTHENTICATED", 401)
-  if (!user.active) fail("ACCOUNT_INACTIVE", 403)
+  if (!user) return null
   const roles = user.roles
     .map((m) => m.role)
     .filter((r) => r.active)
@@ -72,7 +78,6 @@ export async function currentActor(tx: Tx, identity: Identity) {
   return {
     kind: "USER" as const,
     userId: user.id,
-    sessionId: session.id,
     user,
     roles,
     grants,
@@ -82,6 +87,7 @@ export async function currentActor(tx: Tx, identity: Identity) {
   }
 }
 export type Actor = Awaited<ReturnType<typeof currentActor>>
+export type Authority = NonNullable<Awaited<ReturnType<typeof userAuthority>>>
 export function actorDTO(actor: Actor) {
   return {
     user: { id: actor.userId, name: actor.user.name, active: true as const },
