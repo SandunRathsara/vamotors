@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import ApprovalsLoading from "./loading"
 
 type Cycle = Visible<PurchaseCycleDTO>
 type Approval = Visible<ApprovalDTO>
@@ -591,7 +592,12 @@ export function ApprovalsList() {
           <option key={s}>{s}</option>
         ))}
       </select>
-      {query.isPending && <p role="status">Loading saved requests…</p>}
+      {query.isPending && (
+        <>
+          <p role="status">Loading saved requests…</p>
+          <ApprovalsLoading />
+        </>
+      )}
       {query.isError && (
         <p role="alert">
           Inbox unavailable: {errorText(query.error)}{" "}

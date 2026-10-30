@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { adminList } from "@/lib/server/admin-list"
 import { administratorGrants } from "@/lib/server/permissions"
@@ -121,6 +121,7 @@ describe("global entry-point inventory", () => {
       "approvalDetail(tx, await currentActor(tx, identity), id)"
     )
     expect(approvalDetail).not.toMatch(/approvalQuery|pageSize|commandReceipt/)
+    expect(existsSync("app/(app)/approvals/loading.tsx")).toBe(false)
     expect(readFileSync("lib/server/pages.tsx", "utf8")).not.toMatch(
       /\bcache\(/
     )

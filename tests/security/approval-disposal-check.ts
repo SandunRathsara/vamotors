@@ -278,14 +278,14 @@ try {
         pass: true,
       })
     }
-    const make = async (tag: string) => {
+    const make = async (tag: string, purchaseType = "CASH") => {
       const created = await f.command(
         requester,
         "recordPurchase",
         envelope(
           {
             ...purchaseInput(supplier.result.id, suffix, tag),
-            purchaseType: "CASH",
+            purchaseType,
           },
           [ref(supplier.result, "Supplier")]
         ),
@@ -531,8 +531,24 @@ try {
       "editPurchase",
       "receiveStock",
     ]) {
-      const row = await make(`stale-${name}`),
-        p = await pendingFor(row)
+      let row = await make(`stale-${name}`)
+      if (name === "payPurchase") {
+        await f.command(
+          requester,
+          "reversePayment",
+          envelope(
+            {
+              sourceType: "PURCHASE",
+              sourceId: row.id,
+              paymentId: row.payments[0].id,
+              reason: "Actual refund opens a lawful outstanding balance",
+            },
+            [ref(row)]
+          )
+        )
+        row = await current(requester, row.id)
+      }
+      const p = await pendingFor(row)
       const input =
         name === "setListedPrice"
           ? { cycleId: row.id, amount: "0", reason: "New asking price" }
@@ -581,7 +597,7 @@ try {
           input,
           name === "editVehicle"
             ? [cycleRefs(row)[1]]
-            : name === "addMileage"
+            : ["addMileage", "editPurchase"].includes(name)
               ? cycleRefs(row)
               : [ref(row)]
         ),

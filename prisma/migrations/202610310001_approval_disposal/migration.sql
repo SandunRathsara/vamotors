@@ -191,7 +191,7 @@ CREATE CONSTRAINT TRIGGER approval_graph AFTER INSERT OR UPDATE ON vamotors."App
 CREATE FUNCTION vamotors.check_disposal_graph() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 DECLARE d vamotors."Disposal"; a vamotors."ApprovalRequest"; p vamotors."PurchaseRecord"; v vamotors."Vehicle"; b vamotors."CycleBasisVersion"; c vamotors."CommandReceipt"; i jsonb; r vamotors."DisposalReceipt"; cid uuid;
 BEGIN
- IF TG_TABLE_NAME IN ('Disposal','DisposalReceipt') THEN cid:=NEW."cycleId";
+ IF TG_TABLE_NAME IN ('Disposal','DisposalReceipt','StatusEvent') THEN cid:=NEW."cycleId";
  ELSIF TG_TABLE_NAME='Vehicle' THEN cid:=OLD."activePurchaseId";
  ELSE cid:=NEW.id;
  END IF;
@@ -226,6 +226,7 @@ BEGIN
 END $$;
 CREATE CONSTRAINT TRIGGER disposal_graph AFTER INSERT ON vamotors."Disposal" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vamotors.check_disposal_graph();
 CREATE CONSTRAINT TRIGGER disposal_receipt_graph AFTER INSERT ON vamotors."DisposalReceipt" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vamotors.check_disposal_graph();
+CREATE CONSTRAINT TRIGGER disposal_status_graph AFTER INSERT ON vamotors."StatusEvent" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN(NEW.action='approvedWriteOff' OR NEW."to"='WRITTEN_OFF') EXECUTE FUNCTION vamotors.check_disposal_graph();
 CREATE CONSTRAINT TRIGGER disposal_cycle_graph AFTER UPDATE ON vamotors."PurchaseRecord" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN(NEW.status='WRITTEN_OFF') EXECUTE FUNCTION vamotors.check_disposal_graph();
 CREATE CONSTRAINT TRIGGER disposal_vehicle_graph AFTER UPDATE ON vamotors."Vehicle" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN(OLD."activePurchaseId" IS NOT NULL AND NEW."activePurchaseId" IS NULL) EXECUTE FUNCTION vamotors.check_disposal_graph();
 

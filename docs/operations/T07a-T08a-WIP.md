@@ -54,6 +54,30 @@ its no-work/released statements no longer describe current ownership.
   Request/review now reject extra dependency populations; current expanded
   compiler/lint feedback and rebuilt runtime verification are still pending.
 
+### Subsequent developmental coverage — not final proof
+
+- Clean prebase checkpoint `84a5c06` rebuilt successfully. The expanded campaign
+  reached strict input/ref rejection, reject/replay/fresh approval and multiple
+  stale-dependency cases. Later runs retained fixture failures: initial purchases
+  are fully paid for both CASH and BRAND_NEW, so payment staleness now uses a real
+  refund before a later actual payment; editPurchase additionally needs physical
+  refs. These failures are not labeled implementation PASS.
+- First authority campaign passed every individually denied consumed/requested
+  leaf, complementary staff authority, current requester revocation/deactivation,
+  no eligible reviewer atomic409, and Administrator self-review403. It then found
+  foreign RSC detail streamed HTTP200 via the inherited approvals loading boundary.
+  The exact row remained hidden; the skeleton is now inbox-local so the detail can
+  return404 before streaming. Rebuilt verification remains pending here.
+- A rolled-back restricted-runtime probe **reproduced a real SQL gap**: standalone
+  approvedWriteOff StatusEvent insertion could borrow an acquisition receipt.
+  The allocated migration now attaches the same final disposal graph guard to
+  write-off StatusEvent INSERT too. No invalid test row was committed. The red
+  receipt and the development-only trigger overlay remain retained.
+- Added `approval-disposal-security.ts` (authority/privacy/essential-write faults)
+  and `approval-disposal-sql.ts` (always-rolled-back restricted SQL negatives).
+  Full clean-source campaign, UI/SW/races/restart/file proof and accepted-parent
+  migration/upgrade remain unfinished; no ownership release or acceptance claim.
+
 ## Historical frozen checkpoint — preserved verbatim below
 
 Parent requested safe checkpoint/freeze/release before reassigning a bounded
