@@ -167,6 +167,11 @@ describe("T05c.2 exact settlement contract", () => {
       ]
     }
     expect(sql).toContain("DROP CONSTRAINT initial_cycle_capability")
+    const grants = readFileSync("scripts/local-runtime-grants.sql", "utf8")
+    expect(grants).toContain(
+      "GRANT EXECUTE ON FUNCTION vamotors.settlement_json(uuid), vamotors.purchase_outstanding_json(uuid), vamotors.purchase_payee(jsonb,text) TO vamotors_runtime;"
+    )
+    expect(grants).not.toContain("GRANT EXECUTE ON ALL FUNCTIONS")
     expect(sql).toContain("x.id=(initial #>> '{mileage,0,id}')::uuid")
     expect(sql).toContain(
       "x.reading=(initial #>> '{mileage,0,reading}')::integer"

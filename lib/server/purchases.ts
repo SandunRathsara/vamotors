@@ -2469,7 +2469,8 @@ export async function executeCycleMoney(
         : patch?.purchasePrice
           ? BigInt(patch.purchasePrice)
           : row.purchasePrice
-    if (purchaseType !== "LEASE_SETTLEMENT") bounded(purchasePrice, A)
+    if (purchaseType !== "LEASE_SETTLEMENT" && purchasePrice > A)
+      fail("MONEY_OVERFLOW", 422)
     if (
       patch?.purchasePrice &&
       purchaseType === "LEASE_SETTLEMENT" &&

@@ -74,3 +74,6 @@ GRANT UPDATE ("purchaseType", "supplierId") ON vamotors."PurchaseRecord" TO vamo
 GRANT SELECT (id, "purchaseRecordId", "institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
 GRANT INSERT (id, "purchaseRecordId", "institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
 GRANT UPDATE ("institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
+-- The accepted acquisition trigger remains invoker-security. Its three new
+-- read-only helpers need named EXECUTE, never a blanket function grant.
+GRANT EXECUTE ON FUNCTION vamotors.settlement_json(uuid), vamotors.purchase_outstanding_json(uuid), vamotors.purchase_payee(jsonb,text) TO vamotors_runtime;

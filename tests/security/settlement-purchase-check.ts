@@ -619,6 +619,67 @@ try {
     }
   )
   await group(
+    "derived A+A cannot silently become an A-bounded cash/brand-new price; valid same-key intent recovers",
+    async () => {
+      const row = await clear(
+        await create("channel-A-bound", {
+          ...bank,
+          amount: "99999999999999",
+          cashToSeller: "99999999999999",
+        })
+      )
+      const originalBasis = row.basisVersions[0]
+      let lastBody!: ReturnType<typeof envelope>
+      for (const purchaseType of ["CASH", "BRAND_NEW"]) {
+        const before = await snapshot()
+        const body = envelope(
+          {
+            cycleId: row.id,
+            reason: "Keep A caps on channel conversion",
+            patch: { purchaseType, settlement: null },
+            cashCorrections: [],
+          },
+          refs(row, true)
+        )
+        const response = await a.request.post("/api/v1/commands/editPurchase", {
+          headers: { Origin: origin },
+          data: body,
+        })
+        const after = await snapshot(),
+          result = await response.json()
+        evidence.channelCap = {
+          status: response.status(),
+          result,
+          zeroEffects: after === before,
+        }
+        await seal("RUNNING")
+        assert.equal(after, before)
+        assert.equal(response.status(), 422)
+        assert.equal(result.error.code, "MONEY_OVERFLOW")
+        lastBody = body
+      }
+      const valid = {
+        ...lastBody,
+        input: {
+          cycleId: row.id,
+          reason: "Explicit valid A-bounded channel price",
+          patch: {
+            purchaseType: "CASH",
+            settlement: null,
+            purchasePrice: "99999999999999",
+          },
+          cashCorrections: [],
+        },
+      }
+      await command(a.request, "editPurchase", valid)
+      const corrected = await current(row.id)
+      assert.equal(corrected.purchaseType, "CASH")
+      assert.equal(corrected.purchasePrice, "99999999999999")
+      assert.deepEqual(corrected.basisVersions[0], originalBasis)
+      assert.deepEqual(corrected.payments, row.payments)
+    }
+  )
+  await group(
     "strict XOR, canonical bounds/dates/hidden fields and actual expected refs have zero effects",
     async () => {
       const today = new Intl.DateTimeFormat("en-CA", {

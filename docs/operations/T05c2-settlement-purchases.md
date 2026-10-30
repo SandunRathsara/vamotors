@@ -125,6 +125,16 @@ groups passed using the 1d7e3f2 app (receipt `20261030T175209110239Z`), includin
 accepted lease cycle edits, real UI response loss, security/faults and restart.
 These are development evidence, not substitutes for final-source fresh/upgraded runs.
 
+At ed6f2ae, genuine nonempty upgrade and repeat retention passed, including exact
+old function bodies/extensions, invoker security/search paths and file bytes.
+The subsequent workflows caught a missing named EXECUTE grant on the new helper
+functions; all old function privileges remain unchanged. Only the three new
+read-only settlement helpers are now granted EXECUTE. Both failed ed6 roots stay
+retained; they are not final proof. A separate real HTTP probe also reproduced
+500/zero-effects when an inherited A+A total was switched to cash without a new
+A-bounded price. That final-state bound now explicitly raises MONEY_OVERFLOW422;
+the full campaign covers CASH/BRAND_NEW denial and valid same-key recovery.
+
 Run only in this worker's owned, isolated source/root:
 
 ```sh
