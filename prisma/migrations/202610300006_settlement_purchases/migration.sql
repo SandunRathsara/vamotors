@@ -16,6 +16,10 @@ CREATE TABLE vamotors."LeasePurchaseDetail" (
 );
 ALTER TABLE vamotors."PurchasePayment" DROP CONSTRAINT "PurchasePayment_category_check",
  ADD CONSTRAINT "PurchasePayment_category_check" CHECK(category IN ('SELLER','SETTLEMENT'));
+-- The original capability ceiling explicitly excluded settlement until this
+-- typed detail/initial-payment graph existed. Preserve its other boundaries.
+ALTER TABLE vamotors."PurchaseRecord" DROP CONSTRAINT initial_cycle_capability,
+ ADD CONSTRAINT initial_cycle_capability CHECK(status IN ('PURCHASED','IN_STOCK') AND "closedAt" IS NULL AND "purchaseType" IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') AND "acquisitionKind"='SUPPLIER');
 -- Only derived current purchase/basis storage widens to C. Entered components
 -- and cash/brand-new prices stay A-bounded in the graph checks below.
 ALTER TABLE vamotors."PurchaseRecord" DROP CONSTRAINT "PurchaseRecord_purchasePrice_check",

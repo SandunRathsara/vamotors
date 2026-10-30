@@ -154,6 +154,10 @@ describe("T05c.2 exact settlement contract", () => {
     const frozen = JSON.parse(
       sql.match(/universe jsonb :=\s*\n'(.+)'::jsonb;/)![1]
     ) as Record<string, Record<string, string[]>>
+    expect(sql).toContain("DROP CONSTRAINT initial_cycle_capability")
+    expect(sql).toContain(
+      `CHECK(status IN ('PURCHASED','IN_STOCK') AND "closedAt" IS NULL AND "purchaseType" IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') AND "acquisitionKind"='SUPPLIER')`
+    )
     expect(Object.keys(frozen)).toHaveLength(16)
     expect(Object.values(frozen).flatMap(Object.keys)).toHaveLength(50)
     for (const [subject, actions] of Object.entries(frozen))
