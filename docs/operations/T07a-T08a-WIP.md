@@ -1,6 +1,60 @@
-# T07a/T08a — accepted236 reconciliation / incomplete final proof (2026-10-31)
+# T07a/T08a — author-frozen accepted236 candidate (parent acceptance pending)
 
-## Current author functional-complete boundary — final sealing pending
+## Final author handback / shared ownership release
+
+**FROZEN SHARED RELEASE ACK**
+
+The bounded WRITE_OFF author candidate is frozen. I release sole shared-source,
+schema/migration, registry, dispatcher and proof ownership back to the parent.
+No further source edits or runtime campaigns will resume without parent direction.
+This acknowledgement is **not parent acceptance**, gate sign-off, deployment or
+whole-ID coverage promotion. No push, PR, protected/default/primary-ref change,
+delegation, reset or adoption of another owner's data occurred.
+
+- Accepted runtime base remains exactly
+  `2360cbb92658d8b0c4cd0a38e3de14ef38efdeaa`, tree
+  `6ef8f20725c2009f7d977356893fe58b1bddb512`. Preserved712/cdedd2f/checkpoint
+  ancestry is verified. Runtime bytes remain exact
+  `b4c1aac33a763a7933d01c0c9dbb62c4041a385e`; subsequent changes are tests/docs.
+- Frozen quality head is `84804e84ddd9508e5e63952d6622f8bb66bf0ae8`, tree
+  `90a8589ab4d4d2ac3ca0855fede1a5fc9b538651`. Prisma format/generate, production
+  build, types,19 unit files/156 tests,20 contracts,5 SW checks, full-repository
+  ESLint, owned lint/format and committed diff check all exited0 at that clean
+  head. Full-repository ESLint retains pre-existing warnings; it is not
+  warning-free. This final handback commit changes only this journal.
+- Both final post-effect app+PG restarts exited0 at that frozen head, after all
+  effects: every native-text business-row hash, final/staged byte and mode,
+  NEW-auth terminal variants, notification/commandStatus and final downloads
+  survived. Fresh17/v13 and genuine NONEMPTY exact23616/v12→17/v13 forward setup,
+  actual setup repeat and two complete native retention/restart verifications
+  passed. The old555-overlay draft is development history only, never final proof.
+- Final live catalog inventory independently verified17 successful current-file
+  migrations on BOTH roots, exact bodies of all13 new functions with no runtime
+  EXECUTE, cross-root function/column ACL identity and non-superuser roles.
+  All16 accepted SQL files and old v12 registry populations remain byte-identical;
+  registry13 adds only ApprovalRequest/Disposal. Policy deadline remains exactly
+  `2026-10-31T18:47:22.474Z`, without extension;2GiB reserve remains.
+- Identity-checked closeout exited0. Only owned `final-fresh236` and `parent236`
+  PostgreSQL clusters were stopped; their data, files, modes and receipts remain.
+  The old draft is stopped/retained, every finite job is terminal and no owned
+  app/browser remains running. Primary d0/8000 and other owners' services were
+  not changed. Closeout is
+  `final-owned-closeout-20261030T215932613124Z.json`; its command receipt is
+  `20261030T215931724511Z-accepted236-final-owned-service-closeout.json`.
+- Evidence root is
+  `/Users/alpha/.config/vamotors/t07a-t08a-author-20261031-BdcvME`.
+  Final immutable package is allocated at `accepted236-final-seal-20261031/`
+  beneath it. After this documentation-only commit, final source inventory and
+  the package bind the resulting FULL SHA/tree, quality equivalence, each actual
+  command's source/cwd/argv/exit, retained failures, native roots and complete
+  file/mode/SHA-256 inventory. Package creation/verification receipts and checksum
+  hashes remain external to this self-referential source journal. Earlier seals
+  and all failed attempts are preserved, not replaced or relabelled.
+- Parent coverage remains27 LOCAL/107 U/134; VPRC-02 LOCAL AT236, VSTS-03 U,
+  G2 pinned d0/8000 untouched, G3–G6 pending. Shared ledger/matrix is unchanged.
+  The parent alone decides acceptance and any next work.
+
+## Functional-complete checkpoint (historical; superseded by handback above)
 
 All required bounded WRITE_OFF runtime groups and touched-seam regressions are now
 executed successfully, with retained failure history and exact per-command source
