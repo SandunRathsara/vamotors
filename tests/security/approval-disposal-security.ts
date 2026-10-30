@@ -25,6 +25,7 @@ const f = await fixture(root),
 const tables = [
   "Vehicle",
   "PurchaseRecord",
+  "LeasePurchaseDetail",
   "MileageReading",
   "PurchasePayment",
   "VehicleCost",
@@ -251,6 +252,7 @@ try {
             description: "Consumed actual cost",
             amount: "500",
             incurredDate: "2026-10-03",
+            payment: { amount: "200", date: "2026-10-03", method: "CASH" },
           },
           [ref(row)]
         ),
@@ -284,10 +286,16 @@ try {
             "basisVersions.id",
             "basisVersions.total",
             "costs.amount",
+            "costs.payments.amount",
+            "costs.payments.direction",
           ],
         ],
         ["Vehicle", "read", ["id", "identityRevision"]],
-        ["VehicleCost", "read", ["amount"]],
+        [
+          "VehicleCost",
+          "read",
+          ["amount", "payments.amount", "payments.direction"],
+        ],
         ["PurchaseRecord", "update", ["cycleId"]],
         [
           "Disposal",
@@ -356,6 +364,94 @@ try {
         ).approvalId,
         p.p.approvalId
       )
+    }
+  )
+  await group(
+    "P3 typed lease consumed leaves and linked company authority for requester and reviewer",
+    async () => {
+      const settings = await f.query<{ id: string; revision: number }>(
+        admin,
+        "settings"
+      )
+      const finance = await f.command(
+        admin,
+        "createFinanceCompany",
+        envelope(
+          {
+            name: `Lease authority ${suffix}`,
+            contacts: [],
+            policy: {
+              path: "APPLICATION",
+              commission: { basis: "FINANCED_PRINCIPAL", rateBps: 100 },
+              processingFee: "250000",
+              reconciliationMethod: "PERIOD_NOTICE",
+            },
+          },
+          [ref(settings, "Settings")]
+        ),
+        201
+      )
+      for (const institutionType of [
+        "FINANCE_COMPANY",
+        "BANK",
+        "PRIVATE_PARTY",
+      ]) {
+        const result = await f.command(
+          admin,
+          "recordPurchase",
+          envelope(
+            {
+              ...purchaseInput(supplier.result.id, suffix, institutionType),
+              purchaseType: "LEASE_SETTLEMENT",
+              purchasePrice: undefined,
+              settlement: {
+                institutionType,
+                ...(institutionType === "FINANCE_COMPANY"
+                  ? { companyId: finance.result.id }
+                  : { institutionName: `Actual ${institutionType}` }),
+                reference: "PRIVATE_LEASE_TERMS",
+                amount: "6000",
+                cashToSeller: "4000",
+              },
+            },
+            [
+              ref(supplier.result, "Supplier"),
+              ...(institutionType === "FINANCE_COMPANY"
+                ? [ref(finance.result, "FinanceCompany")]
+                : []),
+            ]
+          ),
+          201
+        )
+        const row = await current(result.result.id)
+        const p = await pending(row)
+        const leaves: [Grant["subject"], string][] = Object.keys(
+          row.settlement!
+        ).map((key) => ["PurchaseRecord", `settlement.${key}`])
+        if (institutionType === "FINANCE_COMPANY")
+          leaves.push(["FinanceCompany", "id"], ["FinanceCompany", "name"])
+        for (const [subject, field] of leaves) {
+          await assign(without(authority, subject, "read", field))
+          await denied(
+            staff,
+            "requestApproval",
+            propose(row),
+            403,
+            "FIELD_FORBIDDEN"
+          )
+          await denied(
+            staff,
+            "reviewApproval",
+            p.review,
+            403,
+            "FIELD_FORBIDDEN"
+          )
+        }
+        await assign(authority)
+        const requester = await pending(row, staff)
+        await f.command(second, "reviewApproval", requester.review)
+        assert.deepEqual((await current(row.id)).settlement, row.settlement)
+      }
     }
   )
   await group(

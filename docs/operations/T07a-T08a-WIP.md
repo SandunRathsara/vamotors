@@ -86,6 +86,41 @@ object, not newer records. Sole shared-source ownership remains active here.
   private-policy review deadline, with no extension. Parent DB/final fresh DB and
   final installation/proof remain pending at this checkpoint.
 
+### NEW roots and first reconciled execution (not full final proof)
+
+- Runtime source checkpoint `b4c1aac33a763a7933d01c0c9dbb62c4041a385e`, tree
+  `8c72633abdae9fc03e92c5ef8c78336327e51f73`, installed successfully into NEW
+  `final-fresh236` (17/v13). Separate exact236 PROJECT installed NEW `parent236`
+  (16/v12). Both are under the owned private evidence root; old draft stays stopped.
+  Before app/file writes, both policies were bounded to the original review
+  deadline and2GiB minimum free reserve, with loopback non8000 app configuration.
+- Two initial build launcher failures per source are retained: Node `--env-file`
+  was forwarded into forbidden worker options, then a private `.ts` launcher
+  outside the ESM package failed before build. The native `.mjs` launcher loads
+  private env server-side without forwarding execArgv; BOTH actual production
+  builds then exited0. No product assertion/error was suppressed or patched.
+- NEW fresh production HTTP campaign exited0 at cleanb4c1aac, including lawful
+  CASH/BRAND_NEW and all three lease variants with actual reversal/replacement,
+  remaining credit, exact snapshot/dependency/terminal history, request/review
+  replay, strict inputs, seven stale mutations and recipient notifications. This
+  is the enumerated campaign, not all original P1–P8/security/SQL/money/UI proof.
+- Exact236 parent starter prepare exited0 with genuine HTTP/PG source provenance,
+  retained Settings/rates/quote/current physical+mileage+cost/cash correction facts,
+  compound grants and FINAL CSV/XLSX. Its first snapshot is only a STARTER: the new
+  write-off upgrade runner must add all channels/current A→B terms, meaningful
+  gross witness, useful actual nonadmin/delegation and staged native bytes, then
+  take its own complete immutable pre-upgrade snapshot. No forward upgrade yet.
+- Minimal actual-detail keyboard probe reproduced the native Space/ArrowDown
+  failure without Enter: focus remained on the hydrated select, value APPROVE,
+  no input/change events, request PENDING and exact owner snapshot unchanged.
+  Separate native `r` type-ahead probe exited0 with REJECT and no owner delta.
+  The regression now uses that real keyboard selection, verifies focus/value,
+  Tabs into the note and verifies no domain effects BEFORE explicit submission.
+  Its full request/reject/reload/bounds regression still needs execution.
+- New immutable exact236 upgrade runner and new typed-lease per-leaf requester/
+  reviewer security assertions are authored, not passed by this journal entry.
+  No final proof seal, acceptance or ownership release is claimed.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,

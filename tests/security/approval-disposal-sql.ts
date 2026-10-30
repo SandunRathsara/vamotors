@@ -11,6 +11,7 @@ const f = await fixture(root),
   results: unknown[] = []
 const tables = [
   "PurchaseRecord",
+  "LeasePurchaseDetail",
   "Vehicle",
   "StatusEvent",
   "ApprovalRequest",

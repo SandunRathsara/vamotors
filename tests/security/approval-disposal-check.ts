@@ -22,6 +22,7 @@ const f = await fixture(root),
 const domainTables = [
   "Vehicle",
   "PurchaseRecord",
+  "LeasePurchaseDetail",
   "MileageReading",
   "PurchasePayment",
   "VehicleCost",

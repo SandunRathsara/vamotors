@@ -23,6 +23,7 @@ const f = await fixture(root),
 const tables = [
   "Vehicle",
   "PurchaseRecord",
+  "LeasePurchaseDetail",
   "PurchasePayment",
   "CostPayment",
   "CycleBasisVersion",
@@ -523,13 +524,16 @@ try {
         await mobile.goto(`/approvals/${p.approvalId}`)
         const decision = mobile.getByLabel("Decision", { exact: true })
         await decision.focus()
-        await mobile.keyboard.press("Space")
-        await mobile.keyboard.press("ArrowDown")
-        await mobile.keyboard.press("Enter")
+        await expect(decision).toBeFocused()
+        // macOS headless native popup keys did not emit input/change; closed
+        // select type-ahead does. Never press Enter on an unverified APPROVE.
+        await mobile.keyboard.press("r")
         await expect(decision).toHaveValue("REJECT")
-        await mobile
-          .getByLabel("Review note (required for rejection)")
-          .fill(`PRIVATE_UI_REJECT_NOTE_${suffix}`)
+        await mobile.keyboard.press("Tab")
+        const note = mobile.getByLabel("Review note (required for rejection)")
+        await expect(note).toBeFocused()
+        await note.pressSequentially(`PRIVATE_UI_REJECT_NOTE_${suffix}`)
+        assert.equal(await f.snapshot(domain), before)
         const reviewed = mobile.waitForResponse(
           (r) => new URL(r.url()).pathname === "/api/v1/commands/reviewApproval"
         )
