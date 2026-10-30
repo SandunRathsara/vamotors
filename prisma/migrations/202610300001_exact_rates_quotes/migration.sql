@@ -104,15 +104,15 @@ CREATE FUNCTION vamotors.rate_migration_canonical(j jsonb) RETURNS text LANGUAGE
 $$;
 ALTER TABLE vamotors."RolePermission" DISABLE TRIGGER protected_permissions;
 ALTER TABLE vamotors."Role" DISABLE TRIGGER protected_role;
-DO $$ DECLARE aid uuid; pid uuid; rule jsonb; kind text; action text;
+DO $$ DECLARE aid uuid; pid uuid; new_rule jsonb; kind text; action text;
 BEGIN
  SELECT id INTO aid FROM vamotors."Role" WHERE "systemKey"='ADMINISTRATOR';
  IF aid IS NOT NULL THEN
   FOREACH kind IN ARRAY ARRAY['RateSheet','Quote'] LOOP
    FOREACH action IN ARRAY ARRAY['read','create'] LOOP
-    rule:=jsonb_build_object('subject',kind,'action',action,'fields',jsonb_build_array('*'));
-    INSERT INTO vamotors."Permission"(id,"ruleHash",rule) VALUES(gen_random_uuid(),encode(sha256(convert_to(vamotors.rate_migration_canonical(rule),'UTF8')),'hex'),rule) ON CONFLICT("ruleHash") DO NOTHING;
-    SELECT p.id INTO pid FROM vamotors."Permission" p WHERE p."ruleHash"=encode(sha256(convert_to(vamotors.rate_migration_canonical(rule),'UTF8')),'hex');
+    new_rule:=jsonb_build_object('subject',kind,'action',action,'fields',jsonb_build_array('*'));
+    INSERT INTO vamotors."Permission"(id,"ruleHash",rule) VALUES(gen_random_uuid(),encode(sha256(convert_to(vamotors.rate_migration_canonical(new_rule),'UTF8')),'hex'),new_rule) ON CONFLICT("ruleHash") DO NOTHING;
+    SELECT p.id INTO pid FROM vamotors."Permission" p WHERE p."ruleHash"=encode(sha256(convert_to(vamotors.rate_migration_canonical(new_rule),'UTF8')),'hex');
     INSERT INTO vamotors."RolePermission" VALUES(aid,pid) ON CONFLICT DO NOTHING;
    END LOOP;
   END LOOP;
