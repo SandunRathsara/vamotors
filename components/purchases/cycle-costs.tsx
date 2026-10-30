@@ -202,7 +202,7 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
             id: snapshot.vehicleId,
             revision: snapshot.identityRevision,
           })
-          if (draft.supplierId !== snapshot.seller?.id) {
+          if (draft.supplierId && draft.supplierId !== snapshot.seller?.id) {
             if (
               !supplier?.id ||
               supplier.id !== draft.supplierId ||
@@ -254,7 +254,7 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
               ...(draft.purchaseType !== snapshot.purchaseType
                 ? { purchaseType: draft.purchaseType }
                 : {}),
-              ...(draft.supplierId !== snapshot.seller?.id
+              ...(draft.supplierId && draft.supplierId !== snapshot.seller?.id
                 ? { seller: { type: "SUPPLIER", id: draft.supplierId } }
                 : {}),
               ...(settlementChanged
@@ -570,7 +570,6 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
                 </Label>
                 <select
                   id="cycle-money-supplier"
-                  required
                   value={draft.supplierId ?? ""}
                   onChange={(e) => {
                     change("supplierId", e.target.value)
@@ -582,6 +581,10 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
                   }}
                   className="min-h-11 w-full rounded-md border bg-background px-3"
                 >
+                  <option value="">
+                    Keep current supplier
+                    {snapshot.seller?.id ? "" : " (identity unavailable)"}
+                  </option>
                   {snapshot.seller?.id &&
                     !suppliers.data?.data.data.some(
                       (p) => p.id === snapshot.seller?.id

@@ -1003,11 +1003,13 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
                       "actor",
                       "target",
                       "provenance",
+                      "patch.settlement",
                     ].includes(path)
                   ? "OBJECT"
                   : path === "listedPrice" ||
                       path === "purchasePrice" ||
-                      path.startsWith("financial.")
+                      path.startsWith("financial.") ||
+                      /^(patch\.)?settlement\.(amount|cashToSeller)$/.test(path)
                     ? "MONEY"
                     : [
                           "createdAt",

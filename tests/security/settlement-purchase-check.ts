@@ -519,7 +519,9 @@ try {
         [
           "finance",
           {
-            ...bank,
+            reference: bank.reference,
+            amount: bank.amount,
+            cashToSeller: bank.cashToSeller,
             institutionType: "FINANCE_COMPANY",
             companyId: company.id,
           },
@@ -563,10 +565,99 @@ try {
     }
   )
   await group(
+    "real incurred basis reaches exact C, then rejects C+1 without effects",
+    async () => {
+      let row = await create("aggregate-C", {
+        ...bank,
+        amount: "99999999999999",
+        cashToSeller: "0",
+      })
+      for (let index = 0; index < 100; index++) {
+        await command(
+          a.request,
+          "addCost",
+          envelope(
+            {
+              cycleId: row.id,
+              category: "Synthetic bound proof",
+              description: `Exact incurred component ${index}`,
+              amount: index === 99 ? "99" : "99999999999999",
+              incurredDate: "2026-10-02",
+            },
+            refs(row)
+          ),
+          201
+        )
+        row = await current(row.id)
+      }
+      assert.equal(row.financial?.basis, "9999999999999999")
+      assert.equal(row.financial?.cashOut, "99999999999999")
+      const before = await snapshot()
+      await command(
+        a.request,
+        "addCost",
+        envelope(
+          {
+            cycleId: row.id,
+            category: "Synthetic bound proof",
+            description: "Would overflow incurred C",
+            amount: "1",
+            incurredDate: "2026-10-02",
+          },
+          refs(row)
+        ),
+        422
+      )
+      assert.equal(await snapshot(), before)
+    }
+  )
+  await group(
     "strict XOR, canonical bounds/dates/hidden fields and actual expected refs have zero effects",
     async () => {
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Colombo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date())
+      const [year, month, day] = today.split("-").map(Number)
+      const tomorrow = new Date(Date.UTC(year, month - 1, day + 1))
+        .toISOString()
+        .slice(0, 10)
+      const dated = await command(
+        a.request,
+        "recordPurchase",
+        envelope(
+          {
+            ...input("colombo-today", {
+              ...bank,
+              amount: "1",
+              cashToSeller: "0",
+            }),
+            purchaseDate: today,
+            mileage: { reading: 0, date: today },
+          },
+          [ref(supplier, "Supplier")]
+        ),
+        201
+      )
+      cycles.push(dated.result.id)
+      assert.equal((await current(dated.result.id)).payments[0].date, today)
       const before = await snapshot(),
         original = input("negative")
+      await command(
+        a.request,
+        "recordPurchase",
+        envelope(
+          {
+            ...input("colombo-tomorrow"),
+            purchaseDate: tomorrow,
+            mileage: { reading: 0, date: tomorrow },
+          },
+          [ref(supplier, "Supplier")]
+        ),
+        422
+      )
       for (const patch of [
         { purchasePrice: "10000" },
         { payment: payment("1") },
@@ -892,6 +983,30 @@ try {
           row.payments.find((p) => p.id === original.id),
           original
         )
+      }
+      for (const settlement of [
+        { ...bank, institutionType: "PRIVATE_PARTY" } as Settlement,
+        {
+          institutionType: "FINANCE_COMPANY",
+          companyId: company.id,
+          reference: "Historic typed institution",
+          amount: "6000",
+          cashToSeller: "4000",
+        } as Settlement,
+        bank,
+      ]) {
+        row = await edit(
+          row,
+          { settlement },
+          settlement.institutionType === "FINANCE_COMPANY"
+            ? [ref(company, "FinanceCompany")]
+            : []
+        )
+        assert.equal(
+          row.settlement!.institutionType,
+          settlement.institutionType
+        )
+        assert.equal(row.basisVersions.length, 1)
       }
       const before = await snapshot()
       for (const patch of [
@@ -1310,6 +1425,111 @@ try {
     }
   )
   await group(
+    "detail UPDATE and every essential correction write roll back together with exact-key recovery",
+    async () => {
+      let row = await create("edit-faults")
+      for (const [table, timing, predicate] of [
+        ["LeasePurchaseDetail", "BEFORE UPDATE", "true"],
+        ["PurchaseRecord", "BEFORE UPDATE", "true"],
+        ["PurchasePayment", "BEFORE INSERT", "true"],
+        ["CycleBasisVersion", "BEFORE INSERT", "true"],
+        ["CommandReceipt", "BEFORE INSERT", "true"],
+        ["BusinessSequence", "BEFORE UPDATE", "true"],
+        ["AuditEntry", "BEFORE INSERT", "NEW.\"entityType\"='PurchaseRecord'"],
+        ["AuditEntry", "BEFORE INSERT", "NEW.\"entityType\"='Vehicle'"],
+        [
+          "EntityReadVersion",
+          "BEFORE INSERT",
+          "NEW.\"entityType\"='PurchaseRecord'",
+        ],
+        ["EntityReadVersion", "BEFORE INSERT", "NEW.\"entityType\"='Vehicle'"],
+        ["PurchaseRecord", "AFTER UPDATE", "true"],
+      ]) {
+        const original = row.payments.find(
+          (p) =>
+            p.category === "SETTLEMENT" &&
+            !p.reversalOf &&
+            !row.payments.some((r) => r.reversalOf === p.id)
+        )!
+        const body = envelope(
+            {
+              cycleId: row.id,
+              reason: "Atomic current settlement correction",
+              patch: {
+                settlement: {
+                  ...bank,
+                  amount: (BigInt(row.settlement!.amount) + 100n).toString(),
+                },
+              },
+              cashCorrections: [
+                {
+                  paymentId: original.id,
+                  reason: "Exact original accounting correction",
+                  replacement: payment(
+                    (BigInt(original.amount) - 1n).toString()
+                  ),
+                },
+              ],
+            },
+            refs(row, true)
+          ),
+          before = await snapshot()
+        try {
+          await db.query(
+            `CREATE FUNCTION vamotors.settlement_test_fault() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF ${predicate} THEN RAISE EXCEPTION 'SYNTHETIC_SETTLEMENT_EDIT_FAULT'; END IF; RETURN NEW; END $$`
+          )
+          await db.query(
+            timing === "AFTER UPDATE"
+              ? `CREATE CONSTRAINT TRIGGER settlement_test_fault AFTER UPDATE ON vamotors."${table}" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vamotors.settlement_test_fault()`
+              : `CREATE TRIGGER settlement_test_fault ${timing} ON vamotors."${table}" FOR EACH ROW EXECUTE FUNCTION vamotors.settlement_test_fault()`
+          )
+          await command(a.request, "editPurchase", body, 500)
+          assert.equal(await snapshot(), before)
+        } finally {
+          await db.query(
+            `DROP TRIGGER IF EXISTS settlement_test_fault ON vamotors."${table}"`
+          )
+          await db.query(
+            "DROP FUNCTION IF EXISTS vamotors.settlement_test_fault()"
+          )
+        }
+        await command(a.request, "editPurchase", body)
+        row = await current(row.id)
+      }
+    }
+  )
+  await group(
+    "seller reference reauthorization cannot disappear when replay sees the corrected current FK",
+    async () => {
+      let row = await clear(await create("seller-replay"))
+      await assign([
+        ...reads,
+        { subject: "PurchaseRecord", action: "update", fields: ["*"] },
+      ])
+      const body = envelope(
+        {
+          cycleId: row.id,
+          reason: "Actual supplier correction",
+          patch: { seller: { type: "SUPPLIER", id: secondSupplier.id } },
+          cashCorrections: [],
+        },
+        [...refs(row, true), ref(secondSupplier, "Supplier")]
+      )
+      await command(staff.request, "editPurchase", body)
+      row = await current(row.id)
+      assert.equal(row.seller.id, secondSupplier.id)
+      await assign([
+        ...reads.filter((g) => g.subject !== "Supplier"),
+        { subject: "Supplier", action: "read", fields: ["id"] },
+        { subject: "PurchaseRecord", action: "update", fields: ["*"] },
+      ])
+      const before = await snapshot()
+      await command(staff.request, "editPurchase", body, 403)
+      assert.equal(await snapshot(), before)
+      await restore()
+    }
+  )
+  await group(
     "observed sequence-lock revocation denies both pending pay and committed replay",
     async () => {
       let row = await clear(await create("revocation"))
@@ -1394,6 +1614,13 @@ try {
     "real settlement acquisition UI, active-SW committed response loss and byte-identical retry",
     async () => {
       await mobile.goto("/purchases")
+      await mobile.waitForFunction(
+        () => navigator.serviceWorker.controller?.state === "activated"
+      )
+      evidence.mobileServiceWorker = await mobile.evaluate(() => ({
+        controller: navigator.serviceWorker.controller?.scriptURL,
+        state: navigator.serviceWorker.controller?.state,
+      }))
       await mobile
         .getByRole("button", { name: "New paid acquisition", exact: true })
         .click()

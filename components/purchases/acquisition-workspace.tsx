@@ -1123,6 +1123,16 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           Supplier history
         </Link>
       )}
+      {cycle.settlement?.institutionType === "FINANCE_COMPANY" &&
+        cycle.settlement.companyId && (
+          <Link
+            prefetch={false}
+            className="inline-flex min-h-11 items-center underline"
+            href={`/third-parties/${cycle.settlement.companyId}?type=FINANCE_COMPANY`}
+          >
+            Settlement company history
+          </Link>
+        )}
       {cycle.vehicleId && (
         <Link
           prefetch={false}
@@ -1149,6 +1159,12 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
               Owner {p.owner?.type} {p.owner?.id}
               <br />
               Command {p.commandId}
+              {p.reference && (
+                <>
+                  <br />
+                  Reference: {p.reference}
+                </>
+              )}
               {p.reversalOf && (
                 <>
                   <br />

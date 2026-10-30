@@ -10,6 +10,7 @@ import {
   attenuation,
   expanded,
   registry,
+  permissionRegistryDTO,
 } from "../../lib/server/permissions"
 import { A, C, sum } from "../../lib/money"
 
@@ -197,5 +198,16 @@ describe("T05c.2 exact settlement contract", () => {
       id
     )
     expect(ability.can("update", "ImportBatch", "uploads")).toBe(true)
+    const dto = permissionRegistryDTO()
+    expect(
+      dto.subjects.some((s) => String(s.subject) === "LeasePurchaseDetail")
+    ).toBe(false)
+    for (const action of dto.subjects.find(
+      (s) => s.subject === "PurchaseRecord"
+    )!.actions)
+      for (const field of action.fields.filter((f) =>
+        /^(patch\.)?settlement\.(amount|cashToSeller)$/.test(f.path)
+      ))
+        expect(field.dataType).toBe("MONEY")
   })
 })

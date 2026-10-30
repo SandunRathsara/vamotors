@@ -2276,8 +2276,15 @@ export async function executeCycleMoney(
       (patch.seller.type !== (row.supplier ? "SUPPLIER" : "CUSTOMER") ||
         patch.seller.id !== (row.supplierId ?? row.sellerCustomerId))
     let proposedSupplier = row.supplier
-    if (changedSeller) {
+    // On replay the proposed seller may now be the current seller. Its current
+    // reference authority still matters; never infer the historical delta from
+    // today's FK and accidentally skip the originally selected party.
+    if (changedSeller || (prior && patch?.seller)) {
       const selected = patch!.seller!
+      if (selected.type === "SUPPLIER")
+        await tx.$queryRaw`SELECT id FROM vamotors."Supplier" WHERE id=${selected.id}::uuid FOR UPDATE`
+      else
+        await tx.$queryRaw`SELECT id FROM vamotors."Customer" WHERE id=${selected.id}::uuid FOR UPDATE`
       const target =
         selected.type === "SUPPLIER"
           ? await tx.supplier.findUnique({ where: { id: selected.id } })

@@ -71,5 +71,6 @@ GRANT UPDATE ("engineNumber", "chassisNumber", "normalizedEngine", "normalizedCh
 GRANT UPDATE ("listedPrice") ON vamotors."PurchaseRecord" TO vamotors_runtime;
 -- T05c.2: current supplier/channel/settlement terms, never source-kind/owner/history.
 GRANT UPDATE ("purchaseType", "supplierId") ON vamotors."PurchaseRecord" TO vamotors_runtime;
-GRANT SELECT, INSERT ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
+GRANT SELECT (id, "purchaseRecordId", "institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
+GRANT INSERT (id, "purchaseRecordId", "institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
 GRANT UPDATE ("institutionType", "companyId", "institutionNameSnapshot", reference, amount, "cashToSeller") ON vamotors."LeasePurchaseDetail" TO vamotors_runtime;
