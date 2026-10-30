@@ -12,12 +12,26 @@ import { privateEnvironment } from "../../scripts/private-environment"
 import { fixture } from "./cycle-edits-fixture"
 
 const root = process.argv[2],
-  run = randomUUID()
+  run = randomUUID(),
+  channel = process.argv[3] ?? "LEASE"
+assert.ok(["LEASE", "CASH"].includes(channel))
 const { PROJECT } = await privateEnvironment(join(root, "cluster.env"))
 const f = await fixture(root, PROJECT)
 const retained = JSON.parse(
   await readFile(join(root, "approval-disposal-parent236-before.json"), "utf8")
 )
+const starter =
+  channel === "CASH"
+    ? JSON.parse(
+        await readFile(
+          join(
+            root,
+            "settlement-upgrade-2360cbb92658d8b0c4cd0a38e3de14ef38efdeaa.json"
+          ),
+          "utf8"
+        )
+      )
+    : null
 const browser = await chromium.launch({ headless: true }),
   groups: unknown[] = []
 async function key(page: Page, target: Locator) {
@@ -52,14 +66,19 @@ try {
       const page = await a.newPage(),
         mobile = await b.newPage()
       let index = 0
-      for (const id of retained.retained.cycles as string[]) {
+      for (const id of (channel === "CASH"
+        ? [starter.fixture.purchaseId]
+        : retained.retained.cycles) as string[]) {
         const row = await f.query<PurchaseCycleDTO>(
           admin,
           "purchase",
           `?cycleId=${id}`
         )
-        if (row.purchaseType !== "LEASE_SETTLEMENT") continue
-        assert.ok(row.settlement)
+        if (channel === "LEASE" && row.purchaseType !== "LEASE_SETTLEMENT")
+          continue
+        if (channel === "LEASE") assert.ok(row.settlement)
+        else assert.equal(row.purchaseType, "CASH")
+        const label = row.settlement?.institutionType ?? row.purchaseType
         assert.equal(row.closedAt, null)
         const detailBefore = await f.snapshot([
           "LeasePurchaseDetail",
@@ -68,7 +87,8 @@ try {
           "CycleBasisVersion",
           "MileageReading",
         ])
-        const proceeds = ["0", "2000", "12000"][index++]
+        const proceeds =
+          channel === "CASH" ? "2000" : ["0", "2000", "12000"][index++]
         await page.goto(`/purchases/${id}`)
         await page.waitForFunction(
           () => navigator.serviceWorker.controller?.state === "activated"
@@ -79,16 +99,12 @@ try {
         )
         await page
           .getByLabel("Disposal date", { exact: true })
-          .fill("2026-10-04")
-        await type(
-          page,
-          "Disposal reason",
-          `Actual ${row.settlement.institutionType} disposal ${run}`
-        )
+          .fill(channel === "CASH" ? "2026-10-10" : "2026-10-04")
+        await type(page, "Disposal reason", `Actual ${label} disposal ${run}`)
         await type(
           page,
           "Approval request reason",
-          `Separate ${row.settlement.institutionType} approval ${run}`
+          `Separate ${label} approval ${run}`
         )
         await type(
           page,
@@ -98,11 +114,11 @@ try {
         if (proceeds !== "0") {
           await page
             .getByLabel("Actual receipt date", { exact: true })
-            .fill("2026-10-05")
+            .fill(channel === "CASH" ? "2026-10-11" : "2026-10-05")
           await type(
             page,
             "Receipt reference (optional)",
-            `Actual ${row.settlement.institutionType} funds`
+            `Actual ${label} funds`
           )
         }
         const requested = page.waitForResponse(
@@ -152,7 +168,9 @@ try {
         const result = await reviewed
         assert.equal(result.status(), 200)
         const applied = await result.json()
-        await expect(mobile.getByText("APPROVED", { exact: true })).toBeVisible()
+        await expect(
+          mobile.getByText("APPROVED", { exact: true })
+        ).toBeVisible()
         await mobile.goto(`/purchases/${id}`)
         await expect(
           mobile.getByRole("heading", {
@@ -197,12 +215,12 @@ try {
         await mobile.screenshot({
           path: join(
             root,
-            `approval-disposal-lease-ui-${run}-${row.settlement.institutionType}-360.png`
+            `approval-disposal-lease-ui-${run}-${label}-360.png`
           ),
           fullPage: true,
         })
         groups.push({
-          institutionType: row.settlement.institutionType,
+          institutionType: label,
           cycleId: id,
           approvalId: pending.approvalId,
           requestCommandId: pending.commandId,
@@ -212,7 +230,7 @@ try {
           status: "PASS",
         })
       }
-      assert.equal(groups.length, 3)
+      assert.equal(groups.length, channel === "CASH" ? 1 : 3)
     } finally {
       await a.close()
       await b.close()
@@ -231,5 +249,5 @@ try {
   )
 }
 console.log(
-  "PASS actual FINANCE_COMPANY/BANK/PRIVATE_PARTY lease keyboard request/separate review, 1920/360 active SW, zero/loss/gain and retained lawful history"
+  `PASS actual ${channel === "CASH" ? "retained CASH" : "FINANCE_COMPANY/BANK/PRIVATE_PARTY lease"} keyboard request/separate review, 1920/360 active SW and retained lawful history`
 )

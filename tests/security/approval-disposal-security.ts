@@ -1010,7 +1010,7 @@ try {
     }
   )
   await group(
-    "P5 observed Vehicle and sequence waits order real edit-stock versus review winners",
+    "P5 observed source-row and sequence waits order real edit-stock versus review winners",
     async () => {
       const env = await privateEnvironment(join(root, "admin.env")),
         url = new URL(env.ADMIN_URL!)
@@ -1049,11 +1049,15 @@ try {
                 ]
             const blocker = await f.db.connect()
             const inflight: Promise<APIResponse>[] = []
+            // Accepted stock takes the Vehicle advisory lock, not its row lock.
+            // Block the real shared cycle row there; physical edits use Vehicle.
+            const lockTable =
+              name === "receiveStock" ? "PurchaseRecord" : "Vehicle"
             try {
               await blocker.query("BEGIN")
               const locked = await blocker.query(
-                'SELECT id FROM vamotors."Vehicle" WHERE id=$1 FOR UPDATE',
-                [row.vehicleId]
+                `SELECT id FROM vamotors."${lockTable}" WHERE id=$1 FOR UPDATE`,
+                [lockTable === "Vehicle" ? row.vehicleId : row.id]
               )
               assert.equal(locked.rowCount, 1)
               const send = (entry: (typeof requests)[number]) => {
@@ -1074,7 +1078,8 @@ try {
                     Number(
                       (
                         await monitor.query(
-                          "SELECT count(*) FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE '%Vehicle%'"
+                          "SELECT count(*) FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE $1",
+                          [`%${lockTable}%`]
                         )
                       ).rows[0].count
                     ),
@@ -1145,7 +1150,8 @@ try {
                 name,
                 reviewFirst,
                 cycleId: row.id,
-                vehicleWaitObserved: true,
+                lockTable,
+                sourceRowWaitObserved: true,
                 sequenceWaitObserved: true,
                 pass: true,
               })

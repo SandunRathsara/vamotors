@@ -270,6 +270,21 @@ object, not newer records. Sole shared-source ownership remains active here.
   The original observed-wait/winner/loser/source/no-receipt assertions are unchanged.
   Test diagnostic only; no product guard or auth/lock plan has been altered.
 
+- Bounded3e31465 diagnostics establish that BOTH listed-price winner orders
+  actually passed; the failing case is receiveStock-first, not listed-price-first.
+  Its accepted path uses a Vehicle advisory lock then a PurchaseRecord row lock,
+  so a Vehicle-row-only test blocker cannot stall it. Actual stock HTTP200 and
+  pending source remain retained. The barrier now follows that real row lock
+  (physical-edit cases still block Vehicle), without changing any product locks
+  or weakening the required row/sequence/winner/loser/no-receipt assertions.
+  This supersedes the earlier inference about which case timed out.
+- Parent post-application restart after all three lease UI effects exited0,
+  retaining every native PG hash/final+staged byte/mode and fresh private read.
+  Added a separate CASH-only UI selection over the rich original236 held-stock
+  source (not a new fake cycle), so its physical/mileage/cost/correction history
+  can be checked through the same actual keyboard journey without rerunning the
+  already passed three lease cases. Types/lint are checked; execution is next.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,
