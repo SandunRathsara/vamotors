@@ -183,6 +183,23 @@ object, not newer records. Sole shared-source ownership remains active here.
   security→SQL→required regressions campaign is still running under durable
   per-command source/argv/exit receipts. Do not start another copy or poll it.
 
+- That finite batch is terminal: security (all nine authored groups, including
+  typed lease leaves, privacy, actual races/observed revocation and every essential
+  fault), restricted SQL, edits11, costs17, stock16, audit32, acquisition15 and
+  rates8 exited0. Each retains its actual source hash/dirty flag; costs/stock ran
+  while only the unrelated upgrade-checker test was being corrected. Runtime SQL/
+  server bytes remain unchanged fromb4c1aac. F1 failed BEFORE initialization because
+  the batch omitted its required files-root argv. Remaining tail jobs unstarted.
+- The exact-guard upgrade retry passed its core row/grant/function/ACL/native-byte
+  comparisons and authenticated file checks, then a fourth same-instance login
+  correctly returned429. Respect the accepted file helper's three-sign-in app
+  boundary: perform the distinct delegate login first, then let verifyFiles use
+  its existing clean app restart. No limiter change/spoofed header/sleep. Original
+ 429 and all effects remain. Core sentinel alone is NOT complete P7: money proof
+  now requires two actual completed native retention/restart PASS receipts before
+  consuming the old gross witness. Repeated installation/native verification and
+  A/C money remain pending; full P1–P8 still not claimed.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,

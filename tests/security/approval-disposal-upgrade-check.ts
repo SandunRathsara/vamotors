@@ -806,7 +806,6 @@ try {
       await writeFile(repeat, state, { flag: "wx", mode: 0o600 })
     }
     await f.start()
-    await verifyFiles(f, parentStart.fixture.files)
     const reader = await request.newContext({ baseURL: f.origin })
     try {
       const { email, cycleId } = before.retained.delegate
@@ -843,6 +842,9 @@ try {
     } finally {
       await reader.dispose()
     }
+    // verifyFiles deliberately starts its own app for its three fresh sign-ins.
+    // Keep this separate delegate sign-in before that established limiter boundary.
+    await verifyFiles(f, parentStart.fixture.files)
     await f.restart()
     await verifyFiles(f, parentStart.fixture.files)
     assert.deepEqual(await snapshot(), after)

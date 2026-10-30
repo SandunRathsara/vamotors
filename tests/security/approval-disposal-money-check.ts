@@ -1,6 +1,6 @@
 /** Reuse the genuine exact236 C-99 cash witness only AFTER upgrade retention/repeat. */
 import assert from "node:assert/strict"
-import { readFile, writeFile } from "node:fs/promises"
+import { readFile, writeFile, readdir } from "node:fs/promises"
 import { join } from "node:path"
 import { randomUUID } from "node:crypto"
 import type {
@@ -40,8 +40,21 @@ try {
       "utf8"
     )
   )
-  // This sentinel exists only after successful retention verification; no relabelled draft.
+  // A core-state sentinel alone is insufficient: require two completed native
+  // retention/restart PASS receipts before consuming the immutable old witness.
   await readFile(join(root, "approval-disposal-upgrade-repeat-state.json"))
+  const completed = (await readdir(root)).filter((name) =>
+    /^approval-disposal-upgrade-verify-[a-f0-9-]+\.json$/.test(name)
+  )
+  assert.ok(
+    completed.length >= 2,
+    "Completed upgrade AND repeat verification required"
+  )
+  for (const name of completed)
+    assert.equal(
+      JSON.parse(await readFile(join(root, name), "utf8")).status,
+      "PASS"
+    )
   assert.equal(
     (
       await f.db.query(
