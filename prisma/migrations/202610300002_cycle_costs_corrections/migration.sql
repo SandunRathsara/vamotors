@@ -247,9 +247,9 @@ BEGIN
  END LOOP;
  SELECT id INTO admin_id FROM vamotors."Role" WHERE "systemKey"='ADMINISTRATOR';
  IF admin_id IS NOT NULL THEN
-  FOR rule IN SELECT value FROM jsonb_array_elements('[{"subject":"PurchaseRecord","action":"read","fields":["*"]},{"subject":"PurchaseRecord","action":"update","fields":["reason","cycleId","patch.purchaseDate","patch.purchasePrice","patch.notes"]},{"subject":"PurchaseRecord","action":"pay","fields":["*"]},{"subject":"VehicleCost","action":"read","fields":["*"]},{"subject":"VehicleCost","action":"create","fields":["*"]},{"subject":"VehicleCost","action":"update","fields":["*"]},{"subject":"VehicleCost","action":"pay","fields":["*"]}]'::jsonb) LOOP
-   INSERT INTO vamotors."Permission"(id,"ruleHash",rule) VALUES(gen_random_uuid(),encode(sha256(convert_to(vamotors.cost_migration_canonical(rule),'UTF8')),'hex'),rule) ON CONFLICT("ruleHash") DO NOTHING;
-   SELECT id INTO pid FROM vamotors."Permission" WHERE "ruleHash"=encode(sha256(convert_to(vamotors.cost_migration_canonical(rule),'UTF8')),'hex');
+  FOR replacement IN SELECT value FROM jsonb_array_elements('[{"subject":"PurchaseRecord","action":"read","fields":["*"]},{"subject":"PurchaseRecord","action":"update","fields":["reason","cycleId","patch.purchaseDate","patch.purchasePrice","patch.notes"]},{"subject":"PurchaseRecord","action":"pay","fields":["*"]},{"subject":"VehicleCost","action":"read","fields":["*"]},{"subject":"VehicleCost","action":"create","fields":["*"]},{"subject":"VehicleCost","action":"update","fields":["*"]},{"subject":"VehicleCost","action":"pay","fields":["*"]}]'::jsonb) LOOP
+   INSERT INTO vamotors."Permission"(id,"ruleHash",rule) VALUES(gen_random_uuid(),encode(sha256(convert_to(vamotors.cost_migration_canonical(replacement),'UTF8')),'hex'),replacement) ON CONFLICT("ruleHash") DO NOTHING;
+   SELECT id INTO pid FROM vamotors."Permission" WHERE "ruleHash"=encode(sha256(convert_to(vamotors.cost_migration_canonical(replacement),'UTF8')),'hex');
    INSERT INTO vamotors."RolePermission" VALUES(admin_id,pid) ON CONFLICT DO NOTHING;
   END LOOP;
  END IF;

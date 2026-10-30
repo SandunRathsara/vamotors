@@ -157,6 +157,13 @@ retains a SQL syntax attempt and a deferred heterogeneous-record field error;
 the trigger table-specific branch was corrected before a new fresh install.
 Later exact committed checkpoint evidence is supplied in the handback manifest.
 
+The first clean checkpoint `7aab008` passed the expanded 17-group fresh campaign
+(`cycle-cost-87f64846.json`). Its separate nonempty upgrade correctly exposed an
+ambiguous Administrator-rule SQL variable; that migration transaction rolled
+back. The replacement uses the already-declared unambiguous replacement value.
+The failed attempt/root is retained, and both fresh and upgrade proof must bind
+the replacement migration checksum/SHA rather than inheriting the earlier pass.
+
 ## Mandatory pending final-rate rebase / non-claims
 
 Parent has not supplied an accepted final rates-combined SHA at this checkpoint.
