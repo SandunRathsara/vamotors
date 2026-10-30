@@ -1,5 +1,9 @@
 # Local continuation — authorized candidate and baseline promotion
 
+## Current committed stock16 compatibility / final joint-review hold
+
+Parent-authorized TEST-ONLY **27c8dc3ced669701d08fac38b1ff4bbcda5843c2** on1dc6093 makes the normal committed stock16 runner SW-aware, retains all137 original assertions and adds actual activated/controlling `/sw.js`/worker-owned fault proof. [Executable normal commands, two fresh16/16 results and new manifest](stock16-sw-compatibility.md). Types/owned lint+format/diff PASS; runtime/source equal1dc6093 except this test/records; existing production build reused, no fresh build or broad corpus/regression claim. Both DBs stopped/retained, original failure/private-harness rerun evidence unchanged. Matrix byte-identical21 LOCAL/113 U/134, original reviewer/SHA bindings unchanged. Primary0eaae8f/main/remotes/protected untouched; T11a sole ACTIVE new shared writer/accepted-stock rebase requirement/cost+attachment queues unchanged. **Candidate still unaccepted; distinct exact-final-SHA independent JOINT review NEXT**, final containing records head returned in handback. Earlier assembly/current labels below remain source-bound historical checkpoints.
+
 ## Current corrected-stock/file combination — 2026-10-30
 
 Parent accepts [bounded stock/R1 exacte27653b](T05b-R1-acceptance-attributed.md) and [18 original LOCAL scenarios exact0eaae8f](closure-0eaae8f-acceptance-attributed.md). Matrix now **21 LOCAL/113 U/134 IDs**, original three decisions unchanged/all21 bound0eaae8f; hosted FNDN-02 still deferred/not passed, VSTS-01–04/whole T05/G2 not accepted. Own ordinary no-ff stock merge from8ef6eb9 produced **4733375bcdefb2707c936b5be040431f49e66bd7**, no overlaps/conflicts/source fixes; all16 frozen reviewed stock paths carried exact, earlier accepted file28/lint4/CONTRACT8/PWA11 preserved. No unreviewed T11 work.

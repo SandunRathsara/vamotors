@@ -2,6 +2,10 @@
 
 ## Current local continuation — 2026-10-30
 
+**[Committed stock16 / active-PWA compatibility correction](stock16-sw-compatibility.md):** TEST-ONLY27c8dc3ced669701d08fac38b1ff4bbcda5843c2, eight context-routing calls plus explicit actual worker control/worker-owned fault proof; all137 original assertions preserved. Normal committed runner16/16 on TWO fresh roots, clean SHA; affected types/owned lint+format/diff PASS, original failure/external rerun history retained. Runtime/build identical1dc6093, unchanged production build reused; no product/schema/grants/files/packages/matrix changes. New final manifest/evidence root `/Users/alpha/.local/share/vamotors/stock16-sw-compat-ad_7z91u`; final containing SHA returned. **Independent final joint review NEXT, candidate NOT accepted**, primary0eaae8f/T11a ownership/queues unchanged,21 LOCAL/113 U/134 IDs.
+
+## Previous stock/file assembly checkpoint — retained source-bound results
+
 **[Corrected-stock + file combined candidate / actual merge + checks + manifest](stock-file-combined-integration.md):** ordinary no-ff exacte27653b into own8ef6eb9 produced clean tested4733375bcdefb2707c936b5be040431f49e66bd7, no overlap/conflict/source fixes/unreviewed T11. All16 stock paths and accepted file28/lint4/CONTRACT8/PWA11 exact; registry v7/ten migrations/grants exact. Integration-owner install/generate/types/build/lint0/46/128units/5SW/contracts20/file20/9HTTP/6 finals92,169 bytes/audit32/stock16/acquisition15 PASS, with original SW-interception and external ESM harness failures retained. **Exact-final-SHA independent JOINT review NEXT**, not assumed; primary stays clean0eaae8f/main/remotes/protected unchanged.
 
 **[Parent accepts bounded T05b + R1 exacte27653b](T05b-R1-acceptance-attributed.md)** after independent ses_e74ecf74cffeByaNSGYMFb7uoU PASS: fresh+genuine-upgraded audit32/own32/stock16/acquisition15/redacted7; repeated NONEMPTY finance/contact/policy/supplier-contact/customer retention, nine checksums/original grants/admin-only stock and four correction paths/680 preserved. Original FAIL red→green/history retained, all own clusters stopped. Whole T05/G2/VSTS-01–04 NOT accepted.
