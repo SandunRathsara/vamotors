@@ -255,6 +255,21 @@ object, not newer records. Sole shared-source ownership remains active here.
   also remain unexecuted. Only then finalize source quality/seal/owned-service
   stop. No final acceptance or shared-source release is implied by these passes.
 
+- Cleane5900ef retained236 FINANCE_COMPANY/BANK/PRIVATE_PARTY real UI journeys
+  exited0: actual1920 keyboard requests, separate360 keyboard reviews, active SW,
+  zero/loss/gain and exact old lease/payment/outstanding/basis/mileage histories.
+- The same source's final focused batch passed reviewer leaf execution/replay +
+  mismatch ordering/name-audit privacy, observed current deactivation/revocation
+  execution/replay waits, and unrelated company/Settings nondependencies. It then
+  stopped BEFORE its fresh-root restart at the new ordered-domain first Vehicle
+  wait predicate (0 observed within2500ms). No claim of those four races yet.
+  The failed first setListedPrice's actual revision2/21000 and PENDING proposal
+  are retained and source-joined; no rollback/reset to erase that real effect.
+- Added bounded failure diagnostics for the actual wait graph and every started
+  HTTP response, with exact one-row blocker assertion and draining after release.
+  The original observed-wait/winner/loser/source/no-receipt assertions are unchanged.
+  Test diagnostic only; no product guard or auth/lock plan has been altered.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,

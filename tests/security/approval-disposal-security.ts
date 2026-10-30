@@ -3,7 +3,11 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import { expect, type APIRequestContext } from "@playwright/test"
+import {
+  expect,
+  type APIRequestContext,
+  type APIResponse,
+} from "@playwright/test"
 import pg from "pg"
 import { privateEnvironment } from "../../scripts/private-environment"
 import type {
@@ -1044,17 +1048,25 @@ try {
                   { actor: second, name: "reviewApproval", body: p.review },
                 ]
             const blocker = await f.db.connect()
+            const inflight: Promise<APIResponse>[] = []
             try {
               await blocker.query("BEGIN")
-              await blocker.query(
+              const locked = await blocker.query(
                 'SELECT id FROM vamotors."Vehicle" WHERE id=$1 FOR UPDATE',
                 [row.vehicleId]
               )
-              const send = (entry: (typeof requests)[number]) =>
-                entry.actor.post(`/api/v1/commands/${entry.name}`, {
-                  headers: { Origin: f.origin },
-                  data: entry.body,
-                })
+              assert.equal(locked.rowCount, 1)
+              const send = (entry: (typeof requests)[number]) => {
+                const response = entry.actor.post(
+                  `/api/v1/commands/${entry.name}`,
+                  {
+                    headers: { Origin: f.origin },
+                    data: entry.body,
+                  }
+                )
+                inflight.push(response)
+                return response
+              }
               const first = send(requests[0])
               await expect
                 .poll(
@@ -1137,9 +1149,47 @@ try {
                 sequenceWaitObserved: true,
                 pass: true,
               })
+            } catch (error) {
+              groups.push({
+                group: "ordered domain failure lock diagnostics",
+                name,
+                reviewFirst,
+                cycleId: row.id,
+                vehicleId: row.vehicleId,
+                waits: (
+                  await monitor.query(
+                    "SELECT pid,usename,wait_event_type,wait_event,left(query,500) query,pg_blocking_pids(pid) blockers FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' ORDER BY pid"
+                  )
+                ).rows,
+              })
+              throw error
             } finally {
               await blocker.query("ROLLBACK")
               blocker.release()
+              const settled = await Promise.allSettled(inflight)
+              const responses = []
+              for (const [index, result] of settled.entries()) {
+                if (result.status === "fulfilled") {
+                  const value = await result.value.json()
+                  responses.push({
+                    command: requests[index].name,
+                    status: result.value.status(),
+                    code: value.error?.code,
+                    commandId: value.commandId,
+                  })
+                } else
+                  responses.push({
+                    command: requests[index].name,
+                    transportFailure: true,
+                  })
+              }
+              groups.push({
+                group: "ordered domain actual retained responses",
+                name,
+                reviewFirst,
+                cycleId: row.id,
+                responses,
+              })
             }
           }
       } finally {
