@@ -1,4 +1,4 @@
-# T07a/T08a — resumed incomplete PREBASE WIP (2026-10-31)
+# T07a/T08a — accepted236 reconciliation / incomplete final proof (2026-10-31)
 
 ## Accepted236 steering / safe pre-reconciliation checkpoint
 
@@ -172,6 +172,16 @@ object, not newer records. Sole shared-source ownership remains active here.
   authority/domain failure. Split the same exact semantic population into bounded
   grants; do not raise the wire cap or weaken any denial. Types/lint pass after
   this helper-only correction. All later native campaigns in that batch unstarted.
+
+- First forward verifier reached exact old-row/permission/role/ceiling/native-byte
+  comparisons, then stopped at a test's wrong function-transform count (expected8,
+  actual7). There are seven forward function extensions plus a separate read-type
+  CHECK extension. The assertion now names all seven exact function identities
+  instead of the mistaken count; every old function body/metadata comparison is
+  still required. Failure retained; no P7 PASS or money-witness consumption yet.
+- Native contracts and SW checks at clean7e11a88 exited0. The sequential NEW fresh
+  security→SQL→required regressions campaign is still running under durable
+  per-command source/argv/exit receipts. Do not start another copy or poll it.
 
 ## Current explicit parent resumption from712af18
 

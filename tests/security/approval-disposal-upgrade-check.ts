@@ -771,7 +771,15 @@ try {
         ),
       ].map((m) => [m[1], [unquote(m[2]), unquote(m[3])]])
     )
-    assert.equal(transforms.size, 8)
+    assert.deepEqual([...transforms.keys()].sort(), [
+      "vamotors.acquisition_root_guard()",
+      "vamotors.check_acquisition_graph()",
+      "vamotors.check_stock_graph()",
+      "vamotors.cycle_edit_vehicle_graph()",
+      "vamotors.initial_cycle_transition()",
+      "vamotors.purchase_status_guard()",
+      "vamotors.purchase_vehicle_guard()",
+    ])
     for (const old of before.functions) {
       const next = after.functions.find((r) => r.name === old.name)!
       assert.ok(next)
