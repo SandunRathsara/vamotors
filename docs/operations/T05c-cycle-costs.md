@@ -1,9 +1,12 @@
-# T05c cycle costs and bounded corrections — AUTHOR PREBASE
+# T05c cycle costs and bounded corrections — author candidate
 
-Exact accepted dispatch base: `b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3`.
+Original accepted dispatch base: `b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3`.
+Required final accepted rates base: `e9ba1a939667fc46178f89cccae1022a4bbcfb7e`.
+The clean prebase commits were rebased onto that exact parent-supplied base.
 Branch: `feat/t05c-cycle-costs-prebase`. This is author work, not acceptance.
-No unaccepted rates source is imported. The parent explicitly transferred sole
-schema/registry/grants/dispatcher ownership while T11a is frozen for review.
+Sole schema/registry/grants/dispatcher ownership remains with T05c; T11a stays
+frozen. Parent acceptance of bounded LBRK-01–05 raises effective coverage to
+26 LOCAL/108 U/134; this candidate promotes no further requirement or gate.
 
 ## Implemented bound
 
@@ -76,19 +79,21 @@ basis and original read/audit versions remain immutable.
   are added to existing immutable payment/basis tables. No Vehicle UPDATE,
   business DELETE/TRUNCATE, DDL/owner/default-future grants.
 
-The original ten migration files remain byte-identical. Acquisition proof is
+The original eleven migration files remain byte-identical. Acquisition proof is
 validated from immutable initial versions separately from corrected current
 terms. Stock graph validation still runs for stock deltas; unchanged-lifecycle
 money commands have their own exact command/actor/environment/sequence/current-
 transaction root/child/audit/version/final graph checks. There is no caller GUC,
 generic ledger, bypass, dropped lifecycle guard or fabricated repair/sale.
 
-**Prebase registry v7 -> v8 / ten -> eleven migrations only.** Every stored old
+**Final registry v8 -> v9 / eleven -> thirteen migrations.** Every stored old
 wildcard/compound/create/delegation ceiling is frozen before exposing new paths;
 Permission originals are never overwritten. Existing payment/basis compounds
 freeze to their already-defined leaves; old always-empty costs authorize no new
 cost leaves. Only protected Administrator deliberately receives the new rules.
-All Role revisions change, current fingerprints invalidate, hashes/grammar are
+Accepted RateSheet/Quote create/read universes and condition mappings remain;
+their v8 wildcard/compound/delegation ceilings freeze too. All Role revisions
+change, current fingerprints invalidate, hashes/grammar are
 revalidated by setup. Fresh bootstrap uses current registry.
 
 ## Reproduction and evidence
@@ -104,6 +109,8 @@ pnpm local:setup
 pnpm local:setup
 pnpm build
 node --import tsx tests/security/cycle-cost-check.ts "$VAMOTORS_LOCAL_DIR"
+node --import tsx tests/security/rates-check.ts "$VAMOTORS_LOCAL_DIR"
+node --import tsx tests/security/rate-xid-epoch-check.ts "$VAMOTORS_LOCAL_DIR"
 node --import tsx tests/security/stock-receipt-check.ts "$VAMOTORS_LOCAL_DIR"
 node --import tsx tests/security/stock-audit-check.ts "$VAMOTORS_LOCAL_DIR"
 node --import tsx tests/security/purchase-acquisition-check.ts "$VAMOTORS_LOCAL_DIR"
@@ -132,13 +139,14 @@ All stock16 assertions and SW-aware routing remain; no old pass is inferred.
 
 ### Genuine accepted-parent upgrade
 
-1. Own a separate clean source worktree at exact b7ac9af; install its own client,
+1. Own a separate clean source worktree at exact e9ba1a9; install its own client,
    setup a new private root, and build **that exact parent**.
 2. From candidate source run
    `node --import tsx tests/security/cycle-cost-upgrade-check.ts <root> prepare`.
    The runner verifies parent SHA/clean state, launches the real parent app and
    uses real HTTP commands for nonempty finance/contact/policy/customer/supplier/
-   contact/purchase/payment/status/basis/audit history and v7 grant ceilings.
+   contact/purchase/payment/status/basis/audit history, actual published rates,
+   cards and selected immutable quotes, and v8 rate/quote grant ceilings.
    It retains `t05c-parent-before.json`; it never fabricates missing finance data
    or substitutes empty-array equality for nonempty proof.
 3. Move only that owned source worktree forward to the committed candidate,
@@ -164,18 +172,32 @@ back. The replacement uses the already-declared unambiguous replacement value.
 The failed attempt/root is retained, and both fresh and upgrade proof must bind
 the replacement migration checksum/SHA rather than inheriting the earlier pass.
 
-## Mandatory pending final-rate rebase / non-claims
+## F1 forward correction and final verification boundary
 
-Parent has not supplied an accepted final rates-combined SHA at this checkpoint.
-Before final acceptance: rebase onto that exact supplied SHA; preserve all real
-rates/quotes/migrations/grants/owners/immutable snapshots; extend the prebase
-permission-freeze universe with the actually accepted rates registry; advance
-combined registry to the correct next version (expected v9, never assumed);
-rerun own-client/build/fresh install and **genuine exact rates-parent NONEMPTY
-upgrade** including real rate/quote snapshot preservation, repeated setup, full
-new campaign and stock16/audit32/acquisition15 and affected regressions.
-Do not apply a newly discovered lower-numbered rates migration out of order to
-the prebase test roots and claim that proves the final accepted-parent upgrade.
+Parent assigned independent T11a review finding F1/P3 to the current sole owner.
+New forward migration `202610300003_rate_xid_epoch_guard` replaces only
+`rate_graph_guard`'s `c.xmin::text=pg_current_xact_id()::text` with
+`c.xmin=pg_current_xact_id()::xid`, matching accepted stock width normalization.
+The accepted rates001 migration is not edited. CREATE OR REPLACE retains the
+function's identity/owner/ACL/options and every other guard byte. PostgreSQL18
+documentation was fetched with ctx7: [transaction identifiers](https://www.postgresql.org/docs/18/transaction-id.html)
+and [transaction information functions](https://www.postgresql.org/docs/18/functions-info.html)
+confirm 32-bit xid, epoch-bearing xid8, and the supported cast.
+
+`rate-xid-epoch-check.ts` contains one focused read-only width-wrap expression,
+compares the stored function body to the accepted body with only that expression
+changed, publishes a real lawful same-transaction card over HTTP, denies a late
+card append and preserves prior quote bytes. This is **not** a simulated/forced
+cluster epoch or actual post-wrap workflow. F1 is source-corrected here; fresh
+independent verification remains pending.
+
+Final proof must use new own roots/source at exact e9ba1a9, eleven original
+migrations and NONEMPTY original rates/cards/quotes plus existing business and
+grant history. Upgrade that same retained cluster through costs002 and F1-003,
+repeat setup/verify without deletion/reseed, run final rates8/costs/stock16/
+audit32/acquisition15 and affected checks, then stop only owned services.
+Historical prebase passes are not final-SHA evidence, and no lower-numbered
+rates migration is retrofitted into a prebase installation to fake upgrade proof.
 
 Contributions only to VPRC-07/09, FINT-01/03, AUDT-01/02; no whole IDs/gates are
 promoted. Original purchase100+repair10+cost5=115, two completed purchase-cycle

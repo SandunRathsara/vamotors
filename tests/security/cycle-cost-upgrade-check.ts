@@ -30,7 +30,7 @@ const runtime = await privateEnvironment(join(root, "runtime.env")),
   migration = await privateEnvironment(join(root, "migration.env")),
   cluster = await privateEnvironment(join(root, "cluster.env"))
 const db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 1 })
-const parentSHA = "b7ac9afb85218e7ec7fbaa0b006d0b165a19b3c3"
+const parentSHA = "e9ba1a939667fc46178f89cccae1022a4bbcfb7e"
 const tables = [
   "Environment",
   "Settings",
@@ -57,6 +57,9 @@ const tables = [
   "Role",
   "RolePermission",
   "UserRole",
+  "RateSheetVersion",
+  "RateCardEntry",
+  "Quote",
 ]
 const required = [
   "Settings",
@@ -79,12 +82,17 @@ const required = [
   "Permission",
   "RolePermission",
   "UserRole",
+  "RateSheetVersion",
+  "RateCardEntry",
+  "Quote",
 ]
 type Snapshot = {
   migrations: { migration_name: string; checksum: string }[]
   rows: Record<string, Record<string, unknown>[]>
   grants: { roleId: string; rule: Grant; systemKey: string | null }[]
   owners: { name: string; owner: string }[]
+  columns: Record<string, string>[]
+  functions: { name: string; body: string; metadata: Record<string, unknown> }[]
 }
 async function snapshot(): Promise<Snapshot> {
   const rows: Snapshot["rows"] = {}
@@ -109,6 +117,16 @@ async function snapshot(): Promise<Snapshot> {
     owners: (
       await db.query(
         "SELECT c.relname AS name,pg_get_userbyid(c.relowner) AS owner FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='vamotors' AND c.relkind IN ('r','v') ORDER BY c.relname"
+      )
+    ).rows,
+    columns: (
+      await db.query(
+        "SELECT table_name,column_name,privilege_type FROM information_schema.column_privileges WHERE grantee='vamotors_runtime' ORDER BY table_name,column_name,privilege_type"
+      )
+    ).rows,
+    functions: (
+      await db.query(
+        "SELECT p.oid::regprocedure::text AS name,p.prosrc AS body,to_jsonb(p)-'prosrc' AS metadata FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='vamotors' ORDER BY p.oid"
       )
     ).rows,
   }
@@ -236,7 +254,7 @@ async function populate() {
     const settingsResponse = await client.get("/api/v1/queries/settings"),
       settings = (await settingsResponse.json()).data
     assert.equal(settingsResponse.status(), 200)
-    await command(
+    const finance = await command(
       "createFinanceCompany",
       {
         name: `Retained finance ${suffix}`,
@@ -256,6 +274,64 @@ async function populate() {
         },
       },
       [{ type: "Settings", id: settings.id, revision: settings.revision }]
+    )
+    await command(
+      "publishRates",
+      {
+        companyId: finance.result.id,
+        make: "Retained",
+        model: `Parent rates ${suffix}`,
+        year: 2026,
+        validFrom: "2026-01-01",
+        validThrough: "2027-12-31",
+        maximum: "120000",
+        cards: [{ principal: "100000", months: 12, installment: "9000" }],
+      },
+      [ref("FinanceCompany", finance)]
+    )
+    const vehicle = {
+      make: "Retained",
+      model: `Parent rates ${suffix}`,
+      year: 2026,
+      description: "Synthetic retained external vehicle, not an acquisition",
+    }
+    const comparison = await client.post("/api/v1/queries/compare", {
+      data: {
+        vehicle,
+        principal: "100000",
+        months: 12,
+        asOf: new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Colombo",
+        }).format(new Date()),
+      },
+      headers: { Origin: origin },
+    })
+    assert.equal(comparison.status(), 200)
+    const option = (await comparison.json()).data.find(
+      (o: { companyId: string }) => o.companyId === finance.result.id
+    )
+    assert.equal(option.status, "SUPPORTED")
+    await command(
+      "selectQuote",
+      {
+        sheetId: option.sheetId,
+        cardId: option.cardId,
+        vehicle,
+        charges: [{ category: "Retained documentation", amount: "500" }],
+      },
+      [
+        {
+          type: "RateSheet",
+          id: option.sheetId,
+          revision: option.sheetRevision,
+        },
+        {
+          type: "FinanceCompany",
+          id: option.companyId,
+          revision: option.companyRevision,
+        },
+        { type: "Settings", id: settings.id, revision: settings.revision },
+      ]
     )
     const purchase = await command(
       "recordPurchase",
@@ -300,6 +376,10 @@ async function populate() {
         { subject: "Vehicle", action: "read", fields: ["*"] },
         { subject: "Vehicle", action: "create", fields: ["*"] },
         { subject: "Role", action: "create", fields: ["*"] },
+        { subject: "RateSheet", action: "read", fields: ["*"] },
+        { subject: "RateSheet", action: "create", fields: ["*"] },
+        { subject: "Quote", action: "read", fields: ["*"] },
+        { subject: "Quote", action: "create", fields: ["*"] },
       ],
       [
         {
@@ -323,7 +403,7 @@ async function populate() {
       ],
     ])
       await command("saveRole", {
-        name: `Retained v7 ceiling ${randomUUID()}`,
+        name: `Retained accepted v8 ceiling ${randomUUID()}`,
         grants,
         reason: "Synthetic immutable pre-upgrade delegation ceiling",
       })
@@ -359,9 +439,9 @@ try {
     const parent = await import(
       pathToFileURL(join(cluster.PROJECT!, "lib/server/permissions.ts")).href
     )
-    assert.equal(parent.registryVersion, 7)
+    assert.equal(parent.registryVersion, 8)
     const before = await snapshot()
-    assert.equal(before.migrations.length, 10)
+    assert.equal(before.migrations.length, 11)
     for (const table of required)
       assert.ok(
         before.rows[table].length > 0,
@@ -417,14 +497,14 @@ try {
     await writeFile(
       join(root, "t05c-parent-before.json"),
       JSON.stringify(
-        { parentSHA, authorPrebase: true, ...before, ceilings },
+        { parentSHA, authorPrebase: false, ...before, ceilings },
         null,
         2
       ),
       { mode: 0o600, flag: "wx" }
     )
     console.log(
-      "PASS exact accepted b7ac9af ten-migration NONEMPTY real-command parent prepared; rates proof still pending"
+      "PASS exact accepted e9ba1a9 eleven-migration NONEMPTY real-command parent, rates/cards/quotes and v8 ceilings prepared"
     )
   } else {
     const before = JSON.parse(
@@ -432,8 +512,8 @@ try {
       ) as Snapshot & { parentSHA: string; ceilings: Record<string, string[]> },
       after = await snapshot()
     assert.equal(before.parentSHA, parentSHA)
-    assert.equal(after.migrations.length, 11)
-    assert.deepEqual(after.migrations.slice(0, 10), before.migrations)
+    assert.equal(after.migrations.length, 13)
+    assert.deepEqual(after.migrations.slice(0, 11), before.migrations)
     for (const table of required)
       assert.ok(before.rows[table].length > 0 && after.rows[table].length > 0)
     for (const table of tables.filter(
@@ -466,6 +546,36 @@ try {
         after.owners.some((o) => canonical(o) === canonical(old)),
         "Previous table/view owner changed"
       )
+    for (const grant of before.columns)
+      assert.ok(
+        after.columns.some((g) => canonical(g) === canonical(grant)),
+        "Previous runtime column grant lost"
+      )
+    for (const old of before.functions) {
+      const next = after.functions.find((f) => f.name === old.name)!
+      assert.ok(next, "Previous function lost")
+      assert.deepEqual(
+        next.metadata,
+        old.metadata,
+        "Previous function identity/owner/ACL/options changed"
+      )
+      if (old.name === "vamotors.rate_graph_guard()")
+        assert.equal(
+          next.body,
+          old.body.replace(
+            "c.xmin::text=pg_current_xact_id()::text",
+            "c.xmin=pg_current_xact_id()::xid"
+          ),
+          "F1 must be the only rate guard change"
+        )
+      else if (
+        ![
+          "vamotors.acquisition_root_guard()",
+          "vamotors.check_acquisition_graph()",
+        ].includes(old.name)
+      )
+        assert.equal(next.body, old.body, "Unrelated function changed")
+    }
     for (const old of before.rows.Role) {
       const next = after.rows.Role.find((r) => r.id === old.id)!
       assert.equal(next.revision, Number(old.revision) + 1)
@@ -501,7 +611,7 @@ try {
         p.ruleHash
       )
     }
-    assert.equal(registryVersion, 8)
+    assert.equal(registryVersion, 9)
     assert.equal(
       (await db.query('SELECT count(*) FROM vamotors."VehicleCost"')).rows[0]
         .count,
@@ -557,7 +667,7 @@ try {
           head: execFileSync("git", ["rev-parse", "HEAD"], {
             encoding: "utf8",
           }).trim(),
-          authorPrebase: true,
+          authorPrebase: false,
           ...after,
           grants,
         },
@@ -567,7 +677,7 @@ try {
       { mode: 0o600 }
     )
     console.log(
-      "PASS exact-parent NONEMPTY ten->eleven upgrade; checksums, old facts/owners/ceilings preserved; explicit current column grants; final accepted rates upgrade pending"
+      "PASS exact accepted e9ba1a9 NONEMPTY eleven->thirteen upgrade; all old rows/rates/cards/quotes/checksums/owners/ACLs/ceilings retained; only normalized F1 rate guard change"
     )
   }
 } finally {

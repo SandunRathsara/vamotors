@@ -815,6 +815,9 @@ try {
         .fill("Retained actual response-loss invoice")
       await page.getByLabel("Incurred amount (major units)").fill("5.00")
       await page.getByLabel("Actual incurred date").fill("2026-10-02")
+      await page.getByLabel("Record a positive actual payment now").check()
+      await page.getByLabel("Actual payment amount (major units)").fill("2.00")
+      await page.getByLabel("Actual payment date").fill("2026-10-03")
       await a.route("**/api/v1/commands/addCost", async (route) => {
         bodies.push(route.request().postData()!)
         if (bodies.length === 1) {
@@ -834,6 +837,8 @@ try {
         page.getByRole("button", { name: "Retry unchanged money intent" })
       ).toBeVisible()
       assert.equal((await current(row.id)).costs.length, 1)
+      assert.equal((await current(row.id)).costs[0].payments.length, 1)
+      assert.equal((await current(row.id)).financial?.cashOut, "10200")
       await page.evaluate(() => window.dispatchEvent(new Event("focus")))
       await a.route("**/api/v1/queries/currentActor", (route) =>
         route.fulfill({
@@ -1614,7 +1619,8 @@ try {
     dirty: !!execFileSync("git", ["status", "--porcelain"], {
       encoding: "utf8",
     }).trim(),
-    authorPrebase: true,
+    authorPrebase: false,
+    acceptedParent: "e9ba1a939667fc46178f89cccae1022a4bbcfb7e",
     origin,
     browser: await browser.version(),
     groups,
