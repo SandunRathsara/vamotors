@@ -1,6 +1,10 @@
 # Local continuation — authorized candidate and baseline promotion
 
-## Current accepted e9ba1a9 / actual primary FF / OPEN F1
+## Current frozen T05c review assembly / pending author packaging
+
+Parent-frozen **98fd8aaf02f28dcda8d47bb199971de895a960c8** ordinarily merged into docs **2895950b7f02f3bbcc108dda476f70b80c05cc2a**, no conflict/source fix; [exact union/test deltas/recovery binding](T05c-98fd8aa-review-assembly.md). Runtime exact98/unaccepted, six retained tests changed. Original author PARTIAL then EMPTY/no freeze ACK; recovery **ses_e73984cfdffetqQ2tKxiAwF31b RUNNING evidence/service-finalization ONLY**, no code/schema. Seal unexecuted/final packaging-cleanup missing at dispatch, historical upgraded acquisition15 partial not a completed receipt. Await sealed complete evidence or precise blocker, no author PASS/ACK/cleanup/polling/rerun inferred. One combined-SHA verification after recovery return; primary accepted exacte9/main/remotes/protected/author checkpoint/26 LOCAL/108 U/134/VSTS-03 U/F1 OPEN/T06b queue unchanged.
+
+## Previous accepted e9ba1a9 / actual primary FF / OPEN F1 snapshot
 
 Parent accepts **bounded T11a+combined exacte9ba1a939667fc46178f89cccae1022a4bbcfb7e plus ORIGINAL LOCAL LBRK-01–05**, independent ses_e741684d8ffeWOKAFoZu5LAVRe PASS. [Exact code/group/artifact maps,130 hashes, preserved failures, actual FF and open finding](T11a-e9ba1a9-acceptance-attributed.md). Authorized clean exactb7ac9af primary integration/full-v1 FF-only→exacte9ba1a9 succeeded, clean; no newer docs/main/remote/protected promotion. **26 LOCAL/108 U/134**, original21 bindings0eaae8f unchanged/newfive bounde9; VSTS-03 U/full LBRK-06/intake/T11/T06/G2/G4/G6/restore/device/deployment remain unaccepted. Immutable effective-dated tomorrow-v2/retained-v1 quote proof only, no active overwrite/rate-audit API/UI.
 

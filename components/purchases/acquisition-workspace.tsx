@@ -22,6 +22,7 @@ import { major, parseMajor } from "@/lib/money"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { CycleCosts } from "./cycle-costs"
 import {
   PartyForm,
   type VisibleParty,
@@ -1041,6 +1042,7 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           ["Purchase type", cycle.purchaseType],
           ["Acquisition kind", cycle.acquisitionKind],
           ["Purchase date", cycle.purchaseDate],
+          ["Purchase notes", cycle.notes],
           ["Seller", cycle.seller?.name],
           ["Purchase price", amount(cycle.purchasePrice)],
           ["Listed price", amount(cycle.listedPrice)],
@@ -1087,6 +1089,18 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
               Owner {p.owner?.type} {p.owner?.id}
               <br />
               Command {p.commandId}
+              {p.reversalOf && (
+                <>
+                  <br />
+                  Exact correction reversal of {p.reversalOf}
+                </>
+              )}
+              {p.reason && (
+                <>
+                  <br />
+                  Reason: {p.reason}
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -1106,7 +1120,7 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
         </p>
       )) ?? <p>Unavailable</p>}
       <p>
-        Costs, repairs, sales and disposal workflows remain pending. Receipt and
+        Repairs, sales and disposal workflows remain pending. Receipt and
         availability changes do not imply completed downstream history.
       </p>
     </section>
@@ -1137,6 +1151,11 @@ export function AcquisitionDetail({
       {/* Keep the pending intent outside the query-result subtree. A transient
           observer/read reset must not unmount its immutable request envelope. */}
       <StockControls
+        cycle={
+          (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
+        }
+      />
+      <CycleCosts
         cycle={
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }

@@ -171,6 +171,8 @@ model CommandReceipt {
   purchasePayments      PurchasePayment[]
   mileageReadings       MileageReading[]
   basisVersions         CycleBasisVersion[]
+  costs                 VehicleCost[]
+  costPayments          CostPayment[]
 
   @@unique([environmentId, actorKey, commandName, idempotencyKey])
   @@schema("vamotors")
@@ -517,6 +519,7 @@ model PurchaseRecord {
   seller               Customer?           @relation(fields: [sellerCustomerId], references: [id], onDelete: Restrict)
   purchaseDate         DateTime            @db.Date
   purchasePrice        BigInt
+  notes                String?
   listedPrice          BigInt?
   status               VehicleStatus       @default(PURCHASED)
   available            Boolean             @default(false)
@@ -535,6 +538,8 @@ model PurchaseRecord {
   payments             PurchasePayment[]
   mileage              MileageReading[]
   basisVersions        CycleBasisVersion[]
+  costs                VehicleCost[]
+  costPayments         CostPayment[]
 
   @@unique([id, vehicleId])
   @@unique([vehicleId, cycleNumber])
@@ -584,6 +589,58 @@ model PurchasePayment {
   @@unique([commandId, lineKey])
   @@unique([reversalOf, cycleId])
   @@index([cycleId, occurredDate, id])
+  @@schema("vamotors")
+}
+
+model VehicleCost {
+  id           String         @id @default(uuid()) @db.Uuid
+  cycleId      String         @db.Uuid
+  cycle        PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  category     String
+  description  String
+  amount       BigInt
+  incurredDate DateTime       @db.Date
+  revision     Int            @default(1)
+  createdBy    String         @db.Uuid
+  commandId    String         @db.Uuid
+  command      CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  payments     CostPayment[]
+
+  @@unique([id, cycleId])
+  @@index([cycleId, incurredDate, id])
+  @@schema("vamotors")
+}
+
+model CostPayment {
+  id           String         @id @default(uuid()) @db.Uuid
+  costId       String         @db.Uuid
+  cycleId      String         @db.Uuid
+  cost         VehicleCost    @relation(fields: [costId, cycleId], references: [id, cycleId], onDelete: Restrict)
+  cycle        PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  amount       BigInt
+  direction    String
+  category     String
+  occurredDate DateTime       @db.Date
+  method       String
+  currency     String
+  scale        Int
+  reference    String?
+  reversalOf   String?        @unique @db.Uuid
+  original     CostPayment?   @relation("costReversal", fields: [reversalOf, costId, cycleId], references: [id, costId, cycleId], onDelete: Restrict)
+  reversal     CostPayment?   @relation("costReversal")
+  reason       String?
+  createdBy    String         @db.Uuid
+  commandId    String         @db.Uuid
+  command      CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  lineKey      String
+  recordedAt   DateTime       @default(now())
+
+  @@unique([id, costId, cycleId])
+  @@unique([commandId, lineKey])
+  @@unique([reversalOf, costId, cycleId])
+  @@index([costId, occurredDate, id])
   @@schema("vamotors")
 }
 

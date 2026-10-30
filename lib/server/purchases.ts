@@ -23,12 +23,21 @@ import {
   dateOnly,
   listParams,
   stockEnvelope,
+  cycleMoneyEnvelope,
+  cycleMoneyInputs,
+  type CycleMoneyCommand,
   type StockCommand,
 } from "./validators"
-import { project, readScope, requireFields } from "./permissions"
+import {
+  project,
+  readScope,
+  requireFields,
+  costReadFields,
+  sourcePaymentFields,
+} from "./permissions"
 import { fail, CommandError } from "./errors"
 import { currentSettings } from "./settings"
-import { cashTotals, bounded } from "../money"
+import { cashTotals, bounded, C, sum } from "../money"
 
 export const normalizeVehicleIdentity = (value: string) =>
   value.toUpperCase().replace(/[\t\n\r\f\v ]/g, "")
@@ -47,6 +56,14 @@ const include = {
   payments: {
     orderBy: [{ occurredDate: "asc" as const }, { id: "asc" as const }],
   },
+  costs: {
+    orderBy: { id: "asc" as const },
+    include: {
+      payments: {
+        orderBy: [{ occurredDate: "asc" as const }, { id: "asc" as const }],
+      },
+    },
+  },
   mileage: {
     orderBy: [{ recordedDate: "asc" as const }, { id: "asc" as const }],
   },
@@ -54,6 +71,53 @@ const include = {
   settingsVersion: true,
 } satisfies Prisma.PurchaseRecordInclude
 type Row = Prisma.PurchaseRecordGetPayload<{ include: typeof include }>
+type Cost = Row["costs"][number]
+type Payment = Row["payments"][number] | Cost["payments"][number]
+const netPaid = (payments: readonly Payment[]) => {
+  const cash = cashTotals(
+    payments.map((p) => ({
+      direction: p.direction as "IN" | "OUT",
+      amount: p.amount.toString(),
+    }))
+  )
+  return bounded(BigInt(cash.outgoing) - BigInt(cash.incoming), C)
+}
+function paymentDTO(p: Payment) {
+  return {
+    id: p.id,
+    owner: {
+      type: "costId" in p ? ("COST" as const) : ("PURCHASE" as const),
+      id: "costId" in p ? p.costId : p.cycleId,
+    },
+    commandId: p.commandId,
+    amount: p.amount.toString(),
+    direction: p.direction as "OUT" | "IN",
+    category: p.category,
+    date: date(p.occurredDate),
+    method: p.method as "CASH" | "BANK_TRANSFER",
+    recordedAt: p.recordedAt.toISOString(),
+    ...(p.reference !== null ? { reference: p.reference } : {}),
+    ...(p.reversalOf ? { reversalOf: p.reversalOf } : {}),
+    ...(p.reason ? { reason: p.reason } : {}),
+  }
+}
+function costDTO(cost: Cost): PurchaseCycleDTO["costs"][number] {
+  return {
+    id: cost.id,
+    revision: cost.revision,
+    category: cost.category,
+    description: cost.description,
+    amount: cost.amount.toString(),
+    incurredDate: date(cost.incurredDate),
+    payments: cost.payments.map(paymentDTO),
+    outstanding: (cost.amount - netPaid(cost.payments)).toString(),
+    provenance: { imported: false },
+  }
+}
+const costAuth = (cost: Cost) => ({
+  ...costDTO(cost),
+  createdBy: cost.createdBy,
+})
 function physical(row: Row["vehicle"]): VehicleInput {
   return {
     engineNumber: row.engineNumber,
@@ -73,12 +137,12 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
   const seller = row.supplier ?? row.seller
   if (!seller) fail("INTERNAL_ERROR", 500)
   const cash = cashTotals(
-    row.payments.map((p) => ({
+    [...row.payments, ...row.costs.flatMap((c) => c.payments)].map((p) => ({
       direction: p.direction as "IN" | "OUT",
       amount: p.amount.toString(),
     }))
   )
-  const paid = bounded(BigInt(cash.outgoing) - BigInt(cash.incoming))
+  const paid = netPaid(row.payments)
   const basis = row.basisVersions.at(-1)
   // Legacy foundation fixtures have no financial evidence. Never synthesize a
   // cash fact or historical basis version to fill a DTO.
@@ -99,6 +163,7 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
     },
     purchaseDate: date(row.purchaseDate),
     purchasePrice: row.purchasePrice.toString(),
+    ...(row.notes !== null ? { notes: row.notes } : {}),
     ...(row.listedPrice !== null
       ? { listedPrice: row.listedPrice.toString() }
       : {}),
@@ -107,25 +172,12 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
     ...(row.holdReason !== null ? { holdReason: row.holdReason } : {}),
     ...(row.receivedDate ? { receivedDate: date(row.receivedDate) } : {}),
     closedAt: row.closedAt?.toISOString() ?? null,
-    payments: row.payments.map((p) => ({
-      id: p.id,
-      owner: { type: "PURCHASE", id: p.cycleId },
-      commandId: p.commandId,
-      amount: p.amount.toString(),
-      direction: p.direction as "OUT" | "IN",
-      category: p.category,
-      date: date(p.occurredDate),
-      method: p.method as "CASH" | "BANK_TRANSFER",
-      recordedAt: p.recordedAt.toISOString(),
-      ...(p.reference !== null ? { reference: p.reference } : {}),
-      ...(p.reversalOf ? { reversalOf: p.reversalOf } : {}),
-      ...(p.reason ? { reason: p.reason } : {}),
-    })),
+    payments: row.payments.map(paymentDTO),
     outstanding: {
       seller: (row.purchasePrice - paid).toString(),
       settlement: "0",
     },
-    costs: [],
+    costs: row.costs.map(costDTO),
     repairs: [],
     mileage: row.mileage.map((m) => ({
       id: m.id,
@@ -141,7 +193,10 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
             scale: 2 as const,
             purchase: row.purchasePrice.toString(),
             repairs: "0",
-            additionalCosts: "0",
+            additionalCosts: sum(
+              row.costs.map((c) => c.amount),
+              C
+            ).toString(),
             basis: basis.total.toString(),
             cashIn: cash.incoming,
             cashOut: cash.outgoing,
@@ -189,10 +244,210 @@ const vehicleAuth = (row: Row) => ({
   createdBy: row.vehicle.createdBy,
 })
 
+function paymentProjection(
+  actor: Actor,
+  row: Row,
+  p: PurchaseCycleDTO["payments"][number],
+  cost?: Cost
+) {
+  const root = subject("PurchaseRecord", auth(row)),
+    child = cost ? subject("VehicleCost", costAuth(cost)) : null
+  const output: Record<string, unknown> = {}
+  for (const path of sourcePaymentFields) {
+    const rootPath = `${cost ? "costs." : ""}payments.${path}`
+    if (
+      !actor.ability.can("read", root, rootPath) ||
+      (child && !actor.ability.can("read", child, `payments.${path}`))
+    )
+      continue
+    const [first, second] = path.split(".")
+    const value = second
+      ? (p[first as keyof typeof p] as Record<string, unknown>)[second]
+      : p[first as keyof typeof p]
+    if (value === undefined) continue
+    if (second)
+      output[first] = { ...(output[first] as object), [second]: value }
+    else output[first] = value
+  }
+  return output
+}
+function visibleCost(
+  actor: Actor,
+  row: Row,
+  cost: Cost,
+  value = costDTO(cost)
+) {
+  if (!actor.ability.can("read", subject("VehicleCost", costAuth(cost))))
+    return null
+  const root = subject("PurchaseRecord", auth(row)),
+    { redactedFields: unused, ...projected } = project(
+      actor.ability,
+      "VehicleCost",
+      { ...value, createdBy: cost.createdBy }
+    )
+  void unused
+  delete projected.createdBy
+  for (const field of Object.keys(projected)) {
+    if (field === "payments") continue
+    if (!actor.ability.can("read", root, `costs.${field}`))
+      delete projected[field]
+  }
+  if (
+    actor.ability.can("read", root, "costs.payments") ||
+    sourcePaymentFields.some((f) =>
+      actor.ability.can("read", root, `costs.payments.${f}`)
+    )
+  ) {
+    if (
+      actor.ability.can(
+        "read",
+        subject("VehicleCost", costAuth(cost)),
+        "payments"
+      ) ||
+      sourcePaymentFields.some((f) =>
+        actor.ability.can(
+          "read",
+          subject("VehicleCost", costAuth(cost)),
+          `payments.${f}`
+        )
+      )
+    )
+      projected.payments = value.payments.map((p) =>
+        paymentProjection(actor, row, p, cost)
+      )
+  } else delete projected.payments
+  if (
+    !actor.ability.can("read", root, "costs.amount") ||
+    !actor.ability.can(
+      "read",
+      subject("VehicleCost", costAuth(cost)),
+      "amount"
+    ) ||
+    !actor.ability.can("read", root, "costs.payments.amount") ||
+    !actor.ability.can(
+      "read",
+      subject("VehicleCost", costAuth(cost)),
+      "payments.amount"
+    )
+  )
+    delete projected.outstanding
+  return projected
+}
+
+function correctionSourceReadable(actor: Actor, row: Row) {
+  const source = subject("PurchaseRecord", auth(row))
+  return (
+    [
+      "purchaseDate",
+      "purchasePrice",
+      "notes",
+      "payments.amount",
+      "payments.reason",
+    ].every((f) => actor.ability.can("read", source, f)) &&
+    row.costs.every((c) =>
+      [
+        "category",
+        "description",
+        "amount",
+        "incurredDate",
+        "payments.amount",
+        "payments.reason",
+      ].every(
+        (f) =>
+          actor.ability.can("read", source, `costs.${f}`) &&
+          actor.ability.can("read", subject("VehicleCost", costAuth(c)), f)
+      )
+    )
+  )
+}
+
 /** Independently authorize both roots and linked seller, then project every read.
  * A broad Vehicle/party grant never launders a hidden purchase or its money. */
 export function visiblePurchase(actor: Actor, row: Row) {
   const result = project(actor.ability, "PurchaseRecord", auth(row))
+  const root = subject("PurchaseRecord", auth(row))
+  if (
+    actor.ability.can("read", root, "payments") ||
+    sourcePaymentFields.some((p) =>
+      actor.ability.can("read", root, `payments.${p}`)
+    )
+  )
+    result.payments = row.payments.map((p) =>
+      paymentProjection(actor, row, paymentDTO(p))
+    )
+  const costsReadable =
+    actor.ability.can("read", root, "costs") ||
+    costReadFields.some((p) => actor.ability.can("read", root, `costs.${p}`))
+  if (costsReadable)
+    result.costs = row.costs.flatMap((c) => {
+      const value = visibleCost(actor, row, c)
+      return value ? [value] : []
+    })
+  const allCosts = row.costs.every(
+    (c) =>
+      actor.ability.can(
+        "read",
+        subject("VehicleCost", costAuth(c)),
+        "amount"
+      ) && actor.ability.can("read", root, "costs.amount")
+  )
+  const allCostCash = row.costs.every((c) =>
+    ["amount", "direction"].every(
+      (f) =>
+        actor.ability.can("read", root, `costs.payments.${f}`) &&
+        actor.ability.can(
+          "read",
+          subject("VehicleCost", costAuth(c)),
+          `payments.${f}`
+        )
+    )
+  )
+  const reasonsReadable = correctionSourceReadable(actor, row)
+  if (result.financial) {
+    const financial = result.financial as Record<string, unknown>
+    if (!allCosts)
+      for (const f of ["additionalCosts", "basis"]) {
+        delete financial[f]
+        result.redactedFields.push(`financial.${f}`)
+      }
+    if (!allCostCash)
+      for (const f of ["cashIn", "cashOut", "net"]) {
+        delete financial[f]
+        result.redactedFields.push(`financial.${f}`)
+      }
+  }
+  if (!allCosts) {
+    delete result.basisVersions
+    result.redactedFields.push("basisVersions")
+  } else if (
+    actor.ability.can("read", root, "basisVersions") ||
+    ["id", "version", "total", "reason"].some((f) =>
+      actor.ability.can("read", root, `basisVersions.${f}`)
+    )
+  )
+    result.basisVersions = purchaseDTO(row).basisVersions.map((b) =>
+      Object.fromEntries(
+        Object.entries(b).filter(
+          ([f]) =>
+            actor.ability.can("read", root, `basisVersions.${f}`) &&
+            (f !== "reason" || b.version === 1 || reasonsReadable)
+        )
+      )
+    )
+  if (!reasonsReadable && row.basisVersions.some((b) => b.version > 1))
+    result.redactedFields.push("basisVersions.reason")
+  const purchaseCashReadable = ["amount", "direction"].every((f) =>
+    actor.ability.can("read", root, `payments.${f}`)
+  )
+  if (!purchaseCashReadable) {
+    delete result.outstanding
+    result.redactedFields.push("outstanding")
+    if (result.financial)
+      for (const f of ["cashIn", "cashOut", "net"]) {
+        delete (result.financial as Record<string, unknown>)[f]
+        result.redactedFields.push(`financial.${f}`)
+      }
+  }
   if ("nextActions" in result) {
     const readable =
       [
@@ -298,6 +553,11 @@ export function visiblePurchase(actor: Actor, row: Row) {
       }
     }
   }
+  if ("nextActions" in result)
+    result.nextActions = [
+      ...(result.nextActions as string[]),
+      ...availableMoneyActions(actor, row),
+    ]
   result.redactedFields = [
     ...new Set(result.redactedFields.filter((f) => f !== "createdBy")),
   ]
@@ -889,6 +1149,832 @@ export async function executeStock(
   })
 }
 
+type MoneyInput<N extends CycleMoneyCommand> = z.infer<
+  (typeof cycleMoneyInputs)[N]
+>
+type MoneyIntent = {
+  [N in CycleMoneyCommand]: { name: N; input: MoneyInput<N> }
+}[CycleMoneyCommand]
+const cashFields = (cash: { reference?: string }, prefix = "payment") =>
+  [
+    "amount",
+    "date",
+    "method",
+    ...(cash.reference !== undefined ? ["reference"] : []),
+  ].map((f) => `${prefix}.${f}`)
+function moneyAuthority(
+  actor: Actor,
+  row: Row,
+  intent: MoneyIntent,
+  cost?: Cost
+) {
+  const { name, input } = intent
+  requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+    "id",
+    "revision",
+  ])
+  requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
+    "id",
+    "identityRevision",
+  ])
+  if (cost)
+    requireFields(actor.ability, "VehicleCost", "read", costAuth(cost), [
+      "id",
+      "revision",
+    ])
+  if (name === "payPurchase")
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "purchasePrice",
+      "outstanding.seller",
+      "payments.amount",
+      "payments.direction",
+    ])
+  if (name === "payCost" || (name === "reversePayment" && cost)) {
+    requireFields(actor.ability, "VehicleCost", "read", costAuth(cost!), [
+      "amount",
+      "outstanding",
+      "payments.amount",
+      "payments.direction",
+    ])
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "costs.id",
+      "costs.revision",
+      "costs.amount",
+      "costs.outstanding",
+      "costs.payments.amount",
+      "costs.payments.direction",
+    ])
+  }
+  if (
+    name === "reversePayment" ||
+    (name === "editPurchase" && input.cashCorrections.length)
+  ) {
+    const required = [
+      "id",
+      "amount",
+      "direction",
+      "date",
+      "method",
+      "reversalOf",
+    ]
+    requireFields(
+      actor.ability,
+      "PurchaseRecord",
+      "read",
+      auth(row),
+      required.map((f) => `${cost ? "costs." : ""}payments.${f}`)
+    )
+    if (cost)
+      requireFields(
+        actor.ability,
+        "VehicleCost",
+        "read",
+        costAuth(cost),
+        required.map((f) => `payments.${f}`)
+      )
+  }
+  if (name === "addCost") {
+    requireFields(actor.ability, "PurchaseRecord", "update", auth(row), [
+      "cycleId",
+    ])
+    const candidate = { createdBy: actor.userId }
+    requireFields(actor.ability, "VehicleCost", "read", candidate, [
+      "id",
+      "revision",
+    ])
+    requireFields(actor.ability, "VehicleCost", "create", candidate, [
+      "cycleId",
+      "category",
+      "description",
+      "amount",
+      "incurredDate",
+    ])
+    if (input.payment) {
+      requireFields(actor.ability, "PurchaseRecord", "pay", auth(row), [
+        "cycleId",
+      ])
+      requireFields(
+        actor.ability,
+        "VehicleCost",
+        "pay",
+        candidate,
+        cashFields(input.payment)
+      )
+    }
+  } else if (name === "editCost") {
+    requireFields(actor.ability, "PurchaseRecord", "update", auth(row), [
+      "cycleId",
+    ])
+    requireFields(
+      actor.ability,
+      "VehicleCost",
+      "update",
+      costAuth(cost!),
+      Object.keys(input)
+    )
+  } else if (name === "editPurchase") {
+    requireFields(actor.ability, "PurchaseRecord", "update", auth(row), [
+      "cycleId",
+      "reason",
+      ...Object.keys(input.patch).map((f) => `patch.${f}`),
+    ])
+    if (input.cashCorrections.length)
+      requireFields(actor.ability, "PurchaseRecord", "pay", auth(row), [
+        "cycleId",
+        "cashCorrections.paymentId",
+        "cashCorrections.reason",
+        ...input.cashCorrections.flatMap((c) =>
+          c.replacement
+            ? cashFields(c.replacement, "cashCorrections.replacement")
+            : []
+        ),
+      ])
+  } else {
+    const fields =
+      name === "reversePayment"
+        ? [
+            "sourceType",
+            "sourceId",
+            "paymentId",
+            "reason",
+            ...(input.replacement
+              ? cashFields(input.replacement, "replacement")
+              : []),
+          ]
+        : [
+            name === "payCost" ? "costId" : "cycleId",
+            ...(name === "payPurchase" ? ["recipient"] : []),
+            ...cashFields(input.payment),
+          ]
+    requireFields(
+      actor.ability,
+      "PurchaseRecord",
+      "pay",
+      auth(row),
+      cost ? ["cycleId"] : fields
+    )
+    if (cost)
+      requireFields(actor.ability, "VehicleCost", "pay", costAuth(cost), fields)
+  }
+}
+function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
+  if (
+    !row.acquisitionCommandId ||
+    row.closedAt ||
+    row.vehicle.activePurchaseId !== row.id ||
+    !["PURCHASED", "IN_STOCK"].includes(row.status)
+  )
+    return []
+  const allowed = (intent: MoneyIntent, cost?: Cost) => {
+    try {
+      moneyAuthority(actor, row, intent, cost)
+      return true
+    } catch {
+      return false
+    }
+  }
+  const result: CycleMoneyCommand[] = []
+  if (
+    allowed({
+      name: "addCost",
+      input: {
+        cycleId: row.id,
+        category: "",
+        description: "",
+        amount: "0",
+        incurredDate: "",
+      },
+    })
+  )
+    result.push("addCost")
+  if (
+    [
+      "purchaseDate",
+      "purchasePrice",
+      "notes",
+      "vehicleId",
+      "identityRevision",
+    ].every((f) =>
+      actor.ability.can("read", subject("PurchaseRecord", auth(row)), f)
+    ) &&
+    allowed({
+      name: "editPurchase",
+      input: {
+        cycleId: row.id,
+        reason: "",
+        patch: { purchaseDate: "", purchasePrice: "1", notes: null },
+        cashCorrections: [],
+      },
+    })
+  )
+    result.push("editPurchase")
+  const cash = { amount: "1", date: "", method: "CASH" as const }
+  if (
+    row.purchasePrice > netPaid(row.payments) &&
+    allowed({
+      name: "payPurchase",
+      input: { cycleId: row.id, recipient: "SELLER", payment: cash },
+    })
+  )
+    result.push("payPurchase")
+  for (const c of row.costs) {
+    const readable = [
+      "id",
+      "revision",
+      "category",
+      "description",
+      "amount",
+      "incurredDate",
+      "outstanding",
+    ].every(
+      (f) =>
+        actor.ability.can("read", subject("VehicleCost", costAuth(c)), f) &&
+        actor.ability.can(
+          "read",
+          subject("PurchaseRecord", auth(row)),
+          `costs.${f}`
+        )
+    )
+    if (!readable) continue
+    if (
+      allowed(
+        {
+          name: "editCost",
+          input: {
+            costId: c.id,
+            category: "",
+            description: "",
+            amount: "0",
+            incurredDate: "",
+            reason: "",
+          },
+        },
+        c
+      )
+    )
+      result.push("editCost")
+    if (
+      c.amount > netPaid(c.payments) &&
+      allowed({ name: "payCost", input: { costId: c.id, payment: cash } }, c)
+    )
+      result.push("payCost")
+    if (
+      c.payments.some(
+        (p) => !p.reversalOf && !c.payments.some((r) => r.reversalOf === p.id)
+      ) &&
+      allowed(
+        {
+          name: "reversePayment",
+          input: {
+            sourceType: "COST",
+            sourceId: c.id,
+            paymentId: "",
+            reason: "",
+          },
+        },
+        c
+      )
+    )
+      result.push("reversePayment")
+  }
+  if (
+    row.payments.some(
+      (p) => !p.reversalOf && !row.payments.some((r) => r.reversalOf === p.id)
+    ) &&
+    allowed({
+      name: "reversePayment",
+      input: {
+        sourceType: "PURCHASE",
+        sourceId: row.id,
+        paymentId: "",
+        reason: "",
+      },
+    })
+  )
+    result.push("reversePayment")
+  return [...new Set(result)]
+}
+
+/** Bounded cycle-owned costs/terms only. Each intent is one truthful commit. */
+export async function executeCycleMoney(
+  identity: Identity,
+  name: CycleMoneyCommand,
+  raw: unknown
+): Promise<Applied> {
+  await database().$transaction(async (tx) => {
+    await assertEnvironment(tx)
+    await currentActor(tx, identity)
+  })
+  // Preserve the established overflow discriminator rather than accepting an
+  // unsafe number or quietly reducing a monetary value in validation.
+  const checkMoney = (value: unknown, key = "") => {
+    if (
+      ["amount", "purchasePrice"].includes(key) &&
+      typeof value === "string" &&
+      /^[1-9][0-9]{14,}$/.test(value)
+    )
+      fail("MONEY_OVERFLOW", 422)
+    if (Array.isArray(value)) value.forEach((v) => checkMoney(v))
+    else if (value && typeof value === "object")
+      for (const [k, v] of Object.entries(value)) checkMoney(v, k)
+  }
+  checkMoney(raw)
+  const parsed = cycleMoneyEnvelope(name).safeParse(raw)
+  if (!parsed.success) fail("INVALID_INPUT", 422)
+  const envelope = parsed.data,
+    intent = { name, input: envelope.input } as MoneyIntent,
+    input = intent.input,
+    config = runtimeConfig(),
+    digest = inputDigest(envelope, config.BETTER_AUTH_SECRET)
+  return transaction(async (tx) => {
+    await tx.$queryRaw`SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE`
+    await tx.$queryRaw`SELECT vamotors.lock_admin_guard()`
+    const actor = await currentActor(tx, identity)
+    const scope = {
+      environmentId: config.ENVIRONMENT_ID,
+      actorKey: `USER:${actor.userId}`,
+      commandName: name,
+      idempotencyKey: envelope.idempotencyKey,
+    }
+    const prior = await tx.commandReceipt.findUnique({
+      where: { environmentId_actorKey_commandName_idempotencyKey: scope },
+    })
+    // Child and payment owners are resolved from persisted FKs, never expected[].
+    let costId = "costId" in input ? input.costId : undefined
+    let cycleId = "cycleId" in input ? input.cycleId : undefined
+    if (intent.name === "reversePayment") {
+      const p =
+        intent.input.sourceType === "COST"
+          ? await tx.costPayment.findUnique({
+              where: { id: intent.input.paymentId },
+            })
+          : await tx.purchasePayment.findUnique({
+              where: { id: intent.input.paymentId },
+            })
+      if (
+        !p ||
+        ("costId" in p ? p.costId : p.cycleId) !== intent.input.sourceId
+      )
+        fail("NOT_FOUND", 404)
+      cycleId = p.cycleId
+      if ("costId" in p && typeof p.costId === "string") costId = p.costId
+    }
+    if (costId) {
+      const cost = await tx.vehicleCost.findUnique({ where: { id: costId } })
+      if (!cost) fail("NOT_FOUND", 404)
+      cycleId = cost.cycleId
+    }
+    if (!cycleId) fail("NOT_FOUND", 404)
+    const planned = await load(tx, cycleId)
+    if (!planned) fail("NOT_FOUND", 404)
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`Vehicle:${planned.vehicleId}`},0))::text`
+    await tx.$queryRaw`SELECT id FROM vamotors."PurchaseRecord" WHERE id=${cycleId}::uuid FOR UPDATE`
+    if (costId)
+      await tx.$queryRaw`SELECT id FROM vamotors."VehicleCost" WHERE id=${costId}::uuid FOR UPDATE`
+    const row = (await load(tx, cycleId))!,
+      cost = row.costs.find((c) => c.id === costId)
+    moneyAuthority(actor, row, intent, cost)
+    if (intent.name === "editPurchase")
+      requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
+        "id",
+        "identityRevision",
+      ])
+    const refs: Dependency[] = [
+      { type: "PurchaseRecord", id: row.id, revision: row.revision },
+      ...(cost
+        ? [
+            {
+              type: "VehicleCost" as const,
+              id: cost.id,
+              revision: cost.revision,
+            },
+          ]
+        : []),
+      ...(intent.name === "editPurchase"
+        ? [
+            {
+              type: "Vehicle" as const,
+              id: row.vehicleId,
+              revision: row.vehicle.revision,
+            },
+          ]
+        : []),
+    ]
+    const affected = (): Dependency[] => [
+      ...refs.filter((r) => r.type !== "Vehicle"),
+      { type: "Vehicle", id: row.vehicleId, revision: row.vehicle.revision },
+    ]
+    const invalidate: Applied["invalidate"] = [
+      "inventory",
+      "purchases",
+      "parties",
+      "reports",
+      "dashboard",
+    ]
+    if (prior) {
+      const result = prior.result as Applied["result"]
+      const expectedId =
+        intent.name === "addCost"
+          ? row.costs.find((c) => c.commandId === prior.id)?.id
+          : (cost?.id ?? row.id)
+      if (
+        prior.inputHash !== digest ||
+        result.id !== expectedId ||
+        result.type !==
+          (cost || intent.name === "addCost" ? "VehicleCost" : "PurchaseRecord")
+      )
+        fail("IDEMPOTENCY_MISMATCH")
+      if (intent.name === "addCost") {
+        const created = row.costs.find((c) => c.id === result.id)!
+        requireFields(actor.ability, "VehicleCost", "read", costAuth(created), [
+          "id",
+          "revision",
+        ])
+        refs.push({
+          type: "VehicleCost",
+          id: created.id,
+          revision: created.revision,
+        })
+      }
+      return {
+        ok: true,
+        status: "APPLIED",
+        commandId: prior.id,
+        replayed: true,
+        result,
+        affected: affected(),
+        invalidate,
+      }
+    }
+    for (const ref of refs) requireRef(envelope.expected, ref)
+    if (
+      !row.acquisitionCommandId ||
+      row.closedAt ||
+      row.vehicle.activePurchaseId !== row.id ||
+      row.acquisitionKind !== "SUPPLIER" ||
+      !["CASH", "BRAND_NEW"].includes(row.purchaseType) ||
+      !["PURCHASED", "IN_STOCK"].includes(row.status)
+    )
+      fail("INVALID_STATE")
+    if (row.revision === 2147483647 || cost?.revision === 2147483647)
+      fail("REVISION_EXHAUSTED")
+    const today = colomboToday(),
+      reason = "reason" in input ? input.reason : undefined
+    const checkDate = (value: string, earliest: string) => {
+      if (value < earliest || value > today) fail("INVALID_INPUT", 422)
+    }
+    const purchaseDate =
+      intent.name === "editPurchase"
+        ? (intent.input.patch.purchaseDate ?? date(row.purchaseDate))
+        : date(row.purchaseDate)
+    const checkCash = (
+      cash: MoneyInput<"payCost">["payment"],
+      earliest: string
+    ) => checkDate(cash.date, earliest)
+    if (intent.name === "addCost" || intent.name === "editCost") {
+      checkDate(intent.input.incurredDate, purchaseDate)
+      if (intent.name === "addCost" && intent.input.payment)
+        checkCash(intent.input.payment, intent.input.incurredDate)
+      if (
+        intent.name === "editCost" &&
+        cost!.payments.some(
+          (p) =>
+            !p.reversalOf &&
+            !cost!.payments.some((r) => r.reversalOf === p.id) &&
+            date(p.occurredDate) < intent.input.incurredDate
+        )
+      )
+        fail("INVALID_INPUT", 422)
+      if (
+        intent.name === "editCost" &&
+        BigInt(intent.input.amount) < netPaid(cost!.payments)
+      )
+        fail("BALANCE_MISMATCH", 422)
+      if (
+        intent.name === "addCost" &&
+        intent.input.payment &&
+        BigInt(intent.input.payment.amount) > BigInt(intent.input.amount)
+      )
+        fail("BALANCE_MISMATCH", 422)
+      if (
+        intent.name === "editCost" &&
+        intent.input.category === cost!.category &&
+        intent.input.description === cost!.description &&
+        BigInt(intent.input.amount) === cost!.amount &&
+        intent.input.incurredDate === date(cost!.incurredDate)
+      )
+        fail("INVALID_STATE")
+    }
+    if (intent.name === "payCost" || intent.name === "payPurchase")
+      checkCash(
+        intent.input.payment,
+        cost ? date(cost.incurredDate) : purchaseDate
+      )
+    if (intent.name === "editPurchase") {
+      checkDate(purchaseDate, "0001-01-01")
+      if (
+        row.mileage.some((m) => date(m.recordedDate) < purchaseDate) ||
+        row.costs.some((c) => date(c.incurredDate) < purchaseDate) ||
+        (row.receivedDate && date(row.receivedDate) < purchaseDate)
+      )
+        fail("INVALID_INPUT", 422)
+      if (
+        Object.keys(intent.input.patch).every((k) =>
+          k === "purchaseDate"
+            ? purchaseDate === date(row.purchaseDate)
+            : k === "purchasePrice"
+              ? BigInt(intent.input.patch.purchasePrice!) === row.purchasePrice
+              : (intent.input.patch.notes ?? null) === row.notes
+        ) &&
+        !intent.input.cashCorrections.length
+      )
+        fail("INVALID_STATE")
+    }
+    const sequence = await nextBusinessSequence(tx),
+      commandId = randomUUID(),
+      newCostId = name === "addCost" ? randomUUID() : costId
+    const result = {
+      type: newCostId ? "VehicleCost" : "PurchaseRecord",
+      id: newCostId ?? row.id,
+      revision: name === "addCost" ? 1 : (cost?.revision ?? row.revision) + 1,
+    }
+    await tx.commandReceipt.create({
+      data: {
+        id: commandId,
+        ...scope,
+        inputHash: digest,
+        result,
+        businessSequence: sequence,
+      },
+    })
+    const basis = row.basisVersions.at(-1)!
+    const appendPayment = async (
+      cash: MoneyInput<"payCost">["payment"],
+      lineKey: string,
+      targetCostId?: string,
+      correction?: { original: Payment; reason: string; reversal: boolean }
+    ) => {
+      const p = correction?.original
+      const data = {
+        cycleId: row.id,
+        commandId,
+        lineKey,
+        amount: correction?.reversal ? p!.amount : BigInt(cash.amount),
+        direction: correction?.reversal ? "IN" : "OUT",
+        category: targetCostId ? "COST" : "SELLER",
+        occurredDate: correction?.reversal
+          ? p!.occurredDate
+          : new Date(cash.date),
+        method: correction?.reversal ? p!.method : cash.method,
+        currency: basis.currency,
+        scale: basis.scale,
+        reference: correction?.reversal ? p!.reference : cash.reference,
+        ...(correction ? { reason: correction.reason } : {}),
+        ...(correction?.reversal ? { reversalOf: p!.id } : {}),
+      }
+      if (targetCostId)
+        await tx.costPayment.create({
+          data: { ...data, costId: targetCostId, createdBy: actor.userId },
+        })
+      else await tx.purchasePayment.create({ data })
+    }
+    const reverse = async (
+      paymentId: string,
+      replacement: MoneyInput<"reversePayment">["replacement"],
+      why: string,
+      target?: Cost
+    ) => {
+      const payments = target?.payments ?? row.payments,
+        original = payments.find((p) => p.id === paymentId)
+      if (!original) fail("NOT_FOUND", 404)
+      if (
+        original.reversalOf ||
+        payments.some((p) => p.reversalOf === original.id)
+      )
+        fail("INVALID_STATE")
+      const cash = {
+        amount: original.amount.toString(),
+        date: date(original.occurredDate),
+        method: original.method as "CASH" | "BANK_TRANSFER",
+      }
+      if (replacement)
+        checkCash(
+          replacement,
+          target ? date(target.incurredDate) : purchaseDate
+        )
+      await appendPayment(cash, `reverse:${paymentId}`, target?.id, {
+        original,
+        reason: why,
+        reversal: true,
+      })
+      if (replacement)
+        await appendPayment(replacement, `replace:${paymentId}`, target?.id, {
+          original,
+          reason: why,
+          reversal: false,
+        })
+    }
+    if (intent.name === "addCost") {
+      const { payment, ...terms } = intent.input
+      await tx.vehicleCost.create({
+        data: {
+          ...terms,
+          id: newCostId,
+          amount: BigInt(terms.amount),
+          incurredDate: new Date(terms.incurredDate),
+          createdBy: actor.userId,
+          commandId,
+        },
+      })
+      if (payment) await appendPayment(payment, "payment", newCostId)
+    } else if (intent.name === "editCost") {
+      const { costId: target, reason: unused, ...terms } = intent.input
+      void unused
+      await tx.vehicleCost.update({
+        where: { id: target },
+        data: {
+          ...terms,
+          amount: BigInt(terms.amount),
+          incurredDate: new Date(terms.incurredDate),
+          revision: { increment: 1 },
+        },
+      })
+    } else if (intent.name === "payCost" || intent.name === "payPurchase")
+      await appendPayment(intent.input.payment, "payment", costId)
+    else if (intent.name === "reversePayment")
+      await reverse(
+        intent.input.paymentId,
+        intent.input.replacement,
+        intent.input.reason,
+        cost
+      )
+    else
+      for (const correction of intent.input.cashCorrections)
+        await reverse(
+          correction.paymentId,
+          correction.replacement,
+          correction.reason
+        )
+    if (cost && intent.name !== "editCost")
+      await tx.vehicleCost.update({
+        where: { id: cost.id },
+        data: { revision: { increment: 1 } },
+      })
+    await tx.purchaseRecord.update({
+      where: { id: row.id },
+      data: {
+        revision: { increment: 1 },
+        ...(intent.name === "editPurchase"
+          ? {
+              ...(intent.input.patch.purchaseDate
+                ? { purchaseDate: new Date(purchaseDate) }
+                : {}),
+              ...(intent.input.patch.purchasePrice
+                ? { purchasePrice: BigInt(intent.input.patch.purchasePrice) }
+                : {}),
+              ...(intent.input.patch.notes !== undefined
+                ? { notes: intent.input.patch.notes }
+                : {}),
+            }
+          : {}),
+      },
+    })
+    let after = (await load(tx, row.id))!
+    const checkCap = (payments: Payment[], maximum: bigint) => {
+      const paid = netPaid(payments),
+        cash = cashTotals(
+          payments.map((p) => ({
+            direction: p.direction as "IN" | "OUT",
+            amount: p.amount.toString(),
+          }))
+        )
+      bounded(BigInt(cash.incoming), C)
+      bounded(BigInt(cash.outgoing), C)
+      if (paid < 0n || paid > maximum) fail("BALANCE_MISMATCH", 422)
+    }
+    checkCap(after.payments, after.purchasePrice)
+    for (const c of after.costs) checkCap(c.payments, c.amount)
+    if (
+      after.payments.some(
+        (p) =>
+          !p.reversalOf &&
+          !after.payments.some((r) => r.reversalOf === p.id) &&
+          date(p.occurredDate) < purchaseDate
+      )
+    )
+      fail("INVALID_INPUT", 422)
+    if (
+      intent.name === "addCost" ||
+      intent.name === "editCost" ||
+      after.purchasePrice !== row.purchasePrice
+    ) {
+      if (basis.version === 2147483647) fail("REVISION_EXHAUSTED")
+      const total = sum(
+        [after.purchasePrice, ...after.costs.map((c) => c.amount)],
+        C
+      )
+      await tx.cycleBasisVersion.create({
+        data: {
+          cycleId: row.id,
+          commandId,
+          version: basis.version + 1,
+          purchase: after.purchasePrice,
+          total,
+          currency: basis.currency,
+          scale: basis.scale,
+          reason: reason ?? "Additional incurred cost",
+          supersedesId: basis.id,
+          components: {
+            purchase: after.purchasePrice.toString(),
+            repairs: [],
+            costs: after.costs.map((c) => ({
+              id: c.id,
+              amount: c.amount.toString(),
+            })),
+          },
+        },
+      })
+      after = (await load(tx, row.id))!
+    }
+    for (const [entityType, entityId, before, payload, revision] of [
+      [
+        "PurchaseRecord",
+        row.id,
+        purchaseDTO(row),
+        purchaseDTO(after),
+        after.revision,
+      ],
+      [
+        "Vehicle",
+        row.vehicleId,
+        vehicleDTO(row),
+        vehicleDTO(after),
+        row.vehicle.revision,
+      ],
+    ] as const) {
+      await audit(tx, {
+        commandId,
+        userId: actor.userId,
+        entityType,
+        entityId,
+        action: name,
+        reason,
+        before,
+        after: payload,
+      })
+      await writeReadVersion(tx, {
+        commandId,
+        sequence,
+        entityType,
+        entityId,
+        revision,
+        payload,
+      })
+    }
+    const updatedCost = after.costs.find((c) => c.id === newCostId)
+    if (updatedCost) {
+      requireFields(
+        actor.ability,
+        "VehicleCost",
+        "read",
+        costAuth(updatedCost),
+        ["id", "revision"]
+      )
+      await audit(tx, {
+        commandId,
+        userId: actor.userId,
+        entityType: "VehicleCost",
+        entityId: updatedCost.id,
+        action: name,
+        reason,
+        before: cost ? costDTO(cost) : null,
+        after: costDTO(updatedCost),
+      })
+    }
+    return {
+      ok: true,
+      status: "APPLIED",
+      commandId,
+      replayed: false,
+      result,
+      affected: [
+        { type: "PurchaseRecord", id: row.id, revision: after.revision },
+        ...(updatedCost
+          ? [
+              {
+                type: "VehicleCost" as const,
+                id: updatedCost.id,
+                revision: updatedCost.revision,
+              },
+            ]
+          : []),
+        { type: "Vehicle", id: row.vehicleId, revision: row.vehicle.revision },
+      ],
+      invalidate,
+    }
+  })
+}
+
 export async function purchaseQuery(
   tx: Tx,
   actor: Actor,
@@ -908,24 +1994,43 @@ export async function purchaseQuery(
   }
   if (name === "audit") {
     const parsed = listParams
-      .extend({ type: z.enum(["Vehicle", "PurchaseRecord"]), id })
+      .extend({
+        type: z.enum(["Vehicle", "PurchaseRecord", "VehicleCost"]),
+        id,
+      })
       .strict()
       .safeParse(args)
     if (!parsed.success) fail("INVALID_INPUT", 422)
     const input = parsed.data
+    const targetCost =
+      input.type === "VehicleCost"
+        ? await tx.vehicleCost.findUnique({ where: { id: input.id } })
+        : null
     const row =
       input.type === "PurchaseRecord"
         ? await load(tx, input.id)
-        : await tx.purchaseRecord.findFirst({
-            where: { vehicleId: input.id },
-            include,
-            orderBy: { cycleNumber: "desc" },
-          })
+        : input.type === "VehicleCost"
+          ? targetCost
+            ? await load(tx, targetCost.cycleId)
+            : null
+          : await tx.purchaseRecord.findFirst({
+              where: { vehicleId: input.id },
+              include,
+              orderBy: { cycleNumber: "desc" },
+            })
     if (!row) fail("NOT_FOUND", 404)
+    const cost = row.costs.find((c) => c.id === input.id)
+    if (input.type === "VehicleCost")
+      requireFields(actor.ability, "PurchaseRecord", "read", auth(row), ["id"])
     const visible =
       input.type === "PurchaseRecord"
         ? visiblePurchase(actor, row)
-        : visibleVehicle(actor, row)
+        : input.type === "VehicleCost"
+          ? cost
+            ? visibleCost(actor, row, cost)
+            : null
+          : visibleVehicle(actor, row)
+    if (!visible) fail("NOT_FOUND", 404)
     if (!visible.id) fail("FIELD_FORBIDDEN", 403)
     // Historical hold values (including duplicated stock audit reasons) inherit
     // current source-field authority, not presence of an optional current value.
@@ -967,10 +2072,22 @@ export async function purchaseQuery(
         )
     const mask = (value: unknown, witness: unknown): unknown => {
       if (value === null || typeof value !== "object") return value
-      if (Array.isArray(value))
-        return value.map((v) =>
-          mask(v, Array.isArray(witness) ? witness[0] : undefined)
-        )
+      if (Array.isArray(value)) {
+        if (!Array.isArray(witness)) return undefined
+        return value.flatMap((v) => {
+          const w =
+            v && typeof v === "object" && "id" in v
+              ? witness.find(
+                  (candidate) =>
+                    candidate &&
+                    typeof candidate === "object" &&
+                    candidate.id === v.id
+                )
+              : witness[0]
+          if (w === undefined) return []
+          return [mask(v, w)]
+        })
+      }
       if (!witness || typeof witness !== "object") return undefined
       return Object.fromEntries(
         Object.entries(value)
@@ -1021,6 +2138,14 @@ export async function purchaseQuery(
       ) {
         delete result.reason
         redactedFields.push("reason")
+      }
+      if (
+        ["editCost", "editPurchase", "reversePayment"].includes(entry.action)
+      ) {
+        if (!correctionSourceReadable(actor, row) && "reason" in result) {
+          delete result.reason
+          redactedFields.push("reason")
+        }
       }
       result.redactedFields.push(...redactedFields)
       return result
