@@ -173,6 +173,14 @@ async function denied(
   return value
 }
 async function group(name: string, run: () => Promise<void>) {
+  if (process.argv[3] && !name.includes(process.argv[3])) {
+    groups.push({
+      group: name,
+      skipped: true,
+      reason: "Explicit diagnostic group filter",
+    })
+    return
+  }
   stage = name
   await run()
   groups.push({ group: name, pass: true })
@@ -445,8 +453,23 @@ try {
         )
       )
       const foreign = await staff.get(`/approvals/${p.p.approvalId}`)
+      const html = await foreign.text()
+      await writeFile(
+        join(root, `approval-foreign-rsc-${Date.now()}.json`),
+        JSON.stringify(
+          {
+            status: foreign.status(),
+            body: html,
+            containsPrivateReason: html.includes("PRIVATE_REQUEST_REASON"),
+            containsNotFound: html.includes("NEXT_HTTP_ERROR_FALLBACK;404"),
+          },
+          null,
+          2
+        ),
+        { mode: 0o600 }
+      )
       assert.equal(foreign.status(), 404)
-      assert.ok(!(await foreign.text()).includes("PRIVATE_REQUEST_REASON"))
+      assert.ok(!html.includes("PRIVATE_REQUEST_REASON"))
     }
   )
   await group(

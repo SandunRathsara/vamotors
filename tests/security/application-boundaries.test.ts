@@ -116,9 +116,15 @@ describe("global entry-point inventory", () => {
       "app/(app)/approvals/[id]/page.tsx",
       "utf8"
     )
-    expect(approvalDetail).toContain("await authenticate(await headers())")
     expect(approvalDetail).toContain(
-      "approvalDetail(tx, await currentActor(tx, identity), id)"
+      "authenticatedApprovalDetail(await headers(), id)"
+    )
+    const owner = readFileSync("lib/server/approvals.ts", "utf8")
+    expect(owner).toContain(
+      "approvalDetail(tx, await currentActor(tx, identity), approvalId)"
+    )
+    expect(readFileSync("proxy.ts", "utf8")).toContain(
+      "authenticatedApprovalDetail(request.headers, approval[1])"
     )
     expect(approvalDetail).not.toMatch(/approvalQuery|pageSize|commandReceipt/)
     expect(existsSync("app/(app)/approvals/loading.tsx")).toBe(false)

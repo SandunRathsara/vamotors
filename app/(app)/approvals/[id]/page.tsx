@@ -1,8 +1,6 @@
 import { headers } from "next/headers"
 import { notFound, redirect } from "next/navigation"
-import { authenticate, currentActor } from "@/lib/server/actor"
-import { database, assertEnvironment } from "@/lib/server/db"
-import { approvalDetail } from "@/lib/server/approvals"
+import { authenticatedApprovalDetail } from "@/lib/server/approvals"
 import { ApprovalDetail } from "@/components/approvals/write-off"
 import { CommandError } from "@/lib/server/errors"
 
@@ -12,16 +10,9 @@ export default async function ApprovalPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  let detail: Awaited<ReturnType<typeof approvalDetail>>
+  let detail: Awaited<ReturnType<typeof authenticatedApprovalDetail>>
   try {
-    const identity = await authenticate(await headers())
-    detail = await database().$transaction(
-      async (tx) => {
-        await assertEnvironment(tx)
-        return approvalDetail(tx, await currentActor(tx, identity), id)
-      },
-      { isolationLevel: "RepeatableRead" }
-    )
+    detail = await authenticatedApprovalDetail(await headers(), id)
   } catch (error) {
     if (error instanceof CommandError) {
       if (error.status === 401 || error.code === "ACCOUNT_INACTIVE")

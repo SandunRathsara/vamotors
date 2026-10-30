@@ -78,6 +78,14 @@ its no-work/released statements no longer describe current ownership.
   Full clean-source campaign, UI/SW/races/restart/file proof and accepted-parent
   migration/upgrade remain unfinished; no ownership release or acceptance claim.
 
+- Clean `f0a2dea` build and150 units passed; the restricted SQL campaign passed,
+  including the now-rejected standalone history forgery. Full authority rerun
+  still found streamed HTTP200 on foreign detail even without parent loading.
+  An isolated retained HTML artifact proves `NEXT_HTTP_ERROR_FALLBACK;404` with
+  no private reason, but **does not meet hard HTTP404**. A narrow exact-route
+  proxy preflight now calls the same authenticated detail owner as the RSC;
+  the page independently repeats that lookup. This change is not verified yet.
+
 ## Historical frozen checkpoint — preserved verbatim below
 
 Parent requested safe checkpoint/freeze/release before reassigning a bounded

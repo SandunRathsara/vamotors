@@ -11,9 +11,10 @@ import type {
   Visible,
   PurchaseCycleDTO,
 } from "../../.planning/implementation/contracts/api"
-import { database, type Tx } from "./db"
+import { database, assertEnvironment, type Tx } from "./db"
 import {
   currentActor,
+  authenticate,
   userAuthority,
   type Authority,
   type Identity,
@@ -316,6 +317,20 @@ export function visibleApproval(
     ...new Set(value.redactedFields.filter((f) => f !== "createdBy")),
   ]
   return value
+}
+/** Shared exact authorized page lookup; no DTO cache or page-scanned inbox. */
+export async function authenticatedApprovalDetail(
+  headers: Headers,
+  approvalId: string
+) {
+  const identity = await authenticate(headers)
+  return database().$transaction(
+    async (tx) => {
+      await assertEnvironment(tx)
+      return approvalDetail(tx, await currentActor(tx, identity), approvalId)
+    },
+    { isolationLevel: "RepeatableRead" }
+  )
 }
 export async function approvalDetail(
   tx: Tx,
