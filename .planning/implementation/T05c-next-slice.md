@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md)/original failures unchanged. [Parent REJECTS038/UI P2 OPEN/VPRC-02 KEEP_U; two boundary decisions at038](evidence/T05c2-038e53f-ui-rejection-attributed.md), reviewer COMPLETED FAIL/closed-retained/no overall acceptance. Genuine fixture NOW upgraded16/12, archived555 seal unchanged. [HANDOFF](HANDOFF.md): WRITE_OFF freeze REQUESTED/no ACK/sole active until ACK/no UI correction assigned. Source/matrix/full scopes/gates exact326/038/primary555/humanG2d0 untouched/no runtime/FF; future equivalent-proof reuse NOT dispatch.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md)/original failures unchanged. [WRITE_OFF712 FROZEN/released; parent assigns sole bounded FC-UI-C01 corrector from rejected038](evidence/T07a-T08a-712af18-freeze-ui-transfer-attributed.md), new branch/worktree/HEAD/results unknown/no polling.038 REJECTED/P2 OPEN/VPRC-02 U/at038 boundary decisions unchanged; same completed reviewer/upgraded03816/12 fixture awaits future frozen combined target, equivalence-based reuse+ALL remaining proof/no fake555 rebuild. [HANDOFF](HANDOFF.md); source/matrix/scopes/gates exact9a/038/primary555/humanG2d0 untouched/no runtime/FF.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

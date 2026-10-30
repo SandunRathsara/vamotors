@@ -1,5 +1,11 @@
 # Parent rejects038 for finance-company UI P2; two defect-specific closures accepted
 
+## Current ownership supersedes the historical freeze-request timing below
+
+WRITE_OFF now **FROZEN/SHARED RELEASE ACK712**; parent **NOW assigns original settlement author sole bounded UI correction from rejected038**, NEW own worktree/branch/HEAD/results unknown/not inspected. [712 handback/2023 parent verification/current assignment and next-proof boundary](T07a-T08a-712af18-freeze-ui-transfer-attributed.md), [HANDOFF](../HANDOFF.md).038 rejection/gross+incurred decisions remain unchanged. The original9a adjudication body below is retained verbatim; “no ACK/no correction assigned/future plan” describes that earlier decision time, **not current ownership**. No review until a future frozen exact corrected-combined target; same genuine fixture already upgraded03816/12, equivalence-based reuse+ALL remaining original proof/no fake555 rebuild.
+
+## Original9a adjudication body — unchanged
+
 ## Exact decision and evidence binding
 
 Current explicit parent instruction **REJECTS corrected-combined038e53f4a5f05496cdf58dcdcbe001079792e38c**, tree **f387bfcc4a83ba8305709c5751cdd7363ccbbaf4**, for **IV-T05c2-FC-UI-C01 / P2 / OPEN**. **VPRC-02 KEEP_U; no overall settlement/source/ID/gate acceptance or promotion.** This docs-only descendant of clean3267f01a3bbfd2adc60ff2c4a5bad095127c0289 is not a replacement review target. Distinct reviewer **ses_e734bc50bffeWMSjm7Ed2xdxA2 COMPLETED FAIL**, own services closed/data retained per seal; not running, awaiting a future exact corrected-combined target.

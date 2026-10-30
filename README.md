@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-**Parent REJECTS settlement038** for **IV-T05c2-FC-UI-C01/P2 OPEN; VPRC-02 KEEP_U**, reviewer COMPLETED FAIL/closed-retained. Gross/incurred defect-specific boundaries accepted **at038 only**, not overall/source/ID acceptance. Genuine retained fixture NOW upgraded038/16-registry12; archived555 seal unchanged. WRITE_OFF freeze **REQUESTED/no ACK**, sole active until ACK/current HEAD+jobs unknown/no UI correction assigned. [Current HANDOFF](.planning/implementation/HANDOFF.md), [adjudication/evidence limits](.planning/implementation/evidence/T05c2-038e53f-ui-rejection-attributed.md). Source/matrix/scopes/gates exact326/038; primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged, no runtime/FF/feature fix here.
+**WRITE_OFF712 FROZEN/released, incomplete PREBASE WIP**; parent NOW assigns original settlement author sole bounded FC-UI-C01 correction from rejected038, new branch/worktree/HEAD/results unknown/no polling. [Current HANDOFF](.planning/implementation/HANDOFF.md), [712 handback/parent2023 verification/assignment limits](.planning/implementation/evidence/T07a-T08a-712af18-freeze-ui-transfer-attributed.md).038 remains REJECTED/UI P2 OPEN/VPRC-02 U, gross/incurred at038 decisions unchanged. Same completed reviewer/genuine fixture already upgraded03816/12 awaits future frozen corrected-combined target. Source/matrix/scopes/gates exact9a/038, primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged; no runtime/FF/feature fix here.
 
 ## Historical frontend-shell walkthrough
 
