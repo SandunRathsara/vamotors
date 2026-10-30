@@ -118,7 +118,7 @@ describe("T06b staging trust boundaries", () => {
               .map(([action, fields]) => [
                 action,
                 fields.filter(
-                  (field) =>
+                  (field: string) =>
                     !(
                       ["Vehicle", "PurchaseRecord"].includes(name) &&
                       action === "read" &&

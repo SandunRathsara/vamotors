@@ -67,6 +67,9 @@ every old role population, immutable Permission hashes and function metadata.
 Four retained unit registry-version assertions advance10→11, and the stock unit's
 exact PurchaseRecord.update list adds only amount + four mileage input leaves.
 No assertion is dropped, and acquisition's bounded shutdown helper is unchanged.
+The T06b retained18 campaign's exact migration count advances14→15; its full
+behavioral assertions remain unchanged. Its v9 registry fingerprint is retained
+after subtracting only the explicitly tested T05c.1 additions.
 Stock16's malformed setListedPrice check advances404→422 because this existing
 command is now enabled and the old specimen lacks required amount. The request
 and complete zero-effect assertion remain; unsupported commands still require404.

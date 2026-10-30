@@ -192,7 +192,7 @@ export async function verifyFiles(f: Local, retained: RetainedFiles) {
     await f.start()
     const anonymous = await request.newContext({ baseURL: f.origin })
     clients.push(anonymous)
-    const readers = []
+    const readers: { client: APIRequestContext; status: number }[] = []
     for (const reader of retained.readers) {
       const client = await request.newContext({ baseURL: f.origin })
       clients.push(client)
@@ -205,7 +205,7 @@ export async function verifyFiles(f: Local, retained: RetainedFiles) {
     }
     for (const attachment of retained.attachments) {
       const path = `/api/v1/queries/download?attachmentId=${attachment.id}`,
-        dto = await f.query<DownloadDTO>(
+        dto: DownloadDTO = await f.query<DownloadDTO>(
           readers.find((reader) => reader.status === 200)!.client,
           "download",
           `?attachmentId=${attachment.id}`
