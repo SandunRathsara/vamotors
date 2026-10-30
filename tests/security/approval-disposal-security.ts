@@ -709,7 +709,12 @@ try {
             committed,
             name === "requestApproval" ? 202 : 200
           )
-          for (const replay of [false, true]) {
+          for (const [replay, deactivate] of [
+            [false, false],
+            [true, false],
+            [false, true],
+            [true, true],
+          ]) {
             await assign(authority)
             const source = await make(`wait-${randomUUID().slice(0, 8)}`)
             const body = replay
@@ -740,15 +745,22 @@ try {
                   { timeout: 1200 }
                 )
                 .toBeGreaterThan(0)
-              await assign(reads)
+              if (deactivate) await userChange(original.user.id, false)
+              else await assign(reads)
               const before = await f.snapshot(tables)
               await blocker.query("COMMIT")
-              assert.equal((await response).status(), 403)
+              const deniedResponse = await response
+              assert.equal(deniedResponse.status(), 403)
+              assert.equal(
+                (await deniedResponse.json()).error.code,
+                deactivate ? "ACCOUNT_INACTIVE" : "FORBIDDEN"
+              )
               assert.equal(await f.snapshot(tables), before)
               groups.push({
                 group: "observed lock revocation",
                 command: name,
                 replay,
+                deactivate,
                 observedBusinessSequenceWait: true,
                 pass: true,
               })
@@ -758,6 +770,245 @@ try {
             }
           }
         }
+      } finally {
+        await monitor.end()
+      }
+    }
+  )
+  await group(
+    "P4 unrelated company directory and Settings changes do not add CAS dependencies",
+    async () => {
+      const settings = await f.query<
+        Record<string, unknown> & { id: string; revision: number }
+      >(admin, "settings")
+      const policy = {
+        path: "APPLICATION",
+        commission: { basis: "FINANCED_PRINCIPAL", rateBps: 100 },
+        processingFee: "250000",
+        reconciliationMethod: "PERIOD_NOTICE",
+      }
+      const company = await f.command(
+        admin,
+        "createFinanceCompany",
+        envelope(
+          { name: `Nondependency finance ${suffix}`, contacts: [], policy },
+          [ref(settings, "Settings")]
+        ),
+        201
+      )
+      const result = await f.command(
+        admin,
+        "recordPurchase",
+        envelope(
+          {
+            ...purchaseInput(supplier.result.id, suffix, "nondependency"),
+            purchaseType: "LEASE_SETTLEMENT",
+            purchasePrice: undefined,
+            settlement: {
+              institutionType: "FINANCE_COMPANY",
+              companyId: company.result.id,
+              reference: "Retained source terms",
+              amount: "6000",
+              cashToSeller: "4000",
+            },
+          },
+          [
+            ref(supplier.result, "Supplier"),
+            ref(company.result, "FinanceCompany"),
+          ]
+        ),
+        201
+      )
+      const row = await current(result.result.id),
+        p = await pending(row)
+      await f.command(
+        admin,
+        "updateFinanceCompany",
+        envelope(
+          {
+            id: company.result.id,
+            name: `Renamed nondependency finance ${suffix}`,
+            contacts: [],
+            policy,
+            reason: "Directory presentation is not a source term edit",
+          },
+          [ref(company.result, "FinanceCompany"), ref(settings, "Settings")]
+        )
+      )
+      const values = Object.fromEntries(
+        Object.entries(settings).filter(
+          ([key]) =>
+            !["id", "revision", "policyVersion", "redactedFields"].includes(key)
+        )
+      )
+      await f.command(
+        admin,
+        "updateSettings",
+        envelope(
+          {
+            ...values,
+            theme: settings.theme === "DARK" ? "LIGHT" : "DARK",
+            reason: "Unrelated current policy presentation change",
+          },
+          [ref(settings, "Settings")]
+        )
+      )
+      const unchanged = await current(row.id)
+      assert.deepEqual(cycleRefs(unchanged), cycleRefs(row))
+      assert.deepEqual(unchanged.settlement, row.settlement)
+      await f.command(second, "reviewApproval", p.review)
+      assert.equal((await current(row.id)).status, "WRITTEN_OFF")
+      const latest = await f.query<{ id: string; revision: number }>(
+        admin,
+        "settings"
+      )
+      await f.command(
+        admin,
+        "updateSettings",
+        envelope(
+          { ...values, reason: "Restore original current policy presentation" },
+          [ref(latest, "Settings")]
+        )
+      )
+    }
+  )
+  await group(
+    "P5 observed Vehicle and sequence waits order real edit-stock versus review winners",
+    async () => {
+      const env = await privateEnvironment(join(root, "admin.env")),
+        url = new URL(env.ADMIN_URL!)
+      url.pathname = "/vamotors_local"
+      const monitor = new pg.Pool({ connectionString: url.href, max: 1 })
+      try {
+        for (const name of ["setListedPrice", "receiveStock"])
+          for (const reviewFirst of [false, true]) {
+            const row = await make(`domain-wait-${name}-${reviewFirst}`),
+              p = await pending(row)
+            const mutation = envelope(
+              name === "setListedPrice"
+                ? {
+                    cycleId: row.id,
+                    amount: "21000",
+                    reason: "Actual ordered source edit",
+                  }
+                : {
+                    cycleId: row.id,
+                    date: "2026-10-03",
+                    disposition: {
+                      kind: "HOLD",
+                      reason: "Actual ordered stock receipt",
+                    },
+                  },
+              [ref(row)]
+            )
+            const requests = reviewFirst
+              ? [
+                  { actor: second, name: "reviewApproval", body: p.review },
+                  { actor: admin, name, body: mutation },
+                ]
+              : [
+                  { actor: admin, name, body: mutation },
+                  { actor: second, name: "reviewApproval", body: p.review },
+                ]
+            const blocker = await f.db.connect()
+            try {
+              await blocker.query("BEGIN")
+              await blocker.query(
+                'SELECT id FROM vamotors."Vehicle" WHERE id=$1 FOR UPDATE',
+                [row.vehicleId]
+              )
+              const send = (entry: (typeof requests)[number]) =>
+                entry.actor.post(`/api/v1/commands/${entry.name}`, {
+                  headers: { Origin: f.origin },
+                  data: entry.body,
+                })
+              const first = send(requests[0])
+              await expect
+                .poll(
+                  async () =>
+                    Number(
+                      (
+                        await monitor.query(
+                          "SELECT count(*) FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE '%Vehicle%'"
+                        )
+                      ).rows[0].count
+                    ),
+                  { timeout: 2500 }
+                )
+                .toBeGreaterThan(0)
+              const secondResponse = send(requests[1])
+              await expect
+                .poll(
+                  async () =>
+                    Number(
+                      (
+                        await monitor.query(
+                          "SELECT count(*) FROM pg_stat_activity WHERE usename='vamotors_runtime' AND wait_event_type='Lock' AND query LIKE '%BusinessSequence%'"
+                        )
+                      ).rows[0].count
+                    ),
+                  { timeout: 2500 }
+                )
+                .toBeGreaterThan(0)
+              await blocker.query("COMMIT")
+              const [winner, loser] = await Promise.all([first, secondResponse])
+              assert.equal(winner.status(), 200)
+              assert.equal(loser.status(), 409)
+              assert.equal(
+                (await loser.json()).error.code,
+                reviewFirst ? "STALE_REVISION" : "APPROVAL_STALE"
+              )
+              const after = await current(row.id)
+              assert.equal(after.revision, row.revision + 1)
+              assert.equal(
+                after.status,
+                reviewFirst
+                  ? "WRITTEN_OFF"
+                  : name === "receiveStock"
+                    ? "IN_STOCK"
+                    : "PURCHASED"
+              )
+              assert.equal(
+                (
+                  await f.db.query(
+                    'SELECT state FROM vamotors."ApprovalRequest" WHERE id=$1',
+                    [p.p.approvalId]
+                  )
+                ).rows[0].state,
+                reviewFirst ? "APPROVED" : "PENDING"
+              )
+              assert.equal(
+                (
+                  await f.db.query(
+                    'SELECT count(*)::integer n FROM vamotors."Disposal" WHERE "cycleId"=$1',
+                    [row.id]
+                  )
+                ).rows[0].n,
+                reviewFirst ? 1 : 0
+              )
+              assert.equal(
+                (
+                  await f.db.query(
+                    'SELECT count(*)::integer n FROM vamotors."CommandReceipt" WHERE "idempotencyKey"=$1',
+                    [requests[1].body.idempotencyKey]
+                  )
+                ).rows[0].n,
+                0
+              )
+              groups.push({
+                group: "actual ordered domain race",
+                name,
+                reviewFirst,
+                cycleId: row.id,
+                vehicleWaitObserved: true,
+                sequenceWaitObserved: true,
+                pass: true,
+              })
+            } finally {
+              await blocker.query("ROLLBACK")
+              blocker.release()
+            }
+          }
       } finally {
         await monitor.end()
       }

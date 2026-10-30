@@ -212,6 +212,24 @@ object, not newer records. Sole shared-source ownership remains active here.
   settlement/gross/incurred/UI campaigns still unstarted; preserve both F1
   invocation/count failures, not test skips or repaired actor grants.
 
+- Cleana378d7b second native upgrade verification exited0 after the actual setup
+  repeat. Both complete P7 receipts preserve17/v13, exact original16 SQL/data/
+  permissions/ceilings/ACLs/function extensions/native bytes+mode facts and actual
+  fresh-auth app+PG restarts. Only AFTER those two receipts, real parent C−99
+  witness money execution exited0: C+1 returns422 MONEY_OVERFLOW twice with exact
+  no-effect graphs/same key; IN99 reaches exact C; actual A proceeds yield exact
+  signed gain. Old cash/outstanding facts are retained. No fake cash fixture.
+- Added focused observed-wait deactivation and both actual edit/stock-versus-review
+  winner orders, plus unrelated FinanceCompany/Settings nondependency assertions.
+  New post-application restart proof hashes EVERY actual PG business row from
+  native text (no JS money rounding), native final/staged bytes+modes, and requires
+  NEW auth for terminal variants/notifications/commandStatus/all final downloads.
+  These focused additions have passed types/lint only, not execution yet.
+- The corrected F1/settlement/gross/incurred/UI tail remains the ONE running finite
+  campaign, source-bound per command. Do not duplicate/poll it. Full final quality,
+  final source/evidence seal and service closeout remain pending; no acceptance or
+  shared ownership release is claimed.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,
