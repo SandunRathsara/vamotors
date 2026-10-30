@@ -2,11 +2,12 @@ BEGIN;
 SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE;
 SELECT vamotors.lock_admin_guard();
 
--- PREBASE on accepted v8. No old subject/action/field universe is changed.
+-- Exact accepted ac registry v9 -> v10. No old subject/action/field universe changes,
+-- including VehicleCost and all purchase/cost payment/correction leaves.
 -- Old wildcard, compound, create and delegation rules/joins stay byte-identical;
 -- the two new subjects cannot be reached by any old subject-specific wildcard.
 ALTER TABLE vamotors."EntityReadVersion" DROP CONSTRAINT "EntityReadVersion_entityType_check";
-ALTER TABLE vamotors."EntityReadVersion" ADD CONSTRAINT "EntityReadVersion_entityType_check" CHECK("entityType" IN ('Vehicle','PurchaseRecord','Customer','Supplier','RepairVendor','FinanceCompany','Settings','RateSheet','Quote','ImportBatch','Document'));
+ALTER TABLE vamotors."EntityReadVersion" ADD CONSTRAINT "EntityReadVersion_entityType_check" CHECK("entityType" IN ('Vehicle','PurchaseRecord','Customer','Supplier','RepairVendor','FinanceCompany','Settings','RateSheet','Quote','VehicleCost','ImportBatch','Document'));
 
 CREATE TABLE vamotors."ImportBatch" (
  id uuid PRIMARY KEY, "environmentId" uuid NOT NULL REFERENCES vamotors."Environment"(id) ON DELETE RESTRICT,
@@ -109,7 +110,7 @@ BEGIN
     OR NOT EXISTS(SELECT 1 FROM vamotors."EntityReadVersion" WHERE "commandId"=c.id AND "entityType"='ImportBatch' AND "entityId"=b.id AND revision=1)
     THEN RAISE EXCEPTION 'STAGING_EVIDENCE_REQUIRED' USING ERRCODE='23514'; END IF;
   ELSE
-   IF NOT EXISTS(SELECT 1 FROM vamotors."Attachment" linked JOIN vamotors."CommandReceipt" receipt ON receipt.id=linked."commandId" WHERE linked."batchId"=b.id AND linked.xmin::text=pg_current_xact_id()::text AND receipt."commandName"='completeUpload') THEN RAISE EXCEPTION 'FINAL_LINK_REQUIRED' USING ERRCODE='23514'; END IF;
+    IF NOT EXISTS(SELECT 1 FROM vamotors."Attachment" linked JOIN vamotors."CommandReceipt" receipt ON receipt.id=linked."commandId" WHERE linked."batchId"=b.id AND linked.xmin=pg_current_xact_id()::xid AND receipt."commandName"='completeUpload') THEN RAISE EXCEPTION 'FINAL_LINK_REQUIRED' USING ERRCODE='23514'; END IF;
   END IF;
   RETURN NULL;
  END IF;
@@ -155,6 +156,12 @@ ALTER TABLE vamotors."RolePermission" DISABLE TRIGGER protected_permissions;
 ALTER TABLE vamotors."Role" DISABLE TRIGGER protected_role;
 DO $$ DECLARE aid uuid; pid uuid; new_rule jsonb; kind text; operation text;
 BEGIN
+ -- No old rule/join/scope is replaced: unchanged v9 universes already freeze every
+ -- wildcard/compound/create/delegation population, including accepted costs.
+ -- Refuse corrupt hashes or unexpected preexisting T06b rules, rather than repair
+ -- or widen an old nonadmin ceiling. Setup also revalidates every rule against v10.
+ IF EXISTS(SELECT 1 FROM vamotors."Permission" WHERE "ruleHash" IS DISTINCT FROM encode(sha256(convert_to(vamotors.import_migration_canonical(rule),'UTF8')),'hex') OR rule->>'subject' IN ('ImportBatch','Document'))
+ THEN RAISE EXCEPTION 'INVALID_PRIOR_PERMISSION' USING ERRCODE='23514'; END IF;
  SELECT id INTO aid FROM vamotors."Role" WHERE "systemKey"='ADMINISTRATOR';
  IF aid IS NOT NULL THEN
   FOREACH kind IN ARRAY ARRAY['ImportBatch','Document'] LOOP

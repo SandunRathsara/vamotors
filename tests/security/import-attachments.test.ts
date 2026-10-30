@@ -104,14 +104,14 @@ describe("T06b staging trust boundaries", () => {
       }).success
     ).toBe(false)
   })
-  it("keeps the accepted v8 capability universes byte-identical; no import or upload verb", () => {
+  it("keeps the accepted v9 capability universes byte-identical; no import or upload verb", () => {
     const old = Object.fromEntries(
       Object.entries(registry).filter(
         ([name]) => !["Document", "ImportBatch"].includes(name)
       )
     )
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
-      "94631effa4d5df2ef1122a886d4ff9bd195474f68e2ff18caa7fe1bc635797f4"
+      "9bcc167cdb755264f8963345dfcfce787a77806a713f07c3729c0529fea53a1b"
     )
     for (const action of ["upload", "import", "approve"])
       expect(

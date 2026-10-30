@@ -73,24 +73,32 @@ export async function POST(
               : name === "recordPurchase"
                 ? await recordPurchase(identity, raw)
                 : Object.hasOwn(cycleMoneyInputs, name)
-                  ? await executeCycleMoney(identity, name as CycleMoneyCommand, raw)
-                : Object.hasOwn(stockInputs, name)
-                  ? await executeStock(identity, name as StockCommand, raw)
-                  : name === "updateSettings"
-                    ? await executeSettings(identity, raw)
-                    : directory
-                      ? await executeParty(
-                          identity,
-                          name as PartyCommandName,
-                          raw
-                        )
-                      : customer
-                        ? await executeCustomer(
+                  ? await executeCycleMoney(
+                      identity,
+                      name as CycleMoneyCommand,
+                      raw
+                    )
+                  : Object.hasOwn(stockInputs, name)
+                    ? await executeStock(identity, name as StockCommand, raw)
+                    : name === "updateSettings"
+                      ? await executeSettings(identity, raw)
+                      : directory
+                        ? await executeParty(
                             identity,
-                            name as CustomerCommandName,
+                            name as PartyCommandName,
                             raw
                           )
-                        : await executeAdmin(identity, name as CommandName, raw)
+                        : customer
+                          ? await executeCustomer(
+                              identity,
+                              name as CustomerCommandName,
+                              raw
+                            )
+                          : await executeAdmin(
+                              identity,
+                              name as CommandName,
+                              raw
+                            )
     if (result.status === "UPLOAD_READY") return noStoreJSON(result, 201)
     const created =
       name === "stageImport" ||

@@ -2,12 +2,13 @@
 
 ## Source boundary
 
-**PREBASE**, started at accepted `e9ba1a939667fc46178f89cccae1022a4bbcfb7e`.
-Migration `202610300004_import_attachments` is reserved after costs002/F1-003.
-Registry v9 here follows accepted v8. Reconcile the registry number and the
-`EntityReadVersion` type check against the eventual **parent-accepted** costs
-combination, then repeat the real upgrade and combined checks. Neither unaccepted
-T05c source nor its migration/checksum is imported by this branch.
+Reconciled onto exact parent-accepted
+`ac746b90ce9782fd35635847dff6c1b3ab669618`. All13 accepted migration files,
+cost/privacy/acquisition behavior and bounded F1 correction are unchanged.
+Migration `202610300004_import_attachments` is the14th migration; registry10
+preserves every accepted v9 universe and adds only two separate subjects. Old
+PREBASE/e9 roots and evidence remain historical, retained and stopped; final proof
+uses new fresh and genuine exact-ac13-migration nonempty roots.
 
 This is source-file staging/retention, not historical business import. It creates
 real `STAGED` metadata and private attachments, never preview rows, graph/hash,
@@ -208,8 +209,8 @@ node --import tsx tests/security/import-attachments-upgrade-check.ts repeat "$OW
 ```
 
 Prepare uses real parent HTTP to retain purchases/payments/stock/Settings versions,
-finance/contacts/rates/quotes and old wildcard/compound/create/delegation rules;
-cost facts are also required when the accepted parent has those tables. Bind is an
+finance/contacts/rates/quotes, costs/edits/payments/reversals/basis history and
+privacy projections plus old wildcard/compound/create/delegation rules. Bind is an
 explicit same-worker cluster-project handoff, not other-worker service adoption.
 Verification preserves old migration checksums/rows/universes/ACLs and verifies
 only six protected-admin additions; repeat setup must change nothing. Restore to

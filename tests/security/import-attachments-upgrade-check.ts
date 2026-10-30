@@ -9,6 +9,7 @@ import { spawn, execFileSync, type ChildProcess } from "node:child_process"
 import { createServer } from "node:net"
 import { once } from "node:events"
 import { join } from "node:path"
+import { pathToFileURL } from "node:url"
 import { chromium } from "@playwright/test"
 import pg from "pg"
 import { privateEnvironment } from "../../scripts/private-environment"
@@ -19,14 +20,18 @@ import type {
   Dependency,
   Grant,
   QueryData,
+  PurchaseCycleDTO,
+  CurrentActorDTO,
 } from "../../.planning/implementation/contracts/api"
 process.umask(0o077)
 const [mode, root, parent] = process.argv.slice(2)
+const acceptedParent = "ac746b90ce9782fd35635847dff6c1b3ab669618"
 assert.ok(
   ["prepare", "bind", "verify", "repeat"].includes(mode) &&
     root &&
     /^[a-f0-9]{40}$/.test(parent)
 )
+assert.equal(parent, acceptedParent)
 const runtime = await privateEnvironment(join(root, "runtime.env")),
   migration = await privateEnvironment(join(root, "migration.env")),
   cluster = await privateEnvironment(join(root, "cluster.env"))
@@ -37,6 +42,8 @@ await db.connect()
 const snapshotPath = join(root, "t06b-upgrade-before.json"),
   afterPath = join(root, "t06b-upgrade-after.json")
 const names = [
+  "Environment",
+  "user",
   "Settings",
   "SettingsVersion",
   "Customer",
@@ -90,10 +97,129 @@ async function snapshot() {
         "SELECT table_name,column_name,privilege_type FROM information_schema.column_privileges WHERE grantee='vamotors_runtime' ORDER BY table_name,column_name,privilege_type"
       )
     ).rows as Record<string, string>[],
+    functions: (
+      await db.query(
+        "SELECT p.oid::regprocedure::text AS name,p.prosrc AS body,to_jsonb(p)-'prosrc' AS metadata FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='vamotors' ORDER BY p.oid"
+      )
+    ).rows as {
+      name: string
+      body: string
+      metadata: Record<string, unknown>
+    }[],
   }
 }
 let server: ChildProcess | undefined,
   browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
+async function startApp() {
+  const socket = createServer().listen(0, "127.0.0.1")
+  await once(socket, "listening")
+  const address = socket.address()
+  assert.ok(address && typeof address !== "string")
+  await new Promise<void>((resolve) => socket.close(() => resolve()))
+  const origin = `http://127.0.0.1:${address.port}`
+  server = spawn(
+    process.execPath,
+    [
+      "node_modules/next/dist/bin/next",
+      "start",
+      "--hostname",
+      "127.0.0.1",
+      "--port",
+      String(address.port),
+    ],
+    {
+      cwd: cluster.PROJECT,
+      env: {
+        ...process.env,
+        ...runtime,
+        APP_ORIGIN: origin,
+        BETTER_AUTH_URL: origin,
+        NODE_ENV: "production",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    }
+  )
+  server.stderr!.resume()
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("START_TIMEOUT")), 20000)
+    server!.once("exit", () => {
+      clearTimeout(timer)
+      reject(new Error("EARLY_EXIT"))
+    })
+    server!.stdout!.on("data", (c) => {
+      if (c.toString().includes("Ready")) {
+        clearTimeout(timer)
+        resolve()
+      }
+    })
+  })
+  browser = await chromium.launch({ headless: true })
+  return { origin, context: await browser.newContext({ baseURL: origin }) }
+}
+// Actual accepted P2 projection retained through upgrade, not a SQL-only claim.
+async function privacyProbe(
+  origin: string,
+  cycleId: string,
+  vehicleId: string,
+  costId: string
+) {
+  const accounts = await privateEnvironment(join(root, "accounts.env")),
+    context = await browser!.newContext({ baseURL: origin })
+  try {
+    const login = await context.request.post("/api/auth/sign-in/email", {
+      headers: { origin },
+      data: {
+        email: accounts.BOOTSTRAP_STAFF_EMAIL,
+        password: accounts.BOOTSTRAP_STAFF_PASSWORD,
+      },
+    })
+    assert.equal(login.status(), 200, "PRIVACY_SIGN_IN")
+    const get = async (name: string, params: string) => {
+      const response = await context.request.get(
+        `/api/v1/queries/${name}${params}`
+      )
+      assert.equal(response.status(), 200, `PRIVACY_${name}`)
+      return (await response.json()).data
+    }
+    const purchase = await get("purchase", `?cycleId=${cycleId}`),
+      vehicle = await get("vehicle", `?id=${vehicleId}`),
+      purchases = await get("purchases", `?vehicleId=${vehicleId}`),
+      audits = await Promise.all(
+        [
+          ["PurchaseRecord", cycleId],
+          ["VehicleCost", costId],
+        ].map(([type, id]) => get("audit", `?type=${type}&id=${id}`))
+      )
+    for (const row of [
+      purchase,
+      vehicle.cycles.find((c: PurchaseCycleDTO) => c.id === cycleId),
+      purchases.data.find((c: PurchaseCycleDTO) => c.id === cycleId),
+    ]) {
+      const cost = row.costs.find((c: { id: string }) => c.id === costId)
+      assert.equal(cost.amount, "12000")
+      assert.equal(
+        cost.outstanding,
+        undefined,
+        "HIDDEN_DIRECTION_HIDES_OUTSTANDING"
+      )
+      assert.ok(cost.payments.length >= 4)
+      assert.ok(
+        cost.payments.every(
+          (p: { direction?: string }) => p.direction === undefined
+        )
+      )
+      assert.equal(row.financial?.cashOut, undefined)
+    }
+    // Drop only observation timestamps; keep projected fields/redactions/refs.
+    return JSON.parse(
+      JSON.stringify({ purchase, vehicle, purchases, audits }, (key, value) =>
+        key === "asOf" ? undefined : value
+      )
+    )
+  } finally {
+    await context.close()
+  }
+}
 try {
   if (mode === "prepare") {
     assert.equal(
@@ -108,51 +234,15 @@ try {
         .rows[0].t,
       null
     )
-    const accounts = await privateEnvironment(join(root, "accounts.env")),
-      socket = createServer().listen(0, "127.0.0.1")
-    await once(socket, "listening")
-    const address = socket.address()
-    assert.ok(address && typeof address !== "string")
-    await new Promise<void>((resolve) => socket.close(() => resolve()))
-    const origin = `http://127.0.0.1:${address.port}`
-    server = spawn(
-      process.execPath,
-      [
-        "node_modules/next/dist/bin/next",
-        "start",
-        "--hostname",
-        "127.0.0.1",
-        "--port",
-        String(address.port),
-      ],
-      {
+    assert.equal(
+      execFileSync("git", ["status", "--porcelain"], {
         cwd: cluster.PROJECT,
-        env: {
-          ...process.env,
-          ...runtime,
-          APP_ORIGIN: origin,
-          BETTER_AUTH_URL: origin,
-          NODE_ENV: "production",
-        },
-        stdio: ["ignore", "pipe", "pipe"],
-      }
+        encoding: "utf8",
+      }).trim(),
+      ""
     )
-    server.stderr!.resume()
-    await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("START_TIMEOUT")), 20000)
-      server!.once("exit", () => {
-        clearTimeout(timer)
-        reject(new Error("EARLY_EXIT"))
-      })
-      server!.stdout!.on("data", (c) => {
-        if (c.toString().includes("Ready")) {
-          clearTimeout(timer)
-          resolve()
-        }
-      })
-    })
-    browser = await chromium.launch({ headless: true })
-    const context = await browser.newContext({ baseURL: origin }),
+    const accounts = await privateEnvironment(join(root, "accounts.env")),
+      { origin, context } = await startApp(),
       page = await context.newPage()
     await page.goto("/login")
     await page.getByLabel("Email Address").fill(accounts.BOOTSTRAP_ADMIN_EMAIL!)
@@ -281,7 +371,7 @@ try {
       },
       [ref("Supplier", supplier)]
     )
-    let cycle = await query<QueryData["purchase"]>(
+    let cycle = await query<PurchaseCycleDTO>(
       "purchase",
       `?cycleId=${purchase.result.id}`
     )
@@ -294,27 +384,98 @@ try {
       },
       [ref("PurchaseRecord", cycle)]
     )
-    cycle = await query<QueryData["purchase"]>(
-      "purchase",
-      `?cycleId=${cycle.id}`
+    cycle = await query<PurchaseCycleDTO>("purchase", `?cycleId=${cycle.id}`)
+    const current = () =>
+      query<PurchaseCycleDTO>("purchase", `?cycleId=${cycle.id}`)
+    const costResult = await command(
+      "addCost",
+      {
+        cycleId: cycle.id,
+        category: "OTHER",
+        description: "Retained parent cost",
+        amount: "10000",
+        incurredDate: date,
+        payment: { amount: "1000", date, method: "CASH" },
+      },
+      [ref("PurchaseRecord", cycle)]
     )
-    if (
-      (await db.query("SELECT to_regclass('vamotors.\"VehicleCost\"') t"))
-        .rows[0].t
-    ) {
-      await command(
-        "addCost",
+    cycle = await current()
+    let cost = cycle.costs.find((c) => c.id === costResult.result.id)!
+    const refs = () => [ref("PurchaseRecord", cycle), ref("VehicleCost", cost)]
+    await command(
+      "payCost",
+      { costId: cost.id, payment: { amount: "2000", date, method: "CASH" } },
+      refs()
+    )
+    cycle = await current()
+    cost = cycle.costs.find((c) => c.id === cost.id)!
+    const originalCostPayment = cost.payments.find((p) => p.amount === "1000")!
+    await command(
+      "reversePayment",
+      {
+        sourceType: "COST",
+        sourceId: cost.id,
+        paymentId: originalCostPayment.id,
+        replacement: { amount: "500", date, method: "CASH" },
+        reason: "Retained cost correction private reason",
+      },
+      refs()
+    )
+    cycle = await current()
+    cost = cycle.costs.find((c) => c.id === cost.id)!
+    await command(
+      "editCost",
+      {
+        costId: cost.id,
+        category: "OTHER",
+        description: "Retained corrected cost",
+        amount: "12000",
+        incurredDate: date,
+        reason: "Retained incurred basis private reason",
+      },
+      refs()
+    )
+    cycle = await current()
+    cost = cycle.costs.find((c) => c.id === cost.id)!
+    assert.equal(cost.outstanding, "9500")
+    assert.equal(
+      cost.payments.find((p) => p.reversalOf === originalCostPayment.id)
+        ?.amount,
+      "1000"
+    )
+    const originalPurchasePayment = cycle.payments[0]
+    await command(
+      "editPurchase",
+      {
+        cycleId: cycle.id,
+        reason: "Retained purchase terms correction",
+        patch: { purchasePrice: "1100000", notes: "Retained bounded terms" },
+        cashCorrections: [
+          {
+            paymentId: originalPurchasePayment.id,
+            replacement: { amount: "900000", date, method: "CASH" },
+            reason: "Retained seller correction private reason",
+          },
+        ],
+      },
+      [
+        ref("PurchaseRecord", cycle),
         {
-          cycleId: cycle.id,
-          category: "OTHER",
-          description: "Retained parent cost",
-          amount: "10000",
-          incurredDate: date,
-          payment: { amount: "1000", date, method: "CASH" },
+          type: "Vehicle",
+          id: cycle.vehicleId,
+          revision: cycle.identityRevision,
         },
-        [ref("PurchaseRecord", cycle)]
-      )
-    }
+      ]
+    )
+    cycle = await current()
+    assert.equal(cycle.financial?.basis, "1112000")
+    assert.equal(cycle.outstanding.seller, "200000")
+    assert.ok(cycle.basisVersions.length >= 4)
+    assert.equal(
+      cycle.payments.find((p) => p.reversalOf === originalPurchasePayment.id)
+        ?.amount,
+      "1000000"
+    )
     const financeResult = await command(
       "createFinanceCompany",
       {
@@ -394,10 +555,86 @@ try {
         { subject: "Role", action: "read", fields: ["*"] },
         { subject: "Role", action: "update", fields: ["name", "grants"] },
         { subject: "User", action: "update", fields: ["roleIds"] },
+        {
+          subject: "VehicleCost",
+          action: "read",
+          fields: ["*"],
+          conditions: { createdBy: "$actor.id" },
+        },
+        { subject: "VehicleCost", action: "create", fields: ["*"] },
+        { subject: "VehicleCost", action: "update", fields: ["*"] },
+        { subject: "VehicleCost", action: "pay", fields: ["*"] },
+        { subject: "PurchaseRecord", action: "update", fields: ["*"] },
+        { subject: "PurchaseRecord", action: "pay", fields: ["*"] },
       ],
       reason: "Retained delegated capability ceiling",
     })
-    const before = await snapshot()
+    const costFields = [
+      "id",
+      "revision",
+      "category",
+      "description",
+      "amount",
+      "incurredDate",
+      "payments.id",
+      "payments.amount",
+      "outstanding",
+    ]
+    const privacyRole = await command("saveRole", {
+      name: `Retained privacy ${suffix}`,
+      reason: "Accepted P2 direction boundary",
+      grants: [
+        { subject: "Vehicle", action: "read", fields: ["*"] },
+        { subject: "PurchaseRecord", action: "read", fields: ["*"] },
+        { subject: "VehicleCost", action: "read", fields: costFields },
+        { subject: "AuditLog", action: "read", fields: ["*"] },
+      ],
+    })
+    const users = await query<{
+        data: { id: string; name: string; email: string; revision: number }[]
+      }>("users"),
+      staffUser = users.data.find(
+        (u) => u.email === accounts.BOOTSTRAP_STAFF_EMAIL
+      )!
+    assert.ok(staffUser)
+    await command(
+      "updateUser",
+      {
+        id: staffUser.id,
+        name: staffUser.name,
+        active: true,
+        roleIds: [privacyRole.result.id],
+        reason: "Retain least-privilege direction projection",
+      },
+      [
+        ref("User", staffUser),
+        { type: "Role", id: privacyRole.result.id, revision: 1 },
+      ]
+    )
+    const privacyTargets = {
+        cycleId: cycle.id,
+        vehicleId: cycle.vehicleId,
+        costId: cost.id,
+      },
+      privacy = await privacyProbe(origin, cycle.id, cycle.vehicleId, cost.id),
+      before = await snapshot()
+    assert.equal(before.migrations.length, 13)
+    for (const entry of before.migrations)
+      assert.equal(
+        entry.checksum,
+        createHash("sha256")
+          .update(
+            await readFile(
+              join(
+                cluster.PROJECT!,
+                "prisma/migrations",
+                entry.migration_name,
+                "migration.sql"
+              )
+            )
+          )
+          .digest("hex")
+      )
     for (const name of [
       "Settings",
       "SettingsVersion",
@@ -416,23 +653,18 @@ try {
       "RateSheetVersion",
       "RateCardEntry",
       "Quote",
+      "VehicleCost",
+      "CostPayment",
       "CommandReceipt",
       "AuditEntry",
       "EntityReadVersion",
     ])
       assert.ok(before.tables[name]?.length, `NONEMPTY_${name}`)
-    if (before.tables.VehicleCost)
-      assert.ok(
-        before.tables.VehicleCost.length && before.tables.CostPayment.length
-      )
-    const source = execFileSync(
-      "git",
-      ["show", `${parent}:lib/server/permissions.ts`],
-      { cwd: cluster.PROJECT, encoding: "utf8" }
+    const parentModule = await import(
+      pathToFileURL(join(cluster.PROJECT!, "lib/server/permissions.ts")).href
     )
-    const parentRegistry = Function(
-      `return (${source.split("export const registry = ")[1].split(" as const")[0]})`
-    )() as typeof registry
+    assert.equal(parentModule.registryVersion, 9)
+    const parentRegistry = parentModule.registry as typeof registry
     await writeFile(
       snapshotPath,
       JSON.stringify(
@@ -440,6 +672,8 @@ try {
           parent,
           parentProject: cluster.PROJECT,
           registry: parentRegistry,
+          privacyTargets,
+          privacy,
           actor: await query<QueryData["currentActor"]>("currentActor"),
           ...before,
         },
@@ -454,7 +688,14 @@ try {
   } else {
     const before = JSON.parse(await readFile(snapshotPath, "utf8")) as Awaited<
       ReturnType<typeof snapshot>
-    > & { parent: string; parentProject: string; registry: typeof registry }
+    > & {
+      parent: string
+      parentProject: string
+      registry: typeof registry
+      privacyTargets: { cycleId: string; vehicleId: string; costId: string }
+      privacy: unknown
+      actor: CurrentActorDTO
+    }
     assert.equal(before.parent, parent)
     if (mode === "bind") {
       assert.equal(cluster.PROJECT, before.parentProject)
@@ -495,6 +736,14 @@ try {
     } else {
       assert.equal(cluster.PROJECT, process.cwd())
       const after = await snapshot()
+      assert.equal(before.migrations.length, 13)
+      assert.equal(after.migrations.length, 14)
+      for (const old of before.functions)
+        assert.deepEqual(
+          after.functions.find((f) => f.name === old.name),
+          old,
+          "ACCEPTED_FUNCTION_UNCHANGED"
+        )
       for (const entry of after.migrations)
         assert.equal(
           entry.checksum,
@@ -597,6 +846,32 @@ try {
       ).rows
       assert.equal(owners.length, 5)
       assert.ok(owners.every((o) => o.owner === "vamotors_migrator"))
+      const { origin, context } = await startApp(),
+        accounts = await privateEnvironment(join(root, "accounts.env")),
+        login = await context.request.post("/api/auth/sign-in/email", {
+          headers: { origin },
+          data: {
+            email: accounts.BOOTSTRAP_ADMIN_EMAIL,
+            password: accounts.BOOTSTRAP_ADMIN_PASSWORD,
+          },
+        })
+      assert.equal(login.status(), 200)
+      const actorResponse = await context.request.get(
+          "/api/v1/queries/currentActor"
+        ),
+        actor = (await actorResponse.json()).data as CurrentActorDTO
+      assert.equal(actor.registryVersion, 10)
+      assert.notEqual(
+        actor.authzRevision,
+        before.actor.authzRevision,
+        "ADMIN_FINGERPRINT_REFRESHED"
+      )
+      const { cycleId, vehicleId, costId } = before.privacyTargets
+      assert.deepEqual(
+        await privacyProbe(origin, cycleId, vehicleId, costId),
+        before.privacy,
+        "ACCEPTED_P2_PRIVACY_RETAINED"
+      )
       if (mode === "repeat")
         assert.deepEqual(
           after,
@@ -625,10 +900,31 @@ try {
       )
     }
   }
-} catch {
+} catch (error) {
   // Driver and browser exceptions can contain connection/cookie headers.
   console.error(
     `FAIL import attachment upgrade ${mode}; private state retained, no secret diagnostics emitted.`
+  )
+  console.error(
+    error instanceof assert.AssertionError
+      ? `ASSERT_${error.operator}`
+      : error instanceof Error && /^[A-Z][A-Z0-9_]{0,160}$/.test(error.message)
+        ? error.message
+        : error instanceof Error
+          ? error.name
+          : "UNKNOWN"
+  )
+  console.error(
+    error instanceof Error
+      ? (error.stack
+          ?.split("\n")
+          .find((line) =>
+            /^\s+at .*\/tests\/security\/import-attachments-upgrade-check\.ts:\d+:\d+/.test(
+              line
+            )
+          )
+          ?.trim() ?? "NO_SOURCE_LOCATION")
+      : "NO_SOURCE_LOCATION"
   )
   process.exitCode = 1
 } finally {

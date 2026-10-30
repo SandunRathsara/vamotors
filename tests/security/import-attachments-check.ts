@@ -81,7 +81,7 @@ const evidence: Record<string, unknown> = {
   filesRoot,
   origin,
   passed,
-  PREBASE: true,
+  acceptedParent: "ac746b90ce9782fd35635847dff6c1b3ab669618",
 }
 let a: BrowserContext,
   b: BrowserContext,
@@ -437,6 +437,27 @@ const recoveries: {
 }[] = []
 let expiring: { batchId: string; upload: UploadReady }
 try {
+  const migrations = (
+    await db.query(
+      "SELECT migration_name,checksum FROM vamotors._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name"
+    )
+  ).rows
+  assert.equal(migrations.length, 14)
+  for (const migration of migrations)
+    assert.equal(
+      migration.checksum,
+      hash(
+        await readFile(
+          join(
+            process.cwd(),
+            "prisma/migrations",
+            migration.migration_name,
+            "migration.sql"
+          )
+        )
+      )
+    )
+  evidence.migrations = migrations
   await start()
   browser = await chromium.launch({ headless: true })
   a = await browser.newContext({
@@ -1690,7 +1711,7 @@ try {
   ).rows[0]
   evidence.storageEntries = (await readdir(filesRoot)).length
   evidence.status =
-    "PASS — author contributions, PREBASE; not independent acceptance or restore"
+    "PASS — author contributions on accepted ac; not independent acceptance or restore"
 } catch (error) {
   evidence.status = "FAIL"
   evidence.failedStage = stage
