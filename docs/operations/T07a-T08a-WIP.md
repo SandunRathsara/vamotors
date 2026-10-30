@@ -200,6 +200,18 @@ object, not newer records. Sole shared-source ownership remains active here.
   consuming the old gross witness. Repeated installation/native verification and
   A/C money remain pending; full P1–P8 still not claimed.
 
+- Clean14d0ec1 native forward verification exited0: exact old rows/permissions/
+  grant populations/role bumps, all seven exact guard bodies and metadata/ACLs,
+  FINAL CSV/XLSX plus staged native bytes/modes, useful unchanged-role reads,
+  fresh-auth file statuses and actual app+PG restart. This is the FIRST complete
+  P7 verification. Actual setup repeat also exited0; second verification is next.
+- Correctly invoked F1 reached initialization and stopped on its old16-migration
+  assertion, before any group ran. Update only that inventory premise to actual17;
+  every per-file checksum and original18 behavioral groups remain unchanged.
+  Namespace-scoped empty discovery already supports the nonempty root. Tail
+  settlement/gross/incurred/UI campaigns still unstarted; preserve both F1
+  invocation/count failures, not test skips or repaired actor grants.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,
