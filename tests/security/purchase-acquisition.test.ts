@@ -193,7 +193,7 @@ describe("bounded T05a acquisition boundary", () => {
       [{ subject: "PurchaseRecord", action: "create", fields: ["*"] }],
       input.supplierId
     )
-    expect(registryVersion).toBe(12)
+    expect(registryVersion).toBe(13)
     expect(ability.can("create", "PurchaseRecord", "purchasePrice")).toBe(true)
     expect(ability.can("pay", "PurchaseRecord")).toBe(false)
     expect(ability.can("receive", "PurchaseRecord")).toBe(false)

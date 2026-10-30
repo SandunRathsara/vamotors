@@ -110,7 +110,15 @@ describe("T06b staging trust boundaries", () => {
       Record<string, readonly string[]>
     > = Object.fromEntries(
       Object.entries(registry)
-        .filter(([name]) => !["Document", "ImportBatch"].includes(name))
+        .filter(
+          ([name]) =>
+            ![
+              "Document",
+              "ImportBatch",
+              "ApprovalRequest",
+              "Disposal",
+            ].includes(name)
+        )
         .map(([name, actions]) => [
           name,
           Object.fromEntries(

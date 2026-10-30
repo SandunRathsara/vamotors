@@ -77,3 +77,8 @@ GRANT UPDATE ("institutionType", "companyId", "institutionNameSnapshot", referen
 -- The accepted acquisition trigger remains invoker-security. Its three new
 -- read-only helpers need named EXECUTE, never a blanket function grant.
 GRANT EXECUTE ON FUNCTION vamotors.settlement_json(uuid), vamotors.purchase_outstanding_json(uuid), vamotors.purchase_payee(jsonb,text) TO vamotors_runtime;
+-- T07a/T08a: final-graph evidenced CURRENT approval/disposal only.
+GRANT SELECT, INSERT ON vamotors."ApprovalRequest", vamotors."Disposal", vamotors."DisposalReceipt" TO vamotors_runtime;
+GRANT UPDATE (state, revision, "reviewedBy", "reviewedAt", "reviewNote", "reviewerName", "reviewCommandId", "appliedCommandId") ON vamotors."ApprovalRequest" TO vamotors_runtime;
+GRANT UPDATE ("closedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT UPDATE ("activePurchaseId") ON vamotors."Vehicle" TO vamotors_runtime;

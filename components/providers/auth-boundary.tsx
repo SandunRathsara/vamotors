@@ -56,6 +56,7 @@ export function AuthBoundary({
       queries.clear()
     }
     const leave = () => {
+      if (!alive) return
       discard()
       window.location.replace("/login?reason=access-changed")
     }

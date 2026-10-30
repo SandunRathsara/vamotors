@@ -1,89 +1,179 @@
 "use client"
-
-import { useQuery } from "@tanstack/react-query"
-import { formatDistanceToNow } from "date-fns"
-import { Bell } from "lucide-react"
+import { useRef, useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
+import { Bell } from "lucide-react"
+import type {
+  Applied,
+  NotificationDTO,
+  Visible,
+} from "@/.planning/implementation/contracts/api"
+import { useActor } from "@/components/providers/auth-boundary"
+import { abilityFor } from "@/lib/server/permissions"
+import { privateRequest, RequestError } from "@/lib/security-client"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import type { Notification } from "@/lib/mock-data/schemas"
-
-type NotificationsResponse = {
-  data: Notification[]
-  total: number
-}
 
 export function NotificationPopover() {
-  const { data } = useQuery<NotificationsResponse>({
+  const { actor } = useActor(),
+    queries = useQueryClient(),
+    ability = abilityFor(actor.presentationGrants, actor.user.id)
+  const [message, setMessage] = useState(""),
+    [pending, setPending] = useState(false)
+  const intents = useRef(new Map<string, string>())
+  const query = useQuery({
     queryKey: ["notifications"],
-    queryFn: async () => {
-      const res = await fetch("/api/notifications")
-      if (!res.ok) return { data: [], total: 0 }
-      return res.json()
-    },
-    staleTime: 30_000,
+    enabled: ability.can("read", "Notification"),
+    retry: false,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: false,
+    queryFn: () =>
+      privateRequest<{
+        data: {
+          data: Visible<NotificationDTO>[]
+          unreadCount: number
+          asOf: string
+        }
+      }>("/api/v1/queries/notifications?page=1&pageSize=20"),
   })
-
-  const notifications = data?.data ?? []
-  const unreadCount = notifications.filter((n) => !n.isRead).length
-
+  async function read(row?: Visible<NotificationDTO>) {
+    if (pending) return
+    const key = row?.id ?? "all",
+      name = row ? "markNotificationRead" : "markAllNotificationsRead"
+    setPending(true)
+    setMessage("")
+    try {
+      let body = intents.current.get(key)
+      if (!body) {
+        if (row && (!row.id || !row.revision))
+          throw Error("Readable notification reference required")
+        body = JSON.stringify({
+          schemaVersion: 1,
+          idempotencyKey: crypto.randomUUID(),
+          expected: row
+            ? [{ type: "Notification", id: row.id, revision: row.revision }]
+            : [],
+          input: row
+            ? { notificationId: row.id }
+            : { through: query.data?.data.asOf ?? new Date().toISOString() },
+        })
+        intents.current.set(key, body)
+      }
+      await privateRequest<Applied>(`/api/v1/commands/${name}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      })
+      intents.current.delete(key)
+      setMessage("Read state committed.")
+      void queries.invalidateQueries({ queryKey: ["notifications"] })
+    } catch (error) {
+      if (
+        error instanceof RequestError &&
+        ["STALE_REVISION", "REVISION_REQUIRED"].includes(error.code)
+      )
+        intents.current.delete(key)
+      setMessage(
+        error instanceof RequestError
+          ? error.code
+          : error instanceof Error
+            ? error.message
+            : "NETWORK_ERROR"
+      )
+    } finally {
+      setPending(false)
+    }
+  }
+  if (!ability.can("read", "Notification")) return null
+  const rows = query.data?.data.data ?? [],
+    count = query.data?.data.unreadCount
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Notifications"
+          aria-label={`Notifications${count === undefined ? "" : `, ${count} unread`}`}
           className="relative h-11 w-11"
         >
           <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
+          {count !== undefined && count > 0 && (
+            <span className="absolute top-0 right-0 rounded bg-primary px-1 text-xs text-primary-foreground">
+              {count > 99 ? "99+" : count}
+            </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <span className="text-sm font-semibold">Notifications</span>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" className="text-xs h-auto py-1 px-2">
-              Mark all as read
+      <PopoverContent
+        align="end"
+        className="w-[min(22rem,calc(100vw-2rem))] space-y-3"
+      >
+        <h2 className="font-semibold">Notifications</h2>
+        {query.isPending && <p role="status">Loading recipient inbox…</p>}
+        {query.isError && (
+          <p role="alert">
+            Inbox unavailable.{" "}
+            {query.error instanceof RequestError
+              ? query.error.code
+              : "Request failed"}{" "}
+            <Button variant="outline" onClick={() => void query.refetch()}>
+              Retry inbox
             </Button>
-          )}
-        </div>
-        <div className="max-h-80 overflow-y-auto">
-          {notifications.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              No notifications
-            </p>
-          ) : (
-            <ul>
-              {notifications.slice(0, 10).map((n) => (
-                <li key={n.id} className="border-b last:border-0">
-                  <Link
-                    href={n.entityId ? `/vehicles/${n.entityId}` : "#"}
-                    className="block px-4 py-3 hover:bg-accent transition-colors"
-                  >
-                    <p className="text-sm font-medium leading-snug">{n.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                      {n.message}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
-                    </p>
-                  </Link>
+          </p>
+        )}
+        {query.data && (
+          <>
+            <p>{count} unread</p>
+            {ability.can("update", "Notification") && (
+              <Button
+                variant="outline"
+                disabled={pending || count === 0}
+                onClick={() => void read()}
+              >
+                Mark all as read
+              </Button>
+            )}
+            <ul className="max-h-80 space-y-3 overflow-y-auto">
+              {rows.map((n) => (
+                <li key={n.id} className="space-y-2 rounded border p-3">
+                  {n.target?.href ? (
+                    <Link
+                      prefetch={false}
+                      className="inline-flex min-h-11 items-center underline"
+                      href={n.target.href}
+                    >
+                      {n.title ?? "Open notification"}
+                    </Link>
+                  ) : (
+                    <p>{n.title ?? "Target unavailable"}</p>
+                  )}
+                  <p>{n.body}</p>
+                  <p className="text-sm text-muted-foreground">{n.createdAt}</p>
+                  {n.readAt === null &&
+                    ability.can("update", "Notification") && (
+                      <Button
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() => void read(n)}
+                      >
+                        Mark notification read
+                      </Button>
+                    )}
                 </li>
               ))}
             </ul>
-          )}
-        </div>
+            {rows.length === 0 && <p>No visible notifications.</p>}
+          </>
+        )}
+        {message && (
+          <p role="alert" className="break-words">
+            {message}
+          </p>
+        )}
       </PopoverContent>
     </Popover>
   )

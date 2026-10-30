@@ -4,7 +4,8 @@ export class CommandError extends Error {
     public code: string,
     public status: number,
     public retryable = false,
-    public current?: Dependency[]
+    public current?: Dependency[],
+    public safeMessage?: string
   ) {
     super(code)
   }
@@ -22,7 +23,7 @@ export function publicError(error: unknown, requestId: string) {
       error: {
         code: known ? error.code : "INTERNAL_ERROR",
         requestId,
-        message: known ? error.code : "Request failed",
+        message: known ? (error.safeMessage ?? error.code) : "Request failed",
         retryable: known && error.retryable,
         ...(known && error.current ? { current: error.current } : {}),
       },

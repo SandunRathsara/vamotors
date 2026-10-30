@@ -12,7 +12,14 @@ import type {
   Settlement,
 } from "../../.planning/implementation/contracts/api"
 import { database, assertEnvironment, type Tx } from "./db"
-import { currentActor, type Actor, type Identity } from "./actor"
+import { currentActor, type Authority as Actor, type Identity } from "./actor"
+import {
+  disposalInclude,
+  disposalDTO,
+  disposalAuth,
+  visibleDisposal,
+  requireWriteOffAuthority,
+} from "./disposals"
 import { transaction, nextBusinessSequence } from "./transactions"
 import { audit, writeReadVersion } from "./audit"
 import { inputDigest } from "./idempotency"
@@ -76,6 +83,7 @@ const include = {
   },
   basisVersions: { orderBy: { version: "asc" as const } },
   settingsVersion: true,
+  disposal: { include: disposalInclude },
 } satisfies Prisma.PurchaseRecordInclude
 type Row = Prisma.PurchaseRecordGetPayload<{ include: typeof include }>
 type Cost = Row["costs"][number]
@@ -238,7 +246,11 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
   const seller = row.supplier ?? row.seller
   if (!seller) fail("INTERNAL_ERROR", 500)
   const cash = cashTotals(
-    [...row.payments, ...row.costs.flatMap((c) => c.payments)].map((p) => ({
+    [
+      ...row.payments,
+      ...row.costs.flatMap((c) => c.payments),
+      ...(row.disposal?.payments ?? []),
+    ].map((p) => ({
       direction: p.direction as "IN" | "OUT",
       amount: p.amount.toString(),
     }))
@@ -319,12 +331,12 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
       reason: b.reason,
     })),
     sales: [],
-    disposal: null,
+    disposal: row.disposal ? disposalDTO(row.disposal) : null,
     provenance: { imported: false },
     nextActions: [],
   }
 }
-function vehicleDTO(row: Row): VehicleDTO {
+export function vehicleDTO(row: Row): VehicleDTO {
   const cycle = purchaseDTO(row)
   return {
     id: row.vehicleId,
@@ -346,8 +358,11 @@ function vehicleDTO(row: Row): VehicleDTO {
     provenance: cycle.provenance,
   }
 }
-const auth = (row: Row) => ({ ...purchaseDTO(row), createdBy: row.createdBy })
-const vehicleAuth = (row: Row) => ({
+export const auth = (row: Row) => ({
+  ...purchaseDTO(row),
+  createdBy: row.createdBy,
+})
+export const vehicleAuth = (row: Row) => ({
   ...vehicleDTO(row),
   createdBy: row.vehicle.createdBy,
 })
@@ -494,6 +509,33 @@ function correctionSourceReadable(actor: Actor, row: Row) {
 export function visiblePurchase(actor: Actor, row: Row) {
   const result = project(actor.ability, "PurchaseRecord", auth(row))
   const root = subject("PurchaseRecord", auth(row))
+  if (row.disposal) {
+    const disposal = actor.ability.can("read", root, "disposal")
+      ? visibleDisposal(actor, row.disposal)
+      : null
+    if (disposal) result.disposal = disposal
+    else {
+      delete result.disposal
+      result.redactedFields.push("disposal")
+    }
+    if (
+      !["amount", "direction"].every(
+        (f) =>
+          actor.ability.can("read", root, "disposal") &&
+          actor.ability.can(
+            "read",
+            subject("Disposal", disposalAuth(row.disposal!)),
+            `payments.${f}`
+          )
+      )
+    ) {
+      if (result.financial)
+        for (const f of ["cashIn", "cashOut", "net"]) {
+          delete (result.financial as Record<string, unknown>)[f]
+          result.redactedFields.push(`financial.${f}`)
+        }
+    }
+  }
   if (
     actor.ability.can("read", root, "payments") ||
     sourcePaymentFields.some((p) =>
@@ -736,12 +778,42 @@ export function visiblePurchase(actor: Actor, row: Row) {
       ...availableMoneyActions(actor, row),
       ...availableCycleEdits(actor, row),
     ]
+  if (
+    "nextActions" in result &&
+    row.acquisitionCommandId &&
+    !row.closedAt &&
+    !row.disposal &&
+    row.vehicle.activePurchaseId === row.id &&
+    row.acquisitionKind === "SUPPLIER" &&
+    ["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) &&
+    ["PURCHASED", "IN_STOCK"].includes(row.status)
+  ) {
+    try {
+      requireWriteOffAuthority(
+        actor,
+        auth(row),
+        vehicleAuth(row),
+        result,
+        {
+          cycleId: row.id,
+          date: "",
+          reason: "",
+          method: "OTHER",
+          proceeds: "0",
+        },
+        true
+      )
+      ;(result.nextActions as string[]).push("requestApproval")
+    } catch (error) {
+      if (!(error instanceof CommandError)) throw error
+    }
+  }
   result.redactedFields = [
     ...new Set(result.redactedFields.filter((f) => f !== "createdBy")),
   ]
   return result
 }
-function visibleVehicle(actor: Actor, row: Row) {
+export function visibleVehicle(actor: Actor, row: Row) {
   const result = project(actor.ability, "Vehicle", vehicleAuth(row))
   const purchase = visiblePurchase(actor, row)
   for (const field of [
@@ -782,8 +854,9 @@ function visibleVehicle(actor: Actor, row: Row) {
   result.redactedFields = result.redactedFields.filter((f) => f !== "createdBy")
   return result
 }
-const load = (tx: Tx, cycleId: string) =>
+export const loadPurchase = (tx: Tx, cycleId: string) =>
   tx.purchaseRecord.findUnique({ where: { id: cycleId }, include })
+const load = loadPurchase
 function physicalScope(
   actor: Actor,
   fields: string[] = []
@@ -794,7 +867,22 @@ function physicalScope(
   return {
     OR: scope.OR.map(({ status, ...condition }) => ({
       ...condition,
-      ...(status ? { activePurchase: { status } } : {}),
+      ...(status
+        ? {
+            purchases: {
+              some: {
+                status,
+                OR: [
+                  { activeFor: { isNot: null } },
+                  {
+                    closedAt: { not: null },
+                    vehicle: { activePurchaseId: null },
+                  },
+                ],
+              },
+            },
+          }
+        : {}),
     })),
   } as Prisma.VehicleWhereInput
 }
@@ -958,6 +1046,10 @@ export async function recordPurchase(
         id: existing.id,
         revision: existing.revision,
       })
+      const writtenOff = await tx.purchaseRecord.findFirst({
+        where: { vehicleId: existing.id, status: "WRITTEN_OFF" },
+      })
+      if (writtenOff) fail("IDENTITY_WRITTEN_OFF")
       // No closed-cycle fabrication or repurchase until real sales ship.
       fail("IDENTITY_CONFLICT")
     }
@@ -3165,6 +3257,24 @@ export async function purchaseQuery(
             entry.action
           ) &&
           !holdReasonReadable &&
+          "reason" in result
+        ) {
+          delete result.reason
+          redactedFields.push("reason")
+        }
+        if (
+          entry.action === "approvedWriteOff" &&
+          (!row.disposal ||
+            !actor.ability.can(
+              "read",
+              subject("PurchaseRecord", auth(row)),
+              "disposal"
+            ) ||
+            !actor.ability.can(
+              "read",
+              subject("Disposal", disposalAuth(row.disposal)),
+              "reason"
+            )) &&
           "reason" in result
         ) {
           delete result.reason

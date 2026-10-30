@@ -39,6 +39,8 @@ export async function audit(
     entityId: string
     action: string
     reason?: string
+    initiatedBy?: string
+    approverId?: string
     before: Record<string, unknown> | null
     after: Record<string, unknown>
   }
@@ -52,6 +54,8 @@ export async function audit(
       actorKind: "USER",
       action: input.action,
       reason: input.reason,
+      initiatedBy: input.initiatedBy,
+      approverId: input.approverId,
       fieldDiff: fieldDiff(input.entityType, input.before, input.after),
     },
   })
@@ -102,6 +106,7 @@ export async function writeReadVersion(
       | "Quote"
       | "ImportBatch"
       | "Document"
+      | "ApprovalRequest"
     entityId: string
     revision: number
     payload: Record<string, unknown>
