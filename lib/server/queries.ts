@@ -99,13 +99,39 @@ export async function securityQuery(
       const args = Object.fromEntries(params)
       if (name === "approvals") return approvalQuery(tx, actor, args)
       if (name === "notifications") return notificationQuery(tx, actor, args)
-      if (name === "audit" && ["ApprovalRequest", "Disposal"].includes(args.type)) return approvalAudit(tx, actor, args)
+      if (
+        name === "audit" &&
+        ["ApprovalRequest", "Disposal"].includes(args.type)
+      )
+        return approvalAudit(tx, actor, args)
       if (name === "commandStatus") {
-        const parsed = z.object({ name: z.enum(["requestApproval", "reviewApproval", "markNotificationRead", "markAllNotificationsRead"]), idempotencyKey: id }).strict().safeParse(args)
+        const parsed = z
+          .object({
+            name: z.enum([
+              "requestApproval",
+              "reviewApproval",
+              "markNotificationRead",
+              "markAllNotificationsRead",
+            ]),
+            idempotencyKey: id,
+          })
+          .strict()
+          .safeParse(args)
         if (!parsed.success) fail("INVALID_INPUT", 422)
-        const receipt = await tx.commandReceipt.findUnique({ where: { environmentId_actorKey_commandName_idempotencyKey: { environmentId: runtimeConfig().ENVIRONMENT_ID, actorKey: `USER:${actor.userId}`, commandName: parsed.data.name, idempotencyKey: parsed.data.idempotencyKey } } })
+        const receipt = await tx.commandReceipt.findUnique({
+          where: {
+            environmentId_actorKey_commandName_idempotencyKey: {
+              environmentId: runtimeConfig().ENVIRONMENT_ID,
+              actorKey: `USER:${actor.userId}`,
+              commandName: parsed.data.name,
+              idempotencyKey: parsed.data.idempotencyKey,
+            },
+          },
+        })
         if (!receipt) return { ok: true, status: "NOT_COMMITTED" }
-        return ["requestApproval", "reviewApproval"].includes(parsed.data.name) ? approvalReplay(tx, actor, receipt) : notificationReplay(tx, actor, receipt)
+        return ["requestApproval", "reviewApproval"].includes(parsed.data.name)
+          ? approvalReplay(tx, actor, receipt)
+          : notificationReplay(tx, actor, receipt)
       }
       if (name === "importBatches" || name === "importBatchFiles")
         return importQuery(tx, actor, name, args)

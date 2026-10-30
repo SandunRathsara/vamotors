@@ -3,6 +3,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { UserNav } from "@/components/layout/user-nav"
+import { NotificationPopover } from "@/components/layout/notification-popover"
 
 export function Header() {
   return (
@@ -13,6 +14,7 @@ export function Header() {
         <span className="hidden md:inline">Local security administration</span>
       </div>
       <ThemeToggle />
+      <NotificationPopover />
       <UserNav />
     </header>
   )

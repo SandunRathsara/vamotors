@@ -25,6 +25,10 @@ import { Label } from "@/components/ui/label"
 import { CycleCosts } from "./cycle-costs"
 import { CycleEdits } from "./cycle-edits"
 import {
+  WriteOffRequest,
+  DisposalHistory,
+} from "@/components/approvals/write-off"
+import {
   PartyForm,
   type VisibleParty,
 } from "@/components/third-parties/party-form"
@@ -1123,9 +1127,10 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           Version {b.version}: {amount(b.total)} · {b.reason} · {b.id}
         </p>
       )) ?? <p>Unavailable</p>}
+      <DisposalHistory cycle={cycle} />
       <p>
-        Repairs, sales and disposal workflows remain pending. Receipt and
-        availability changes do not imply completed downstream history.
+        Repairs and sales remain pending. Receipt and availability changes do
+        not imply completed downstream history.
       </p>
     </section>
   )
@@ -1165,6 +1170,12 @@ export function AcquisitionDetail({
         }
       />
       <CycleEdits
+        cycle={
+          (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
+        }
+      />
+      <WriteOffRequest
+        target={`${vehicle ? "vehicle" : "purchase"}:${id}`}
         cycle={
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }

@@ -108,7 +108,7 @@ CREATE TRIGGER approval_owner BEFORE INSERT OR UPDATE ON vamotors."ApprovalReque
 -- additions and revision-only change, and exact original definitions restored
 -- before COMMIT; there is no persistent runtime/definer maintenance escape.
 DO $$
-DECLARE protected_permissions text; protected_role text; temporary text; rule jsonb; pid uuid; rid uuid;
+DECLARE protected_permissions text; protected_role text; temporary text; new_rule jsonb; pid uuid; rid uuid;
 BEGIN
  SELECT pg_get_functiondef('vamotors.protect_admin_permissions()'::regprocedure) INTO protected_permissions;
  SELECT pg_get_functiondef('vamotors.protect_system_role()'::regprocedure) INTO protected_role;
@@ -118,9 +118,9 @@ BEGIN
  IF temporary=protected_role THEN RAISE EXCEPTION 'ROLE_GUARD_BASE_MISMATCH'; END IF; EXECUTE temporary;
  SELECT id INTO rid FROM vamotors."Role" WHERE "systemKey"='ADMINISTRATOR';
  IF rid IS NOT NULL THEN
-  FOR rule IN SELECT value FROM jsonb_array_elements('[{"subject":"ApprovalRequest","action":"read","fields":["*"]},{"subject":"ApprovalRequest","action":"create","fields":["*"]},{"subject":"ApprovalRequest","action":"approve","fields":["*"]},{"subject":"Disposal","action":"read","fields":["*"]},{"subject":"Disposal","action":"create","fields":["*"]},{"subject":"Disposal","action":"pay","fields":["*"]}]'::jsonb) LOOP
-   INSERT INTO vamotors."Permission"(id,"ruleHash",rule) VALUES(gen_random_uuid(),encode(sha256(convert_to(vamotors.approval_canonical(rule),'UTF8')),'hex'),rule) ON CONFLICT("ruleHash") DO NOTHING;
-   SELECT id INTO pid FROM vamotors."Permission" WHERE "ruleHash"=encode(sha256(convert_to(vamotors.approval_canonical(rule),'UTF8')),'hex');
+  FOR new_rule IN SELECT value FROM jsonb_array_elements('[{"subject":"ApprovalRequest","action":"read","fields":["*"]},{"subject":"ApprovalRequest","action":"create","fields":["*"]},{"subject":"ApprovalRequest","action":"approve","fields":["*"]},{"subject":"Disposal","action":"read","fields":["*"]},{"subject":"Disposal","action":"create","fields":["*"]},{"subject":"Disposal","action":"pay","fields":["*"]}]'::jsonb) LOOP
+   INSERT INTO vamotors."Permission"(id,"ruleHash",rule) VALUES(gen_random_uuid(),encode(sha256(convert_to(vamotors.approval_canonical(new_rule),'UTF8')),'hex'),new_rule) ON CONFLICT("ruleHash") DO NOTHING;
+   SELECT id INTO pid FROM vamotors."Permission" WHERE "ruleHash"=encode(sha256(convert_to(vamotors.approval_canonical(new_rule),'UTF8')),'hex');
    INSERT INTO vamotors."RolePermission" VALUES(rid,pid) ON CONFLICT DO NOTHING;
   END LOOP;
   UPDATE vamotors."Role" SET revision=revision+1 WHERE id=rid;
@@ -137,12 +137,16 @@ BEGIN
  SELECT * INTO v FROM vamotors."Vehicle" WHERE id=p."vehicleId";
  SELECT * INTO b FROM vamotors."CycleBasisVersion" WHERE "cycleId"=p.id ORDER BY version DESC LIMIT 1;
  i:=a.proposal->'input';
- IF a.proposal->>'kind'<>'WRITE_OFF' OR a.proposal-ARRAY['kind','input']<>'{}'::jsonb OR jsonb_typeof(i)<>'object' OR i-ARRAY['cycleId','date','reason','method','proceeds','receipt']<>'{}'::jsonb
+ IF jsonb_typeof(a.proposal) IS DISTINCT FROM 'object' OR a.proposal->>'kind' IS DISTINCT FROM 'WRITE_OFF' OR a.proposal-ARRAY['kind','input']<>'{}'::jsonb OR jsonb_typeof(i) IS DISTINCT FROM 'object' OR i-ARRAY['cycleId','date','reason','method','proceeds','receipt']<>'{}'::jsonb
+ OR EXISTS(SELECT 1 FROM unnest(ARRAY['cycleId','date','reason','method','proceeds']) k WHERE jsonb_typeof(i->k) IS DISTINCT FROM 'string')
  OR i->>'cycleId'<>p.id::text OR NOT(i ?& ARRAY['cycleId','date','reason','method','proceeds']) OR i->>'method' NOT IN ('SCRAPPED','AUCTIONED','DONATED','OTHER')
  OR i->>'proceeds' !~ '^(0|[1-9][0-9]{0,13})$' OR i->>'reason' IS NULL OR i->>'reason'<>btrim(i->>'reason') OR length(i->>'reason') NOT BETWEEN 1 AND 2000
- OR (i->>'date')::date<p."purchaseDate" OR (i->>'date')::date>(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date
+ OR i->>'date' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR (i->>'date')::date<p."purchaseDate" OR (i->>'date')::date>(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date
  OR (i->>'proceeds'='0' AND i ? 'receipt') OR ((i->>'proceeds')::numeric>0 AND (NOT(i ? 'receipt') OR i#>>'{receipt,amount}' IS DISTINCT FROM i->>'proceeds'))
- OR (i ? 'receipt' AND (jsonb_typeof(i->'receipt')<>'object' OR (i->'receipt')-ARRAY['amount','date','method','reference']<>'{}'::jsonb OR NOT((i->'receipt') ?& ARRAY['amount','date','method']) OR i#>>'{receipt,method}' NOT IN ('CASH','BANK_TRANSFER') OR (i#>>'{receipt,date}')::date>(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date))
+ OR (i ? 'receipt' AND (jsonb_typeof(i->'receipt') IS DISTINCT FROM 'object' OR (i->'receipt')-ARRAY['amount','date','method','reference']<>'{}'::jsonb OR NOT((i->'receipt') ?& ARRAY['amount','date','method'])
+ OR EXISTS(SELECT 1 FROM jsonb_each(i->'receipt') e WHERE jsonb_typeof(e.value) IS DISTINCT FROM 'string')
+ OR i#>>'{receipt,date}' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR i#>>'{receipt,method}' NOT IN ('CASH','BANK_TRANSFER') OR (i#>>'{receipt,date}')::date>(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date
+ OR ((i->'receipt') ? 'reference' AND (i#>>'{receipt,reference}'<>btrim(i#>>'{receipt,reference}') OR length(i#>>'{receipt,reference}') NOT BETWEEN 1 AND 200))))
  OR p."acquisitionCommandId" IS NULL OR b.id IS NULL OR p."acquisitionKind"<>'SUPPLIER' OR p."purchaseType" NOT IN ('CASH','BRAND_NEW') THEN RAISE EXCEPTION 'INVALID_APPROVAL_PAYLOAD' USING ERRCODE='23514'; END IF;
  expected:=jsonb_build_array(jsonb_build_object('type','PurchaseRecord','id',p.id,'revision',p.revision-CASE WHEN a.state='APPROVED' THEN 1 ELSE 0 END),jsonb_build_object('type','Vehicle','id',v.id,'revision',v.revision-CASE WHEN a.state='APPROVED' THEN 1 ELSE 0 END));
  snap:=jsonb_strip_nulls(jsonb_build_object('cycleId',p.id,'vehicleId',v.id,'basisVersionId',b.id,'basis',b.total::text,'currency',b.currency,'scale',b.scale,'purchasePrice',p."purchasePrice"::text,'purchaseType',p."purchaseType",'listedPrice',p."listedPrice"::text));
@@ -157,7 +161,7 @@ BEGIN
   OR EXISTS(SELECT 1 FROM vamotors."PurchaseRecord" WHERE id=p.id AND xmin=pg_current_xact_id()::xid) OR EXISTS(SELECT 1 FROM vamotors."Vehicle" WHERE id=v.id AND xmin=pg_current_xact_id()::xid)
   OR NOT vamotors.approval_origin(uid,a,p,v,false)
   OR NOT vamotors.approval_fields(uid,'ApprovalRequest','create',jsonb_build_object('createdBy',uid),ARRAY['proposal','proposal.kind','reason']||ARRAY(SELECT 'proposal.input.'||f FROM unnest(vamotors.approval_input_fields(i)) f)) THEN RAISE EXCEPTION 'INVALID_PENDING_APPROVAL' USING ERRCODE='23514'; END IF;
-  SELECT coalesce(jsonb_agg(u.id::text ORDER BY u.id),'[]'::jsonb) INTO recipients FROM vamotors."user" u WHERE u.active AND u.id<>uid AND vamotors.approval_origin(u.id,a,p,v,true) AND vamotors.approval_fields(u.id,'ApprovalRequest','approve',jsonb_build_object('createdBy',uid),ARRAY['approvalId','decision','note']);
+  SELECT coalesce(jsonb_agg(u.id::text ORDER BY u.id),'[]'::jsonb) INTO recipients FROM vamotors."user" u WHERE u.active AND u.id<>uid AND vamotors.approval_origin(u.id,a,p,v,true) AND vamotors.approval_fields(u.id,'ApprovalRequest','approve',jsonb_build_object('createdBy',uid),ARRAY['approvalId','decision']);
   IF recipients='[]'::jsonb OR recipients IS DISTINCT FROM a."requiredRecipientIds"
   OR (SELECT coalesce(jsonb_agg(n."recipientUserId"::text ORDER BY n."recipientUserId"),'[]'::jsonb) FROM vamotors."Notification" n WHERE n."targetId"=a.id AND n.kind='APPROVAL_REQUIRED' AND n."targetType"='ApprovalRequest' AND n."eventKey"='approval:required:'||a.id::text||':1' AND n.xmin=pg_current_xact_id()::xid) IS DISTINCT FROM recipients THEN RAISE EXCEPTION 'APPROVAL_RECIPIENT_REQUIRED' USING ERRCODE='23514'; END IF;
   old_dto:=NULL;
@@ -293,6 +297,31 @@ CREATE OR REPLACE VIEW vamotors."CashMovement" AS
  SELECT 'PURCHASE'::text AS "sourceType", "cycleId" AS "sourceId", id AS "paymentId", "occurredDate" AS date, direction, amount, method, category, "commandId" FROM vamotors."PurchasePayment"
  UNION ALL SELECT 'COST'::text,"costId",id,"occurredDate",direction,amount,method,category,"commandId" FROM vamotors."CostPayment"
  UNION ALL SELECT 'DISPOSAL'::text,"disposalId",id,"occurredDate",direction,amount,method,category,"commandId" FROM vamotors."DisposalReceipt";
+CREATE FUNCTION vamotors.check_approval_notification() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE a vamotors."ApprovalRequest"; c vamotors."CommandReceipt";
+BEGIN
+ SELECT * INTO a FROM vamotors."ApprovalRequest" WHERE id=NEW."targetId" AND xmin=pg_current_xact_id()::xid;
+ SELECT * INTO c FROM vamotors."CommandReceipt" WHERE id=(CASE WHEN NEW.kind='APPROVAL_REQUIRED' THEN a."requestCommandId" ELSE a."reviewCommandId" END) AND xmin=pg_current_xact_id()::xid;
+ IF NEW."targetType"<>'ApprovalRequest' OR a.id IS NULL OR c.id IS NULL OR NEW."readAt" IS NOT NULL OR NEW.revision<>1
+ OR (NEW.kind='APPROVAL_REQUIRED' AND (a.state<>'PENDING' OR c."commandName"<>'requestApproval' OR NOT(a."requiredRecipientIds" ? NEW."recipientUserId"::text) OR NEW."eventKey"<>'approval:required:'||a.id::text||':1'))
+ OR (NEW.kind='APPROVAL_OUTCOME' AND (a.state NOT IN ('APPROVED','REJECTED') OR c."commandName"<>'reviewApproval' OR NEW."recipientUserId"<>a."requestedBy" OR NEW."eventKey"<>'approval:outcome:'||a.id::text||':2'))
+ THEN RAISE EXCEPTION 'APPROVAL_NOTIFICATION_SOURCE_REQUIRED' USING ERRCODE='23514'; END IF;
+ RETURN NULL;
+END $$;
+CREATE CONSTRAINT TRIGGER approval_notification_source AFTER INSERT ON vamotors."Notification" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN(NEW.kind IN ('APPROVAL_REQUIRED','APPROVAL_OUTCOME')) EXECUTE FUNCTION vamotors.check_approval_notification();
+CREATE FUNCTION vamotors.check_notification_read() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+DECLARE c vamotors."CommandReceipt";
+BEGIN
+ IF (to_jsonb(NEW)-ARRAY['readAt','revision']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['readAt','revision']) OR OLD."readAt" IS NOT NULL OR NEW."readAt" IS NULL OR NEW."readAt"<NEW."createdAt" OR NEW."readAt">clock_timestamp() OR NEW.revision::bigint<>OLD.revision::bigint+1 THEN RAISE EXCEPTION 'INVALID_NOTIFICATION_READ' USING ERRCODE='23514'; END IF;
+ SELECT * INTO c FROM vamotors."CommandReceipt" WHERE "actorKey"='USER:'||NEW."recipientUserId"::text AND "businessSequence" IS NULL AND "environmentId"=(SELECT id FROM vamotors."Environment" WHERE singleton=1) AND xmin=pg_current_xact_id()::xid AND (
+ ("commandName"='markNotificationRead' AND result=jsonb_build_object('type','Notification','id',NEW.id,'revision',NEW.revision))
+ OR ("commandName"='markAllNotificationsRead' AND result->>'type'='NotificationRead' AND result->>'id'=NEW."recipientUserId"::text AND result->>'revision'='1' AND (result->>'through')::timestamptz<=clock_timestamp() AND NEW."createdAt"<=(result->>'through')::timestamptz AT TIME ZONE 'UTC'));
+ IF c.id IS NULL OR NOT vamotors.approval_fields(NEW."recipientUserId",'Notification','read',to_jsonb(NEW),ARRAY['id','revision','readAt']) OR NOT vamotors.approval_fields(NEW."recipientUserId",'Notification','update',to_jsonb(NEW),ARRAY['readAt'])
+ OR NOT EXISTS(SELECT 1 FROM vamotors."AuditEntry" e WHERE e."commandId"=c.id AND e."entityType"='Notification' AND e."entityId"=NEW.id AND e."userId"=NEW."recipientUserId" AND e."actorKind"='USER' AND e.action=c."commandName" AND e."fieldDiff"=jsonb_build_object('revision',jsonb_build_object('before',OLD.revision,'after',NEW.revision),'readAt',jsonb_build_object('before',NULL,'after',to_char(NEW."readAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))) AND e.xmin=pg_current_xact_id()::xid)
+ THEN RAISE EXCEPTION 'NOTIFICATION_READ_COMMAND_REQUIRED' USING ERRCODE='23514'; END IF;
+ RETURN NULL;
+END $$;
+CREATE CONSTRAINT TRIGGER notification_read_source AFTER UPDATE ON vamotors."Notification" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vamotors.check_notification_read();
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA vamotors FROM PUBLIC;
 SET CONSTRAINTS ALL IMMEDIATE;
 COMMIT;

@@ -1,4 +1,37 @@
-# T07a/T08a — FROZEN PREBASE WIP checkpoint (2026-10-31)
+# T07a/T08a — resumed PREBASE WIP (2026-10-31)
+
+## Explicit parent resumption after the preserved freeze
+
+The parent explicitly resumed this same writer, branch and worktree as sole
+shared-source owner. The frozen checkpoint below remains historical evidence;
+its no-work/released statements no longer describe current ownership.
+
+- Original checkpoint remains `cdedd2f0c6934813fadf0ac70054a20ac9e8991c`, tree
+  `a3b6e9f96ba65f80a9a8ee0d4e46adbd519b3e23`. Start base remains exact accepted555.
+  No unaccepted settlement source was imported. This is still **PREBASE WIP**,
+  not final feature acceptance or a released/frozen handoff.
+- Mounted request/inbox/exact-row authorized RSC detail/terminal history and real
+  recipient bell; added capability hints and in-memory unresolved intent recovery.
+  Added current-authority/privacy checks, notification read audit/SQL guards,
+  generic typed envelope schemas and safe no-reviewer error text.
+- Resumed dirty-source checks `types-smoke-source`, `lint-smoke-source` and
+  `format-smoke-source` exited0; earlier failures remain retained. Added real
+  `tests/security/approval-disposal-check.ts`, **not yet executed**.
+- `draft-overlay` exited0, replacing13 owned function definitions and installing
+  two notification triggers in the retained draft. This is explicitly development
+  reconciliation, **not migration/fresh/upgrade proof**; old migration records and
+  the rolled-back failed attempt are untouched.
+- Only owned draft PG has resumed. No production build/app/browser or P1–P8
+  runtime campaign has run at this checkpoint. Build/runtime failures remain
+  possible; full security, SQL, races, UI/SW, restart and upgrade proof is pending.
+- Every resumed command receipt is in the same private evidence root below,
+  using append-only `run-resumed.py` with cwd/args/head/tree/dirty-source file
+  hashes/stdout/stderr/exit. The original freeze manifest and runner are preserved.
+- Final reconciliation still waits for an **explicit parent-accepted settlement
+  SHA/tree**, then actual inventory and fresh/genuine nonempty exact-parent
+  upgrade/repeat. Current16 migrations/registry12 are prebase only; no006 claim.
+
+## Historical frozen checkpoint — preserved verbatim below
 
 Parent requested safe checkpoint/freeze/release before reassigning a bounded
 settlement correction. This is **incomplete work, not a candidate, PASS,
