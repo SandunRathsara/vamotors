@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md), original clauses/failures unchanged. [Exact038 full review NOW RUNNING](evidence/T05c2-gross-6cc7c93-review-assembly.md), separate gross/incurred/ORIGINAL VPRC-02, no results/fixture upgrade/completion inferred. [Current HANDOFF](HANDOFF.md): WRITE_OFF RESUMED sole shared writer from preservedcdedd2f/accepted555, post-resume outcome unknown, author6cc released. Source/matrix/full scopes/gates exact038; new records not replacement target/acceptance, primary555/humanG2d0 untouched/no ledger runtime/source/FF.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md)/original failures unchanged. [Parent REJECTS038/UI P2 OPEN/VPRC-02 KEEP_U; two boundary decisions at038](evidence/T05c2-038e53f-ui-rejection-attributed.md), reviewer COMPLETED FAIL/closed-retained/no overall acceptance. Genuine fixture NOW upgraded16/12, archived555 seal unchanged. [HANDOFF](HANDOFF.md): WRITE_OFF freeze REQUESTED/no ACK/sole active until ACK/no UI correction assigned. Source/matrix/full scopes/gates exact326/038/primary555/humanG2d0 untouched/no runtime/FF; future equivalent-proof reuse NOT dispatch.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

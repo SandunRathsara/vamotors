@@ -2,7 +2,7 @@
 
 ## Current bounded LOCAL implementation
 
-Parent dispatched FULL settlement review **RUNNING exact038e53f4a5f05496cdf58dcdcbe001079792e38c/treef387bfcc4a83ba8305709c5751cdd7363ccbbaf4**, not this docs descendant or acceptance; no result/fixture upgrade/completion inferred. Parent RESUMED WRITE_OFF sole shared writer from preservedcdedd2f/accepted555, current head/types/UI/outcome unknown/not inspected; author6cc remains released. [Current HANDOFF](.planning/implementation/HANDOFF.md), [parent verification/dispatch attribution and original assembly seal](.planning/implementation/evidence/T05c2-gross-6cc7c93-review-assembly.md). Source/schema16SQL/contracts/tests/packages/native/PWA/operations/matrix/full scopes/gates unchanged; primary555/P3/human G2 http://127.0.0.1:8000/login pinned d0/26 LOCAL108 U134/G3–G6 pending preserved. No ledger runtime/source/FF/acceptance.
+**Parent REJECTS settlement038** for **IV-T05c2-FC-UI-C01/P2 OPEN; VPRC-02 KEEP_U**, reviewer COMPLETED FAIL/closed-retained. Gross/incurred defect-specific boundaries accepted **at038 only**, not overall/source/ID acceptance. Genuine retained fixture NOW upgraded038/16-registry12; archived555 seal unchanged. WRITE_OFF freeze **REQUESTED/no ACK**, sole active until ACK/current HEAD+jobs unknown/no UI correction assigned. [Current HANDOFF](.planning/implementation/HANDOFF.md), [adjudication/evidence limits](.planning/implementation/evidence/T05c2-038e53f-ui-rejection-attributed.md). Source/matrix/scopes/gates exact326/038; primary555/humanG2d0/26 LOCAL108 U134/G3–G6 pending unchanged, no runtime/FF/feature fix here.
 
 ## Historical frontend-shell walkthrough
 

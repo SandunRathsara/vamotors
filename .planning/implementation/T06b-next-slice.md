@@ -4,7 +4,7 @@
 
 Bounded T06b-d0/220-artifact proof/G2 human-d0 and [bounded T05c.1 accepted555/P3 closed](evidence/T05c1-55564b5-acceptance-attributed.md) remain source-bound history. Accepted primary555/15 migrations/registry11 and humanG2d0 unchanged; current separate [T05c.2 frozenfd7+4b REVIEW candidate](evidence/T05c2-fd7ddc7-review-assembly.md) is UNACCEPTED/16/registry12, all15 old SQL/005/stock formatting retained.26 LOCAL/108 U/134/VSTS-03 U/matrix/G3–G6/full T06/IMPT/restore/device/hosted/v1 limits and failures preserved, no primaryFF.
 
-Frozenfd7/da56 and [52c independent FAIL/P2](evidence/T05c2-52c720d-rejection-attributed.md) remain history. [Full exact038 review RUNNING](evidence/T05c2-gross-6cc7c93-review-assembly.md), no result/upgrade/completion inferred; P2 OPEN/VPRC-02 U. [Current HANDOFF](HANDOFF.md): WRITE_OFF RESUMED sole shared writer from preservedcdedd2f/accepted555, post-resume head/types/UI/outcome unknown, correction author6cc released. Scopes/gates/repair queue/source/matrix exact038 preserved; new records not replacement/acceptance, no ledger runtime/source/credentials/FF.
+Frozenfd7/da56/[52c FAIL](evidence/T05c2-52c720d-rejection-attributed.md) remain history. [038 REJECTED/new UI P2 OPEN/VPRC-02 KEEP_U; gross/incurred boundaries accepted at038](evidence/T05c2-038e53f-ui-rejection-attributed.md), reviewer COMPLETED FAIL/closed-retained/no overall acceptance. Genuine fixture NOW upgraded16/12, archived555 seal unchanged. [HANDOFF](HANDOFF.md): WRITE_OFF freeze REQUESTED/no ACK/sole active until ACK/no UI correction assigned. Scopes/gates/repair queue/source/matrix exact326/038 preserved, no runtime/credentials/FF; future equivalent-proof reuse NOT dispatch.
 
 ## Previous frozen1d REVIEW assembly / source-author release snapshot
 
