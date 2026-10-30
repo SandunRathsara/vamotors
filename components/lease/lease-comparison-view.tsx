@@ -418,7 +418,7 @@ export function LeaseComparisonView({
           )}
           <div className="flex flex-wrap gap-3">
             <Button
-              className="min-h-11"
+              className="h-auto min-h-11 max-w-full whitespace-normal"
               disabled={
                 command.pending ||
                 (!command.body &&
@@ -445,7 +445,7 @@ export function LeaseComparisonView({
             {command.body && command.definitive && (
               <Button
                 type="button"
-                className="min-h-11"
+                className="h-auto min-h-11 max-w-full whitespace-normal"
                 variant="outline"
                 onClick={async () => {
                   await settings.refetch()
@@ -511,7 +511,10 @@ export function LeaseComparisonView({
               </Link>
             </>
           )}
-          <Button disabled className="min-h-11">
+          <Button
+            disabled
+            className="h-auto min-h-11 max-w-full whitespace-normal"
+          >
             Open brokerage intake — not implemented
           </Button>
           <p className="text-sm text-muted-foreground">

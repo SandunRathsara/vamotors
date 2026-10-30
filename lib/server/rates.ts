@@ -267,7 +267,7 @@ export async function executeRates(
       if (ref.revision !== dep.revision)
         throw new CommandError("STALE_REVISION", 409, false, [dep])
     }
-    if (!owner.active) fail("PARTY_INACTIVE", 409)
+    if (!owner.active) fail("INVALID_STATE", 409)
     const commandId = randomUUID(),
       entityId = randomUUID()
     const sequence = await nextBusinessSequence(tx)
@@ -288,7 +288,7 @@ export async function executeRates(
           },
         })
       )
-        fail("RATE_OVERLAP", 409)
+        fail("IDENTITY_CONFLICT", 409)
       const last = await tx.rateSheetVersion.findFirst({
         where: match,
         orderBy: { version: "desc" },

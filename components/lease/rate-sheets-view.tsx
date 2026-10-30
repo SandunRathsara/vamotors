@@ -241,7 +241,10 @@ export function RateSheetsView() {
             </p>
           )}
           <div className="flex flex-wrap gap-3">
-            <Button className="min-h-11" disabled={command.pending}>
+            <Button
+              className="h-auto min-h-11 max-w-full whitespace-normal"
+              disabled={command.pending}
+            >
               {command.pending
                 ? "Publishing…"
                 : command.body
@@ -260,7 +263,7 @@ export function RateSheetsView() {
               <Button
                 type="button"
                 variant="outline"
-                className="min-h-11"
+                className="h-auto min-h-11 max-w-full whitespace-normal"
                 onClick={async () => {
                   await companies.refetch()
                   command.reconfirm()
