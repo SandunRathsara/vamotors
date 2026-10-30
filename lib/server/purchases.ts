@@ -927,6 +927,20 @@ export async function purchaseQuery(
         ? visiblePurchase(actor, row)
         : visibleVehicle(actor, row)
     if (!visible.id) fail("FIELD_FORBIDDEN", 403)
+    // Historical hold values (including duplicated stock audit reasons) inherit
+    // current source-field authority, not presence of an optional current value.
+    const holdReasonReadable =
+      actor.ability.can(
+        "read",
+        subject("PurchaseRecord", auth(row)),
+        "holdReason"
+      ) &&
+      (input.type === "PurchaseRecord" ||
+        actor.ability.can(
+          "read",
+          subject("Vehicle", vehicleAuth(row)),
+          "holdReason"
+        ))
     const where = {
       entityType: input.type,
       entityId: input.id,
@@ -972,7 +986,12 @@ export async function purchaseQuery(
       const fields = Object.entries(
         entry.fieldDiff as Record<string, { before: unknown; after: unknown }>
       ).flatMap(([path, delta]) => {
-        const witness = at(visible, path)
+        const witness =
+          path === "holdReason"
+            ? holdReasonReadable
+              ? row.holdReason
+              : undefined
+            : at(visible, path)
         if (witness === undefined) {
           redactedFields.push(`fields.${path}`)
           return []
@@ -995,6 +1014,14 @@ export async function purchaseQuery(
         reason: entry.reason,
         fields,
       })
+      if (
+        ["receiveStock", "holdStock", "releaseStock"].includes(entry.action) &&
+        !holdReasonReadable &&
+        "reason" in result
+      ) {
+        delete result.reason
+        redactedFields.push("reason")
+      }
       result.redactedFields.push(...redactedFields)
       return result
     })

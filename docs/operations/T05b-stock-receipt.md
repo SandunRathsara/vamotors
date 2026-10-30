@@ -83,6 +83,13 @@ consume only make/model/engine/chassis leaves on their relevant roots, never
 restore old wildcard/compound ceilings. Record scopes precede counts/order/page;
 financial fields retain independent projection in JSON, RSC and audit.
 
+Stock audit `reason` duplicates the source `holdReason`; it therefore requires
+both AuditLog reason-read and current actual-record source-field read authority.
+Vehicle audit additionally inherits PurchaseRecord source authority. This is
+read-time projection only: stored reasons/diffs are never rewritten. Authorized
+historical hold diffs remain readable after a changed hold or release clears the
+optional current reason. Both stock-input paths use this same query boundary.
+
 The stock form lives outside the conditional query-result subtree: transient
 observer/read resets cannot unmount its pending envelope. Original serialized
 body/key/refs remain frozen across response loss, refetch and transient auth;
@@ -104,6 +111,7 @@ pnpm db:generate
 pnpm local:setup
 pnpm local:setup
 pnpm build
+node --import tsx tests/security/stock-audit-check.ts "$VAMOTORS_LOCAL_DIR"
 node --import tsx tests/security/stock-receipt-check.ts "$VAMOTORS_LOCAL_DIR"
 node --import tsx tests/security/purchase-acquisition-check.ts "$VAMOTORS_LOCAL_DIR"
 pnpm test:unit
@@ -132,7 +140,12 @@ root; separate independent roots may run in parallel.
 1. Use a separate local source copy at exact **db2580d**, its own installed
    frozen dependencies and a new private root. Run its setup/build and its
    `purchase-acquisition-check.ts` to retain **real command-created PURCHASED**
-   acquisitions and Settings/policy/contact/audit/receipt/version history.
+   acquisitions and Settings/audit/receipt/version history. **Acquisition alone
+   does not populate FinanceCompany, FinanceContact, FinancePolicyVersion,
+   SupplierContact or Customer.** Populate all five through genuine parent
+   commands before prepare and explicitly require nonzero before/after rowsets;
+   the existing upgrade runner's equality comparisons alone permit empty arrays.
+   Nonempty fixture creation/proof remains a required independent-verifier task.
 2. From candidate source, before overlay:
    `node --import tsx tests/security/stock-upgrade-check.ts <root> prepare`.
    It verifies the source copy's exact parent HEAD/nine applied migrations and
@@ -154,6 +167,29 @@ root; separate independent roots may run in parallel.
    Subsequent lawful business changes are not a migration-byte comparison.
 
 ## Author evidence, retries and limits
+
+Rejected candidate `490f7d3f960bafa604839fe8009f3a99272ba661` has a definitive
+independent FAIL R1: AuditLog-only permission disclosed denied stock hold reasons.
+Its prior positive campaigns remain attributed partial evidence, not acceptance.
+The bounded R1 correction changes only purchase audit projection, adds
+`stock-audit-check.ts`, and fixes the owned acquisition-runner formatting failure;
+schema, migrations, registry, grants and dependencies stay byte-identical.
+
+The focused runner uses real production sessions and UI-submitted receive HOLD
+and holdStock, then checks both roots over HTTP and rendered detail UI. It covers
+denied/allowed source reads, independent AuditLog reason denial, each root's
+source denial, current record conditions, changed hold then release, subsequent
+grant revocation in the same session, and byte-preserved stored audit history.
+It owns/closes its app and Chromium; stop its retained PostgreSQL root separately
+with `VAMOTORS_LOCAL_DIR=<root> pnpm local:stop`. It writes
+`stock-audit-<run>.json` with source SHA, clean/dirty flag and case inventory.
+
+Per the parent's bounded-handback instruction, the correction is a review
+candidate only. Exact-SHA independent fresh/upgrade verification, the nonempty
+exact-db2580dd nine→ten upgrade fixture (including repeat retention validation),
+stock16, acquisition15 and broad affected regression reruns remain outstanding;
+historical positives do not satisfy those replacement-SHA checks. No acceptance,
+integration or whole-requirement promotion follows from the focused author pass.
 
 Final exact-SHA results/artifact paths are returned in the implementation
 handback. Earlier clean source `fd4d6f3` passed fresh14/upgrade14/acquisition15,
