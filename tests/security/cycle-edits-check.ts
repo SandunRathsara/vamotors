@@ -26,6 +26,7 @@ import {
   refs,
   purchaseInput,
 } from "./cycle-edits-fixture"
+import { seedFiles, verifyFiles, type RetainedFiles } from "./cycle-edits-files"
 
 const root = process.argv[2]
 assert.ok(root)
@@ -40,6 +41,7 @@ let admin!: APIRequestContext,
   original!: CurrentActorDTO,
   supplier!: { id: string; revision: number },
   cycle!: PurchaseCycleDTO,
+  retainedFiles!: RetainedFiles,
   stage = "initialize"
 const clients: APIRequestContext[] = [],
   pages: Page[] = []
@@ -200,6 +202,20 @@ try {
       assert.ok(Number(seeded.quoteCount) > 0)
     }
   )
+  await group(
+    "real STAGED CSV/XLSX retention and current download authority",
+    async () => {
+      retainedFiles = await seedFiles(f, admin)
+      evidence.push(await verifyFiles(f, retainedFiles))
+    }
+  )
+  const originalFiles = await f.snapshot([
+    "ImportBatch",
+    "UploadIntent",
+    "UploadAttempt",
+    "Attachment",
+    "UploadEvent",
+  ])
   await group(
     "1920/360 keyboard UI: asking zero, mileage zero with reason, full physical correction",
     async () => {
@@ -1103,6 +1119,17 @@ try {
       assert.equal(await f.snapshot(), before)
       await f.restart()
       assert.equal(await f.snapshot(), before)
+      assert.equal(
+        await f.snapshot([
+          "ImportBatch",
+          "UploadIntent",
+          "UploadAttempt",
+          "Attachment",
+          "UploadEvent",
+        ]),
+        originalFiles
+      )
+      evidence.push({ afterRestart: await verifyFiles(f, retainedFiles) })
       const reload = await current(cycle.id, second)
       assert.equal(reload.listedPrice, "99999999999999")
       assert.equal(reload.identity.colour, "Green")

@@ -14,8 +14,17 @@ import {
   grantSchema,
   registryVersion,
 } from "../../lib/server/permissions"
-import type { Grant } from "../../.planning/implementation/contracts/api"
-import { fixture, seed, envelope } from "./cycle-edits-fixture"
+import type {
+  Grant,
+  PurchaseCycleDTO,
+} from "../../.planning/implementation/contracts/api"
+import { fixture, seed, envelope, refs } from "./cycle-edits-fixture"
+import {
+  seedFiles,
+  fileBytes,
+  verifyFiles,
+  type RetainedFiles,
+} from "./cycle-edits-files"
 
 process.umask(0o077)
 const [root, mode, parentSHA] = process.argv.slice(2)
@@ -25,6 +34,7 @@ assert.ok(
     /^[0-9a-f]{40}$/.test(parentSHA)
 )
 const migration = await privateEnvironment(join(root, "migration.env")),
+  runtime = await privateEnvironment(join(root, "runtime.env")),
   cluster = await privateEnvironment(join(root, "cluster.env")),
   source = cluster.PROJECT!
 const git = (...args: string[]) =>
@@ -36,7 +46,7 @@ assert.equal(
 )
 if (mode === "prepare") assert.equal(git("rev-parse", "HEAD"), parentSHA)
 else assert.ok(git("merge-base", "--is-ancestor", parentSHA, "HEAD") === "")
-const db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 1 })
+let db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 1 })
 const tables = [
   "Environment",
   "Settings",
@@ -68,6 +78,11 @@ const tables = [
   "RateSheetVersion",
   "RateCardEntry",
   "Quote",
+  "ImportBatch",
+  "UploadIntent",
+  "UploadAttempt",
+  "Attachment",
+  "UploadEvent",
 ]
 type Snapshot = {
   rows: Record<string, Record<string, unknown>[]>
@@ -76,6 +91,7 @@ type Snapshot = {
   columns: Record<string, unknown>[]
   functions: { name: string; body: string; metadata: Record<string, unknown> }[]
   grants: { roleId: string; rule: Grant; systemKey: string | null }[]
+  bytes: Awaited<ReturnType<typeof fileBytes>>
 }
 async function snapshot(): Promise<Snapshot> {
   const rows: Snapshot["rows"] = {}
@@ -87,6 +103,7 @@ async function snapshot(): Promise<Snapshot> {
     ).rows.map((r) => r.row)
   return {
     rows,
+    bytes: await fileBytes({ db, runtime }),
     migrations: (
       await db.query(
         "SELECT migration_name,checksum FROM vamotors._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name"
@@ -144,13 +161,62 @@ function atoms(grant: Grant, expand = expanded, universe = fieldsFor) {
 }
 try {
   if (mode === "prepare") {
-    const f = await fixture(root, source)
+    const parent = await import(
+        pathToFileURL(join(source, "lib/server/permissions.ts")).href
+      ),
+      f = await fixture(root, source)
+    let retainedFiles!: RetainedFiles
     try {
       await f.start()
       const admin = await f.login("ADMIN")
       try {
-        await seed(f, admin, randomUUID().slice(0, 8))
+        const seeded = await seed(f, admin, randomUUID().slice(0, 8))
+        let row = seeded.cycle
+        await f.command(
+          admin,
+          "editPurchase",
+          envelope(
+            {
+              cycleId: row.id,
+              reason: "Retained P2 supplier invoice correction",
+              patch: {
+                purchasePrice: "11000",
+                notes: "Retained corrected terms",
+              },
+              cashCorrections: [
+                {
+                  paymentId: row.payments[0].id,
+                  reason: "Actual original entry correction, not refund",
+                  replacement: {
+                    amount: "9000",
+                    date: "2026-10-01",
+                    method: "CASH",
+                  },
+                },
+              ],
+            },
+            refs(row, "addMileage")
+          )
+        )
+        row = await f.query<PurchaseCycleDTO>(
+          admin,
+          "purchase",
+          `?cycleId=${row.id}`
+        )
+        assert.equal(row.financial?.basis, "11500")
+        assert.equal(row.outstanding.seller, "2000")
+        retainedFiles = await seedFiles(f, admin)
+        await verifyFiles(f, retainedFiles)
         for (const grants of [
+          Object.entries(
+            parent.registry as Record<string, Record<string, unknown>>
+          ).flatMap(([subject, actions]) =>
+            Object.keys(actions).map((action) => ({
+              subject,
+              action,
+              fields: ["*"],
+            }))
+          ),
           [
             { subject: "Vehicle", action: "read", fields: ["*"] },
             { subject: "Vehicle", action: "create", fields: ["*"] },
@@ -166,6 +232,18 @@ try {
               subject: "Vehicle",
               action: "read",
               fields: ["mileage", "identity", "financial"],
+              conditions: { createdBy: "$actor.id" },
+            },
+            {
+              subject: "ImportBatch",
+              action: "read",
+              fields: ["uploads"],
+              conditions: { createdBy: "$actor.id" },
+            },
+            {
+              subject: "Document",
+              action: "read",
+              fields: ["attachmentId", "bytes"],
               conditions: { createdBy: "$actor.id" },
             },
             {
@@ -198,10 +276,7 @@ try {
     } finally {
       await f.close()
     }
-    const parent = await import(
-        pathToFileURL(join(source, "lib/server/permissions.ts")).href
-      ),
-      before = await snapshot()
+    const before = await snapshot()
     for (const t of [
       "Settings",
       "SettingsVersion",
@@ -228,6 +303,11 @@ try {
       "RateSheetVersion",
       "RateCardEntry",
       "Quote",
+      "ImportBatch",
+      "UploadIntent",
+      "UploadAttempt",
+      "Attachment",
+      "UploadEvent",
     ])
       assert.ok(
         before.rows[t].length > 0,
@@ -253,6 +333,7 @@ try {
           parentRegistry: parent.registryVersion,
           ...before,
           ceilings,
+          retainedFiles,
         },
         null,
         2
@@ -269,10 +350,14 @@ try {
         parentSHA: string
         parentRegistry: number
         ceilings: Record<string, string[]>
+        retainedFiles: RetainedFiles
       },
       after = await snapshot()
     assert.equal(before.parentSHA, parentSHA)
     assert.equal(registryVersion, before.parentRegistry + 1)
+    assert.equal(before.migrations.length, 14)
+    assert.equal(after.migrations.length, 15)
+    assert.deepEqual(after.bytes, before.bytes)
     assert.equal(after.migrations.length, before.migrations.length + 1)
     assert.deepEqual(
       after.migrations.slice(0, before.migrations.length),
@@ -383,6 +468,19 @@ try {
         p.ruleHash
       )
     }
+    const f = await fixture(root, source)
+    let downloads: unknown[]
+    try {
+      await f.start()
+      downloads = [await verifyFiles(f, before.retainedFiles)]
+      await db.end()
+      db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 1 })
+      await f.restart()
+      downloads.push(await verifyFiles(f, before.retainedFiles))
+      assert.deepEqual(await snapshot(), after)
+    } finally {
+      await f.close()
+    }
     await writeFile(
       join(root, "cycle-edits-upgrade-after.json"),
       JSON.stringify(
@@ -391,6 +489,7 @@ try {
           parentSHA,
           registryVersion,
           ...after,
+          downloads,
         },
         null,
         2
@@ -398,7 +497,7 @@ try {
       { mode: 0o600 }
     )
     console.log(
-      `PASS genuine ${before.migrations.length}->${after.migrations.length} upgrade; old source rows/quotes/reversals/basis/ACLs/owners/ceilings exact`
+      `PASS genuine ${before.migrations.length}->${after.migrations.length} upgrade; old rows/P2/files/bytes/ACLs/owners/50 ceilings exact; fresh authenticated downloads and restart 200/403/404/401`
     )
   }
 } finally {

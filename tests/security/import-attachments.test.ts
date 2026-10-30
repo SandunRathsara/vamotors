@@ -104,11 +104,41 @@ describe("T06b staging trust boundaries", () => {
       }).success
     ).toBe(false)
   })
-  it("keeps the accepted v9 capability universes byte-identical; no import or upload verb", () => {
+  it("keeps the accepted v9 fingerprint apart from explicit T05c.1 additions; no import or upload verb", () => {
     const old = Object.fromEntries(
-      Object.entries(registry).filter(
-        ([name]) => !["Document", "ImportBatch"].includes(name)
-      )
+      Object.entries(registry)
+        .filter(([name]) => !["Document", "ImportBatch"].includes(name))
+        .map(([name, actions]) => [
+          name,
+          Object.fromEntries(
+            Object.entries(actions)
+              .filter(
+                ([action]) => !(name === "Vehicle" && action === "update")
+              )
+              .map(([action, fields]) => [
+                action,
+                fields.filter(
+                  (field) =>
+                    !(
+                      ["Vehicle", "PurchaseRecord"].includes(name) &&
+                      action === "read" &&
+                      field.startsWith("mileage.")
+                    ) &&
+                    !(
+                      name === "PurchaseRecord" &&
+                      action === "update" &&
+                      [
+                        "amount",
+                        "mileage.reading",
+                        "mileage.date",
+                        "mileage.remark",
+                        "mileage.decreaseReason",
+                      ].includes(field)
+                    )
+                ),
+              ])
+          ),
+        ])
     )
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
       "9bcc167cdb755264f8963345dfcfce787a77806a713f07c3729c0529fea53a1b"
