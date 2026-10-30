@@ -4,18 +4,19 @@
 
 Work in progress, **not accepted and not a final combined handback**. Author session
 `ses_e724e8803ffegV2I6w3qrj9OZS` owns this isolated slice. Base is parent-accepted
-`d0b13455cdec498e0913c0b74566b90ee930e353`, tree
-`1ce2785e4af2c34bc35981d6539c66db14dc2dfd`. No unaccepted T05c.1 code was imported.
-Branch `feat/t05c2-settlement-purchases-prebase`, worktree
+`55564b5d25983c8de44980362a4c30d6e0e15cc1`, tree
+`eba1648a2bfb3db637de1728104214f19a1d60a6`. Parent accepted that exact combined
+T05c.1 closure; runtime campaigns ran at 522d26c, with independent runtime-byte
+equivalence and test-format verification at 555, not runtime reruns at 555.
+Branch `feat/t05c2-settlement-purchases`, worktree
 `/Users/alpha/Developer/Personal/vamotors-t05c2`.
 
-Actual prebase inventory is 14 migrations / registry v10 / 16 subjects / 50
-actions. This slice reserves **202610300006_settlement_purchases**. It does not
-pretend that 005 exists at d0, or modify any of d0's migrations. Prebase with 006
-has 15 migrations / registry v11. Final combination must first reconcile onto
-the explicitly parent-accepted T05c.1 SHA, preserve its 005 guards/commands, and
-rerun fresh plus genuine nonempty parent upgrade/repeat/restart proof. Expected
-final inventory is 16 / v12, subject to the actual accepted parent inventory.
+Actual accepted inventory is 15 migrations / registry v11 / 16 subjects / 51
+actions. This slice adds only **202610300006_settlement_purchases**, yielding
+16 migrations / registry v12. All 15 accepted migration files and the migration
+lock remain byte-identical, including 005. The original prebase branch remains
+at `da56e95760f352280000cb15d1f1d1f761146016` unchanged, with its three stopped
+roots and sealed failure history. New final fresh/upgrade proof remains required.
 
 ## Runtime behavior and files
 
@@ -46,7 +47,7 @@ it never deletes the retained detail, initial graph, original cash or versions.
 CashMovement still has one PURCHASE branch.
 
 `lib/server/permissions.ts` adds only PurchaseRecord settlement/correction leaves.
-006 snapshots all actual d0 universes and conservatively reattaches replacement
+006 snapshots all actual accepted v11 universes and conservatively reattaches replacement
 rules without modifying immutable Permission records/hashes/conditions. It
 preserves compound gates, including ImportBatch.uploads and Document.target;
 it does not flatten unchanged compound authority into leaves. Only protected
@@ -93,6 +94,25 @@ rather than removing their coverage. These failures are not passing evidence.
 
 ## Reproducible checks
 
+### Resumed diagnosis and accepted-parent fixture
+
+Private resumed receipts: `/Users/alpha/.config/vamotors/t05c2-resumed-20261030/`.
+The exact-555 cash reproduction at `20261030T174539356540Z` reached C and returned
+500 at C+1; unconditional whole-graph snapshots were equal. A real authenticated
+direct-command probe at `20261030T174643371135Z` captured the actual
+`RangeError("MONEY_OVERFLOW")` stack at shared incurred-basis `sum(..., C)`.
+The new application guard raises existing `CommandError` 422 at that shared
+branch for addCost/editCost/price changes; no public-error catch-all or database
+cap relaxation was added. Original prebase failure evidence remains intact.
+
+The first resumed parent fixture attempt at root `t05c2-555-parent-20261030`
+failed because its old dispatcher string detector skipped accepted cycle edits.
+That root is retained as development history, never final-upgrade proof. The
+corrected NEW root `t05c2-555-parent-final-20261030-01` prepared successfully at
+exact 555 with real P2, zero/declining mileage, physical/asking corrections,
+finance/rates/quotes, scoped file readers and FINAL CSV plus XLSX. It has not yet
+completed candidate upgrade/repeat proof. No old root was emptied or reseeded.
+
 Run only in this worker's owned, isolated source/root:
 
 ```sh
@@ -101,6 +121,7 @@ pnpm build
 pnpm typecheck
 pnpm test:unit
 node .planning/implementation/contracts/check.mjs
+node --import tsx tests/security/incurred-basis-check.ts "$VAMOTORS_LOCAL_DIR"
 node --import tsx tests/security/settlement-purchase-check.ts "$VAMOTORS_LOCAL_DIR"
 ```
 

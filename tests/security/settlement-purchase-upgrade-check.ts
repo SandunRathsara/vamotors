@@ -60,8 +60,8 @@ execFileSync("git", ["merge-base", "--is-ancestor", parentSHA, head], {
   cwd: project,
   stdio: "pipe",
 })
-const db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 1 }),
-  record = join(root, `settlement-upgrade-${parentSHA}.json`)
+let db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 1 })
+const record = join(root, `settlement-upgrade-${parentSHA}.json`)
 const hash = (value: unknown) =>
   createHash("sha256")
     .update(typeof value === "string" ? value : canonical(value))
@@ -734,6 +734,22 @@ try {
     assert.equal(before.source.sha, parentSHA)
     assert.notEqual(head, parentSHA)
     const after = await snapshot(before.fixture)
+    const repeatedState = join(root, "settlement-migration-role-state.json")
+    const roleState = canonical({
+      roles: after.rows.Role,
+      permissions: after.rows.Permission,
+      memberships: after.rows.RolePermission,
+    })
+    try {
+      assert.equal(
+        await readFile(repeatedState, "utf8"),
+        roleState,
+        "Repeat setup must not bump roles or add grants"
+      )
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error
+      await writeFile(repeatedState, roleState, { flag: "wx", mode: 0o600 })
+    }
     assert.equal(before.source.registryVersion, 11)
     assert.equal(after.source.registryVersion, 12)
     assert.equal(before.migrations.length, 15)
@@ -767,14 +783,61 @@ try {
         after.privileges.some((p) => canonical(p) === canonical(privilege)),
         `PRIVILEGE_${canonical(privilege)}`
       )
-    const changedFunctions = [
-      "check_acquisition_graph",
-      "acquisition_root_guard",
-      "cycle_cost_root_graph",
-      "cycle_cost_diff",
-      "cycle_cost_child_graph",
-      "check_cycle_edit",
-    ]
+    const sql = await readFile(
+      join(
+        project,
+        "prisma/migrations/202610300006_settlement_purchases/migration.sql"
+      ),
+      "utf8"
+    )
+    const pairs = [
+      ...sql.matchAll(/ARRAY\['((?:[^']|'')*)','((?:[^']|'')*)'\]/g),
+    ].map((m) => [m[1].replaceAll("''", "'"), m[2].replaceAll("''", "'")])
+    assert.equal(pairs.length, 8)
+    const replacement = (body: string, from: string, to: string) => {
+      assert.ok(
+        body.includes(from),
+        `Expected exact accepted guard fragment: ${from}`
+      )
+      return body.replaceAll(from, to)
+    }
+    const expectedBody = (name: string, body: string) => {
+      if (name === "vamotors.check_acquisition_graph()")
+        return sql.match(
+          /CREATE OR REPLACE FUNCTION vamotors\.check_acquisition_graph\(\)[\s\S]*? AS \$\$([\s\S]*?)\$\$;/
+        )![1]
+      if (name === "vamotors.acquisition_root_guard()")
+        return pairs
+          .slice(0, 2)
+          .reduce((value, [from, to]) => replacement(value, from, to), body)
+      if (name === "vamotors.cycle_cost_root_graph()")
+        return pairs
+          .slice(2)
+          .reduce((value, [from, to]) => replacement(value, from, to), body)
+      if (name === "vamotors.cycle_cost_diff(text,jsonb,jsonb)")
+        return replacement(
+          body,
+          "'purchaseType','acquisitionKind'",
+          "'purchaseType','settlement.institutionType','settlement.companyId','settlement.institutionName','settlement.institutionNameSnapshot','settlement.reference','settlement.amount','settlement.cashToSeller','acquisitionKind'"
+        )
+      if (name === "vamotors.cycle_cost_child_graph()")
+        return replacement(
+          replacement(
+            body,
+            "AND NEW.\"lineKey\"='seller'",
+            "AND NEW.\"lineKey\" IN ('seller','settlement')"
+          ),
+          "m.direction='IN' AND m.\"sourceType\"",
+          "m.direction='IN' AND m.category=NEW.category AND m.\"sourceType\""
+        )
+      if (name.startsWith("vamotors.check_cycle_edit("))
+        return replacement(
+          body,
+          "new_root.\"purchaseType\" NOT IN ('CASH','BRAND_NEW')",
+          "new_root.\"purchaseType\" NOT IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT')"
+        )
+      return body
+    }
     for (const old of before.functions) {
       const now = after.functions.find((f) => f.name === old.name)!
       assert.ok(now)
@@ -782,8 +845,11 @@ try {
       assert.deepEqual(now.acl, old.acl)
       assert.equal(now.securityDefiner, old.securityDefiner)
       assert.deepEqual(now.config, old.config)
-      if (!changedFunctions.some((name) => old.name.includes(`${name}(`)))
-        assert.deepEqual(now, old)
+      assert.equal(
+        now.body,
+        expectedBody(old.name, old.body),
+        `Exact guarded function extension: ${old.name}`
+      )
     }
     for (const g of after.grants) {
       grantSchema.parse(g.rule)
@@ -847,12 +913,22 @@ try {
       await local.start()
       assert.deepEqual(await fileBytes(local), before.fixture.bytes)
       await verifyFiles(local, before.fixture.files)
+      await client?.dispose()
+      client = undefined
+      if (server && server.exitCode === null) {
+        const done = once(server, "exit")
+        server.kill("SIGTERM")
+        await done
+      }
+      await db.end()
+      db = new pg.Pool({ connectionString: migration.DIRECT_URL, max: 1 })
       await local.restart()
       await verifyFiles(local, before.fixture.files)
       assert.deepEqual(await fileBytes(local), before.fixture.bytes)
     } finally {
       await local.close()
     }
+    await start()
     const row = await query<PurchaseCycleDTO>(
       "purchase",
       `?cycleId=${before.fixture.purchaseId}`

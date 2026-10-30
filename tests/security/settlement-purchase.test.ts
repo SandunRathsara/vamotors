@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { canonical } from "../../lib/server/idempotency"
 import { describe, expect, it } from "vitest"
 import {
   cycleMoneyInputs,
@@ -170,6 +172,21 @@ describe("T05c.2 exact settlement contract", () => {
     )
     expect(Object.keys(frozen)).toHaveLength(16)
     expect(Object.values(frozen).flatMap(Object.keys)).toHaveLength(51)
+    const sortedFields = Object.fromEntries(
+      Object.entries(frozen).map(([subject, actions]) => [
+        subject,
+        Object.fromEntries(
+          Object.entries(actions).map(([action, fields]) => [
+            action,
+            [...fields].sort(),
+          ])
+        ),
+      ])
+    )
+    // Independently derived from exact accepted 555's registry v11, not v12.
+    expect(
+      createHash("sha256").update(canonical(sortedFields)).digest("hex")
+    ).toBe("3cfdc4a900c02ce50fde95b5aa0179202e805b199621a75212b813aa31859b9a")
     expect(frozen.Vehicle.update).toContain("values.engineNumber")
     expect(frozen.PurchaseRecord.update).toContain("mileage.decreaseReason")
     expect(frozen.Vehicle.read).toContain("mileage.decreaseReason")
@@ -183,10 +200,12 @@ describe("T05c.2 exact settlement contract", () => {
         ).toEqual(expect.arrayContaining(fields))
         if (subject !== "PurchaseRecord")
           expect(
-            (registry as Record<string, Record<string, readonly string[]>>)[
-              subject
-            ][action]
-          ).toEqual(expect.arrayContaining(fields))
+            [
+              ...(
+                registry as Record<string, Record<string, readonly string[]>>
+              )[subject][action],
+            ].sort()
+          ).toEqual([...fields].sort())
       }
     expect(frozen.ImportBatch.update).toEqual(["uploads"])
     expect(frozen.Document.create).toContain("target")

@@ -853,6 +853,79 @@ try {
     }
   )
   await group(
+    "accepted mileage, physical and asking edits on lease preserve basis, cash and original graph",
+    async () => {
+      const original = primary,
+        basis = primary.basisVersions,
+        payments = primary.payments
+      for (const mileage of [
+        {
+          reading: 100,
+          date: "2026-10-04",
+          remark: "Actual accepted append on lease",
+        },
+        {
+          reading: 0,
+          date: "2026-10-05",
+          decreaseReason: "Verified lease instrument transcription decline",
+        },
+      ]) {
+        await command(
+          a.request,
+          "addMileage",
+          envelope({ cycleId: primary.id, mileage }, refs(primary, true))
+        )
+        primary = await current(primary.id)
+      }
+      await command(
+        a.request,
+        "setListedPrice",
+        envelope(
+          {
+            cycleId: primary.id,
+            amount: "0",
+            reason:
+              "Explicit current asking zero, independent of incurred basis",
+          },
+          refs(primary)
+        )
+      )
+      primary = await current(primary.id)
+      await command(
+        a.request,
+        "editVehicle",
+        envelope(
+          {
+            vehicleId: primary.vehicleId,
+            values: {
+              ...primary.identity,
+              engineNumber: `LEASE-CORRECTED-E-${suffix}`,
+              colour: "Silver",
+            },
+            reason: "Verified physical lease identity correction",
+          },
+          [
+            {
+              type: "Vehicle",
+              id: primary.vehicleId,
+              revision: primary.identityRevision,
+            },
+          ]
+        )
+      )
+      primary = await current(primary.id)
+      assert.deepEqual(primary.basisVersions, basis)
+      assert.deepEqual(primary.payments, payments)
+      assert.deepEqual(primary.financial, original.financial)
+      assert.deepEqual(primary.settlement, original.settlement)
+      assert.equal(primary.listedPrice, "0")
+      assert.deepEqual(
+        primary.mileage.map((m) => m.reading),
+        [0, 100, 0]
+      )
+    }
+  )
+  await group(
     "live credits block payee changes; explicit reverse-edit-fresh-pay retains historical company links",
     async () => {
       const before = await snapshot(),
@@ -1647,7 +1720,7 @@ try {
         ["Actual purchase date", "2026-10-01"],
         ["Mileage date", "2026-10-01"],
       ])
-        await mobile.getByLabel(label, { exact: false }).fill(value)
+        await mobile.getByLabel(new RegExp(`^${label}(?: \\*)?$`)).fill(value)
       await mobile
         .getByLabel("Purchase type", { exact: false })
         .selectOption("LEASE_SETTLEMENT")

@@ -12,6 +12,24 @@ assert.ok(root && ["CASH", "LEASE_SETTLEMENT", "BOTH"].includes(channel))
 const f = await fixture(root, source),
   runId = randomUUID()
 const hash = (text: string) => createHash("sha256").update(text).digest("hex")
+const hasDetail = Boolean(
+  (
+    await f.db.query(
+      "SELECT to_regclass('vamotors.\"LeasePurchaseDetail\"') AS name"
+    )
+  ).rows[0].name
+)
+const snapshot = async () =>
+  JSON.stringify({
+    graph: await f.snapshot(),
+    detail: hasDetail
+      ? (
+          await f.db.query(
+            'SELECT to_jsonb(t) AS row FROM vamotors."LeasePurchaseDetail" t ORDER BY id'
+          )
+        ).rows
+      : [],
+  })
 try {
   await f.start()
   const admin = await f.login("ADMIN")
@@ -94,13 +112,13 @@ try {
           [ref(row)],
           key
         )
-      const before = await f.snapshot(),
+      const before = await snapshot(),
         response = await admin.post("/api/v1/commands/addCost", {
           headers: { Origin: f.origin },
           data: body,
         }),
         result = await response.json(),
-        after = await f.snapshot()
+        after = await snapshot()
       // Never let a wrong HTTP discriminator skip the rollback proof again.
       const receipt = {
         source,
@@ -145,6 +163,9 @@ try {
         envelope(
           {
             costId: cost.id,
+            category: cost.category,
+            description: cost.description,
+            incurredDate: cost.incurredDate,
             amount: "98",
             reason: "Make one cent of real incurred headroom",
           },
@@ -156,11 +177,11 @@ try {
       const success = await f.command(admin, "addCost", recoverable, 201)
       row = await current()
       assert.equal(row.financial?.basis, "9999999999999999")
-      const committed = await f.snapshot(),
+      const committed = await snapshot(),
         replay = await f.command(admin, "addCost", recoverable)
       assert.equal(replay.commandId, success.commandId)
       assert.equal(replay.replayed, true)
-      assert.equal(await f.snapshot(), committed)
+      assert.equal(await snapshot(), committed)
       console.log(
         `PASS ${purchaseType} exact C / C+1 422 zero effects / failed key recovered with current valid intent / immutable replay`
       )
