@@ -1,6 +1,12 @@
 # T06b — lawful staged-import private attachments
 
-## Current ACKED SOURCE FROZEN / RELEASED active ownership / preserved PREBASE
+## Current explicit parent REASSIGNMENT/RESUME / sole ACTIVE NEW writer
+
+After P2 author ACKED FROZEN7920bab39b7b883aa74911fa78025a84bf69036f/RELEASED active shared correction ownership, parent **explicitly REASSIGNED/RESUMED T06b ses_e738d7ffaffeXx7RewTpqYvIg0 as SOLE ACTIVE NEW shared source writer** from preserved clean **PREBASE87c57450268acf48658a6e5dc891f90f7522c5db**, accepted-e9 ancestry, known `feat/t06b-import-attachments` / `/Users/alpha/Developer/Personal/vamotors-t06b`. **Latest next head unknown/not supplied**, no unaccepted cost import; eventual **parent-accepted costs-combined rebase** then final fresh/genuine-parent upgrade/integrated review mandatory. Original full functionality/security/tests/reserved004/actualv8 prebase unchanged; private header-emission failure/affected-session revocation, partial/intermediate passes/mobile-selector failure/unrerun migration-fault-restart history retained, **not final87/independent acceptance**.
+
+[Frozen792 source+currentdocs ordinary review merge](evidence/T05c-P2-7920bab-review-assembly.md) is expressly authorized integration, **not simultaneous source authorship**. Return/freeze the final containing SHA/tree for **one distinct full combined-SHA verification** via parent; earlyFAIL500 reviewer not currently claimed RUNNING. Author correction is not independent P2 closure; F1 OPEN/VSTS-03 U/26 LOCAL/108 U/134/G2–G6 unaccepted/primarye9 unchanged. Any new correction FIRST **T06b checkpoint+freeze+ACK again**, THEN parent reassignment; no overlapping active source writers or integration source fixes.
+
+## Previous ACKED SOURCE FROZEN / RELEASED ownership / preserved PREBASE snapshot
 
 **[Parent-attributed terminal handoff and serialized correction](evidence/T05c-50073ca-rejection-attributed.md): T06b ses_e738d7ffaffeXx7RewTpqYvIg0 ACKED SOURCE FROZEN / RELEASED active shared ownership.** Exact clean **PREBASE87c57450268acf48658a6e5dc891f90f7522c5db**, branch `feat/t06b-import-attachments`, `/Users/alpha/Developer/Personal/vamotors-t06b`;28 files preserved/no unaccepted costs imported/`purchases.ts` untouched. All four jobs completed, no active owned app/test/browser/file worker; three author/r3/upgrade roots stopped/retained. Prior135units/contracts20/earlier build-types/intermediate genuine-e9 upgrade/desktop upload-loss-download passes are not final87 acceptance. Mobile-selector race failed, correction unrerun; latest migration tightening/fault/restart unverified. Failed synthetic-header instrumentation/private evidence/three revoked affected sessions remain provenance, no values copied; **no independent T06b verdict**.
 

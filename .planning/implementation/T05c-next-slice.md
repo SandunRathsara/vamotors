@@ -1,6 +1,12 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current exact500 P2 REJECTED / sole correction owner — 2026-10-30
+## Current frozen792 correction + records REVIEW assembly — 2026-10-30
+
+Parent authorizes [ordinary frozen7920bab39b7b883aa74911fa78025a84bf69036f + current8cd review assembly](evidence/T05c-P2-7920bab-review-assembly.md), no source fix by integration; exact runtime/test/schema bytes792, matrix/full scope/history retained. Six guard lines + additive128-line root/child-denied/authorized400 HTTP/audit/UI regression preserve all prior assertions. Author ses_e7376ed96ffe2a8RsopfGvBwgI **ACKED FROZEN792 / RELEASED shared correction ownership**, two own roots stopped/retained; author red→green/costs17/137units/projection2/types/build/contracts20/owned checks PASS, **not independent acceptance**. Historical500 independent FAIL P2/cleanup-helper failures/author11/12 cancelled acquisition and type baseline distinctions retained.
+
+Final REVIEW binds **returned clean containing merge SHA/tree**, frozen for one distinct full source+records fresh/genuine accepted-e9 upgrade/retained campaign. Reviewer ses_e73866f03ffef8LtV6wZH4jIq7 completed earlyFAIL500, will resume via parent on finalSHA; no current RUNNING claim or duplicate source-only review. P2 independent closure pending/F1 OPEN/VSTS-03 U/26 LOCAL/108 U/134/G2–G6 unaccepted. Parent explicitly resumed **T06b sole ACTIVE NEW writer from preserved87**, latest next head unknown/no unaccepted costs, eventual accepted-cost rebase mandatory; new correction FIRST T06b checkpoint+freeze+ACK again, THEN reassignment. Bounds/tests below unchanged; no acceptance/promotion/runtime campaign here.
+
+## Previous exact500 P2 REJECTED / sole correction dispatch snapshot — 2026-10-30
 
 Parent [REJECTS exact50073ca48e661612e84383560788739cc4dbbd16](evidence/T05c-50073ca-rejection-attributed.md) after distinct ses_e73866f03ffef8LtV6wZH4jIq7 **FAIL P2**: cost outstanding400/real UI4.00 leaks denied root OR child payment direction, violating A1. Fresh generated-client final build/types PASS; earlier ownerFAIL98 preserved stale-client baseline. Limited privacy/reversal/cache PASS subsets do not cover **PENDING / NOT RUN** genuine final upgrade/full retained/F1/units-lint campaigns. Original author11/12/CANCELLED-STALLED-GROUP15 unchanged; reviewer stopped/retained, accepted-e9 NONEMPTY fixture unchanged.
 
