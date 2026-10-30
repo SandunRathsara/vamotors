@@ -1,4 +1,90 @@
-# T07a/T08a — resumed PREBASE WIP (2026-10-31)
+# T07a/T08a — FROZEN incomplete PREBASE WIP (2026-10-31)
+
+## Current parent-requested checkpoint / shared ownership release
+
+The parent requested another safe freeze before assigning settlement correction
+`IV-T05c2-FC-UI-C01` following the distinct review of unaccepted038. **Implementation
+and new campaigns stopped. This is incomplete WIP, not a feature PASS, candidate,
+acceptance or gate promotion. No further implementation without explicit parent
+resumption.** The resumption journal below is historical and superseded by this
+freeze. No settlement correction or unaccepted settlement source was imported.
+
+### Preserved source and actual developmental results
+
+- Same branch/worktree: `feat/t07a-t08a-writeoff`,
+  `/Users/alpha/Developer/Personal/vamotors-writeoff`. Exact accepted start remains
+  `55564b5d25983c8de44980362a4c30d6e0e15cc1`, tree
+  `eba1648a2bfb3db637de1728104214f19a1d60a6`. Original frozen `cdedd2f` and all
+  subsequent local checkpoints/history are retained; no reset, deletion or adoption.
+- All15 accepted SQL files remain unchanged. Allocated migration is exactly
+  `202610310001_approval_disposal`; source16 migrations/registry12 are **PREBASE**.
+  Draft DB has16 successful installations plus one retained rolled-back failed
+  attempt. Its owned functions were subsequently overlaid for development, so it
+  is **not current-file migration/fresh/upgrade evidence**. No006/17/v13 claim.
+- Real request/inbox/exact authorized detail/terminal history/bell are mounted;
+  current authorized sidebar navigation is added. Exact-route proxy preflight
+  shares the authenticated detail owner, and the RSC repeats current authority;
+  foreign detail now has hard HTTP404 rather than a streamed soft404.
+- Fixed reproduced SQL variable/record defects, extra dependency acceptance and
+  a standalone StatusEvent forgery. The latter now requires the same final
+  disposal graph. All failures, including the rolled-back forgery, are retained.
+- Production build passed at clean `7c4ad960f2f26cc5e6711faea7163012ed0146f8`,
+  tree `e0d76a3a3a023178b27cca489f96e5371a1baf42`. Earlier clean builds and150-unit
+  runs passed. Generated schema bytes match the actual pnpm-resolved client.
+- `prebase-expanded-notification-population` exited0: real origins/zero/loss/gain,
+  strict inputs/refs, rejection/replay/fresh approval, seven actual stale mutations,
+  commandStatus and recipient read-one/all. `prebase-authority-fault-hard404`
+  exited0 for all groups authored at that point: independent leaf denials,
+  requester revocation/deactivation, separate reviewer requirement, privacy and
+  every enumerated essential request/review write/deferred fault with same-key
+  recovery. Restricted SQL campaign exited0. These are bounded author checks,
+  **not full original P1–P8, independent proof or final-base acceptance**.
+- `prebase-races-locks-first` exited0 with an explicit P5 diagnostic filter:
+  two reviewers/approve-vs-reject, duplicate requests, competing proposals and
+  actually observed BusinessSequence waits followed by execution/replay revocation.
+  Nonmatching groups are explicitly recorded SKIPPED, not passed.
+- Latest browser campaign `prebase-ui-full-focus-settled` **exited1**. Its first
+  three groups passed:1920 request and360 separate review, true committed response
+  loss with identical envelope/key across route unmount (plus request read failure),
+  same-actor second context/self-review suppression, real bell read controls and
+  active-SW private-cache exclusion. Overall P8 is **not passed**: logout-purge
+  navigation wait failed `net::ERR_ABORTED`; retained screenshots also show a clipped
+  Logout control in the360 header despite the root scroll-width assertion. Neither
+  issue was fixed before the parent's freeze. Keyboard rejection, stale explicit
+  reconfirmation/access-loss expansion and stronger action-bound checks remain.
+- The final modified UI test retains diagnostics and the focus-frame/locator-key
+  correction that made the isolated request-loss group pass. No production source
+  changed after the clean7c4 build. Latest test-only diagnostics were not subjected
+  to another full types/lint/format/build run before freeze; do not imply otherwise.
+
+### Services, evidence and safe next resume
+
+- All finite jobs have terminal notifications; latest full UI job failed, not a
+  pending job or success. Owned process manifests were inspected: no app/browser
+  remained. PG PID48802/data-root/loopback59106 were identity-checked, then the
+  existing owned stop script exited0. No separate storage daemon was started.
+  DB/private files, screenshots, failed attempts and receipts remain retained.
+- Append-only resumption receipts and original freeze artifacts remain under
+  `/Users/alpha/.config/vamotors/t07a-t08a-author-20261031-BdcvME`.
+  This release's exact SHA/tree, command ledger, service closeout and byte manifest
+  are sealed separately in `resumed-freeze-20261031-transfer/` there; the previous
+  FREEZE-ACK/MANIFEST files are not overwritten. A closeout inventory's initial
+  inet text-vs-host assertion failure is retained alongside its corrected read-only
+  inventory; it did not mutate the DB.
+- Resume only after parent reassigns sole ownership. Verify this committed
+  checkpoint and evidence first; preserve unexpected changes. Address actual UI
+  failure/focus/logout/header bounds and complete full P1–P8, reviewer-field/audit
+  privacy, SQL forgery/bounds, races and fault coverage without relabeling partials.
+- No new latest-SQL fresh migration, genuine nonempty grant upgrade, full touched-
+  seam regressions, authenticated FINAL attachment byte/restart proof or final
+  quality sweep has run. Draft Attachment count remains0. Final reconciliation
+  still requires the parent's explicitly accepted settlement SHA/tree, actual
+  migration/registry inventory and fresh plus genuine nonempty exact-parent
+  upgrade/repeat. Do not patch/import the unaccepted settlement correction here.
+- Counts remain26 LOCAL/108 U/134; VPRC-02 U, VSTS-03 U, human G2/d0/8000 untouched,
+  G3–G6 pending. No ledger/matrix/primary/default/protected/cloud/push/PR/deploy work.
+
+## Historical resumption journal — preserved below
 
 ## Explicit parent resumption after the preserved freeze
 

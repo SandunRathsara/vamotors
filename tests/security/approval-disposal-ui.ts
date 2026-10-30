@@ -34,12 +34,19 @@ const tables = [
   "BusinessSequence",
 ]
 let stage = "initialize"
+const pages: Page[] = [], responses: { path: string; status: number }[] = []
 async function key(page: Page, control: Locator) {
+  // Let the previous action's intentional alert-focus animation frame finish.
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
   await control.focus()
   await expect(control).toBeFocused()
-  await page.keyboard.press("Enter")
+  await control.press("Enter")
 }
 async function group(name: string, run: () => Promise<void>) {
+  if (process.argv[3] && !name.includes(process.argv[3])) {
+    groups.push({ group: name, skipped: true, reason: "Explicit diagnostic group filter" })
+    return
+  }
   stage = name
   await run()
   groups.push({ group: name, pass: true })
@@ -83,6 +90,11 @@ try {
     const page = await requester.newPage(),
       mobile = await reviewer.newPage(),
       other = await sameActor.newPage()
+    pages.push(page, mobile, other)
+    for (const p of pages) p.on("response", response => {
+      const path = new URL(response.url()).pathname
+      if (path.startsWith("/api/v1/commands/")) responses.push({ path, status: response.status() })
+    })
     const supplier = await f.command(
       admin,
       "createDirectoryParty",
@@ -454,6 +466,10 @@ try {
     await second.dispose()
   }
 } catch (error) {
+  for (const [index, page] of pages.entries()) if (!page.isClosed()) {
+    await page.screenshot({ path: join(root, `writeoff-ui-${suffix}-failure-${index}.png`), fullPage: true }).catch(() => undefined)
+    await writeFile(join(root, `writeoff-ui-${suffix}-failure-${index}.json`), JSON.stringify({ stage, url: page.url(), responses, bodyText: await page.locator("body").innerText().catch(() => "UNAVAILABLE") }, null, 2), { mode: 0o600 })
+  }
   groups.push({
     group: stage,
     pass: false,
