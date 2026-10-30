@@ -943,10 +943,23 @@ try {
       const uppercase = await ok<Applied>(
         await post(a.request, "completeUpload", {
           ...canonicalBody,
+          idempotencyKey: canonicalBody.idempotencyKey.toUpperCase(),
+          expected: canonicalBody.expected.map((ref) => ({
+            ...ref,
+            id: ref.id.toUpperCase(),
+          })),
           input: { uploadId: canonical.upload.uploadId.toUpperCase() },
         })
       )
       await retained(uppercase.result.id)
+      assert.equal(
+        (
+          await ok<Applied>(
+            await post(a.request, "completeUpload", canonicalBody)
+          )
+        ).replayed,
+        true
+      )
     }
   )
   await group(

@@ -26,6 +26,27 @@ const init = {
   sha256: "a".repeat(64),
 }
 describe("T06b staging trust boundaries", () => {
+  it("canonicalizes UUIDs before request hashing, FK checks and recovery identity", () => {
+    const canonical = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+    const reference = { type: "UploadIntent", id: canonical, revision: 1 }
+    const input = attachmentEnvelope("completeUpload").parse({
+      schemaVersion: 1,
+      idempotencyKey: canonical.toUpperCase(),
+      expected: [{ ...reference, id: canonical.toUpperCase() }],
+      input: { uploadId: canonical.toUpperCase() },
+    })
+    expect(input.idempotencyKey).toBe(canonical)
+    expect(input.expected[0].id).toBe(canonical)
+    expect(input.input).toEqual({ uploadId: canonical })
+    expect(
+      attachmentEnvelope("completeUpload").safeParse({
+        schemaVersion: 1,
+        idempotencyKey: canonical,
+        expected: [reference, { ...reference, id: canonical.toUpperCase() }],
+        input: { uploadId: canonical },
+      }).success
+    ).toBe(false)
+  })
   it("accepts only real import staging declarations, never a fabricated owner/preview", () => {
     expect(
       attachmentCommands.stageImport.parse({

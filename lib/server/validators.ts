@@ -538,6 +538,7 @@ export const importTypes = [
   "REPAIRS",
   "ADVANCES",
 ] as const
+const attachmentId = id.transform((value) => value.toLowerCase())
 export const attachmentCommands = {
   stageImport: z
     .object({
@@ -551,7 +552,9 @@ export const attachmentCommands = {
     .strict(),
   initUpload: z
     .object({
-      target: z.object({ type: z.literal("IMPORT_BATCH"), id }).strict(),
+      target: z
+        .object({ type: z.literal("IMPORT_BATCH"), id: attachmentId })
+        .strict(),
       purpose: z.literal("IMPORT_SOURCE"),
       filename: z.string().min(1).max(200),
       contentType: z.enum([
@@ -566,8 +569,20 @@ export const attachmentCommands = {
       sha256: z.string().regex(/^[a-f0-9]{64}$/),
     })
     .strict(),
-  completeUpload: z.object({ uploadId: id }).strict(),
+  completeUpload: z.object({ uploadId: attachmentId }).strict(),
 } as const
 export type AttachmentCommand = keyof typeof attachmentCommands
 export const attachmentEnvelope = (name: AttachmentCommand) =>
-  customerEnvelope("createCustomer").extend({ input: attachmentCommands[name] })
+  customerEnvelope("createCustomer").extend({
+    idempotencyKey: attachmentId,
+    expected: customerEnvelope("createCustomer")
+      .shape.expected.transform((refs) =>
+        refs.map((ref) => ({ ...ref, id: ref.id.toLowerCase() }))
+      )
+      .refine(
+        (refs) =>
+          new Set(refs.map((ref) => `${ref.type}:${ref.id}`)).size ===
+          refs.length
+      ),
+    input: attachmentCommands[name],
+  })

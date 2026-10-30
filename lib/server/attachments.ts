@@ -507,7 +507,7 @@ export async function completeUpload(
   // Opening the adapter/capacity policy is external IO, never a transaction retry side effect.
   const store = await privateStorage(),
     attemptId = randomUUID(),
-    finalKey = store.newFinalKey(input.uploadId.toLowerCase(), attemptId)
+    finalKey = store.newFinalKey(input.uploadId, attemptId)
   const claim = await transaction(async (tx) => {
     const actor = await lockImportActor(tx, identity),
       { batch, upload } = await loadIntent(tx, actor, input.uploadId)
