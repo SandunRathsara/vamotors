@@ -43,7 +43,7 @@ CREATE FUNCTION vamotors.purchase_payee(terms jsonb, category text) RETURNS text
  ELSE terms#>>'{settlement,institutionType}'||':'||(terms#>>'{settlement,institutionNameSnapshot}') END
 $$;
 
-CREATE OR REPLACE FUNCTION vamotors.check_acquisition_graph() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
+CREATE OR REPLACE FUNCTION vamotors.check_acquisition_graph() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$
 DECLARE cid uuid; p vamotors."PurchaseRecord"; initial jsonb; policy jsonb; latest vamotors."CycleBasisVersion"; total numeric; paid numeric; seller_amount numeric; settlement_amount numeric; original_payment vamotors."PurchasePayment"; original_terms jsonb; current_terms jsonb; original_command uuid;
 BEGIN
  IF TG_TABLE_NAME='PurchaseRecord' THEN cid:=NEW.id; ELSE cid:=NEW."cycleId"; END IF;

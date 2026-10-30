@@ -2,7 +2,9 @@
 
 ## Status and source boundary
 
-Work in progress, **not accepted and not a final combined handback**. Author session
+Author implementation candidate, **not accepted**. Final execution and service
+closeout outcomes are authoritative only in the separately sealed private
+handback, not inferred from this source guide. Author session
 `ses_e724e8803ffegV2I6w3qrj9OZS` owns this isolated slice. Base is parent-accepted
 `55564b5d25983c8de44980362a4c30d6e0e15cc1`, tree
 `eba1648a2bfb3db637de1728104214f19a1d60a6`. Parent accepted that exact combined
@@ -16,7 +18,7 @@ actions. This slice adds only **202610300006_settlement_purchases**, yielding
 16 migrations / registry v12. All 15 accepted migration files and the migration
 lock remain byte-identical, including 005. The original prebase branch remains
 at `da56e95760f352280000cb15d1f1d1f761146016` unchanged, with its three stopped
-roots and sealed failure history. New final fresh/upgrade proof remains required.
+roots and sealed failure history. Fresh/upgrade proof must use the final candidate.
 
 ## Runtime behavior and files
 
@@ -109,9 +111,19 @@ The first resumed parent fixture attempt at root `t05c2-555-parent-20261030`
 failed because its old dispatcher string detector skipped accepted cycle edits.
 That root is retained as development history, never final-upgrade proof. The
 corrected NEW root `t05c2-555-parent-final-20261030-01` prepared successfully at
-exact 555 with real P2, zero/declining mileage, physical/asking corrections,
-finance/rates/quotes, scoped file readers and FINAL CSV plus XLSX. It has not yet
-completed candidate upgrade/repeat proof. No old root was emptied or reseeded.
+exact 555, but the strengthened upgrade verifier then caught 006 changing an
+accepted invoker guard to definer security/search_path. That failed root stays
+retained, never repaired into final proof. 006 now preserves both attributes.
+The next NEW root `t05c2-555-parent-final-20261030-02` prepared at exact 555 with
+real P2, zero/declining mileage, physical/asking corrections, finance/rates/quotes,
+scoped readers and FINAL CSV/XLSX. Its subsequent upgrade/repeat and campaign
+results belong to the sealed private handback. No old root was emptied or reseeded.
+
+Both CASH and LEASE_SETTLEMENT C/C+1, zero effects, failed-key recovery and replay
+passed at c4a2bf0 (receipt `20261030T174947646102Z`). All 19 development settlement
+groups passed using the 1d7e3f2 app (receipt `20261030T175209110239Z`), including
+accepted lease cycle edits, real UI response loss, security/faults and restart.
+These are development evidence, not substitutes for final-source fresh/upgraded runs.
 
 Run only in this worker's owned, isolated source/root:
 

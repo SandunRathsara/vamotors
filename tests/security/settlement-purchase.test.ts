@@ -167,6 +167,19 @@ describe("T05c.2 exact settlement contract", () => {
       ]
     }
     expect(sql).toContain("DROP CONSTRAINT initial_cycle_capability")
+    expect(sql).toContain("x.id=(initial #>> '{mileage,0,id}')::uuid")
+    expect(sql).toContain(
+      "x.reading=(initial #>> '{mileage,0,reading}')::integer"
+    )
+    expect(sql).toContain(
+      "x.\"recordedDate\"=(initial #>> '{mileage,0,date}')::date"
+    )
+    expect(sql).not.toContain(
+      'FROM vamotors."MileageReading" x WHERE x."cycleId"=cid)<>1'
+    )
+    expect(sql).toContain(
+      "FUNCTION vamotors.check_acquisition_graph() RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog AS $$"
+    )
     expect(sql).toContain(
       `CHECK(status IN ('PURCHASED','IN_STOCK') AND "closedAt" IS NULL AND "purchaseType" IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') AND "acquisitionKind"='SUPPLIER')`
     )

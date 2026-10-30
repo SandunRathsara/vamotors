@@ -843,8 +843,16 @@ try {
       assert.ok(now)
       assert.equal(now.owner, old.owner)
       assert.deepEqual(now.acl, old.acl)
-      assert.equal(now.securityDefiner, old.securityDefiner)
-      assert.deepEqual(now.config, old.config)
+      assert.equal(
+        now.securityDefiner,
+        old.securityDefiner,
+        `${old.name}: preserve execution authority`
+      )
+      assert.deepEqual(
+        now.config,
+        old.config,
+        `${old.name}: preserve search path`
+      )
       assert.equal(
         now.body,
         expectedBody(old.name, old.body),
