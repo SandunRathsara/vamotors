@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1 atac/T06b-d0/[G2 acceptance atd0](evidence/G2-d0-literal-acceptance-attributed.md) unchanged; G3–G6/full T05/T06 unaccepted,26 bindings/VSTS-03 U/no primary promotion. T05c.1 distinct review COMPLETED exact522 bounded runtime/security PASS/owned-format FAIL/P3 OPEN; [parent-authorized stock-test whitespace correction](evidence/T05c1-FMT-01-correction-attributed.md) now FROZEN SOURCE/RELEASE ACK, pending same verifier's bounded final closure, not acceptance/full16 rerun. T05c.2 explicitda56 freeze/release preceded reassignment; unfinished settlement feature untouched/not imported/no resumption until parent authority+eventual accepted-cycle-edits rebase/new genuine-parent proof. No concurrent authors or runtime actions.
+Bounded costs/P2/F1 atac/T06b-d0/[G2 acceptance atd0](evidence/G2-d0-literal-acceptance-attributed.md) retained. Parent now [ACCEPTS bounded T05c.1+combined exact555/P3 CLOSED](evidence/T05c1-55564b5-acceptance-attributed.md), distinct completed closure PASS using522 runtime +555 equivalence/static checks, no555 runtime rerun. Actual primaryFF-onlyd0→555 succeeded; newer docs not promoted/human G2 staysd0. T05c.2 parent-resumed sole ACTIVE writer from preservedda56, current head/rebase unknown; safe rebase EXACTaccepted555/not docs/15/v11→12 compounds+005 guards/00616/new genuine555 fresh+upgrade-repeat required, C+1 classification+rollback issue OPEN. New distinct accepted555 prep dispatched/results pending.26 bindings/VSTS-03 U/G3–G6/full T05/T06 limits unchanged; no source/runtime work by ledger.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 
