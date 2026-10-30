@@ -2,7 +2,7 @@
 
 ## Current status supersedes original6eb correction-assignment timing below
 
-Correction author **FROZEN/SHARED RELEASE ACK exacteaa**, [ordinaryeaa+current6eb REVIEW assembly/268 hashes/3 paths/unified24 source map](T05c2-fc-ui-eaa567f-review-assembly.md); AUTHOR-corrected/UNACCEPTED/no independent P2 closure. **No active source writer; WRITE_OFF712 still frozen/released/incomplete/not resumed**, full scope/allocation/header-logout/final accepted-base gate unchanged. Same completed reviewer/genuine upgraded03816/12 fixture awaits containing merge's exact combined target for parent dispatch/equivalence+affected/ALL paused original proof/no fake555 rebuild. Original6eb handback/assignment/proof-boundary body below is retained verbatim, not a current active-writer/unknown-correction-HEAD claim. [HANDOFF](../HANDOFF.md).
+[Current HANDOFF](../HANDOFF.md)/[full WRITE_OFF scope and exact accepted236 same-task reconciliation steering](../T07a-T08a-next-slice.md) own current status; [236 acceptance/proof limits](T05c2-2360cbb-acceptance-attributed.md). Latest WRITE_OFF HEAD/rebase/outcomes unknown/not inspected, distinct fixture preparation separate/dispatch pending. Original6eb body remains verbatim; frozen/no-implementation/service-closeout statements are **historical712 facts, not current ownership/outcomes**.2023 seal/partials/failures unchanged; no new-docs import or live worker inspection.
 
 ## Original6eb attribution body — unchanged
 

@@ -2,7 +2,7 @@
 
 ## Current ownership supersedes the historical freeze-request timing below
 
-Correction author now **FROZEN/releasedeaa** and WRITE_OFF712 remains frozen/not resumed/**no active writer**. [Ordinaryeaa+6eb corrected REVIEW assembly](T05c2-fc-ui-eaa567f-review-assembly.md) supplies the new containing merge's exact target; AUTHOR-corrected/UNACCEPTED/no independent P2 closure/VPRC-02 U.038 rejection/gross+incurred decisions unchanged. Same completed reviewer/genuine already-upgraded03816/12 fixture awaits exact combined SHA/tree for parent equivalence+affected/all paused proof dispatch/no fake555 rebuild. [HANDOFF](../HANDOFF.md). The original9a body below remains verbatim: no ACK/no correction assigned/future-plan timing is **historical, not current ownership**.
+[Later parent236 bounded acceptance/FC-UI-C01 closure/ORIGINAL VPRC-02 LOCAL/per-clause evidence](T05c2-2360cbb-acceptance-attributed.md) supersedes current pending status only, **not this definitive038 FAIL**. Gross/incurred AT038 proof carried verified equivalent236; raw failures/seals unchanged. [HANDOFF](../HANDOFF.md) owns current steering. Original9a body below is verbatim; OPEN-at038/no-ACK/future-plan/count26 wording is historical, not236 findings/current27 acceptance or ownership.
 
 ## Original9a adjudication body — unchanged
 

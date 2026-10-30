@@ -23,17 +23,22 @@ export function UserNav() {
       const channel = new BroadcastChannel("vamotors-auth")
       channel.postMessage("changed")
       channel.close()
-      window.location.replace("/login")
+      // The auth boundary owns local teardown/navigation too. Its channel also
+      // receives this page's broadcast; one owner avoids competing replacements.
+      window.dispatchEvent(new Event("access-lost"))
     } catch {
       setError("Logout failed. Please retry.")
       setPending(false)
     }
   }
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="max-w-32 truncate">{actor.user.name}</span>
+    <div className="flex min-w-0 items-center gap-2 text-sm sm:gap-3">
+      <span className="max-w-20 min-w-0 truncate sm:max-w-32">
+        {actor.user.name}
+      </span>
       <Button
         variant="outline"
+        className="shrink-0"
         onClick={() => void logout()}
         disabled={pending}
       >

@@ -83,3 +83,8 @@ GRANT INSERT (id,"cycleId","vendorId",request,"sentDate",revision,"createdBy","c
 GRANT UPDATE ("returnedDate",summary,"invoiceAmount","invoiceDate","returnCommandId",revision,"updatedAt") ON vamotors."RepairRecord" TO vamotors_runtime;
 GRANT SELECT (id,"repairId","cycleId",amount,direction,category,"occurredDate",method,currency,scale,reference,"reversalOf",reason,"createdBy","commandId","lineKey","recordedAt"), INSERT (id,"repairId","cycleId",amount,direction,category,"occurredDate",method,currency,scale,reference,"reversalOf",reason,"createdBy","commandId","lineKey","recordedAt") ON vamotors."RepairPayment" TO vamotors_runtime;
 GRANT EXECUTE ON FUNCTION vamotors.repair_components(uuid) TO vamotors_runtime;
+-- T07a/T08a: final-graph evidenced CURRENT approval/disposal only.
+GRANT SELECT, INSERT ON vamotors."ApprovalRequest", vamotors."Disposal", vamotors."DisposalReceipt" TO vamotors_runtime;
+GRANT UPDATE (state, revision, "reviewedBy", "reviewedAt", "reviewNote", "reviewerName", "reviewCommandId", "appliedCommandId") ON vamotors."ApprovalRequest" TO vamotors_runtime;
+GRANT UPDATE ("closedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT UPDATE ("activePurchaseId") ON vamotors."Vehicle" TO vamotors_runtime;

@@ -112,7 +112,13 @@ describe("T06b staging trust boundaries", () => {
       Object.entries(registry)
         .filter(
           ([name]) =>
-            !["Document", "ImportBatch", "RepairRecord"].includes(name)
+            ![
+              "Document",
+              "ImportBatch",
+              "ApprovalRequest",
+              "Disposal",
+              "RepairRecord",
+            ].includes(name)
         )
         .map(([name, actions]) => [
           name,

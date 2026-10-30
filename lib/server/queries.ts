@@ -22,6 +22,9 @@ import { purchaseQuery } from "./purchases"
 import { rateQuery } from "./rates"
 import { importQuery } from "./import-staging"
 import { downloadQuery } from "./attachments"
+import { approvalQuery, approvalReplay, approvalAudit } from "./approvals"
+import { notificationQuery, notificationReplay } from "./notifications"
+import { runtimeConfig } from "./config"
 
 const canAdminister = (actor: Actor) =>
   ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
@@ -92,8 +95,46 @@ export async function securityQuery(
   return database().$transaction(
     async (tx) => {
       await assertEnvironment(tx)
+      if (name === "commandStatus")
+        await tx.$queryRaw`SELECT vamotors.lock_admin_guard()`
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
+      if (name === "approvals") return approvalQuery(tx, actor, args)
+      if (name === "notifications") return notificationQuery(tx, actor, args)
+      if (
+        name === "audit" &&
+        ["ApprovalRequest", "Disposal"].includes(args.type)
+      )
+        return approvalAudit(tx, actor, args)
+      if (name === "commandStatus") {
+        const parsed = z
+          .object({
+            name: z.enum([
+              "requestApproval",
+              "reviewApproval",
+              "markNotificationRead",
+              "markAllNotificationsRead",
+            ]),
+            idempotencyKey: id,
+          })
+          .strict()
+          .safeParse(args)
+        if (!parsed.success) fail("INVALID_INPUT", 422)
+        const receipt = await tx.commandReceipt.findUnique({
+          where: {
+            environmentId_actorKey_commandName_idempotencyKey: {
+              environmentId: runtimeConfig().ENVIRONMENT_ID,
+              actorKey: `USER:${actor.userId}`,
+              commandName: parsed.data.name,
+              idempotencyKey: parsed.data.idempotencyKey,
+            },
+          },
+        })
+        if (!receipt) return { ok: true, status: "NOT_COMMITTED" }
+        return ["requestApproval", "reviewApproval"].includes(parsed.data.name)
+          ? approvalReplay(tx, actor, receipt)
+          : notificationReplay(tx, actor, receipt)
+      }
       if (name === "importBatches" || name === "importBatchFiles")
         return importQuery(tx, actor, name, args)
       if (name === "download") {
@@ -367,6 +408,12 @@ export async function securityQuery(
       }
       fail("NOT_FOUND", 404)
     },
-    { isolationLevel: "RepeatableRead", timeout: 5000 }
+    {
+      // The guard serializes auth mutations; each post-wait statement must see
+      // their committed grants, not an earlier repeatable-read auth snapshot.
+      isolationLevel:
+        name === "commandStatus" ? "ReadCommitted" : "RepeatableRead",
+      timeout: 5000,
+    }
   )
 }

@@ -1,8 +1,8 @@
 # T05c — cycle costs and bounded reasoned money/term corrections
 
-## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
+## Current accepted costs / later bounded settlement236 acceptance
 
-Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3closed](evidence/T05c1-55564b5-acceptance-attributed.md)/failures unchanged. [Ordinary frozenUIeaa+records6eb REVIEW assembly](evidence/T05c2-fc-ui-eaa567f-review-assembly.md), AUTHOR only/no independent P2 closure/VPRC-02 U/source exacteaa; all owners released/WRITE_OFF712 not resumed. Same completed reviewer/upgraded03816/12 fixture awaits exact final combined target for parent equivalence+affected/ALL paused proof dispatch/no fake555 reset. [HANDOFF](HANDOFF.md); matrix/scopes/gates/history/primary555/humanG2d0 preserved/no integration runtime/FF.
+Bounded costs/P2/F1/T06b/G2d0/[T05c.1 accepted555/P3](evidence/T05c1-55564b5-acceptance-attributed.md)/historical failures unchanged. Parent [accepts bounded settlement+combined236/closes FC-UI P2/original VPRC-02 LOCAL](evidence/T05c2-2360cbb-acceptance-attributed.md), effective27/107/134/other133+old26 bindings preserved, not wholeT05/G3/v1. Actual primary FF-only236/humanG2 pinned d0, later acceptance records not promoted. [HANDOFF](HANDOFF.md) owns WRITE_OFF accepted236 same-task reconciliation steering; full scope below/source236/583/remaining gates unchanged/no integration runtime.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 

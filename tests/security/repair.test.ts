@@ -32,7 +32,7 @@ const returned = {
 }
 const payment = { amount: "400", date: "2026-09-30", method: "CASH" }
 
-describe("T08 direct repair contract and unchanged accepted236 ceilings", () => {
+describe("T08 direct repair contract and unchanged accepted c462 ceilings", () => {
   it("allows only actual dispatch, absent-or-complete return and positive actual cash", () => {
     expect(repairInputs.sendRepair.parse(send)).toEqual(send)
     expect(
@@ -131,8 +131,8 @@ describe("T08 direct repair contract and unchanged accepted236 ceilings", () => 
     ).toBe(false)
   })
 
-  it("keeps every accepted236 subject/action/field universe byte-equivalent after sorting", () => {
-    // Independently extracted from EXACT236, receipt accepted236-registry-digest.
+  it("keeps every accepted c462 subject/action/field universe byte-equivalent after sorting", () => {
+    // Independently extracted from EXACTc462, receipt accepted-c462-registry-digest.
     const old = Object.fromEntries(
       Object.entries(registry)
         .filter(([s]) => s !== "RepairRecord")
@@ -146,12 +146,12 @@ describe("T08 direct repair contract and unchanged accepted236 ceilings", () => 
           ),
         ])
     )
-    expect(Object.keys(old)).toHaveLength(16)
-    expect(Object.values(old).flatMap(Object.keys)).toHaveLength(51)
+    expect(Object.keys(old)).toHaveLength(18)
+    expect(Object.values(old).flatMap(Object.keys)).toHaveLength(57)
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
-      "9bed37b53036d5eec35aaf877dfc9164e48652376681323825a4adbc9256d8ce"
+      "77f34c8fd645130a890ad8424a0e69e10eacf7a9362deea3ee95a54e7179d570"
     )
-    expect(registryVersion).toBe(13)
+    expect(registryVersion).toBe(14)
     expect(
       attenuation(
         [{ subject: "PurchaseRecord", action: "read", fields: ["repairs"] }],

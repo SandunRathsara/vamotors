@@ -442,7 +442,7 @@ try {
       "SELECT migration_name,checksum FROM vamotors._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name"
     )
   ).rows
-  assert.equal(migrations.length, 16)
+  assert.equal(migrations.length, 17)
   for (const migration of migrations)
     assert.equal(
       migration.checksum,

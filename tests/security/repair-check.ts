@@ -451,11 +451,28 @@ try {
       await expect(
         page.getByRole("heading", { name: "Persisted repair detail" })
       ).toBeVisible()
-      await page.getByRole("link", { name: "Repair vendor and retained history", exact: true }).click()
-      await expect(page).toHaveURL(new RegExp(`/third-parties/${vendor.result.id}\\?type=REPAIR_VENDOR$`))
-      await expect(page.getByRole("heading", { name: `Repair vendor ${suffix}`, exact: true })).toBeVisible()
+      await page
+        .getByRole("link", {
+          name: "Repair vendor and retained history",
+          exact: true,
+        })
+        .click()
+      await expect(page).toHaveURL(
+        new RegExp(`/third-parties/${vendor.result.id}\\?type=REPAIR_VENDOR$`)
+      )
+      await expect(
+        page.getByRole("heading", {
+          name: `Repair vendor ${suffix}`,
+          exact: true,
+        })
+      ).toBeVisible()
       await page.getByRole("link", { name: "View repair", exact: true }).click()
-      await expect(page.getByRole("heading", { name: "Persisted repair detail", exact: true })).toBeVisible()
+      await expect(
+        page.getByRole("heading", {
+          name: "Persisted repair detail",
+          exact: true,
+        })
+      ).toBeVisible()
       await page.screenshot({
         path: join(root, `repair-${suffix}-history1920.png`),
         fullPage: true,

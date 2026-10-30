@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { adminList } from "@/lib/server/admin-list"
 import { administratorGrants } from "@/lib/server/permissions"
@@ -13,6 +13,7 @@ import {
   persistedRatePages,
   privateAttachmentAPIs,
   importStagingPages,
+  approvalPages,
 } from "./route-inventory"
 
 function files(root: string): string[] {
@@ -75,6 +76,7 @@ describe("global entry-point inventory", () => {
         ...persistedRatePages,
         ...importStagingPages,
         ...persistedRepairPages,
+        ...approvalPages,
         "/users",
         "/customers",
         "/customers/[id]",
@@ -113,6 +115,7 @@ describe("global entry-point inventory", () => {
       "/purchases/[id]",
       "/vehicles",
       "/vehicles/[id]",
+      "/approvals",
       ...persistedRatePages,
       ...importStagingPages,
     ])
@@ -120,6 +123,22 @@ describe("global entry-point inventory", () => {
         "await pageActor()"
       )
     expect(readFileSync("app/page.tsx", "utf8")).toContain("await pageActor()")
+    const approvalDetail = readFileSync(
+      "app/(app)/approvals/[id]/page.tsx",
+      "utf8"
+    )
+    expect(approvalDetail).toContain(
+      "authenticatedApprovalDetail(await headers(), id)"
+    )
+    const owner = readFileSync("lib/server/approvals.ts", "utf8")
+    expect(owner).toContain(
+      "approvalDetail(tx, await currentActor(tx, identity), approvalId)"
+    )
+    expect(readFileSync("proxy.ts", "utf8")).toContain(
+      "authenticatedApprovalDetail(request.headers, approval[1])"
+    )
+    expect(approvalDetail).not.toMatch(/approvalQuery|pageSize|commandReceipt/)
+    expect(existsSync("app/(app)/approvals/loading.tsx")).toBe(false)
     expect(readFileSync("lib/server/pages.tsx", "utf8")).not.toMatch(
       /\bcache\(/
     )

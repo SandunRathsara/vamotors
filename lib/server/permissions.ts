@@ -532,6 +532,81 @@ export const registry = {
     ],
     archive: ["active"],
   },
+  ApprovalRequest: {
+    read: [
+      "id",
+      "revision",
+      "proposal.kind",
+      "proposal.input.cycleId",
+      "proposal.input.date",
+      "proposal.input.reason",
+      "proposal.input.method",
+      "proposal.input.proceeds",
+      "proposal.input.receipt.amount",
+      "proposal.input.receipt.date",
+      "proposal.input.receipt.method",
+      "proposal.input.receipt.reference",
+      "expected",
+      "payloadHash",
+      "reason",
+      "requestedBy",
+      "requestedAt",
+      "state",
+      "reviewedBy",
+      "reviewedAt",
+      "reviewNote",
+      "appliedCommandId",
+    ],
+    create: [
+      "proposal",
+      "proposal.kind",
+      "proposal.input.cycleId",
+      "proposal.input.date",
+      "proposal.input.reason",
+      "proposal.input.method",
+      "proposal.input.proceeds",
+      "proposal.input.receipt.amount",
+      "proposal.input.receipt.date",
+      "proposal.input.receipt.method",
+      "proposal.input.receipt.reference",
+      "reason",
+    ],
+    approve: ["approvalId", "decision", "note"],
+  },
+  Disposal: {
+    read: [
+      "id",
+      "date",
+      "reason",
+      "method",
+      "proceeds",
+      "basisVersionId",
+      "approval.kind",
+      "approval.approvalId",
+      "approval.reviewerId",
+      "approval.reviewerName",
+      "approval.reviewedAt",
+      "payments",
+      ...sourcePaymentFields.map((f) => `payments.${f}`),
+    ],
+    create: [
+      "cycleId",
+      "date",
+      "reason",
+      "method",
+      "proceeds",
+      "receipt.amount",
+      "receipt.date",
+      "receipt.method",
+      "receipt.reference",
+    ],
+    pay: [
+      "receipt.amount",
+      "receipt.date",
+      "receipt.method",
+      "receipt.reference",
+    ],
+  },
   Notification: {
     read: ["id", "revision", "kind", "target", "createdAt", "readAt"],
     update: ["readAt"],
@@ -645,11 +720,12 @@ export const registry = {
     update: ["uploadId"],
   },
 } as const
-// Freeze accepted T05c.1 v11 populations before exposing settlement fields.
-// PREBASE: accepted236 v12 + repairs. Final accepted WRITE_OFF reconciliation is v14.
-export const registryVersion = 13
+// Preserve every accepted c462 v13 population; only RepairRecord is new here.
+export const registryVersion = 14
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
+  ApprovalRequest: ["createdBy"],
+  Disposal: ["createdBy"],
   User: [],
   Role: [],
   Vehicle: ["createdBy", "status"],
@@ -941,7 +1017,9 @@ export function readScope(
         Object.entries(g.conditions ?? {}).map(([k, v]) => [
           (type === "RateSheet" || type === "Quote") && k === "financeCompanyId"
             ? "companyId"
-            : k,
+            : type === "ApprovalRequest" && k === "createdBy"
+              ? "requestedBy"
+              : k,
           v === "$actor.id" ? userId : v,
         ])
       )

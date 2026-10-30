@@ -1,5 +1,39 @@
 # T08 direct REPAIR — ACTIVE accepted-c462 reconciliation
 
+## Exact-base merge overlap resolution
+
+Safe checkpoint `2d45b54dbc4e2a4220f7f26bc9c8cce867d8d279`, tree
+`40bf0fa9db79675c6ba36bc2fa4778111ce4e045`, is retained with831 source hashes in
+`checkpoint-pre-c462-20261031` (manifest
+`fa4ed87b27ebfe81fba1c2ca58262a8c687556f4280d2487c144e63f17dac6d5`, index
+`00731bfdd53c5c215d7e90e7cde10aee11c38497cbd4582b9669c27725141419`).
+
+Merge target is EXACTc462, not later acceptance records. Its12 shared-file
+conflicts were resolved by retaining both approval/disposal/notification and
+repair contributions, not choosing a whole side. Accepted actor/requester replay
+and commandStatus AdminGuard-before-currentActor/ReadCommitted remain intact.
+Source contains18 SQL files and registry14; **no final18/v14 database exists yet**.
+All17 accepted SQL files are byte-exact againstc462, receipt
+`20261030T234908240186Z-reconcile-accepted17-sql-bytes.json`.
+
+The real merged client was regenerated. Initial duplicate export type errors from
+the additive merge were corrected; types then passed
+(`20261030T235212618082Z-reconcile-merge-shape-types-fixed.json`). Full merged
+unit count is now actually **20 files /161 tests passed**
+(`20261030T235212618111Z-reconcile-current-full-units.json`). The prior correction
+fixture unknown-input typing and vendor-navigation formatting findings were fixed.
+Current repair grant tests independently preserve acceptedc462's18 subjects/
+57 actions/digest, while the original accepted236 fingerprint remains separately
+asserted. These are source-shape checks, not final runtime/upgrade acceptance.
+
+Accepted incoming planning/record files are imported as exact base content only;
+this author makes no manual shared-ledger/matrix changes or promotions. Semantic
+reconciliation is still active:002 must preserve the accepted close branch,
+Disposal cash/evidence and immutable original basis while adding only evidenced
+repair/closed financial owners; real repair obligation/current notification target
+and commandStatus integration plus NEW final roots/proofs remain to do. Do not
+install the old PREBASE002 body on an accepted nonempty parent in the meantime.
+
 ## Parent accepted-base steering and safe source checkpoint
 
 Parent explicitly accepted EXACT `c462b7ac3f5111ebacd74cf326fc3da386d88993`,

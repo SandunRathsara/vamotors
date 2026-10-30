@@ -30,6 +30,10 @@ import {
 } from "@/components/repairs/repair-workspace"
 import { SettlementFields, settlementFromDraft } from "./settlement-fields"
 import {
+  WriteOffRequest,
+  DisposalHistory,
+} from "@/components/approvals/write-off"
+import {
   PartyForm,
   type VisibleParty,
 } from "@/components/third-parties/party-form"
@@ -1202,9 +1206,10 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           Version {b.version}: {amount(b.total)} · {b.reason} · {b.id}
         </p>
       )) ?? <p>Unavailable</p>}
+      <DisposalHistory cycle={cycle} />
       <p>
-        Repairs, sales and disposal workflows remain pending. Receipt and
-        availability changes do not imply completed downstream history.
+        Repairs and sales remain pending. Receipt and availability changes do
+        not imply completed downstream history.
       </p>
     </section>
   )
@@ -1249,6 +1254,12 @@ export function AcquisitionDetail({
         }
       />
       {!vehicle && <RepairCommands cycle={row ?? {}} cycleId={id} />}
+      <WriteOffRequest
+        target={`${vehicle ? "vehicle" : "purchase"}:${id}`}
+        cycle={
+          (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
+        }
+      />
       {query.isPending && <p role="status">Loading persisted detail…</p>}
       {query.isError && (
         <p role="alert">

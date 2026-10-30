@@ -11,6 +11,14 @@ import {
 } from "@/lib/server/http"
 import { fail } from "@/lib/server/errors"
 import { executeCustomer } from "@/lib/server/customers"
+import { executeApproval } from "@/lib/server/approvals"
+import { executeNotification } from "@/lib/server/notifications"
+import {
+  approvalInputs,
+  notificationInputs,
+  type ApprovalCommand,
+  type NotificationCommand,
+} from "@/lib/server/validators"
 import { executeParty } from "@/lib/server/parties"
 import { executeSettings } from "@/lib/server/settings"
 import {
@@ -52,6 +60,8 @@ export async function POST(
     if (
       name !== "updateSettings" &&
       name !== "recordPurchase" &&
+      !Object.hasOwn(approvalInputs, name) &&
+      !Object.hasOwn(notificationInputs, name) &&
       !Object.hasOwn(stockInputs, name) &&
       !Object.hasOwn(cycleMoneyInputs, name) &&
       !Object.hasOwn(cycleEditInputs, name) &&
@@ -78,54 +88,63 @@ export async function POST(
             name as RepairCommand | "reversePayment",
             raw
           )
-        : name === "stageImport"
-          ? await executeStageImport(identity, raw)
-          : name === "initUpload"
-            ? await initUpload(identity, raw)
-            : name === "completeUpload"
-              ? await completeUpload(identity, raw)
-              : rates
-                ? await executeRates(identity, name as RateCommandName, raw)
-                : name === "recordPurchase"
-                  ? await recordPurchase(identity, raw)
-                  : Object.hasOwn(cycleEditInputs, name)
-                    ? await executeCycleEdit(
-                        identity,
-                        name as CycleEditCommand,
-                        raw
-                      )
-                    : Object.hasOwn(cycleMoneyInputs, name)
-                      ? await executeCycleMoney(
-                          identity,
-                          name as CycleMoneyCommand,
-                          raw
-                        )
-                      : Object.hasOwn(stockInputs, name)
-                        ? await executeStock(
+        : Object.hasOwn(approvalInputs, name)
+          ? await executeApproval(identity, name as ApprovalCommand, raw)
+          : Object.hasOwn(notificationInputs, name)
+            ? await executeNotification(
+                identity,
+                name as NotificationCommand,
+                raw
+              )
+            : name === "stageImport"
+              ? await executeStageImport(identity, raw)
+              : name === "initUpload"
+                ? await initUpload(identity, raw)
+                : name === "completeUpload"
+                  ? await completeUpload(identity, raw)
+                  : rates
+                    ? await executeRates(identity, name as RateCommandName, raw)
+                    : name === "recordPurchase"
+                      ? await recordPurchase(identity, raw)
+                      : Object.hasOwn(cycleEditInputs, name)
+                        ? await executeCycleEdit(
                             identity,
-                            name as StockCommand,
+                            name as CycleEditCommand,
                             raw
                           )
-                        : name === "updateSettings"
-                          ? await executeSettings(identity, raw)
-                          : directory
-                            ? await executeParty(
+                        : Object.hasOwn(cycleMoneyInputs, name)
+                          ? await executeCycleMoney(
+                              identity,
+                              name as CycleMoneyCommand,
+                              raw
+                            )
+                          : Object.hasOwn(stockInputs, name)
+                            ? await executeStock(
                                 identity,
-                                name as PartyCommandName,
+                                name as StockCommand,
                                 raw
                               )
-                            : customer
-                              ? await executeCustomer(
-                                  identity,
-                                  name as CustomerCommandName,
-                                  raw
-                                )
-                              : await executeAdmin(
-                                  identity,
-                                  name as CommandName,
-                                  raw
-                                )
+                            : name === "updateSettings"
+                              ? await executeSettings(identity, raw)
+                              : directory
+                                ? await executeParty(
+                                    identity,
+                                    name as PartyCommandName,
+                                    raw
+                                  )
+                                : customer
+                                  ? await executeCustomer(
+                                      identity,
+                                      name as CustomerCommandName,
+                                      raw
+                                    )
+                                  : await executeAdmin(
+                                      identity,
+                                      name as CommandName,
+                                      raw
+                                    )
     if (result.status === "UPLOAD_READY") return noStoreJSON(result, 201)
+    if (result.status === "PENDING_APPROVAL") return noStoreJSON(result, 202)
     const created =
       name === "stageImport" ||
       name === "createUser" ||

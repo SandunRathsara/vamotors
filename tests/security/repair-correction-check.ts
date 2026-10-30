@@ -61,22 +61,20 @@ try {
     basis = row.basisVersions,
     invoice = repair.invoiceAmount,
     availability = row.available
-  const body = envelope(
-    {
-      sourceType: "REPAIR",
-      sourceId: seed.repairId,
-      paymentId: original.id,
-      reason:
-        "Correct wrong actual entry with distinct replacement; not actual refund",
-      replacement: {
-        amount: "400",
-        date: "2026-09-20",
-        method: "CASH",
-        reference: "ACTUAL-REPLACEMENT",
-      },
+  const input = {
+    sourceType: "REPAIR",
+    sourceId: seed.repairId,
+    paymentId: original.id,
+    reason:
+      "Correct wrong actual entry with distinct replacement; not actual refund",
+    replacement: {
+      amount: "400",
+      date: "2026-09-20",
+      method: "CASH",
+      reference: "ACTUAL-REPLACEMENT",
     },
-    refs()
-  )
+  }
+  const body = { ...envelope(input, refs()), input }
   stage = "exact immutable opposite and distinct replacement"
   const applied = await f.command(admin, "reversePayment", body)
   row = await current()

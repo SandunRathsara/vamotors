@@ -1,5 +1,15 @@
 # Frozen FC-UI correctioneaa + current6eb — ordinary REVIEW assembly only
 
+## Later parent acceptance — bounded settlement+236 accepted; original snapshot unchanged
+
+Parent now **ACCEPTS bounded settlement+combined EXACT2360cbb92658d8b0c4cd0a38e3de14ef38efdeaa/tree6ef8f20725c2009f7d977356893fe58b1bddb512**, **CLOSES FC-UI-C01/P2**, separately **ACCEPTS complete ORIGINAL VPRC-02 LOCAL236** after distinct COMPLETED bounded PASS/all49/no open relevant finding. [374/379/22 verification/per-clause evidence/limits/actual primary FF](T05c2-2360cbb-acceptance-attributed.md). Effective27/107/134, only VPRC-02 result/header count delta; all other133/old26 bindings unchanged. This later acceptance-record descendant is not accepted source and **not promoted**.
+
+Original [47-artifact assembly manifest](/private/var/folders/gb/j8pkyq8j0rd50dzkps44xgh40000gn/T/opencode/vamotors-fc-ui-eaa-review-assembly-h_9rb7zs/manifest.json) SHA256 **49771532fc85abcbed4237983444f1ae5fdb1fd3b6490352e7f342b1186c9572**/parent verification/author43 mixed receipts8 nonzero remain history. Reviewer236 completed/not running; actual236 UI/authority/extras/files and verified-equivalent038 normal/upgrade proof retain exact execution/adaptation limits. WRITE_OFF remains sole active/latestHEAD unknown, parent same-task checkpoint/reconcile onto accepted236→NEW full exact-parent proof; no outcome inferred. [HANDOFF](../HANDOFF.md)/[full WRITE_OFF scope](../T07a-T08a-next-slice.md) govern.
+
+Original assembly snapshot below remains verbatim; pending/no-acceptance/all-owners-released wording means **236 at assembly time**, not current accepted status/WRITE_OFF steering. Raw47 seal/source-freeze ACK and later583 dispatch preservation manifest remain immutable timestamped history, not post-resume releases. Primary now exact236 with historical26 matrix; effective27 acceptance records not promoted, humanG2 pinned d0 unchanged. Current acceptance/source/matrix/primary proof manifest: `/private/var/folders/gb/j8pkyq8j0rd50dzkps44xgh40000gn/T/opencode/vamotors-236-acceptance-records-qy_yf2yl/manifest.json`.
+
+## Original236 assembly snapshot — unchanged
+
 Parent authorizes ordinary **no-FF merge** of frozen **eaa567f68b8e09b81e6beeab2b67f165ee9d7387**, tree **eb9c5e1abffb67833e8f7b0b51358885179ae48b**, into clean records **6eb6ed7d090267996e2085bc81f5c40e16eb1f4b**, common **rejected038e53f4a5f05496cdf58dcdcbe001079792e38c**. Exact3 correction paths and16 current-record paths are disjoint. Ordinary automatic merge: **zero conflicts,816 entries exactly their union**, before adding this assembly record and reconciling only integration-owned status headers. **This containing merge is the one final corrected-combined REVIEW target**; exact SHA/tree/ordered parents are sealed in the external assembly manifest, not a later docs descendant. **AUTHOR-corrected/UNACCEPTED; no independent FC-UI P2 closure or VPRC-02 promotion.**
 
 ## Source freeze and immutable handback
