@@ -155,6 +155,24 @@ object, not newer records. Sole shared-source ownership remains active here.
   AFTER successful forward retention/repeat. It is authored/type/lint checked,
   not executed yet. Fresh-root security/SQL/regressions and final quality remain.
 
+- Clean640591e bounded parent completion exited0 without reseeding any gross or
+  channel history. The NEW exact23616/v12 pre-upgrade snapshot and hash are now
+  immutable at `parent236/approval-disposal-parent236-before.json(.sha256)`, with
+  all current/historical lease terms, C−99 real gross witness, unchanged useful
+  nonadmin ceilings, FINAL CSV/XLSX and staged native bytes/modes. Prior wrong
+  delegation expectations remain failure receipts, not erased or called passed.
+- Owned parent PROJECT was then fast-forwarded to640591e (no reset/ref promotion)
+  and its genuine nonempty forward installation exited0, yielding17/v13. Its new
+  production build exited0. Forward retention/repeat/restart assertions remain
+  pending; installation alone is not P7 PASS.
+- Fresh native batch stopped in its first security group before any group PASS:
+  exact236 has102 PurchaseRecord.read fields, while the unchanged wire permits
+  only100 per Grant. The diagnostic helper's expanded single-leaf omission
+  produced101 fields and correctly received422 INVALID_INPUT on saveRole, not an
+  authority/domain failure. Split the same exact semantic population into bounded
+  grants; do not raise the wire cap or weaken any denial. Types/lint pass after
+  this helper-only correction. All later native campaigns in that batch unstarted.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,

@@ -196,17 +196,18 @@ const without = (
   action: Grant["action"],
   path: string
 ): Grant[] =>
-  grants.map((g) =>
-    g.subject === subject && g.action === action
-      ? {
-          ...g,
-          fields: fieldsFor(
-            subject as Parameters<typeof fieldsFor>[0],
-            action
-          ).filter((f) => f !== path && !path.startsWith(`${f}.`)),
-        }
-      : g
-  )
+  grants.flatMap((g) => {
+    if (g.subject !== subject || g.action !== action) return [g]
+    const fields = fieldsFor(
+      subject as Parameters<typeof fieldsFor>[0],
+      action
+    ).filter((f) => f !== path && !path.startsWith(`${f}.`))
+    // Accepted236 has102 PurchaseRecord read fields; preserve the100/Grant wire cap.
+    return Array.from({ length: Math.ceil(fields.length / 100) }, (_, n) => ({
+      ...g,
+      fields: fields.slice(n * 100, (n + 1) * 100),
+    }))
+  })
 try {
   await f.start()
   admin = await f.login("ADMIN")
