@@ -2,7 +2,7 @@
 
 ## Current accepted costs and T06b dependency / T05c.1 accepted-d0 rebase steering
 
-Bounded costs/P2/F1 atac/T06b-d0 and [literal G2 acceptance atd0](evidence/G2-d0-literal-acceptance-attributed.md) unchanged; G3 next/G3–G6/full T05/T06 unaccepted,26 bindings/VSTS-03 U/no primary promotion. T05c.1 COMPLETED FROZEN SOURCE/RELEASE ACK at84, [current-records REVIEW assembly only](evidence/T05c1-84cb87f-review-assembly.md), AUTHOR PASS/UNACCEPTED;641 full campaigns and84 affected reruns separately attributed. Independent52 prep ready awaits exact final combined SHA/tree/parent dispatch. Parent NOW DISPATCHED T05c.2 ses_e724e8803ffegV2I6w3qrj9OZS sole ACTIVE NEW writer from acceptedd0/unknown head,006 reserved/no unreviewed84 import/eventual accepted-T05c.1 rebase+new genuine-parent proof required. T05c.1 fix requires T05c.2 checkpoint/freeze/ACK then parent reassignment; no concurrent authors.
+Bounded costs/P2/F1 atac/T06b-d0/[G2 acceptance atd0](evidence/G2-d0-literal-acceptance-attributed.md) unchanged; G3–G6/full T05/T06 unaccepted,26 bindings/VSTS-03 U/no primary promotion. T05c.1 distinct review COMPLETED exact522 bounded runtime/security PASS/owned-format FAIL/P3 OPEN; [parent-authorized stock-test whitespace correction](evidence/T05c1-FMT-01-correction-attributed.md) now FROZEN SOURCE/RELEASE ACK, pending same verifier's bounded final closure, not acceptance/full16 rerun. T05c.2 explicitda56 freeze/release preceded reassignment; unfinished settlement feature untouched/not imported/no resumption until parent authority+eventual accepted-cycle-edits rebase/new genuine-parent proof. No concurrent authors or runtime actions.
 
 ## Previous accepted costs / T06b review assembly / T05c.1 initial dispatch
 
