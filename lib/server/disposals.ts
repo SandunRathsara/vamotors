@@ -48,6 +48,11 @@ export function requireWriteOffRead(
     "financial.basis",
     "financial.currency",
     "financial.scale",
+    "financial.cashIn",
+    "financial.cashOut",
+    ...Object.keys((purchase.settlement as object | undefined) ?? {}).map(
+      (key) => `settlement.${key}`
+    ),
     ...(purchase.listedPrice !== undefined ? ["listedPrice"] : []),
   ]) {
     if (valueAt(visible, f) === undefined) fail("FIELD_FORBIDDEN", 403)
@@ -55,6 +60,26 @@ export function requireWriteOffRead(
   const basis = visible.basisVersions as Record<string, unknown>[] | undefined
   if (!basis?.length || !basis.every((b) => b.id && b.total !== undefined))
     fail("FIELD_FORBIDDEN", 403)
+  const cashReadable = (source: unknown, projected: unknown) => {
+    const payments = source as unknown[]
+    const shown = projected as Record<string, unknown>[] | undefined
+    if (
+      payments.length &&
+      (shown?.length !== payments.length ||
+        !shown.every(
+          (p) => p.amount !== undefined && p.direction !== undefined
+        ))
+    )
+      fail("FIELD_FORBIDDEN", 403)
+  }
+  cashReadable(purchase.payments, visible.payments)
+  ;(purchase.costs as Record<string, unknown>[]).forEach((cost, index) =>
+    cashReadable(
+      cost.payments,
+      (visible.costs as Record<string, unknown>[] | undefined)?.[index]
+        ?.payments
+    )
+  )
 }
 /** Shared execution/nextActions capability check; state/CAS stay with the owner. */
 export function requireWriteOffAuthority(
@@ -208,6 +233,8 @@ export async function applyApprovedWriteOff(
     input: WriteOff
     basisVersionId: string
     basis: bigint
+    cashIn: bigint
+    cashOut: bigint
     currency: string
     scale: number
     reviewedAt: Date
@@ -217,6 +244,8 @@ export async function applyApprovedWriteOff(
   const now = context.reviewedAt,
     id = randomUUID()
   bounded(context.basis, C)
+  bounded(context.cashIn + BigInt(input.proceeds), C)
+  bounded(context.cashOut, C)
   await tx.purchaseRecord.update({
     where: { id: context.cycleId },
     data: {

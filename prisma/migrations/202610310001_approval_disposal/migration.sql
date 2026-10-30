@@ -67,11 +67,17 @@ BEGIN
  IF a.state='APPROVED' THEN vehicle_data:=jsonb_set(vehicle_data,'{status}',(SELECT to_jsonb(s."from"::text) FROM vamotors."StatusEvent" s WHERE s."commandId"=a."appliedCommandId" AND s."cycleId"=p.id)); END IF;
  IF NOT vamotors.approval_fields(uid,'PurchaseRecord','update',cycle_data,ARRAY['cycleId'])
  OR NOT vamotors.approval_fields(uid,'Disposal','create',candidate,fields)
- OR NOT vamotors.approval_fields(uid,'PurchaseRecord','read',cycle_data,ARRAY['id','revision','vehicleId','identityRevision','status','available','closedAt','purchaseDate','purchasePrice','purchaseType','financial.basis','financial.currency','financial.scale','basisVersions.id','basisVersions.total'] || CASE WHEN p."listedPrice" IS NULL THEN ARRAY[]::text[] ELSE ARRAY['listedPrice'] END)
- OR NOT vamotors.approval_fields(uid,'Vehicle','read',vehicle_data,ARRAY['id','identityRevision']) THEN RETURN false; END IF;
+  OR NOT vamotors.approval_fields(uid,'PurchaseRecord','read',cycle_data,ARRAY['id','revision','vehicleId','identityRevision','status','available','closedAt','purchaseDate','purchasePrice','purchaseType','financial.basis','financial.currency','financial.scale','financial.cashIn','financial.cashOut','basisVersions.id','basisVersions.total'] || CASE WHEN p."listedPrice" IS NULL THEN ARRAY[]::text[] ELSE ARRAY['listedPrice'] END)
+  OR NOT vamotors.approval_fields(uid,'Vehicle','read',vehicle_data,ARRAY['id','identityRevision']) THEN RETURN false; END IF;
+  IF p."purchaseType"='LEASE_SETTLEMENT' THEN
+   IF NOT vamotors.approval_fields(uid,'PurchaseRecord','read',cycle_data,ARRAY(SELECT 'settlement.'||key FROM jsonb_object_keys(vamotors.settlement_json(p.id)) key)) THEN RETURN false; END IF;
+   IF EXISTS(SELECT 1 FROM vamotors."LeasePurchaseDetail" d JOIN vamotors."FinanceCompany" f ON f.id=d."companyId" WHERE d."purchaseRecordId"=p.id AND NOT vamotors.approval_fields(uid,'FinanceCompany','read',to_jsonb(f),ARRAY['id','name'])) THEN RETURN false; END IF;
+  END IF;
+  IF EXISTS(SELECT 1 FROM vamotors."PurchasePayment" WHERE "cycleId"=p.id) AND NOT vamotors.approval_fields(uid,'PurchaseRecord','read',cycle_data,ARRAY['payments.amount','payments.direction']) THEN RETURN false; END IF;
  IF i ? 'receipt' AND NOT vamotors.approval_fields(uid,'Disposal','pay',candidate,ARRAY(SELECT f FROM unnest(fields) f WHERE starts_with(f,'receipt.'))) THEN RETURN false; END IF;
  FOR c IN SELECT * FROM vamotors."VehicleCost" WHERE "cycleId"=p.id LOOP
-  IF NOT vamotors.approval_fields(uid,'PurchaseRecord','read',cycle_data,ARRAY['costs.amount']) OR NOT vamotors.approval_fields(uid,'VehicleCost','read',jsonb_build_object('createdBy',c."createdBy"),ARRAY['amount']) THEN RETURN false; END IF;
+   IF NOT vamotors.approval_fields(uid,'PurchaseRecord','read',cycle_data,ARRAY['costs.amount']) OR NOT vamotors.approval_fields(uid,'VehicleCost','read',jsonb_build_object('createdBy',c."createdBy"),ARRAY['amount']) THEN RETURN false; END IF;
+   IF EXISTS(SELECT 1 FROM vamotors."CostPayment" WHERE "costId"=c.id) AND (NOT vamotors.approval_fields(uid,'PurchaseRecord','read',cycle_data,ARRAY['costs.payments.amount','costs.payments.direction']) OR NOT vamotors.approval_fields(uid,'VehicleCost','read',jsonb_build_object('createdBy',c."createdBy"),ARRAY['payments.amount','payments.direction'])) THEN RETURN false; END IF;
  END LOOP;
  IF reviewing THEN
   IF NOT vamotors.approval_fields(uid,'ApprovalRequest','read',jsonb_build_object('createdBy',a."requestedBy"),ARRAY['id','revision','proposal.kind','expected','payloadHash','reason']||ARRAY(SELECT 'proposal.input.'||f FROM unnest(fields) f)) THEN RETURN false; END IF;
@@ -103,7 +109,7 @@ CREATE TRIGGER approval_owner BEFORE INSERT OR UPDATE ON vamotors."ApprovalReque
 
 -- Existing parents gain no field descendants or actions: all old wildcard,
 -- compound gates (including uploads), conditions and delegation ceilings remain
--- exactly the v11 populations. Only the two NEW subject universes are seeded.
+-- exactly the accepted236 v12 populations. Only the two NEW subjects are seeded.
 -- Trigger bodies below remain enabled. Owner maintenance is bounded to these
 -- additions and revision-only change, and exact original definitions restored
 -- before COMMIT; there is no persistent runtime/definer maintenance escape.
@@ -147,9 +153,9 @@ BEGIN
  OR EXISTS(SELECT 1 FROM jsonb_each(i->'receipt') e WHERE jsonb_typeof(e.value) IS DISTINCT FROM 'string')
  OR i#>>'{receipt,date}' !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' OR i#>>'{receipt,method}' NOT IN ('CASH','BANK_TRANSFER') OR (i#>>'{receipt,date}')::date>(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Colombo')::date
  OR ((i->'receipt') ? 'reference' AND (i#>>'{receipt,reference}'<>btrim(i#>>'{receipt,reference}') OR length(i#>>'{receipt,reference}') NOT BETWEEN 1 AND 200))))
- OR p."acquisitionCommandId" IS NULL OR b.id IS NULL OR p."acquisitionKind"<>'SUPPLIER' OR p."purchaseType" NOT IN ('CASH','BRAND_NEW') THEN RAISE EXCEPTION 'INVALID_APPROVAL_PAYLOAD' USING ERRCODE='23514'; END IF;
+  OR p."acquisitionCommandId" IS NULL OR b.id IS NULL OR p."acquisitionKind"<>'SUPPLIER' OR p."purchaseType" NOT IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') THEN RAISE EXCEPTION 'INVALID_APPROVAL_PAYLOAD' USING ERRCODE='23514'; END IF;
  expected:=jsonb_build_array(jsonb_build_object('type','PurchaseRecord','id',p.id,'revision',p.revision-CASE WHEN a.state='APPROVED' THEN 1 ELSE 0 END),jsonb_build_object('type','Vehicle','id',v.id,'revision',v.revision-CASE WHEN a.state='APPROVED' THEN 1 ELSE 0 END));
- snap:=jsonb_strip_nulls(jsonb_build_object('cycleId',p.id,'vehicleId',v.id,'basisVersionId',b.id,'basis',b.total::text,'currency',b.currency,'scale',b.scale,'purchasePrice',p."purchasePrice"::text,'purchaseType',p."purchaseType",'listedPrice',p."listedPrice"::text));
+  snap:=jsonb_strip_nulls(jsonb_build_object('cycleId',p.id,'vehicleId',v.id,'basisVersionId',b.id,'basis',b.total::text,'currency',b.currency,'scale',b.scale,'purchasePrice',p."purchasePrice"::text,'purchaseType',p."purchaseType",'settlement',vamotors.settlement_json(p.id),'listedPrice',p."listedPrice"::text));
  IF a.expected IS DISTINCT FROM expected OR a.snapshot IS DISTINCT FROM snap OR a."payloadHash"<>encode(sha256(convert_to(vamotors.approval_canonical(jsonb_build_object('schemaVersion',1,'proposal',a.proposal,'expected',a.expected,'snapshot',a.snapshot,'reason',a.reason)),'UTF8')),'hex') THEN RAISE EXCEPTION 'APPROVAL_BINDING_MISMATCH' USING ERRCODE='23514'; END IF;
  SELECT * INTO c FROM vamotors."CommandReceipt" WHERE id=CASE WHEN TG_OP='INSERT' THEN a."requestCommandId" ELSE a."reviewCommandId" END AND xmin=pg_current_xact_id()::xid;
  IF c.id IS NULL OR c."environmentId"<>(SELECT id FROM vamotors."Environment" WHERE singleton=1) OR c.result<>jsonb_build_object('type','ApprovalRequest','id',a.id,'revision',a.revision)
@@ -231,7 +237,7 @@ CREATE CONSTRAINT TRIGGER disposal_cycle_graph AFTER UPDATE ON vamotors."Purchas
 CREATE CONSTRAINT TRIGGER disposal_vehicle_graph AFTER UPDATE ON vamotors."Vehicle" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN(OLD."activePurchaseId" IS NOT NULL AND NEW."activePurchaseId" IS NULL) EXECUTE FUNCTION vamotors.check_disposal_graph();
 
 CREATE FUNCTION vamotors.check_disposal_root() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
-DECLARE d vamotors."Disposal"; a vamotors."ApprovalRequest"; c vamotors."CommandReceipt"; v vamotors."Vehicle"; old_payload jsonb; after_payload jsonb; expected jsonb; financial jsonb; paths text[]; kind text; eid uuid; rev integer;
+DECLARE d vamotors."Disposal"; a vamotors."ApprovalRequest"; c vamotors."CommandReceipt"; v vamotors."Vehicle"; old_payload jsonb; after_payload jsonb; expected jsonb; financial jsonb; incoming numeric; outgoing numeric; paths text[]; kind text; eid uuid; rev integer;
 BEGIN
  SELECT * INTO d FROM vamotors."Disposal" WHERE "cycleId"=NEW.id;
  SELECT * INTO a FROM vamotors."ApprovalRequest" WHERE id=d."approvalId";
@@ -240,16 +246,19 @@ BEGIN
  IF OLD.status NOT IN ('PURCHASED','IN_STOCK') OR OLD."closedAt" IS NOT NULL OR NEW.revision::bigint<>OLD.revision::bigint+1
  OR (to_jsonb(NEW)-ARRAY['status','available','holdReason','closedAt','revision','updatedAt']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['status','available','holdReason','closedAt','revision','updatedAt'])
  OR NOT EXISTS(SELECT 1 FROM vamotors."StatusEvent" s WHERE s."commandId"=c.id AND s."cycleId"=NEW.id AND s."from"=OLD.status)
- THEN RAISE EXCEPTION 'INVALID_DISPOSAL_ROOT_DELTA' USING ERRCODE='23514'; END IF;
+  THEN RAISE EXCEPTION 'INVALID_DISPOSAL_ROOT_DELTA' USING ERRCODE='23514'; END IF;
+  SELECT coalesce(sum(CASE direction WHEN 'IN' THEN amount::numeric ELSE 0 END),0),coalesce(sum(CASE direction WHEN 'OUT' THEN amount::numeric ELSE 0 END),0) INTO incoming,outgoing FROM vamotors."CashMovement" m WHERE (m."sourceType"='PURCHASE' AND m."sourceId"=NEW.id) OR (m."sourceType"='COST' AND m."sourceId" IN (SELECT id FROM vamotors."VehicleCost" WHERE "cycleId"=NEW.id)) OR (m."sourceType"='DISPOSAL' AND m."sourceId"=d.id);
+  IF incoming>9999999999999999 OR outgoing>9999999999999999 THEN RAISE EXCEPTION 'MONEY_OVERFLOW' USING ERRCODE='23514'; END IF;
  FOREACH kind IN ARRAY ARRAY['PurchaseRecord','Vehicle'] LOOP
   eid:=CASE WHEN kind='PurchaseRecord' THEN NEW.id ELSE NEW."vehicleId" END; rev:=CASE WHEN kind='PurchaseRecord' THEN NEW.revision ELSE v.revision END;
   SELECT payload INTO old_payload FROM vamotors."EntityReadVersion" WHERE "entityType"=kind AND "entityId"=eid AND sequence<c."businessSequence" ORDER BY sequence DESC LIMIT 1;
   SELECT payload INTO after_payload FROM vamotors."EntityReadVersion" WHERE "entityType"=kind AND "entityId"=eid AND "commandId"=c.id AND sequence=c."businessSequence" AND revision=rev AND xmin=pg_current_xact_id()::xid;
-  IF old_payload IS NULL OR after_payload IS NULL OR (old_payload->>'revision')::integer<>OLD.revision OR (old_payload->>'identityRevision')::bigint+1<>v.revision THEN RAISE EXCEPTION 'DISPOSAL_SOURCE_VERSION_REQUIRED' USING ERRCODE='23514'; END IF;
+   IF old_payload IS NULL OR after_payload IS NULL OR (old_payload->>'revision')::integer IS DISTINCT FROM OLD.revision OR (old_payload->>'identityRevision')::bigint+1 IS DISTINCT FROM v.revision::bigint THEN RAISE EXCEPTION 'DISPOSAL_SOURCE_VERSION_REQUIRED' USING ERRCODE='23514'; END IF;
+   IF kind='PurchaseRecord' AND (old_payload->'settlement' IS DISTINCT FROM vamotors.settlement_json(NEW.id) OR old_payload->'outstanding' IS DISTINCT FROM vamotors.purchase_outstanding_json(NEW.id)) THEN RAISE EXCEPTION 'DISPOSAL_SOURCE_TERMS_REQUIRED' USING ERRCODE='23514'; END IF;
   IF kind='PurchaseRecord' THEN old_payload:=jsonb_set(old_payload,'{seller}',(SELECT jsonb_build_object('type','SUPPLIER','id',s.id,'name',s.name,'active',s.active) FROM vamotors."Supplier" s WHERE s.id=NEW."supplierId")); END IF;
   financial:=old_payload->'financial';
-  IF (financial->>'cashIn')::numeric+d.proceeds>9223372036854775807 THEN RAISE EXCEPTION 'MONEY_OVERFLOW' USING ERRCODE='23514'; END IF;
-  financial:=financial||jsonb_build_object('cashIn',((financial->>'cashIn')::numeric+d.proceeds)::text,'net',((financial->>'net')::numeric+d.proceeds)::text);
+   IF (financial->>'cashIn')::numeric IS DISTINCT FROM incoming-d.proceeds OR (financial->>'cashOut')::numeric IS DISTINCT FROM outgoing OR (financial->>'net')::numeric IS DISTINCT FROM incoming-d.proceeds-outgoing THEN RAISE EXCEPTION 'DISPOSAL_SOURCE_CASH_REQUIRED' USING ERRCODE='23514'; END IF;
+   financial:=financial||jsonb_build_object('cashIn',incoming::text,'cashOut',outgoing::text,'net',(incoming-outgoing)::text);
   expected:=(old_payload-'holdReason')||jsonb_build_object('revision',NEW.revision,'identityRevision',v.revision,'status','WRITTEN_OFF','available',false,'financial',financial);
   IF kind='PurchaseRecord' THEN expected:=expected||jsonb_build_object('closedAt',to_char(NEW."closedAt",'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'disposal',vamotors.disposal_json(d.id)); END IF;
   IF after_payload IS DISTINCT FROM expected THEN RAISE EXCEPTION 'INVALID_DISPOSAL_SOURCE_VERSION' USING ERRCODE='23514'; END IF;
@@ -264,7 +273,7 @@ CREATE CONSTRAINT TRIGGER disposal_root_delta AFTER UPDATE ON vamotors."Purchase
 
 -- Append a new, evidenced close branch; leave all accepted open-cycle branches.
 ALTER TABLE vamotors."PurchaseRecord" DROP CONSTRAINT initial_cycle_capability;
-ALTER TABLE vamotors."PurchaseRecord" ADD CONSTRAINT initial_cycle_capability CHECK(((status IN ('PURCHASED','IN_STOCK') AND "closedAt" IS NULL) OR (status='WRITTEN_OFF' AND "closedAt" IS NOT NULL AND NOT available)) AND "purchaseType"<>'LEASE_SETTLEMENT' AND "acquisitionKind"='SUPPLIER');
+ALTER TABLE vamotors."PurchaseRecord" ADD CONSTRAINT initial_cycle_capability CHECK(((status IN ('PURCHASED','IN_STOCK') AND "closedAt" IS NULL) OR (status='WRITTEN_OFF' AND "closedAt" IS NOT NULL AND NOT available)) AND "purchaseType" IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') AND "acquisitionKind"='SUPPLIER');
 DO $$
 DECLARE source text; updated text; expression text;
 BEGIN
@@ -279,7 +288,7 @@ BEGIN
  updated:=replace(source,'BEGIN',E'BEGIN\n IF TG_OP=''UPDATE'' AND NEW.status=''WRITTEN_OFF'' THEN RETURN NEW; END IF;');
  IF updated=source THEN RAISE EXCEPTION 'CYCLE_ROOT_BASE_MISMATCH'; END IF; EXECUTE updated;
  SELECT pg_get_functiondef('vamotors.check_acquisition_graph()'::regprocedure) INTO source;
- updated:=replace(source,'v."activePurchaseId"=p.id','(v."activePurchaseId"=p.id OR (p.status=''WRITTEN_OFF'' AND p."closedAt" IS NOT NULL AND v."activePurchaseId" IS NULL AND EXISTS(SELECT 1 FROM vamotors."Disposal" d WHERE d."cycleId"=p.id)))');
+  updated:=replace(source,'v."activePurchaseId"=p.id','(v."activePurchaseId"=p.id OR (p.status=''WRITTEN_OFF'' AND p."closedAt" IS NOT NULL AND v."activePurchaseId" IS NULL AND EXISTS(SELECT 1 FROM vamotors."Disposal" d JOIN vamotors."ApprovalRequest" a ON a.id=d."approvalId" AND a."cycleId"=p.id WHERE d."cycleId"=p.id AND d."approvalKind"=''CURRENT'' AND a.state=''APPROVED'' AND a."appliedCommandId"=d."commandId" AND a."reviewedAt"=p."closedAt")))');
  IF updated=source THEN RAISE EXCEPTION 'ACQUISITION_POINTER_BASE_MISMATCH'; END IF; EXECUTE updated;
  SELECT pg_get_functiondef('vamotors.purchase_vehicle_guard()'::regprocedure) INTO source;
  updated:=replace(source,'BEGIN',E'BEGIN\n IF TG_OP=''UPDATE'' AND OLD."activePurchaseId" IS NOT NULL AND NEW."activePurchaseId" IS NULL AND NEW.revision::bigint=OLD.revision::bigint+1 AND (to_jsonb(NEW)-ARRAY[''activePurchaseId'',''revision'',''updatedAt''])=(to_jsonb(OLD)-ARRAY[''activePurchaseId'',''revision'',''updatedAt'']) THEN RETURN NEW; END IF;');

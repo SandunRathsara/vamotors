@@ -785,7 +785,7 @@ export function visiblePurchase(actor: Actor, row: Row) {
     !row.disposal &&
     row.vehicle.activePurchaseId === row.id &&
     row.acquisitionKind === "SUPPLIER" &&
-    ["CASH", "BRAND_NEW"].includes(row.purchaseType) &&
+    ["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) &&
     ["PURCHASED", "IN_STOCK"].includes(row.status)
   ) {
     try {

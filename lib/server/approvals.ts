@@ -202,7 +202,7 @@ function eligible(row: Cycle) {
   if (
     !row.acquisitionCommandId ||
     row.acquisitionKind !== "SUPPLIER" ||
-    !["CASH", "BRAND_NEW"].includes(row.purchaseType) ||
+    !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
     row.closedAt ||
     row.vehicle.activePurchaseId !== row.id ||
     !["PURCHASED", "IN_STOCK"].includes(row.status) ||
@@ -726,6 +726,9 @@ export async function executeApproval(
         scale: basis.scale,
         purchasePrice: row.purchasePrice.toString(),
         purchaseType: row.purchaseType,
+        ...(row.purchaseType === "LEASE_SETTLEMENT"
+          ? { settlement: purchaseDTO(row).settlement }
+          : {}),
         ...(row.listedPrice !== null
           ? { listedPrice: row.listedPrice.toString() }
           : {}),
@@ -899,6 +902,7 @@ export async function executeApproval(
     })
     if (input.decision === "APPROVE") {
       const basis = row.basisVersions.at(-1)!
+      const financial = purchaseDTO(row).financial!
       await applyApprovedWriteOff(tx, {
         cycleId: row.id,
         vehicleId: row.vehicleId,
@@ -909,6 +913,8 @@ export async function executeApproval(
         input: savedValue.proposal.input,
         basisVersionId: basis.id,
         basis: basis.total,
+        cashIn: BigInt(financial.cashIn),
+        cashOut: BigInt(financial.cashOut),
         currency: basis.currency,
         scale: basis.scale,
       })

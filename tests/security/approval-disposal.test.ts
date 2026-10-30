@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { subject } from "@casl/ability"
 import { approvalEnvelope, approvalInputs } from "@/lib/server/validators"
 import {
@@ -9,6 +9,13 @@ import {
   registry,
   registryVersion,
 } from "@/lib/server/permissions"
+import {
+  requireWriteOffRead,
+  applyApprovedWriteOff,
+} from "@/lib/server/disposals"
+import { A, C } from "@/lib/money"
+
+vi.mock("server-only", () => ({}))
 
 const id = "00000000-0000-4000-8000-000000000001"
 const input = {
@@ -143,5 +150,108 @@ describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
         expected: [...body.expected, ...body.expected],
       }).success
     ).toBe(false)
+  })
+  it("requires each snapshotted lease leaf and each actual gross-cash source", () => {
+    for (const institution of [
+      { institutionType: "FINANCE_COMPANY", companyId: id },
+      { institutionType: "BANK", institutionName: "Actual bank" },
+      { institutionType: "PRIVATE_PARTY", institutionName: "Actual lender" },
+    ]) {
+      const purchase = {
+        id,
+        revision: 1,
+        vehicleId: id,
+        identityRevision: 1,
+        status: "PURCHASED",
+        available: false,
+        closedAt: null,
+        purchaseDate: "2026-10-01",
+        purchasePrice: "10000",
+        purchaseType: "LEASE_SETTLEMENT",
+        listedPrice: "0",
+        settlement: {
+          ...institution,
+          institutionNameSnapshot: "Retained name",
+          reference: "Actual reference",
+          amount: "6000",
+          cashToSeller: "4000",
+        },
+        financial: {
+          basis: "10500",
+          currency: "LKR",
+          scale: 2,
+          cashIn: "200",
+          cashOut: "10200",
+        },
+        basisVersions: [{ id, total: "10500" }],
+        payments: [{ amount: "10000", direction: "OUT" }],
+        costs: [{ payments: [{ amount: "200", direction: "OUT" }] }],
+      }
+      expect(() => requireWriteOffRead(purchase, purchase)).not.toThrow()
+      for (const field of Object.keys(purchase.settlement)) {
+        const visible = structuredClone(purchase)
+        Reflect.deleteProperty(visible.settlement, field)
+        expect(() => requireWriteOffRead(purchase, visible)).toThrow(
+          "FIELD_FORBIDDEN"
+        )
+      }
+      for (const path of ["cashIn", "cashOut"]) {
+        const visible = structuredClone(purchase)
+        Reflect.deleteProperty(visible.financial, path)
+        expect(() => requireWriteOffRead(purchase, visible)).toThrow(
+          "FIELD_FORBIDDEN"
+        )
+      }
+      for (const cost of [false, true])
+        for (const leaf of ["amount", "direction"]) {
+          const visible = structuredClone(purchase)
+          Reflect.deleteProperty(
+            cost ? visible.costs[0].payments[0] : visible.payments[0],
+            leaf
+          )
+          expect(() => requireWriteOffRead(purchase, visible)).toThrow(
+            "FIELD_FORBIDDEN"
+          )
+        }
+    }
+  })
+  it("bounds gross proceeds at C rather than B before any owner mutation", async () => {
+    const update = vi.fn(),
+      create = vi.fn()
+    const tx = {
+      purchaseRecord: { update },
+      vehicle: { update },
+      disposal: { create },
+      disposalReceipt: { create },
+    } as unknown as Parameters<typeof applyApprovedWriteOff>[0]
+    const context = {
+      cycleId: id,
+      vehicleId: id,
+      approvalId: id,
+      commandId: id,
+      reviewerId: id,
+      basisVersionId: id,
+      basis: A,
+      cashIn: C,
+      cashOut: C,
+      currency: "LKR",
+      scale: 2,
+      reviewedAt: new Date(),
+      input: {
+        cycleId: id,
+        date: "2026-10-01",
+        reason: "Actual",
+        method: "OTHER" as const,
+        proceeds: "1",
+        receipt: { amount: "1", date: "2026-10-01", method: "CASH" as const },
+      },
+    }
+    await expect(applyApprovedWriteOff(tx, context)).rejects.toThrow(
+      "MONEY_OVERFLOW"
+    )
+    expect(update).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
+    await applyApprovedWriteOff(tx, { ...context, cashIn: C - 1n })
+    expect(create).toHaveBeenCalledTimes(2)
   })
 })

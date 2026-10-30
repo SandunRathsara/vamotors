@@ -56,6 +56,36 @@ object, not newer records. Sole shared-source ownership remains active here.
   19 unit files/154 tests. These do not validate owned-migration installation,
   lease write-off behavior or final17/v13 runtime/upgrade proof.
 
+### Substantive accepted236 reconciliation (source checkpoint; runtime pending)
+
+- Mechanical merge full SHA `1bb06ad4db3f85e980857c56a74bd7a6326ea6f4`, tree
+  `ca3a6f7525138ff8271cf6f1a89c3dbddcc9e053`, has exact236 as its second parent.
+- Owned eligibility, nextActions, SQL capability/payload guards now retain all
+  three lease institution variants. Snapshots include the existing typed current
+  settlement DTO. Consumed-read checks require each actual terms leaf and linked
+  FinanceCompany id/name authority, not its revision/active flag or an extra CAS.
+- Gross source-cash read dependencies are now explicit at both parent and actual
+  child/payment projections. Owner execution bounds incoming+actual proceeds and
+  outgoing at C before domain mutation; deferred SQL independently derives totals
+  from CashMovement and proves exact old/new financial versions. Signed loss/gain
+  remains basis minus proceeds. There is no new balance-zero obligation or fake
+  future payable; accepted acquisition/payee/current-balance guards remain live.
+- The accepted006 acquisition graph is extended only at its active-pointer
+  predicate for an evidenced CURRENT approved close. Lease terms/outstanding and
+  retained source bytes must remain identical across the close. All accepted SQL
+  files remain untouched; only allocated202610310001 is edited.
+- Added focused leaf/cash-bound checks and real HTTP journey assertions for all
+  lease variants with actual payment reversal/replacement and remaining credit.
+  Focused unit/type/lint checks exited0. Formatting ran alongside the initial
+  unit/type checks (whitespace only); these are not final frozen-source receipts.
+  New HTTP assertions have not run at this checkpoint.
+- A NEW worker-owned detached source checkout exists at
+  `/Users/alpha/Developer/Personal/vamotors-writeoff-parent236`, exact236; isolated
+  offline dependencies installed there. No existing author/reviewer root adopted.
+  Capacity review recorded more than4GiB free reserve, Node24/PG18 and the original
+  private-policy review deadline, with no extension. Parent DB/final fresh DB and
+  final installation/proof remain pending at this checkpoint.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,

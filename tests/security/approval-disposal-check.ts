@@ -95,18 +95,92 @@ try {
       }),
       201
     )
-    for (const [index, origin] of ["PURCHASED", "HOLD", "RELEASE"].entries()) {
+    const settings = await f.query<{ id: string; revision: number }>(
+      requester,
+      "settings"
+    )
+    const finance = await f.command(
+      requester,
+      "createFinanceCompany",
+      envelope(
+        {
+          name: `Writeoff finance ${suffix}`,
+          contacts: [],
+          policy: {
+            path: "APPLICATION",
+            commission: { basis: "FINANCED_PRINCIPAL", rateBps: 100 },
+            processingFee: "250000",
+            reconciliationMethod: "PERIOD_NOTICE",
+          },
+        },
+        [ref(settings, "Settings")]
+      ),
+      201
+    )
+    for (const [index, [origin, channel]] of [
+      ["PURCHASED", "CASH"],
+      ["HOLD", "BRAND_NEW"],
+      ["RELEASE", "BRAND_NEW"],
+      ["PURCHASED", "FINANCE_COMPANY"],
+      ["HOLD", "BANK"],
+      ["RELEASE", "PRIVATE_PARTY"],
+    ].entries()) {
+      const lease = !["CASH", "BRAND_NEW"].includes(channel)
       const input = {
         ...purchaseInput(supplier.result.id, suffix, String(index)),
-        purchaseType: index === 0 ? "CASH" : "BRAND_NEW",
+        purchaseType: lease ? "LEASE_SETTLEMENT" : channel,
+        ...(lease
+          ? {
+              purchasePrice: undefined,
+              settlement: {
+                institutionType: channel,
+                ...(channel === "FINANCE_COMPANY"
+                  ? { companyId: finance.result.id }
+                  : { institutionName: `Actual ${channel} ${suffix}` }),
+                reference: `Actual ${channel} terms`,
+                amount: "6000",
+                cashToSeller: "4000",
+              },
+            }
+          : {}),
       }
       const created = await f.command(
         requester,
         "recordPurchase",
-        envelope(input, [ref(supplier.result, "Supplier")]),
+        envelope(input, [
+          ref(supplier.result, "Supplier"),
+          ...(channel === "FINANCE_COMPANY"
+            ? [ref(finance.result, "FinanceCompany")]
+            : []),
+        ]),
         201
       )
       let row = await current(requester, created.result.id)
+      if (lease) {
+        const payment = row.payments.find((p) => p.category === "SETTLEMENT")!
+        await f.command(
+          requester,
+          "reversePayment",
+          envelope(
+            {
+              sourceType: "PURCHASE",
+              sourceId: row.id,
+              paymentId: payment.id,
+              reason:
+                "Actual settled payment correction preserves remaining credit",
+              replacement: {
+                amount: "5000",
+                date: "2026-10-01",
+                method: "BANK_TRANSFER",
+              },
+            },
+            [ref(row)]
+          )
+        )
+        row = await current(requester, row.id)
+        assert.equal(row.outstanding.settlement, "1000")
+        assert.equal(row.financial!.cashIn, "6000")
+      }
       if (origin !== "PURCHASED") {
         await f.command(
           requester,
@@ -190,6 +264,13 @@ try {
       assert.equal(pending.businessEffect, false)
       assert.equal(pending.status, "PENDING_APPROVAL")
       assert.equal(await f.snapshot(domainTables), beforeDomain)
+      const savedSnapshot = (
+        await f.db.query(
+          'SELECT snapshot FROM vamotors."ApprovalRequest" WHERE id=$1',
+          [pending.approvalId]
+        )
+      ).rows[0].snapshot
+      assert.deepEqual(savedSnapshot.settlement, row.settlement)
       const a = await approval(reviewer, pending.approvalId)
       assert.equal(a.reason, `Separate request reason ${origin}`)
       assert.equal(a.proposal.kind, "WRITE_OFF")
@@ -211,7 +292,17 @@ try {
       assert.equal(after.disposal!.proceeds, proceeds)
       assert.equal(after.disposal!.payments.length, proceeds === "0" ? 0 : 1)
       assert.equal(after.financial!.basis, "10500")
-      assert.equal(after.financial!.cashIn, proceeds)
+      assert.equal(
+        after.financial!.cashIn,
+        (BigInt(row.financial!.cashIn) + BigInt(proceeds)).toString()
+      )
+      assert.equal(after.financial!.cashOut, row.financial!.cashOut)
+      assert.deepEqual(after.settlement, row.settlement)
+      assert.deepEqual(after.outstanding, row.outstanding)
+      assert.deepEqual(after.payments, row.payments)
+      assert.deepEqual(after.costs, row.costs)
+      assert.deepEqual(after.mileage, row.mileage)
+      assert.deepEqual(after.basisVersions, row.basisVersions)
       if (proceeds !== "0")
         assert.equal(after.disposal!.payments[0].date, "2026-10-05")
       const source = await f.db.query(
@@ -258,6 +349,9 @@ try {
         "recordPurchase",
         envelope(input, [
           ref(supplier.result, "Supplier"),
+          ...(channel === "FINANCE_COMPANY"
+            ? [ref(finance.result, "FinanceCompany")]
+            : []),
           {
             type: "Vehicle",
             id: row.vehicleId,
@@ -268,7 +362,7 @@ try {
         "IDENTITY_WRITTEN_OFF"
       )
       groups.push({
-        group: `P1-P2 ${origin} ${input.purchaseType}`,
+        group: `P1-P2 ${origin} ${channel}`,
         cycleId: row.id,
         approvalId: a.id,
         requestCommandId: pending.commandId,
