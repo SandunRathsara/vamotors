@@ -1,5 +1,37 @@
 # T07a/T08a — resumed incomplete PREBASE WIP (2026-10-31)
 
+## Accepted236 steering / safe pre-reconciliation checkpoint
+
+The parent now explicitly accepts runtime base
+`2360cbb92658d8b0c4cd0a38e3de14ef38efdeaa`, tree
+`6ef8f20725c2009f7d977356893fe58b1bddb512`. This supersedes the earlier wait and
+unaccepted236 statements in the historical journal. Reconcile only that exact
+object, not newer records. Sole shared-source ownership remains active here.
+
+- This checkpoint preserves all current WIP before reconciliation. Last source
+  head before it is `21f516ed795182aba1eb76e206f7b5da155a92a7`, tree
+  `8f81ff1f3e65b2434c24e9f8b24f8289d6341723`;712/cdedd2f and all evidence remain.
+- No finite focused job is running. The newest native-keyboard rejection probe
+  still failed (REJECT did not become selected and its select later disappeared);
+  its exact receipt, browser diagnostics and any actual committed effects remain
+  retained. Do not call keyboard rejection passed. The other queued focused UI
+  selections did not start after that failure. New SQL probes remain unexecuted.
+- Preserve all accepted23616 SQL files byte-for-byte, including006, its gross and
+  incurred422 guards, typed lease details, selector guard, current history/read
+  versions, grants and retained tests. Reconcile from its actual registry12
+  populations; old555 registry11 fingerprints are not final-base proof. The own
+  allocated migration stays202610310001, expected final17/registry13 only after
+  actual inventory and substantive guard reconciliation.
+- The prior draft is15 accepted555 migrations plus the owned migration and
+  development overlays, **not** a236 parent or final fresh fixture. Retain it and
+  its rolled-back failed migration. Final proof requires new worker-owned fresh
+  final and genuinely nonempty exact236 parent roots, forward upgrade/repeat,
+  lawful lease variants, preserved old grants/facts/files and real restart proof.
+- Parent coverage is now27 LOCAL/107 U/134, with VPRC-02 LOCAL AT236. This doc does
+  not edit the shared ledger/matrix; VSTS-03 U, human G2/d0/8000 and G3–G6 unchanged.
+- No full write-off completion, acceptance, freeze or shared ownership release
+  is claimed by this pre-reconciliation checkpoint.
+
 ## Current explicit parent resumption from712af18
 
 The parent resumed this same branch/worktree as the **sole active shared-source,
@@ -62,6 +94,17 @@ are historical and superseded by that explicit resumption, not deleted.
   role-revocation/deactivation UI cases, with measured source/result evidence.
   These new cases and the latest server privacy change still require checks/run;
   no expanded P8 or full original P1–P8 completion is claimed.
+
+- Clean21f516e build passed. The focused parent-audit privacy regression exited0
+  with positive controls for both parent histories and hidden reason/reference
+  checks. New SQL probes cover payload/ref/requester ACLs, forged pending owners,
+  notifications, CURRENT/IMPORTED rejection, extra zero-disposal cash and the exact
+  A+1 receipt CHECK name; these probes have not run yet and always roll back.
+- First new keyboard rejection test failed because a closed native select did
+  not commit End as REJECT on this platform. It now uses native Space/ArrowDown/
+  Enter and still asserts the actual REJECT value; no programmatic selection or
+  weakening of the server/domain assertions. Its rerun and other new UI cases
+  remain pending at this journal entry.
 
 ## Historical712 parent-requested checkpoint / release
 

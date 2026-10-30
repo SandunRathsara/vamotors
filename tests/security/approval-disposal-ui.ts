@@ -523,7 +523,9 @@ try {
         await mobile.goto(`/approvals/${p.approvalId}`)
         const decision = mobile.getByLabel("Decision", { exact: true })
         await decision.focus()
-        await decision.press("End")
+        await mobile.keyboard.press("Space")
+        await mobile.keyboard.press("ArrowDown")
+        await mobile.keyboard.press("Enter")
         await expect(decision).toHaveValue("REJECT")
         await mobile
           .getByLabel("Review note (required for rejection)")
