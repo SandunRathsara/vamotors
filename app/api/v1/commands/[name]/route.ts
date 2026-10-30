@@ -69,52 +69,62 @@ export async function POST(
       (name !== "archiveParty" ||
         (raw as { input?: { type?: string } })?.input?.type !== "CUSTOMER")
     const result =
-      Object.hasOwn(repairInputs, name) || (name === "reversePayment" && (raw as { input?: { sourceType?: string } })?.input?.sourceType === "REPAIR")
-        ? await executeRepair(identity, name as RepairCommand | "reversePayment", raw)
-        :
-      name === "stageImport"
-        ? await executeStageImport(identity, raw)
-        : name === "initUpload"
-          ? await initUpload(identity, raw)
-          : name === "completeUpload"
-            ? await completeUpload(identity, raw)
-            : rates
-              ? await executeRates(identity, name as RateCommandName, raw)
-              : name === "recordPurchase"
-                ? await recordPurchase(identity, raw)
-                : Object.hasOwn(cycleEditInputs, name)
-                  ? await executeCycleEdit(
-                      identity,
-                      name as CycleEditCommand,
-                      raw
-                    )
-                  : Object.hasOwn(cycleMoneyInputs, name)
-                    ? await executeCycleMoney(
+      Object.hasOwn(repairInputs, name) ||
+      (name === "reversePayment" &&
+        (raw as { input?: { sourceType?: string } })?.input?.sourceType ===
+          "REPAIR")
+        ? await executeRepair(
+            identity,
+            name as RepairCommand | "reversePayment",
+            raw
+          )
+        : name === "stageImport"
+          ? await executeStageImport(identity, raw)
+          : name === "initUpload"
+            ? await initUpload(identity, raw)
+            : name === "completeUpload"
+              ? await completeUpload(identity, raw)
+              : rates
+                ? await executeRates(identity, name as RateCommandName, raw)
+                : name === "recordPurchase"
+                  ? await recordPurchase(identity, raw)
+                  : Object.hasOwn(cycleEditInputs, name)
+                    ? await executeCycleEdit(
                         identity,
-                        name as CycleMoneyCommand,
+                        name as CycleEditCommand,
                         raw
                       )
-                    : Object.hasOwn(stockInputs, name)
-                      ? await executeStock(identity, name as StockCommand, raw)
-                      : name === "updateSettings"
-                        ? await executeSettings(identity, raw)
-                        : directory
-                          ? await executeParty(
-                              identity,
-                              name as PartyCommandName,
-                              raw
-                            )
-                          : customer
-                            ? await executeCustomer(
+                    : Object.hasOwn(cycleMoneyInputs, name)
+                      ? await executeCycleMoney(
+                          identity,
+                          name as CycleMoneyCommand,
+                          raw
+                        )
+                      : Object.hasOwn(stockInputs, name)
+                        ? await executeStock(
+                            identity,
+                            name as StockCommand,
+                            raw
+                          )
+                        : name === "updateSettings"
+                          ? await executeSettings(identity, raw)
+                          : directory
+                            ? await executeParty(
                                 identity,
-                                name as CustomerCommandName,
+                                name as PartyCommandName,
                                 raw
                               )
-                            : await executeAdmin(
-                                identity,
-                                name as CommandName,
-                                raw
-                              )
+                            : customer
+                              ? await executeCustomer(
+                                  identity,
+                                  name as CustomerCommandName,
+                                  raw
+                                )
+                              : await executeAdmin(
+                                  identity,
+                                  name as CommandName,
+                                  raw
+                                )
     if (result.status === "UPLOAD_READY") return noStoreJSON(result, 201)
     const created =
       name === "stageImport" ||

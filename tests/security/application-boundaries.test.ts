@@ -7,6 +7,7 @@ import { safeReturnPath } from "@/lib/security-client"
 import {
   legacyAPIs,
   unavailablePages,
+  persistedRepairPages,
   methods,
   persistedRateAPIs,
   persistedRatePages,
@@ -73,6 +74,7 @@ describe("global entry-point inventory", () => {
         ...unavailablePages,
         ...persistedRatePages,
         ...importStagingPages,
+        ...persistedRepairPages,
         "/users",
         "/customers",
         "/customers/[id]",
@@ -91,6 +93,15 @@ describe("global entry-point inventory", () => {
       )
     expect(readFileSync("app/(app)/users/page.tsx", "utf8")).toContain(
       "await pageActor(true)"
+    )
+    expect(readFileSync("app/(app)/repairs/page.tsx", "utf8")).toContain(
+      "await pageActor()"
+    )
+    expect(readFileSync("app/(app)/repairs/[id]/page.tsx", "utf8")).toMatch(
+      /await repairPagePurchase\(\s*await authenticate\(await headers\(\)\),\s*id\s*\)/
+    )
+    expect(readFileSync("proxy.ts", "utf8")).toContain(
+      "await repairPagePurchase(await authenticate(request.headers), repair[1])"
     )
     for (const path of [
       "/customers",

@@ -101,8 +101,8 @@ export async function writeReadVersion(
       | "RateSheet"
       | "Quote"
       | "ImportBatch"
-       | "Document"
-       | "RepairRecord"
+      | "Document"
+      | "RepairRecord"
     entityId: string
     revision: number
     payload: Record<string, unknown>

@@ -81,5 +81,5 @@ GRANT EXECUTE ON FUNCTION vamotors.settlement_json(uuid), vamotors.purchase_outs
 GRANT SELECT (id,"cycleId","vendorId",request,"sentDate","returnedDate",summary,"invoiceAmount","invoiceDate",revision,"createdBy","commandId","returnCommandId","createdAt","updatedAt") ON vamotors."RepairRecord" TO vamotors_runtime;
 GRANT INSERT (id,"cycleId","vendorId",request,"sentDate",revision,"createdBy","commandId","createdAt","updatedAt") ON vamotors."RepairRecord" TO vamotors_runtime;
 GRANT UPDATE ("returnedDate",summary,"invoiceAmount","invoiceDate","returnCommandId",revision,"updatedAt") ON vamotors."RepairRecord" TO vamotors_runtime;
-GRANT SELECT, INSERT ON vamotors."RepairPayment" TO vamotors_runtime;
+GRANT SELECT (id,"repairId","cycleId",amount,direction,category,"occurredDate",method,currency,scale,reference,"reversalOf",reason,"createdBy","commandId","lineKey","recordedAt"), INSERT (id,"repairId","cycleId",amount,direction,category,"occurredDate",method,currency,scale,reference,"reversalOf",reason,"createdBy","commandId","lineKey","recordedAt") ON vamotors."RepairPayment" TO vamotors_runtime;
 GRANT EXECUTE ON FUNCTION vamotors.repair_components(uuid) TO vamotors_runtime;

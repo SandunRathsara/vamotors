@@ -104,7 +104,9 @@ export async function securityQuery(
       if (name === "quote") return rateQuery(tx, actor, name, args)
       if (
         name === "audit" &&
-        ["Vehicle", "PurchaseRecord", "VehicleCost"].includes(args.type)
+        ["Vehicle", "PurchaseRecord", "VehicleCost", "RepairRecord"].includes(
+          args.type
+        )
       )
         return purchaseQuery(tx, actor, name, args)
       if (

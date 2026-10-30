@@ -872,6 +872,44 @@ export async function partyQuery(
         links.push(link)
       }
     }
+    if (domain === "repairs") {
+      // Complete authorized current+returned links. Static READY promotion still
+      // belongs to the parent after independent acceptance, not table existence.
+      if (!actor.ability.can("read", subject(type, auth), "id")) {
+        visible.redactedFields.push(path)
+        continue
+      }
+      const rows = await tx.repairRecord.findMany({
+        where: {
+          AND: [
+            { vendorId: id },
+            readScope(actor.grants, actor.userId, "RepairRecord"),
+          ],
+          cycle: readScope(actor.grants, actor.userId, "PurchaseRecord"),
+        },
+        include: { cycle: true },
+        orderBy: [{ sentDate: "asc" }, { id: "asc" }],
+      })
+      for (const repair of rows) {
+        const parent = subject("PurchaseRecord", repair.cycle),
+          record = subject("RepairRecord", repair)
+        if (
+          !actor.ability.can("read", parent, "id") ||
+          !actor.ability.can("read", parent, "repairs") ||
+          !actor.ability.can("read", record, "id") ||
+          !actor.ability.can("read", record, "vendorId")
+        )
+          continue
+        const link: Record<string, unknown> = { type: "REPAIR", id: repair.id }
+        if (actor.ability.can("read", record, "sentDate"))
+          link.date = repair.sentDate.toISOString().slice(0, 10)
+        else visible.redactedFields.push(`${path}.links.date`)
+        if (actor.ability.can("read", record, "returnedDate"))
+          link.status = repair.returnedDate ? "RETURNED" : "OPEN"
+        else visible.redactedFields.push(`${path}.links.status`)
+        links.push(link)
+      }
+    }
     // Static pending capability: absent downstream implementations are NOT
     // authoritative empty histories. Read failures above propagate normally.
     contributions[domain] = {

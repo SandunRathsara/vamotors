@@ -173,8 +173,8 @@ model CommandReceipt {
   basisVersions         CycleBasisVersion[]
   costs                 VehicleCost[]
   costPayments          CostPayment[]
-  repairs               RepairRecord[] @relation("repairDispatch")
-  repairReturns         RepairRecord[] @relation("repairReturn")
+  repairs               RepairRecord[]      @relation("repairDispatch")
+  repairReturns         RepairRecord[]      @relation("repairReturn")
   repairPayments        RepairPayment[]
 
   @@unique([environmentId, actorKey, commandName, idempotencyKey])
@@ -669,25 +669,25 @@ model CostPayment {
 }
 
 model RepairRecord {
-  id              String @id @default(uuid()) @db.Uuid
-  cycleId         String @db.Uuid
-  cycle           PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
-  vendorId        String @db.Uuid
-  vendor          RepairVendor @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  id              String          @id @default(uuid()) @db.Uuid
+  cycleId         String          @db.Uuid
+  cycle           PurchaseRecord  @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  vendorId        String          @db.Uuid
+  vendor          RepairVendor    @relation(fields: [vendorId], references: [id], onDelete: Restrict)
   request         String
-  sentDate        DateTime @db.Date
-  returnedDate    DateTime? @db.Date
+  sentDate        DateTime        @db.Date
+  returnedDate    DateTime?       @db.Date
   summary         String?
   invoiceAmount   BigInt?
-  invoiceDate     DateTime? @db.Date
-  revision        Int @default(1)
-  createdBy       String @db.Uuid
-  commandId       String @unique @db.Uuid
-  command         CommandReceipt @relation("repairDispatch", fields: [commandId], references: [id], onDelete: Restrict)
-  returnCommandId String? @unique @db.Uuid
+  invoiceDate     DateTime?       @db.Date
+  revision        Int             @default(1)
+  createdBy       String          @db.Uuid
+  commandId       String          @unique @db.Uuid
+  command         CommandReceipt  @relation("repairDispatch", fields: [commandId], references: [id], onDelete: Restrict)
+  returnCommandId String?         @unique @db.Uuid
   returnCommand   CommandReceipt? @relation("repairReturn", fields: [returnCommandId], references: [id], onDelete: Restrict)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   payments        RepairPayment[]
 
   @@unique([id, cycleId])
@@ -697,28 +697,28 @@ model RepairRecord {
 }
 
 model RepairPayment {
-  id           String @id @default(uuid()) @db.Uuid
-  repairId     String @db.Uuid
-  cycleId      String @db.Uuid
-  repair       RepairRecord @relation(fields: [repairId, cycleId], references: [id, cycleId], onDelete: Restrict)
+  id           String         @id @default(uuid()) @db.Uuid
+  repairId     String         @db.Uuid
+  cycleId      String         @db.Uuid
+  repair       RepairRecord   @relation(fields: [repairId, cycleId], references: [id, cycleId], onDelete: Restrict)
   cycle        PurchaseRecord @relation(fields: [cycleId], references: [id], onDelete: Restrict)
   amount       BigInt
   direction    String
   category     String
-  occurredDate DateTime @db.Date
+  occurredDate DateTime       @db.Date
   method       String
   currency     String
   scale        Int
   reference    String?
-  reversalOf   String? @unique @db.Uuid
+  reversalOf   String?        @unique @db.Uuid
   original     RepairPayment? @relation("repairReversal", fields: [reversalOf, repairId, cycleId], references: [id, repairId, cycleId], onDelete: Restrict)
   reversal     RepairPayment? @relation("repairReversal")
   reason       String?
-  createdBy    String @db.Uuid
-  commandId    String @db.Uuid
+  createdBy    String         @db.Uuid
+  commandId    String         @db.Uuid
   command      CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
   lineKey      String
-  recordedAt   DateTime @default(now())
+  recordedAt   DateTime       @default(now())
 
   @@unique([id, repairId, cycleId])
   @@unique([commandId, lineKey])

@@ -24,6 +24,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CycleCosts } from "./cycle-costs"
 import { CycleEdits } from "./cycle-edits"
+import {
+  RepairCommands,
+  RepairHistory,
+} from "@/components/repairs/repair-workspace"
 import { SettlementFields, settlementFromDraft } from "./settlement-fields"
 import {
   PartyForm,
@@ -1244,6 +1248,7 @@ export function AcquisitionDetail({
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }
       />
+      {!vehicle && <RepairCommands cycle={row ?? {}} cycleId={id} />}
       {query.isPending && <p role="status">Loading persisted detail…</p>}
       {query.isError && (
         <p role="alert">
@@ -1270,10 +1275,25 @@ export function AcquisitionDetail({
           </dl>
           {vehicle ? (
             row.cycles?.map((cycle, i) => (
-              <CycleDetail key={cycle.id ?? i} cycle={cycle} />
+              <div key={cycle.id ?? i} className="space-y-4">
+                <CycleDetail cycle={cycle} />
+                <RepairHistory cycle={cycle} />
+                {cycle.id && (
+                  <Link
+                    prefetch={false}
+                    className="underline"
+                    href={`/purchases/${cycle.id}`}
+                  >
+                    Manage repairs with current purchase detail
+                  </Link>
+                )}
+              </div>
             ))
           ) : (
-            <CycleDetail cycle={row} />
+            <>
+              <CycleDetail cycle={row} />
+              <RepairHistory cycle={row} />
+            </>
           )}
         </>
       )}

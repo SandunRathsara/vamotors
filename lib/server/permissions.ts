@@ -24,8 +24,16 @@ export const sourcePaymentFields = [
   "reason",
 ] as const
 export const repairReadFields = [
-  "id", "revision", "vendorId", "request", "sentDate", "returnedDate", "summary",
-  "invoiceAmount", "invoiceDate", "payments",
+  "id",
+  "revision",
+  "vendorId",
+  "request",
+  "sentDate",
+  "returnedDate",
+  "summary",
+  "invoiceAmount",
+  "invoiceDate",
+  "payments",
   ...sourcePaymentFields.map((p) => `payments.${p}`),
 ] as const
 export const mileageReadFields = [
@@ -334,7 +342,13 @@ export const registry = {
   RepairRecord: {
     read: repairReadFields,
     create: ["cycleId", "vendorId", "request", "sentDate"],
-    update: ["repairId", "invoiceAmount", "invoiceDate", "returnedDate", "summary"],
+    update: [
+      "repairId",
+      "invoiceAmount",
+      "invoiceDate",
+      "returnedDate",
+      "summary",
+    ],
     pay: ["repairId", ...paymentWriteFields, ...correctionWriteFields],
   },
   Supplier: {

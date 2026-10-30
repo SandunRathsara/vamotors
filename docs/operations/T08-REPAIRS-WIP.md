@@ -1,6 +1,171 @@
-# T08 direct REPAIR — frozen incomplete PREBASE checkpoint
+# T08 direct REPAIR — ACTIVE accepted-c462 reconciliation
 
-## Parent-directed ownership transfer
+## Parent accepted-base steering and safe source checkpoint
+
+Parent explicitly accepted EXACT `c462b7ac3f5111ebacd74cf326fc3da386d88993`,
+tree `500a9d41325ad28b44481f210aa97fc6faa730b8`, including bounded WRITE_OFF and
+requester replay closure. This supersedes the historical unaccepted/base-wait
+statements below. No46bfe or later acceptance-document commit is a runtime base.
+The primary ref is exclusively the integration owner's responsibility.
+
+This author remains SOLE ACTIVE shared-source/schema/registry/grants/dispatcher
+writer. **No freeze or shared-ownership release is made at this checkpoint.**
+Preserve32aa, its820 source hashes/11 original evidence files/seven package files,
+all resumed source, every failed receipt and each private native root. The original
+manifest/index/11 evidence files were verified byte-exact by
+`20261030T233422036426Z-original32aa-seal-preservation.json`.
+
+All four already-running finite checks completed via authentic notifications before
+any runtime change: current full units156/19 files passed; all-owned lint passed;
+format failed only the newly added vendor-route assertions in `repair-check.ts`;
+build compiled the app then failed TypeScript on spreading the fixture helper's
+`unknown` envelope input in `repair-correction-check.ts`. Retain those failures;
+fix during reconciliation rather than restart a PREBASE campaign. Receipts:
+`20261030T234408252318Z-prebase-f-current-full-unit.json`,
+`20261030T234408258716Z-prebase-f-current-owned-lint.json`,
+`20261030T234408261210Z-prebase-f-current-owned-format.json`,
+`20261030T234408252212Z-prebase-f-current-build.json`.
+
+All PREBASE apps ended with their finite fixtures. Own A–F PostgreSQL services
+were identity-checked/stopped with data/failures retained; F stop receipt is
+`20261030T234515727890Z-prebase-f-stop-before-c462.json`. F installed current
+PREBASE17/v13 but **no F native lifecycle campaign ran**. It is not final18/v14,
+an accepted17 parent, a genuine upgrade, or evidence for accepted WRITE_OFF.
+
+Later PREBASE results beyond the first D record below:
+- E actual client/schema identity,17 installed migration checksums and registry13
+  passed (`20261030T233314387635Z-prebase-e-resolved-installed-client-identity.json`).
+  A prior hardcoded generated-client path failed; pnpm's resolved path was then
+  checked, not silently replaced with a stub.
+- E real lifecycle passed (`20261030T233304439417Z-prebase-e-repair-ui-lifecycle.json`),
+  privacy/10 durable faults/paired parent+child notification recipients passed
+  (`20261030T233322161426Z-prebase-e-repair-privacy-recipient-green.json`). D's
+  child-only-pay recipient failure remains retained (3 notices versus expected2).
+- E five observed-lock race groups passed, including both send key modes, return,
+  pay/pay and pay/reversal plus execution/replay pay revocation/deactivation waits
+  (`20261030T233351167050Z-prebase-e-repair-observed-races.json`). Actual blocking
+  PID graphs were recorded; no delay-only concurrency claim.
+- E four real recovery-UI groups passed
+  (`20261030T233422036426Z-prebase-e-repair-recovery-ui.json`): full inline vendor/
+  contact/specialisation with failed reference-read recovery; committed send
+  response loss across route unmount and identical body/key retry; failed stale
+  reload then explicit new-reference/new-key confirmation; logout purge/active SW.
+  Tab/Shift+Tab/Enter paths are actual; native dates use fill, not a pure-keyboard
+  date-entry claim. Initial Tab-through-browser-chrome and navigation-wait helper
+  failures remain retained.
+- E exact immutable reversal plus distinct replacement, replay and seven no-effect
+  negative lineage/source/currency/bounds probes passed
+  (`20261030T233549882393Z-prebase-e-repair-exact-replacement.json`). Its later
+  compile-only helper type failure above is still open at this checkpoint.
+- A real cross-owner negative test then found legacy `addCost` could consume
+  hidden repair financial contributors and commit201. That committed cost and
+  complete before/after failure remain in E, never reverted:
+  `20261030T233816024200Z-prebase-e-existing-owner-consumed-red.json`. F source
+  now extends both existing money-owner current-field checks and its SQL graph to
+  the new repair populations/sent-date chronology, without changing empty old
+  contexts or any old permission universe. The positive/negative native rerun is
+  pending final-base work. The actual typed vendor URL was also corrected to the
+  existing `/<id>?type=REPAIR_VENDOR` route and real navigation assertions added.
+
+Next: checkpoint ALL current source, then merge/reconcile EXACT acceptedc462.
+Preserve all17 accepted SQL bytes including001/006 and then-base grants, protected
+Admin additions, requester replay helper, commandStatus AdminGuard-before-actor/
+ReadCommitted semantics, notification/read/header/logout changes. Only allocated002
+may be repair migration work: expected final18 SQL/registry14 after actual merge.
+Use NEW final fresh and NEW genuinely nonempty exactc46217/v13→final18/v14/repeat
+roots; no PREBASE root/marker adoption. Real open-repair WRITE_OFF blocking,
+return-staled proposal/fresh approval, old terminal vendor liability payment,
+immutable original Disposal basis and supported reasoned restatements remain to
+be implemented/proven on the accepted base, with all named final regressions,
+restart/new-auth facts/files200/403/404/401 and complete current quality checks.
+
+Parent attribution only: effective31 LOCAL/103 U/134; APRV-02/WROF-01/NOTF-01/04
+LOCAL ATc462, VPRC-02 LOCAL AT236, VSTS-03 U, G2d0 and G3–G6 unchanged. No repair
+acceptance, READY promotion, shared ledger/matrix/default-ref edit or authority
+over another source/evidence root is implied.
+
+## Initial parent resumption (historical; superseded by accepted-base steering)
+
+Parent resumed this SAME task and sole shared-source/schema/registry/grants/
+dispatcher ownership from clean `32aaea3c146adf7b47ff9404e0684d1473bc5524`, tree
+`e0c4e9a5985f3d083d9d8289fc3cb4963059004c`. The checkpoint and its11 evidence
+files/read-only package remain byte-exact; new artifacts append outside that seal.
+The release below is historical, superseded only by this explicit resumption.
+
+At this earlier resumption the runtime base was EXACT accepted236. c462/b136/92/aa were NOT
+accepted or imported. Only focused draft repair checks are authorized now; final
+accepted WRITE_OFF17/v13→repair18/v14 reconciliation and NEW full proof roots wait
+for explicit parent steering. No author acceptance or READY promotion is implied.
+
+First resume work: repair the SQL grant-seeding name ambiguity, generate the
+actual client and use types/lint feedback before any installation claim; then
+finish real read/vendor/audit/UI seams and focused native lifecycle proof. No
+other source/evidence/root ownership is adopted. Shared coverage/gates unchanged.
+
+## Initial focused progress (historical; later E/F results above supersede status)
+
+- The actual client was formatted/generated. Subsequent TypeScript, owned-file
+  lint and production builds passed with the real client. The latest completed
+  full unit run derived **19 files /156 tests passed**, not an assumed inherited
+  count (`20261030T231725301133Z-prebase-c-privacy-fix-full-unit.json`). That run
+  predates the latest recovery-UI changes; their build/type pass is
+  `20261030T232513554768Z-prebase-d-recovery-build.json`, owned lint
+  `20261030T232513573546Z-repair-recovery-owned-lint.json`. Final current-source
+  full checks remain required; none of these are independent acceptance.
+- Implemented real nested purchase/vehicle repair history and forms, exhaustive
+  scoped vendor links (capability stays `PENDING_DOMAIN`), repair audit projection,
+  exact repair→cycle RSC lookup and matching pre-stream proxy authorization.
+  Financial readiness shares the command owner's complete source-read checks;
+  missing populations/fields omit totals with redaction instead of residual zero.
+- Current native development root is own private `prebase-native-d` beneath the
+  repair evidence root. NEW actual capacity reviews, random credentials, private
+  CWD-bound assets, loopback/non8000 origins and one-time2h policies were recorded.
+  It installed PREBASE17/v13, never001/final18/v14. Prior roots A/B/C and every
+  failed receipt remain retained; their PostgreSQL services were identity-checked
+  and stopped. They were not reset, marked-upgraded or overlaid with changed002.
+- Failures found and fixed in allocated002 only: grant local-name ambiguity;
+  missing UNION separator; PL/pgSQL CASE-bound parentheses; missing RepairRecord
+  read-version allowlist; definer/current_user insertion-check weakening; and a
+  strict-root opt-out that admitted orphan evidence. Four valid restricted-role
+  probes **actually succeeded** on C (all rolled back), receipt
+  `20261030T232031691994Z-prebase-c-repair-evidence-red-source-valid.json`.
+  New D rejects all four, receipt
+  `20261030T232248778570Z-prebase-d-repair-evidence-green.json`. The root now
+  rejects missing parent evidence and new trigger-only guards bind repair
+  receipts/read versions/audits to same-transaction child+root writes. No new
+  runtime callable definer EXECUTE, DDL or DELETE privileges were granted.
+- D real UI/HTTP/restricted-adapter/PG lifecycle passed six focused groups:
+  acquisition100→receipt→send→unpaid invoice10/basis110→cost5/basis115→actual
+  cash4+6→exact reversal→separate release; archived vendor preserved return/pay/
+  history and blocked new dispatch. Physical identity/mileage stayed byte-equal.
+  Receipt: `20261030T232222197372Z-prebase-d-repair-ui-lifecycle.json`; retained
+  root summary `repair-46deb461-summary.json`, actual360/1920 screenshots.
+- D focused privacy/authority suite passed eight groups and **10 actual durable
+  fault/rollback points**: sequence, receipt, repair, cycle, payment, basis, status,
+  audit, read version and mandatory notification. It also proved missing invoice/
+  payment direction/parent gate/cost population masking; native own-only dispatch;
+  revoked replay denial; narrow SQL privileges; second real repair from held stock;
+  zero invoice with no zero cash and complete all-returned basis reconstruction.
+  Receipt: `20261030T232236191524Z-prebase-d-repair-privacy-native.json`.
+- Current UI recovery work retains unresolved actor/command/target envelopes in
+  memory only, no automatic execution/persistence. Inline vendor creation reuses
+  full PartyForm/contact/specialisation; a failed post-create reference read now
+  has explicit read-only recovery instead of an unhandled async callback or
+  repeated creation. Optional cash/reference controls require their own leaves.
+  The first recovery campaign was then IN FLIGHT; its failures and later D/E
+  successful reruns are retained and attributed in the current checkpoint above.
+
+Still active/incomplete: finish observed-lock races, recovery/keyboard/SW/privacy
+edges, notification recipient parent+child applicability review, exact current
+all-owned quality checks and source/evidence seals. Date values in current recovery
+tests use native fill; do not call this pure-keyboard date entry. No final repair
+acceptance, complete SQL-forgery proof or all-original-scenarios claim is made.
+Final WRITE_OFF integration/post-close named restatements/real old-liability proof,
+notification reader integration and NEW final fresh/nonempty-upgrade/restart/file/
+affected-regression campaigns now proceed under the acceptedc462 steering above.
+Ownership remains ACTIVE; this journal is not a frozen shared-ownership release.
+
+## Original32aa parent-directed ownership transfer (historical)
 
 **FROZEN SOURCE / SHARED OWNERSHIP RELEASE ACK**
 
