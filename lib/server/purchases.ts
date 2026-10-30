@@ -2708,6 +2708,24 @@ export async function purchaseQuery(
         redactedFields.push("reason")
       }
       if (
+        entry.action === "approvedWriteOff" &&
+        (!row.disposal ||
+          !actor.ability.can(
+            "read",
+            subject("PurchaseRecord", auth(row)),
+            "disposal"
+          ) ||
+          !actor.ability.can(
+            "read",
+            subject("Disposal", disposalAuth(row.disposal)),
+            "reason"
+          )) &&
+        "reason" in result
+      ) {
+        delete result.reason
+        redactedFields.push("reason")
+      }
+      if (
         ["editCost", "editPurchase", "reversePayment"].includes(entry.action)
       ) {
         if (!correctionSourceReadable(actor, row) && "reason" in result) {

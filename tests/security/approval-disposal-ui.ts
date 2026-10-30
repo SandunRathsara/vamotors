@@ -1,12 +1,14 @@
 /** Production Chromium with real active SW; explicit keyboard actions, no mocked owner. */
 import assert from "node:assert/strict"
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { chromium, expect, type Locator, type Page } from "@playwright/test"
 import type {
   Pending,
   PurchaseCycleDTO,
+  CurrentActorDTO,
+  Grant,
 } from "../../.planning/implementation/contracts/api"
 import { envelope, fixture, purchaseInput, ref } from "./cycle-edits-fixture"
 import { privateEnvironment } from "../../scripts/private-environment"
@@ -235,6 +237,40 @@ try {
       "purchase",
       `?cycleId=${row.id}`
     )
+    const createCycle = async (tag: string) => {
+      const created = await f.command(
+        admin,
+        "recordPurchase",
+        envelope(purchaseInput(supplier.result.id, suffix, tag), [
+          ref(supplier.result, "Supplier"),
+        ]),
+        201
+      )
+      return f.query<PurchaseCycleDTO>(
+        admin,
+        "purchase",
+        `?cycleId=${created.result.id}`
+      )
+    }
+    const zeroDraft = async (
+      p: Page,
+      source: PurchaseCycleDTO,
+      tag: string
+    ) => {
+      await p.goto(`/purchases/${source.id}`)
+      await key(
+        p,
+        p.getByRole("button", { name: "Request write-off", exact: true })
+      )
+      await p.getByLabel("Disposal date", { exact: true }).fill("2026-10-04")
+      await p
+        .getByLabel("Disposal reason", { exact: true })
+        .fill(`PRIVATE_UI_DISPOSAL_${tag}_${suffix}`)
+      await p
+        .getByLabel("Approval request reason", { exact: true })
+        .fill(`PRIVATE_UI_REQUEST_${tag}_${suffix}`)
+      await p.getByLabel("Actual proceeds", { exact: false }).fill("0")
+    }
     const requestBodies: string[] = [],
       reviewBodies: string[] = [],
       routeErrors: number[] = []
@@ -454,8 +490,464 @@ try {
       }
     )
     await group(
+      "P8 360 keyboard rejection retains exact proposal and has no domain effect",
+      async () => {
+        const source = await createCycle("keyboard-reject")
+        await zeroDraft(other, source, "reject")
+        const domain = [
+          "Vehicle",
+          "PurchaseRecord",
+          "MileageReading",
+          "PurchasePayment",
+          "VehicleCost",
+          "CostPayment",
+          "CycleBasisVersion",
+          "StatusEvent",
+        ]
+        const before = await f.snapshot(domain)
+        const requested = other.waitForResponse(
+          (r) =>
+            new URL(r.url()).pathname === "/api/v1/commands/requestApproval"
+        )
+        await key(
+          other,
+          other.getByRole("button", {
+            name: "Submit approval request",
+            exact: true,
+          })
+        )
+        const response = await requested
+        assert.equal(response.status(), 202)
+        const p = (await response.json()) as Pending
+        assert.equal(p.businessEffect, false)
+        await mobile.goto(`/approvals/${p.approvalId}`)
+        const decision = mobile.getByLabel("Decision", { exact: true })
+        await decision.focus()
+        await decision.press("End")
+        await expect(decision).toHaveValue("REJECT")
+        await mobile
+          .getByLabel("Review note (required for rejection)")
+          .fill(`PRIVATE_UI_REJECT_NOTE_${suffix}`)
+        const reviewed = mobile.waitForResponse(
+          (r) => new URL(r.url()).pathname === "/api/v1/commands/reviewApproval"
+        )
+        await key(
+          mobile,
+          mobile.getByRole("button", { name: "Commit review", exact: true })
+        )
+        const result = await reviewed
+        assert.equal(result.status(), 200)
+        await expect(
+          mobile.getByText("REJECTED", { exact: true })
+        ).toBeVisible()
+        await expect(
+          mobile.getByText(`PRIVATE_UI_REJECT_NOTE_${suffix}`, { exact: true })
+        ).toBeVisible()
+        assert.equal(await f.snapshot(domain), before)
+        await mobile.reload()
+        await expect(
+          mobile.getByText(`PRIVATE_UI_REQUEST_reject_${suffix}`, {
+            exact: true,
+          })
+        ).toBeVisible()
+        await expect(
+          mobile.getByRole("button", { name: "Commit review", exact: true })
+        ).toHaveCount(0)
+        await view(mobile, "keyboard-reject-360")
+        groups.push({
+          group: "actual rejection evidence",
+          approvalId: p.approvalId,
+          requestCommandId: p.commandId,
+          reviewCommandId: (await result.json()).commandId,
+          domainBeforeAfterSha256: createHash("sha256")
+            .update(before)
+            .digest("hex"),
+        })
+      }
+    )
+    await group(
+      "P8 stale draft requires failed-read recovery and explicit new-key reconfirmation",
+      async () => {
+        const source = await createCycle("keyboard-stale"),
+          bodies: string[] = []
+        await zeroDraft(other, source, "stale")
+        await f.command(
+          admin,
+          "setListedPrice",
+          envelope(
+            {
+              cycleId: source.id,
+              amount: "21000",
+              reason: "Actual concurrent asking-price edit",
+            },
+            [ref(source)]
+          )
+        )
+        const before = await f.snapshot(tables)
+        await sameActor.route("**/api/v1/commands/requestApproval", (route) => {
+          bodies.push(route.request().postData()!)
+          return route.continue()
+        })
+        const failed = other.waitForResponse(
+          (r) =>
+            new URL(r.url()).pathname === "/api/v1/commands/requestApproval"
+        )
+        await key(
+          other,
+          other.getByRole("button", {
+            name: "Submit approval request",
+            exact: true,
+          })
+        )
+        assert.equal((await failed).status(), 409)
+        await expect(
+          other.getByRole("alert").filter({ hasText: "STALE_REVISION" })
+        ).toBeVisible()
+        await expect(
+          other.getByRole("button", {
+            name: "Retry identical request",
+            exact: true,
+          })
+        ).toBeDisabled()
+        await sameActor.route("**/api/v1/queries/purchase?**", (route) =>
+          route.fulfill({
+            status: 503,
+            contentType: "application/json",
+            body: JSON.stringify({
+              ok: false,
+              error: { code: "RETRYABLE_TRANSACTION", retryable: true },
+            }),
+          })
+        )
+        await key(
+          other,
+          other.getByRole("button", {
+            name: "Reload current cycle",
+            exact: true,
+          })
+        )
+        await expect(
+          other.getByRole("alert").filter({ hasText: "RETRYABLE_TRANSACTION" })
+        ).toBeVisible()
+        await expect(
+          other.getByLabel("Approval request reason", { exact: true })
+        ).toHaveValue(`PRIVATE_UI_REQUEST_stale_${suffix}`)
+        await expect(
+          other.getByRole("button", {
+            name: "Confirm current source and new request",
+            exact: true,
+          })
+        ).toHaveCount(0)
+        assert.equal(await f.snapshot(tables), before)
+        await sameActor.unroute("**/api/v1/queries/purchase?**")
+        await key(
+          other,
+          other.getByRole("button", {
+            name: "Reload current cycle",
+            exact: true,
+          })
+        )
+        await expect(
+          other.getByRole("button", {
+            name: "Confirm current source and new request",
+            exact: true,
+          })
+        ).toBeVisible()
+        assert.equal(bodies.length, 1)
+        await key(
+          other,
+          other.getByRole("button", {
+            name: "Confirm current source and new request",
+            exact: true,
+          })
+        )
+        assert.equal(bodies.length, 1)
+        const applied = other.waitForResponse(
+          (r) =>
+            new URL(r.url()).pathname === "/api/v1/commands/requestApproval"
+        )
+        await key(
+          other,
+          other.getByRole("button", {
+            name: "Submit approval request",
+            exact: true,
+          })
+        )
+        const response = await applied
+        assert.equal(response.status(), 202)
+        assert.equal(bodies.length, 2)
+        const old = JSON.parse(bodies[0]),
+          fresh = JSON.parse(bodies[1])
+        assert.notEqual(old.idempotencyKey, fresh.idempotencyKey)
+        assert.deepEqual(old.input, fresh.input)
+        assert.equal(
+          fresh.expected.find(
+            (r: { type: string }) => r.type === "PurchaseRecord"
+          ).revision,
+          source.revision + 1
+        )
+        assert.deepEqual(
+          fresh.expected.find((r: { type: string }) => r.type === "Vehicle"),
+          {
+            type: "Vehicle",
+            id: source.vehicleId,
+            revision: source.identityRevision,
+          }
+        )
+        await sameActor.unroute("**/api/v1/commands/requestApproval")
+        await view(other, "stale-reconfirmed-360")
+        groups.push({
+          group: "actual explicit reconfirmation",
+          oldKey: old.idempotencyKey,
+          newKey: fresh.idempotencyKey,
+          oldExpected: old.expected,
+          newExpected: fresh.expected,
+          approvalId: (await response.json()).approvalId,
+        })
+      }
+    )
+    await group(
+      "P8 actual grant loss and deactivation purge an unresolved keyboard request",
+      async () => {
+        const staff = await f.login("STAFF"),
+          original = await f.query<CurrentActorDTO>(staff, "currentActor")
+        const context = await browser.newContext({
+          baseURL: f.origin,
+          storageState: await staff.storageState(),
+          viewport: { width: 360, height: 800 },
+          serviceWorkers: "allow",
+        })
+        const limited = await context.newPage()
+        pages.push(limited)
+        const readGrants: Grant[] = (
+          [
+            "PurchaseRecord",
+            "Vehicle",
+            "VehicleCost",
+            "Supplier",
+            "ApprovalRequest",
+            "Disposal",
+          ] as const
+        ).map((subject) => ({ subject, action: "read", fields: ["*"] }))
+        const writeGrants: Grant[] = [
+          ...readGrants,
+          { subject: "PurchaseRecord", action: "update", fields: ["cycleId"] },
+          { subject: "ApprovalRequest", action: "create", fields: ["*"] },
+          { subject: "Disposal", action: "create", fields: ["*"] },
+          { subject: "Disposal", action: "pay", fields: ["*"] },
+        ]
+        const writer = await f.command(
+          admin,
+          "saveRole",
+          envelope({
+            name: `UI-writer-${suffix}`,
+            grants: writeGrants,
+            reason: "Actual keyboard permission proof",
+          }),
+          201
+        )
+        const reader = await f.command(
+          admin,
+          "saveRole",
+          envelope({
+            name: `UI-reader-${suffix}`,
+            grants: readGrants,
+            reason: "Actual keyboard permission revocation",
+          }),
+          201
+        )
+        const membership = async (roleIds: string[], active = true) => {
+          const user = await f.query<{
+            id: string
+            revision: number
+            name: string
+          }>(admin, "user", `?id=${original.user.id}`)
+          const roles = await Promise.all(
+            roleIds.map((id) =>
+              f.query<{ id: string; revision: number }>(
+                admin,
+                "role",
+                `?id=${id}`
+              )
+            )
+          )
+          await f.command(
+            admin,
+            "updateUser",
+            envelope(
+              {
+                id: user.id,
+                name: user.name,
+                active,
+                roleIds,
+                reason: "Actual UI authority change",
+              },
+              [ref(user, "User"), ...roles.map((role) => ref(role, "Role"))]
+            )
+          )
+        }
+        let retained: string | undefined
+        try {
+          await membership([writer.result.id])
+          const source = await createCycle("access-loss")
+          await zeroDraft(limited, source, "access-loss")
+          await context.route("**/api/v1/commands/requestApproval", (route) => {
+            retained = route.request().postData()!
+            return route.abort("failed")
+          })
+          await key(
+            limited,
+            limited.getByRole("button", {
+              name: "Submit approval request",
+              exact: true,
+            })
+          )
+          await expect(
+            limited.getByRole("button", {
+              name: "Retry identical request",
+              exact: true,
+            })
+          ).toBeVisible()
+          await membership([reader.result.id])
+          await page.bringToFront()
+          await limited.bringToFront()
+          await expect(
+            limited.getByLabel("Approval request reason", { exact: true })
+          ).toHaveCount(0)
+          const before = await f.snapshot(tables)
+          assert.ok(retained)
+          const denied = await staff.post("/api/v1/commands/requestApproval", {
+            headers: { Origin: f.origin },
+            data: JSON.parse(retained),
+          })
+          assert.equal(denied.status(), 403)
+          assert.equal(await f.snapshot(tables), before)
+          await membership([writer.result.id])
+          await limited.goto(`/purchases/${source.id}`)
+          await expect(
+            limited.getByRole("button", {
+              name: "Recover unresolved write-off request",
+              exact: true,
+            })
+          ).toHaveCount(0)
+          await key(
+            limited,
+            limited.getByRole("button", {
+              name: "Request write-off",
+              exact: true,
+            })
+          )
+          await expect(
+            limited.getByLabel("Approval request reason", { exact: true })
+          ).toHaveValue("")
+          await limited
+            .getByLabel("Disposal date", { exact: true })
+            .fill("2026-10-04")
+          await limited
+            .getByLabel("Disposal reason", { exact: true })
+            .fill("PRIVATE_UI_DEACTIVATE_DISPOSAL")
+          await limited
+            .getByLabel("Approval request reason", { exact: true })
+            .fill("PRIVATE_UI_DEACTIVATE_REQUEST")
+          await limited
+            .getByLabel("Actual proceeds", { exact: false })
+            .fill("0")
+          await key(
+            limited,
+            limited.getByRole("button", {
+              name: "Submit approval request",
+              exact: true,
+            })
+          )
+          await expect(
+            limited.getByRole("button", {
+              name: "Retry identical request",
+              exact: true,
+            })
+          ).toBeVisible()
+          await membership([writer.result.id], false)
+          await page.bringToFront()
+          await limited.bringToFront()
+          await limited.waitForURL(/\/login(?:\?|$)/)
+          await expect(
+            limited.getByRole("button", { name: "Sign In", exact: true })
+          ).toBeVisible()
+          await expect(
+            limited.getByLabel("Approval request reason", { exact: true })
+          ).toHaveCount(0)
+          const inactive = await staff.get("/api/v1/queries/currentActor")
+          assert.equal(inactive.status(), 403)
+          assert.equal((await inactive.json()).error.code, "ACCOUNT_INACTIVE")
+          assert.ok(
+            !(
+              await limited.evaluate(() =>
+                JSON.stringify({ ...localStorage, ...sessionStorage })
+              )
+            ).includes("PRIVATE_UI_")
+          )
+          await view(limited, "actual-access-loss-360")
+          groups.push({
+            group: "actual UI access loss",
+            userId: original.user.id,
+            roleRevocationStatus: denied.status(),
+            deactivationStatus: inactive.status(),
+            finalUrl: limited.url(),
+            oldEnvelopeSha256: createHash("sha256")
+              .update(retained)
+              .digest("hex"),
+          })
+        } finally {
+          await membership(original.roles.map((role) => role.id))
+          await context.close()
+          await staff.dispose()
+        }
+      }
+    )
+    await group(
       "P8 real bell read controls and authenticated private-cache exclusion",
       async () => {
+        // A retained draft may already have every old event read. Seed at most
+        // two real required-review events so read-one and read-all both act.
+        const unread = await f.query<{ unreadCount: number }>(
+          admin,
+          "notifications"
+        )
+        for (let count = unread.unreadCount; count < 2; count++) {
+          const source = await createCycle(`bell-${count}`)
+          await f.command(
+            second,
+            "requestApproval",
+            envelope(
+              {
+                proposal: {
+                  kind: "WRITE_OFF",
+                  input: {
+                    cycleId: source.id,
+                    date: "2026-10-04",
+                    reason: "Actual bell proposal",
+                    method: "OTHER",
+                    proceeds: "0",
+                  },
+                },
+                reason: "Actual recipient bell obligation",
+              },
+              [
+                ref(source),
+                {
+                  type: "Vehicle",
+                  id: source.vehicleId,
+                  revision: source.identityRevision,
+                },
+              ]
+            ),
+            202
+          )
+        }
+        if (page.url() === "about:blank")
+          await page.goto(`/purchases/${row.id}`)
+        await page.waitForFunction(
+          () => navigator.serviceWorker.controller?.state === "activated"
+        )
         await key(page, page.getByRole("button", { name: /^Notifications/ }))
         await expect(
           page.getByRole("heading", { name: "Notifications", exact: true })
@@ -565,12 +1057,10 @@ try {
         await expect(
           page.getByRole("button", { name: "Sign In", exact: true })
         ).toBeVisible()
-        assert.equal(
-          (await requester.cookies()).filter((c) =>
-            c.name.includes("session_token")
-          ).length,
-          0
-        )
+        const remainingCookies = (await requester.cookies()).filter((c) =>
+          c.name.includes("session_token")
+        ).length
+        assert.equal(remainingCookies, 0)
         // Browser contexts are storage-isolated: the second context observes
         // server-side session revocation on real focus, not a cross-context BC.
         await other.bringToFront()
@@ -591,6 +1081,16 @@ try {
         )
         assert.equal(deniedOther.status(), 401)
         assert.match(deniedOther.headers()["cache-control"], /no-store/)
+        groups.push({
+          group: "actual logout state",
+          initiatingUrl: page.url(),
+          otherUrl: other.url(),
+          remainingInitiatingSessionCookies: remainingCookies,
+          privateReadStatuses: [denied.status(), deniedOther.status()],
+          logoutNavigation: navigation.filter((n) =>
+            n.path.startsWith("/login")
+          ),
+        })
         for (const p of [page, other]) {
           const storage = await p.evaluate(async () => {
             const urls: string[] = []
@@ -692,7 +1192,11 @@ try {
   await f.close()
   await writeFile(
     join(root, `approval-disposal-ui-${Date.now()}.json`),
-    JSON.stringify({ source: process.cwd(), groups }, null, 2) + "\n",
+    JSON.stringify(
+      { source: process.cwd(), groups, responses, navigation },
+      null,
+      2
+    ) + "\n",
     { mode: 0o600 }
   )
 }

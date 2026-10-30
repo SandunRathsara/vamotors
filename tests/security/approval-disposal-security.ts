@@ -475,6 +475,48 @@ try {
     }
   )
   await group(
+    "P3 write-off reason and receipt-reference privacy across parent audit history",
+    async () => {
+      const row = await make("parent-audit"),
+        p = await pending(row)
+      await f.command(second, "reviewApproval", p.review)
+      for (const [leaf, marker] of [
+        ["reason", "PRIVATE_DISPOSAL_REASON"],
+        ["payments.reference", "PRIVATE_RECEIPT_REFERENCE"],
+      ]) {
+        await assign(reads)
+        const targets = [
+          { type: "PurchaseRecord", id: row.id },
+          { type: "Vehicle", id: row.vehicleId },
+        ]
+        for (const target of targets) {
+          const positive = await f.query<unknown>(
+            staff,
+            "audit",
+            `?type=${target.type}&id=${target.id}&pageSize=100`
+          )
+          if (leaf === "reason" || target.type === "PurchaseRecord")
+            assert.ok(
+              JSON.stringify(positive).includes(marker),
+              `positive ${target.type} ${leaf}`
+            )
+        }
+        await assign(without(reads, "Disposal", "read", leaf))
+        for (const target of targets) {
+          const hidden = await f.query<unknown>(
+            staff,
+            "audit",
+            `?type=${target.type}&id=${target.id}&pageSize=100`
+          )
+          assert.ok(
+            !JSON.stringify(hidden).includes(marker),
+            `hidden ${target.type} ${leaf} leaked through historical parent audit`
+          )
+        }
+      }
+    }
+  )
+  await group(
     "P5 two separate reviewers, approve-reject race, duplicate request and competing proposals",
     async () => {
       await assign(authority)

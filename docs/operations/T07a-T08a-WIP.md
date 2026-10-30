@@ -46,6 +46,23 @@ are historical and superseded by that explicit resumption, not deleted.
   A new clean production build and green focused browser verification are still
   required; the new source is not called fixed merely because it compiles.
 
+- Clean33a0a58 rebuilt successfully. Actual360 header bounds/keyboard navigation
+  and the original request/review response-loss groups passed. The isolated
+  strengthened logout group then exited0 with unchanged load waits, initiating
+  cookie removal, both-context denied private reads, cache/draft purge and another
+  account's empty new form. A broader run stopped at a fixture assumption: after
+  read-one there was only one unread event, so read-all was correctly disabled.
+  The fixture now creates only the needed real required-review notifications.
+- A new focused privacy repro **failed**: PurchaseRecord historical audit exposed
+  the private disposal reason through duplicated top-level AuditLog.reason even
+  though Disposal.reason was denied. The shared parent audit projection now gates
+  that reason by both PurchaseRecord.disposal and Disposal.reason; rebuilt green
+  verification is pending. Its compound before/after mask is unchanged.
+- Added actual keyboard rejection, stale/failed-read explicit reconfirmation and
+  role-revocation/deactivation UI cases, with measured source/result evidence.
+  These new cases and the latest server privacy change still require checks/run;
+  no expanded P8 or full original P1–P8 completion is claimed.
+
 ## Historical712 parent-requested checkpoint / release
 
 ## Current parent-requested checkpoint / shared ownership release
