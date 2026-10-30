@@ -528,3 +528,46 @@ export const compareInput = z
   })
   .strict()
   .refine((v) => (v.months === undefined) !== (v.installment === undefined))
+
+export const importTypes = [
+  "SUPPLIERS",
+  "CUSTOMERS",
+  "REPAIR_VENDORS",
+  "VEHICLES",
+  "SALES",
+  "REPAIRS",
+  "ADVANCES",
+] as const
+export const attachmentCommands = {
+  stageImport: z
+    .object({
+      types: z
+        .array(z.enum(importTypes))
+        .min(1)
+        .max(7)
+        .refine((v) => new Set(v).size === v.length),
+      namespace: name,
+    })
+    .strict(),
+  initUpload: z
+    .object({
+      target: z.object({ type: z.literal("IMPORT_BATCH"), id }).strict(),
+      purpose: z.literal("IMPORT_SOURCE"),
+      filename: z.string().min(1).max(200),
+      contentType: z.enum([
+        "text/csv",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ]),
+      size: z
+        .number()
+        .int()
+        .min(1)
+        .max(5 * 1024 * 1024),
+      sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    })
+    .strict(),
+  completeUpload: z.object({ uploadId: id }).strict(),
+} as const
+export type AttachmentCommand = keyof typeof attachmentCommands
+export const attachmentEnvelope = (name: AttachmentCommand) =>
+  customerEnvelope("createCustomer").extend({ input: attachmentCommands[name] })

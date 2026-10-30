@@ -110,12 +110,30 @@ async function freshState() {
   })
   const id = randomUUID()
   const common = { APP_ENV: "local", ENVIRONMENT_ID: id }
+  // Dedicated retained local bytes, not the checkout, public tree or temp storage.
+  const privateRoot = file("private-files"),
+    policyPath = file("private-files-policy.json")
+  await mkdir(privateRoot, { mode: 0o700 })
+  await writeFile(
+    policyPath,
+    JSON.stringify({
+      environmentId: id,
+      allowWrites: true,
+      reviewedThrough: new Date(Date.now() + 86400000).toISOString(),
+      maxBytes: 256 * 1024 * 1024,
+      minFreeBytes: 128 * 1024 * 1024,
+      maxEntries: 10000,
+    }),
+    { mode: 0o600, flag: "wx" }
+  )
   await writeEnv("runtime.env", {
     ...common,
     DATABASE_URL: connection("vamotors_runtime", token(), port),
     APP_ORIGIN: "http://127.0.0.1:8000",
     BETTER_AUTH_URL: "http://127.0.0.1:8000",
     BETTER_AUTH_SECRET: token(),
+    PRIVATE_FILES_ROOT: privateRoot,
+    PRIVATE_FILES_POLICY: policyPath,
   })
   await writeEnv("migration.env", {
     ...common,

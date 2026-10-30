@@ -20,6 +20,8 @@ import { partiesQuery, partyQuery } from "./parties"
 import { settingsQuery } from "./settings"
 import { purchaseQuery } from "./purchases"
 import { rateQuery } from "./rates"
+import { importQuery } from "./import-staging"
+import { downloadQuery } from "./attachments"
 
 const canAdminister = (actor: Actor) =>
   ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
@@ -92,6 +94,13 @@ export async function securityQuery(
       await assertEnvironment(tx)
       const actor = await currentActor(tx, identity)
       const args = Object.fromEntries(params)
+      if (name === "importBatches" || name === "importBatchFiles")
+        return importQuery(tx, actor, name, args)
+      if (name === "download") {
+        const parsed = z.object({ attachmentId: id }).strict().safeParse(args)
+        if (!parsed.success) fail("INVALID_INPUT", 422)
+        return downloadQuery(tx, actor, parsed.data.attachmentId)
+      }
       if (name === "quote") return rateQuery(tx, actor, name, args)
       if (
         name === "audit" &&

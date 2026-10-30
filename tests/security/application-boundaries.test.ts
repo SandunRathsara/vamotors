@@ -10,6 +10,8 @@ import {
   methods,
   persistedRateAPIs,
   persistedRatePages,
+  privateAttachmentAPIs,
+  importStagingPages,
 } from "./route-inventory"
 
 function files(root: string): string[] {
@@ -29,6 +31,7 @@ describe("global entry-point inventory", () => {
       [
         ...legacyAPIs,
         ...Object.keys(persistedRateAPIs),
+        ...Object.keys(privateAttachmentAPIs),
         "/api/auth/[...all]",
         "/api/v1/commands/[name]",
         "/api/v1/queries/[name]",
@@ -50,6 +53,15 @@ describe("global entry-point inventory", () => {
       if (method === "POST") expect(text).toContain("sameOrigin(request)")
       expect(text).not.toMatch(/mock-data|prototype/)
     }
+    for (const [route, method] of Object.entries(privateAttachmentAPIs)) {
+      const text = readFileSync(`app${route}/route.ts`, "utf8")
+      expect(text).toContain(`export async function ${method}`)
+      expect(text).toContain("await authenticate(request.headers)")
+      expect(text).toContain('dynamic = "force-dynamic"')
+      expect(text).toContain("endpoint(")
+      if (method === "PUT") expect(text).toContain("sameOrigin(request)")
+      expect(text).not.toMatch(/mock-data|prototype/)
+    }
   })
   it("covers every page, including detail RSCs, not only its layout", () => {
     const actual = files("app/(app)")
@@ -60,6 +72,7 @@ describe("global entry-point inventory", () => {
       [
         ...unavailablePages,
         ...persistedRatePages,
+        ...importStagingPages,
         "/users",
         "/customers",
         "/customers/[id]",
@@ -90,6 +103,7 @@ describe("global entry-point inventory", () => {
       "/vehicles",
       "/vehicles/[id]",
       ...persistedRatePages,
+      ...importStagingPages,
     ])
       expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8")).toContain(
         "await pageActor()"

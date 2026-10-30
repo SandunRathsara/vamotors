@@ -686,3 +686,115 @@ model CycleBasisVersion {
   @@unique([supersedesId, cycleId])
   @@schema("vamotors")
 }
+
+// Staging metadata only. No preview, imported provenance or business graph exists yet.
+model ImportBatch {
+  id            String         @id @default(uuid()) @db.Uuid
+  environmentId String         @db.Uuid
+  createdBy     String         @db.Uuid
+  createdAt     DateTime       @default(now())
+  revision      Int            @default(1)
+  schemaVersion Int            @default(1)
+  state         String         @default("STAGED")
+  types         String[]
+  namespace     String
+  commandId     String         @unique @db.Uuid
+  uploads       UploadIntent[]
+  attachments   Attachment[]
+
+  @@index([createdBy, createdAt, id])
+  @@schema("vamotors")
+}
+
+model UploadIntent {
+  id                     String          @id @default(uuid()) @db.Uuid
+  batchId                String          @db.Uuid
+  batch                  ImportBatch     @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  environmentId          String          @db.Uuid
+  createdBy              String          @db.Uuid
+  createdAt              DateTime        @default(now())
+  purpose                String
+  filename               String
+  contentType            String
+  size                   Int
+  sha256                 String
+  stagingKey             String          @unique
+  capturedTargetRevision Int
+  expiresAt              DateTime
+  revision               Int             @default(1)
+  state                  String          @default("INIT")
+  initCommandId          String          @unique @db.Uuid
+  currentAttemptId       String?         @unique @db.Uuid
+  claimExpiresAt         DateTime?
+  currentAttempt         UploadAttempt?  @relation("currentAttempt", fields: [currentAttemptId], references: [id], onDelete: Restrict)
+  attempts               UploadAttempt[] @relation("attempts")
+  attachment             Attachment?
+  events                 UploadEvent[]
+
+  @@index([batchId, id])
+  @@schema("vamotors")
+}
+
+// Immutable server claim, including exact original request identity and expected bytes.
+// The declaration is not a validation proof: restart recovery must readFinal + validate.
+model UploadAttempt {
+  id             String        @id @db.Uuid
+  environmentId  String        @db.Uuid
+  uploadId       String        @db.Uuid
+  upload         UploadIntent  @relation("attempts", fields: [uploadId], references: [id], onDelete: Restrict)
+  currentFor     UploadIntent? @relation("currentAttempt")
+  createdBy      String        @db.Uuid
+  claimedAt      DateTime
+  claimExpiresAt DateTime
+  commandId      String        @unique @db.Uuid
+  idempotencyKey String        @db.Uuid
+  inputHash      String
+  uploadRevision Int
+  targetRevision Int
+  finalKey       String        @unique
+  size           Int
+  sha256         String
+  contentType    String
+  attachment     Attachment?
+
+  @@unique([environmentId, createdBy, idempotencyKey])
+  @@schema("vamotors")
+}
+
+model Attachment {
+  id             String        @id @default(uuid()) @db.Uuid
+  batchId        String        @db.Uuid
+  batch          ImportBatch   @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  uploadIntentId String        @unique @db.Uuid
+  upload         UploadIntent  @relation(fields: [uploadIntentId], references: [id], onDelete: Restrict)
+  attemptId      String        @unique @db.Uuid
+  attempt        UploadAttempt @relation(fields: [attemptId], references: [id], onDelete: Restrict)
+  environmentId  String        @db.Uuid
+  createdBy      String        @db.Uuid
+  purpose        String
+  filename       String
+  contentType    String
+  size           Int
+  sha256         String
+  finalKey       String        @unique
+  verifiedAt     DateTime
+  commandId      String        @unique @db.Uuid
+
+  @@schema("vamotors")
+}
+
+// Append-only protocol history, including interrupted/failed attempts. No capabilities.
+model UploadEvent {
+  id         String       @id @default(uuid()) @db.Uuid
+  uploadId   String       @db.Uuid
+  upload     UploadIntent @relation(fields: [uploadId], references: [id], onDelete: Restrict)
+  revision   Int
+  state      String
+  attemptId  String?      @db.Uuid
+  recordedAt DateTime     @default(now())
+  errorCode  String?
+  commandId  String       @db.Uuid
+
+  @@unique([uploadId, revision])
+  @@schema("vamotors")
+}

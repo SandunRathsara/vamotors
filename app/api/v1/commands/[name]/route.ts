@@ -22,6 +22,9 @@ import {
 } from "@/lib/server/validators"
 import { stockInputs, type StockCommand } from "@/lib/server/validators"
 import { executeRates } from "@/lib/server/rates"
+import { executeStageImport } from "@/lib/server/import-staging"
+import { initUpload, completeUpload } from "@/lib/server/attachments"
+import { attachmentCommands } from "@/lib/server/validators"
 import { rateCommands, type RateCommandName } from "@/lib/server/validators"
 import { partyCommands, type PartyCommandName } from "@/lib/server/validators"
 import {
@@ -49,6 +52,7 @@ export async function POST(
       !customer &&
       !party &&
       !rates &&
+      !Object.hasOwn(attachmentCommands, name) &&
       !Object.hasOwn(commandInputs, name)
     )
       fail("NOT_FOUND", 404)
@@ -57,26 +61,39 @@ export async function POST(
       party &&
       (name !== "archiveParty" ||
         (raw as { input?: { type?: string } })?.input?.type !== "CUSTOMER")
-    const result = rates
-      ? await executeRates(identity, name as RateCommandName, raw)
-      : name === "recordPurchase"
-        ? await recordPurchase(identity, raw)
-        : Object.hasOwn(cycleMoneyInputs, name)
-          ? await executeCycleMoney(identity, name as CycleMoneyCommand, raw)
-          : Object.hasOwn(stockInputs, name)
-            ? await executeStock(identity, name as StockCommand, raw)
-            : name === "updateSettings"
-              ? await executeSettings(identity, raw)
-              : directory
-                ? await executeParty(identity, name as PartyCommandName, raw)
-                : customer
-                  ? await executeCustomer(
-                      identity,
-                      name as CustomerCommandName,
-                      raw
-                    )
-                  : await executeAdmin(identity, name as CommandName, raw)
+    const result =
+      name === "stageImport"
+        ? await executeStageImport(identity, raw)
+        : name === "initUpload"
+          ? await initUpload(identity, raw)
+          : name === "completeUpload"
+            ? await completeUpload(identity, raw)
+            : rates
+              ? await executeRates(identity, name as RateCommandName, raw)
+              : name === "recordPurchase"
+                ? await recordPurchase(identity, raw)
+                : Object.hasOwn(cycleMoneyInputs, name)
+                  ? await executeCycleMoney(identity, name as CycleMoneyCommand, raw)
+                : Object.hasOwn(stockInputs, name)
+                  ? await executeStock(identity, name as StockCommand, raw)
+                  : name === "updateSettings"
+                    ? await executeSettings(identity, raw)
+                    : directory
+                      ? await executeParty(
+                          identity,
+                          name as PartyCommandName,
+                          raw
+                        )
+                      : customer
+                        ? await executeCustomer(
+                            identity,
+                            name as CustomerCommandName,
+                            raw
+                          )
+                        : await executeAdmin(identity, name as CommandName, raw)
+    if (result.status === "UPLOAD_READY") return noStoreJSON(result, 201)
     const created =
+      name === "stageImport" ||
       name === "createUser" ||
       name === "recordPurchase" ||
       name === "addCost" ||

@@ -33,6 +33,11 @@ export const persistedRateAPIs = {
   "/api/lease-rate-sheets": "GET",
 } as const
 export const persistedRatePages = ["/lease-comparison", "/lease-rate-sheets"]
+export const privateAttachmentAPIs = {
+  "/api/v1/uploads/[uploadId]": "PUT",
+  "/api/v1/attachments/[attachmentId]": "GET",
+} as const
+export const importStagingPages = ["/imports", "/imports/[id]"]
 export const unavailablePages = [
   "/approvals",
   "/cash-flow",
@@ -63,6 +68,9 @@ export const methods = [
   "DELETE",
 ] as const
 export const queryNames = [
+  "importBatches",
+  "importBatchFiles",
+  "download",
   "quote",
   "purchases",
   "purchase",
@@ -83,6 +91,9 @@ export const queryNames = [
   "audit",
 ]
 export const commandNames = [
+  "stageImport",
+  "initUpload",
+  "completeUpload",
   "publishRates",
   "selectQuote",
   "recordPurchase",

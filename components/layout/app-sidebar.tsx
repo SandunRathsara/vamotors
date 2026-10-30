@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import { Car, LayoutDashboard, Users, Calculator } from "lucide-react"
+import { Car, LayoutDashboard, Users, Calculator, FileUp } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -39,6 +39,16 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="p-2">
         <SidebarMenu>
+          {finance.can("read", "ImportBatch") && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/imports" prefetch={false}>
+                  <FileUp />
+                  Import staging
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           {(compareRates || publishRates) && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
