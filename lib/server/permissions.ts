@@ -71,6 +71,14 @@ const correctionWriteFields = [
   "replacement.method",
   "replacement.reference",
 ] as const
+export const settlementFields = [
+  "institutionType",
+  "companyId",
+  "institutionName",
+  "reference",
+  "amount",
+  "cashToSeller",
+] as const
 
 // Deliberately closed initial capability registry. Downstream subjects stay
 // ungrantable until their authoritative DTO/command mappings are implemented.
@@ -225,6 +233,15 @@ export const registry = {
       "nextActions",
       "notes",
       ...sourcePaymentFields.map((p) => `payments.${p}`),
+      ...[
+        "institutionType",
+        "companyId",
+        "institutionName",
+        "institutionNameSnapshot",
+        "reference",
+        "amount",
+        "cashToSeller",
+      ].map((p) => `settlement.${p}`),
       "outstanding.seller",
       "outstanding.settlement",
       ...costReadFields.map((p) => `costs.${p}`),
@@ -262,6 +279,7 @@ export const registry = {
       "listedPrice",
       "mileage",
       "paymentMethod",
+      ...settlementFields.map((p) => `settlement.${p}`),
     ],
     receive: ["date", "disposition.kind", "disposition.reason"],
     update: [
@@ -275,6 +293,11 @@ export const registry = {
       "patch.purchaseDate",
       "patch.purchasePrice",
       "patch.notes",
+      "patch.purchaseType",
+      "patch.seller.type",
+      "patch.seller.id",
+      "patch.settlement",
+      ...settlementFields.map((p) => `patch.settlement.${p}`),
     ],
     release: ["cycleId"],
     pay: [
@@ -597,8 +620,8 @@ export const registry = {
     update: ["uploadId"],
   },
 } as const
-// Freeze all accepted T06b v10 populations before exposing cycle-edit paths.
-export const registryVersion = 11
+// Freeze accepted T05c.1 v11 populations before exposing settlement fields.
+export const registryVersion = 12
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   User: [],

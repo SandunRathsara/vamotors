@@ -72,8 +72,8 @@ describe("T05c bounded costs and immutable source corrections", () => {
     ).toBe(false)
     for (const patch of [
       { supplierId: id },
-      { seller: { type: "SUPPLIER", id } },
-      { purchaseType: "LEASE_SETTLEMENT" },
+      { seller: { type: "SUPPLIER", id, recipient: "SELLER" } },
+      { purchaseType: "LEASE_SETTLEMENT", settlement: { amount: "1" } },
       { listedPrice: "1" },
       { vehicleId: id },
     ])

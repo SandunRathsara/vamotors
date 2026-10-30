@@ -1,6 +1,6 @@
 "use client"
 import { useRef, useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   Applied,
   Dependency,
@@ -16,6 +16,8 @@ import { major, parseMajor } from "@/lib/money"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import type { VisibleParty } from "@/components/third-parties/party-form"
+import { SettlementFields, settlementFromDraft } from "./settlement-fields"
 
 type Cycle = Visible<PurchaseCycleDTO>
 type Correction = {
@@ -32,7 +34,7 @@ const labels: Record<CycleMoneyCommand, string> = {
   editCost: "Correct cost terms",
   payCost: "Pay cost",
   editPurchase: "Correct purchase terms",
-  payPurchase: "Pay seller outstanding",
+  payPurchase: "Pay purchase outstanding",
   reversePayment: "Correct payment entry",
 }
 const display = (value?: string) =>
@@ -49,6 +51,24 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
     sourceType: "PURCHASE",
   })
   const [corrections, setCorrections] = useState<Correction[]>([])
+  const [company, setCompany] = useState<VisibleParty | null>(null),
+    [supplier, setSupplier] = useState<VisibleParty | null>(null),
+    [supplierSearch, setSupplierSearch] = useState(""),
+    [supplierPage, setSupplierPage] = useState(1)
+  const suppliers = useQuery({
+    queryKey: [
+      "parties",
+      "purchase-correction-selector",
+      supplierSearch,
+      supplierPage,
+    ],
+    enabled: name === "editPurchase",
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: { data: VisibleParty[]; total: number } }>(
+        `/api/v1/queries/parties?type=SUPPLIER&active=true&pageSize=20&page=${supplierPage}&q=${encodeURIComponent(supplierSearch)}`
+      ),
+  })
   const [body, setBody] = useState<string | null>(null),
     [pending, setPending] = useState(false),
     [stale, setStale] = useState(false),
@@ -73,6 +93,8 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
         p.amount !== undefined &&
         p.date &&
         p.method &&
+        p.category &&
+        p.direction === "OUT" &&
         !p.reversalOf &&
         !payments.some((r) => r.reversalOf === p.id)
     ) ?? []
@@ -91,10 +113,34 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
     setLatest(null)
     setCorrections([])
     setMessage("")
+    setCompany(null)
+    setSupplier(null)
     setDraft({
       method: "CASH",
       sourceType: "PURCHASE",
       sourceId: cycle.id ?? "",
+      recipient:
+        cycle.outstanding?.seller && BigInt(cycle.outstanding.seller) > 0n
+          ? "SELLER"
+          : "SETTLEMENT",
+      purchaseType: cycle.purchaseType ?? "",
+      supplierId:
+        cycle.seller?.type === "SUPPLIER" ? (cycle.seller.id ?? "") : "",
+      institutionType: cycle.settlement?.institutionType ?? "",
+      companyId:
+        cycle.settlement?.institutionType === "FINANCE_COMPANY"
+          ? (cycle.settlement.companyId ?? "")
+          : "",
+      institutionName: cycle.settlement?.institutionNameSnapshot ?? "",
+      settlementReference: cycle.settlement?.reference ?? "",
+      settlementAmount:
+        cycle.settlement?.amount === undefined
+          ? ""
+          : display(cycle.settlement.amount),
+      cashToSeller:
+        cycle.settlement?.cashToSeller === undefined
+          ? ""
+          : display(cycle.settlement.cashToSeller),
       purchaseDate: cycle.purchaseDate ?? "",
       purchasePrice:
         cycle.purchasePrice === undefined ? "" : display(cycle.purchasePrice),
@@ -156,12 +202,64 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
             id: snapshot.vehicleId,
             revision: snapshot.identityRevision,
           })
+          if (draft.supplierId !== snapshot.seller?.id) {
+            if (
+              !supplier?.id ||
+              supplier.id !== draft.supplierId ||
+              !supplier.revision ||
+              !supplier.active
+            )
+              throw new Error("Select a readable active supplier with revision")
+            expected.push({
+              type: "Supplier",
+              id: supplier.id,
+              revision: supplier.revision,
+            })
+          }
+          const settlementChanged =
+            draft.purchaseType === "LEASE_SETTLEMENT" &&
+            (snapshot.purchaseType !== "LEASE_SETTLEMENT" ||
+              draft.changeSettlement === "yes")
+          const settlement = settlementChanged
+            ? settlementFromDraft(draft)
+            : null
+          if (settlement?.institutionType === "FINANCE_COMPANY") {
+            if (
+              !company?.id ||
+              company.id !== settlement.companyId ||
+              !company.revision ||
+              !company.active ||
+              !company.name
+            )
+              throw new Error(
+                "Select or load the current finance company revision"
+              )
+            expected.push({
+              type: "FinanceCompany",
+              id: company.id,
+              revision: company.revision,
+            })
+          }
           input = {
             cycleId: snapshot.id,
             reason: draft.reason,
             patch: {
               purchaseDate: draft.purchaseDate,
-              purchasePrice: parseMajor(draft.purchasePrice ?? ""),
+              ...(draft.purchaseType !== "LEASE_SETTLEMENT"
+                ? { purchasePrice: parseMajor(draft.purchasePrice ?? "") }
+                : {}),
+              ...(draft.purchaseType !== snapshot.purchaseType
+                ? { purchaseType: draft.purchaseType }
+                : {}),
+              ...(draft.supplierId !== snapshot.seller?.id
+                ? { seller: { type: "SUPPLIER", id: draft.supplierId } }
+                : {}),
+              ...(settlementChanged
+                ? { settlement }
+                : snapshot.purchaseType === "LEASE_SETTLEMENT" &&
+                    draft.purchaseType !== "LEASE_SETTLEMENT"
+                  ? { settlement: null }
+                  : {}),
               notes: draft.notes?.trim() ? draft.notes : null,
             },
             cashCorrections: corrections.map((c) => ({
@@ -191,7 +289,7 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
           input = {
             ...(name === "payCost"
               ? { costId: draft.costId }
-              : { cycleId: snapshot.id, recipient: "SELLER" }),
+              : { cycleId: snapshot.id, recipient: draft.recipient }),
             payment: cash(),
           }
         const target =
@@ -425,14 +523,137 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
             )}
             {name === "editPurchase" && (
               <>
+                <Label htmlFor="cycle-money-purchaseType">
+                  Corrected purchase type *
+                </Label>
+                <select
+                  id="cycle-money-purchaseType"
+                  required
+                  value={draft.purchaseType ?? ""}
+                  onChange={(e) => change("purchaseType", e.target.value)}
+                  className="min-h-11 w-full rounded-md border bg-background px-3"
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="BRAND_NEW">Brand-new</option>
+                  <option value="LEASE_SETTLEMENT">Lease settlement</option>
+                </select>
+                <Label htmlFor="cycle-money-supplier-search">
+                  Search corrected active supplier
+                </Label>
+                <Input
+                  id="cycle-money-supplier-search"
+                  value={supplierSearch}
+                  onChange={(e) => {
+                    setSupplierSearch(e.target.value)
+                    setSupplierPage(1)
+                  }}
+                  maxLength={200}
+                  className="min-h-11 text-base"
+                />
+                {suppliers.isError && (
+                  <p role="alert">
+                    Supplier read failed.{" "}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void suppliers.refetch()}
+                    >
+                      Retry corrected suppliers
+                    </Button>
+                  </p>
+                )}
+                <Label htmlFor="cycle-money-supplier">
+                  Corrected supplier *
+                </Label>
+                <select
+                  id="cycle-money-supplier"
+                  required
+                  value={draft.supplierId ?? ""}
+                  onChange={(e) => {
+                    change("supplierId", e.target.value)
+                    setSupplier(
+                      suppliers.data?.data.data.find(
+                        (p) => p.id === e.target.value
+                      ) ?? null
+                    )
+                  }}
+                  className="min-h-11 w-full rounded-md border bg-background px-3"
+                >
+                  {snapshot.seller?.id &&
+                    !suppliers.data?.data.data.some(
+                      (p) => p.id === snapshot.seller?.id
+                    ) && (
+                      <option value={snapshot.seller.id}>
+                        {snapshot.seller.name ?? "Current supplier"}
+                      </option>
+                    )}
+                  {suppliers.data?.data.data
+                    .filter((p) => p.id && p.revision && p.active)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name ?? "Name unavailable"} ·{" "}
+                        {p.directory?.category ?? "Category unavailable"}
+                      </option>
+                    ))}
+                </select>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={supplierPage === 1}
+                    onClick={() => setSupplierPage(supplierPage - 1)}
+                  >
+                    Previous corrected suppliers
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={
+                      !suppliers.data ||
+                      supplierPage * 20 >= suppliers.data.data.total
+                    }
+                    onClick={() => setSupplierPage(supplierPage + 1)}
+                  >
+                    More corrected suppliers
+                  </Button>
+                </div>
                 {field("purchaseDate", "Corrected purchase date", "date")}
-                {field(
-                  "purchasePrice",
-                  "Corrected purchase price (major units)"
+                {draft.purchaseType !== "LEASE_SETTLEMENT" &&
+                  field(
+                    "purchasePrice",
+                    "Corrected purchase price (major units)"
+                  )}
+                {draft.purchaseType === "LEASE_SETTLEMENT" && (
+                  <>
+                    {snapshot.purchaseType === "LEASE_SETTLEMENT" && (
+                      <Label className="flex min-h-11 items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={draft.changeSettlement === "yes"}
+                          onChange={(e) =>
+                            change(
+                              "changeSettlement",
+                              e.target.checked ? "yes" : "no"
+                            )
+                          }
+                        />
+                        Correct full settlement terms
+                      </Label>
+                    )}
+                    {(snapshot.purchaseType !== "LEASE_SETTLEMENT" ||
+                      draft.changeSettlement === "yes") && (
+                      <SettlementFields
+                        draft={draft}
+                        change={change}
+                        company={company}
+                        selectCompany={setCompany}
+                      />
+                    )}
+                  </>
                 )}
                 {field("notes", "Purchase notes", "text", false)}
                 <h4 className="font-semibold">
-                  Explicit seller payment corrections
+                  Explicit seller / institution payment corrections
                 </h4>
                 {eligible(snapshot.payments).map((p) => (
                   <div key={p.id} className="space-y-2 rounded-md border p-3">
@@ -459,7 +680,8 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
                           )
                         }
                       />
-                      Reverse recorded {display(p.amount)} on {p.date} ({p.id})
+                      Reverse {p.category} recorded {display(p.amount)} on{" "}
+                      {p.date} ({p.id})
                     </Label>
                     {corrections
                       .filter((c) => c.paymentId === p.id)
@@ -586,9 +808,36 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
                   <option value="">Select original unreversed payment</option>
                   {eligible(source?.payments).map((p) => (
                     <option key={p.id} value={p.id}>
-                      {display(p.amount)} · {p.date} · {p.id}
+                      {p.category} · {display(p.amount)} · {p.date} · {p.id}
                     </option>
                   ))}
+                </select>
+              </>
+            )}
+            {name === "payPurchase" && (
+              <>
+                <Label htmlFor="cycle-money-recipient">
+                  Purchase payment recipient *
+                </Label>
+                <select
+                  id="cycle-money-recipient"
+                  required
+                  value={draft.recipient ?? ""}
+                  onChange={(e) => change("recipient", e.target.value)}
+                  className="min-h-11 w-full rounded-md border bg-background px-3"
+                >
+                  {(["SELLER", "SETTLEMENT"] as const).map((recipient) => {
+                    const outstanding =
+                      snapshot.outstanding?.[
+                        recipient === "SELLER" ? "seller" : "settlement"
+                      ]
+                    return outstanding !== undefined &&
+                      BigInt(outstanding) > 0n ? (
+                      <option key={recipient} value={recipient}>
+                        {recipient} · outstanding {display(outstanding)}
+                      </option>
+                    ) : null
+                  })}
                 </select>
               </>
             )}
@@ -695,10 +944,12 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
         </p>
       )}
       <p>
-        Repairs, closed-cycle restatement, sales/repurchase, settlement-channel
-        changes remain queued; none are fabricated here. Authorized open-cycle
-        mileage, asking-price and physical corrections use the separate edit
-        panel.
+        Repairs, closed-cycle restatement and sales/repurchase remain pending.
+        To change a payee or move between recipients, explicitly reverse the old
+        entry, correct terms, reload, then record a fresh dated payment. A
+        replacement always keeps the original category; it cannot move money.
+        Authorized open-cycle mileage, asking-price and physical corrections use
+        the separate edit panel.
       </p>
     </section>
   )

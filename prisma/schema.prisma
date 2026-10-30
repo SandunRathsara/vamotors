@@ -291,6 +291,7 @@ model FinanceCompany {
   contacts        FinanceContact[]
   rateSheets      RateSheetVersion[]
   quotes          Quote[]
+  settlementPurchases LeasePurchaseDetail[]
 
   @@unique([currentPolicyId, id])
   @@schema("vamotors")
@@ -540,10 +541,27 @@ model PurchaseRecord {
   basisVersions        CycleBasisVersion[]
   costs                VehicleCost[]
   costPayments         CostPayment[]
+  settlement           LeasePurchaseDetail?
 
   @@unique([id, vehicleId])
   @@unique([vehicleId, cycleNumber])
   @@index([status, available, purchaseDate, id])
+  @@schema("vamotors")
+}
+
+// Mutable current terms only; root revisions and immutable read versions own history.
+model LeasePurchaseDetail {
+  id                      String         @id @default(uuid()) @db.Uuid
+  purchaseRecordId        String         @unique @db.Uuid
+  purchaseRecord          PurchaseRecord @relation(fields: [purchaseRecordId], references: [id], onDelete: Restrict)
+  institutionType         String
+  companyId               String?        @db.Uuid
+  company                 FinanceCompany? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  institutionNameSnapshot String
+  reference               String
+  amount                  BigInt
+  cashToSeller            BigInt
+
   @@schema("vamotors")
 }
 
