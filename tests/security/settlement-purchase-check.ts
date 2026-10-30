@@ -187,8 +187,8 @@ async function query<T>(
   assert.match(response.headers()["cache-control"], /no-store/)
   return (await response.json()).data
 }
-const envelope = (
-  input: unknown,
+const envelope = <T>(
+  input: T,
   expected: Dependency[] = [],
   key = randomUUID()
 ) => ({ schemaVersion: 1, idempotencyKey: key, expected, input })

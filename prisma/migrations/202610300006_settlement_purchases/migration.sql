@@ -40,7 +40,7 @@ CREATE FUNCTION vamotors.purchase_payee(terms jsonb, category text) RETURNS text
 $$;
 
 CREATE OR REPLACE FUNCTION vamotors.check_acquisition_graph() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
-DECLARE cid uuid; p vamotors."PurchaseRecord"; initial jsonb; policy jsonb; latest vamotors."CycleBasisVersion"; total numeric; paid numeric; seller_amount numeric; settlement_amount numeric; original_payment vamotors."PurchasePayment"; original_terms jsonb; current_terms jsonb;
+DECLARE cid uuid; p vamotors."PurchaseRecord"; initial jsonb; policy jsonb; latest vamotors."CycleBasisVersion"; total numeric; paid numeric; seller_amount numeric; settlement_amount numeric; original_payment vamotors."PurchasePayment"; original_terms jsonb; current_terms jsonb; original_command uuid;
 BEGIN
  IF TG_TABLE_NAME='PurchaseRecord' THEN cid:=NEW.id; ELSE cid:=NEW."cycleId"; END IF;
  SELECT * INTO p FROM vamotors."PurchaseRecord" WHERE id=cid;
@@ -84,10 +84,13 @@ BEGIN
  OR EXISTS(SELECT 1 FROM vamotors."MileageReading" WHERE "cycleId"=cid AND "recordedDate"<p."purchaseDate")
  OR (p."receivedDate" IS NOT NULL AND p."receivedDate"<p."purchaseDate") THEN RAISE EXCEPTION 'INVALID_CYCLE_BASIS' USING ERRCODE='23514'; END IF;
  IF EXISTS(SELECT 1 FROM jsonb_each_text(vamotors.purchase_outstanding_json(cid)) x WHERE x.value::numeric<0)
+ OR EXISTS(SELECT 1 FROM vamotors."PurchasePayment" x WHERE x."cycleId"=cid GROUP BY category HAVING sum(CASE direction WHEN 'OUT' THEN amount::numeric ELSE -amount::numeric END)<0)
  OR EXISTS(SELECT 1 FROM vamotors."PurchasePayment" x WHERE x."cycleId"=cid AND x."reversalOf" IS NULL AND NOT EXISTS(SELECT 1 FROM vamotors."PurchasePayment" r WHERE r."reversalOf"=x.id) AND x."occurredDate"<p."purchaseDate") THEN RAISE EXCEPTION 'INVALID_PURCHASE_BALANCE' USING ERRCODE='23514'; END IF;
  SELECT jsonb_build_object('purchaseType',p."purchaseType",'seller',jsonb_build_object('type','SUPPLIER','id',p."supplierId"),'settlement',vamotors.settlement_json(cid)) INTO current_terms;
  FOR original_payment IN SELECT * FROM vamotors."PurchasePayment" x WHERE x."cycleId"=cid AND x."reversalOf" IS NULL AND NOT EXISTS(SELECT 1 FROM vamotors."PurchasePayment" r WHERE r."reversalOf"=x.id) LOOP
-  SELECT e.payload INTO original_terms FROM vamotors."EntityReadVersion" e JOIN vamotors."CommandReceipt" c ON c.id=original_payment."commandId" AND e.sequence=c."businessSequence" AND e."commandId"=c.id WHERE e."entityType"='PurchaseRecord' AND e."entityId"=cid;
+  original_command:=original_payment."commandId";
+  IF original_payment."lineKey" LIKE 'replace:%' THEN SELECT x."commandId" INTO original_command FROM vamotors."PurchasePayment" x WHERE x.id=substring(original_payment."lineKey" FROM 9)::uuid AND x."cycleId"=cid; END IF;
+  SELECT e.payload INTO original_terms FROM vamotors."EntityReadVersion" e JOIN vamotors."CommandReceipt" c ON c.id=original_command AND e.sequence=c."businessSequence" AND e."commandId"=c.id WHERE e."entityType"='PurchaseRecord' AND e."entityId"=cid;
   IF original_terms IS NULL OR vamotors.purchase_payee(original_terms,original_payment.category) IS DISTINCT FROM vamotors.purchase_payee(current_terms,original_payment.category) THEN RAISE EXCEPTION 'LIVE_PAYEE_CHANGE' USING ERRCODE='23514'; END IF;
  END LOOP;
  RETURN NULL;
@@ -114,7 +117,8 @@ BEGIN
   ARRAY['jsonb_build_object(''seller'',(NEW."purchasePrice"-coalesce((SELECT sum(CASE direction WHEN ''OUT'' THEN amount::numeric ELSE -amount::numeric END) FROM vamotors."PurchasePayment" WHERE "cycleId"=NEW.id),0))::text,''settlement'',''0'')','vamotors.purchase_outstanding_json(NEW.id)'],
   ARRAY['OR after_payload->>''notes'' IS DISTINCT FROM NEW.notes','OR after_payload->>''notes'' IS DISTINCT FROM NEW.notes OR after_payload->>''purchaseType'' IS DISTINCT FROM NEW."purchaseType" OR after_payload->''settlement'' IS DISTINCT FROM vamotors.settlement_json(NEW.id)'],
   ARRAY['''purchasePrice'',''notes'',''outstanding'',''seller'']','''purchasePrice'',''purchaseType'',''settlement'',''notes'',''outstanding'',''seller'']'],
-  ARRAY['IF kind=''PurchaseRecord'' THEN old_payload:=jsonb_set(old_payload,''{seller}'',after_payload->''seller''); END IF;','IF kind=''PurchaseRecord'' THEN old_payload:=jsonb_set(old_payload,''{seller}'',(SELECT jsonb_build_object(''type'',''SUPPLIER'',''id'',s.id,''name'',s.name,''active'',s.active) FROM vamotors."Supplier" s WHERE s.id=OLD."supplierId")); END IF;']
+  ARRAY['IF kind=''PurchaseRecord'' THEN old_payload:=jsonb_set(old_payload,''{seller}'',after_payload->''seller''); END IF;','IF kind=''PurchaseRecord'' THEN old_payload:=jsonb_set(old_payload,''{seller}'',(SELECT jsonb_build_object(''type'',''SUPPLIER'',''id'',s.id,''name'',s.name,''active'',s.active) FROM vamotors."Supplier" s WHERE s.id=OLD."supplierId")); END IF;'],
+  ARRAY['changed_basis:=','IF c."commandName"=''editPurchase'' AND NEW."purchaseType"=''BRAND_NEW'' AND NOT EXISTS(SELECT 1 FROM vamotors."Supplier" WHERE id=NEW."supplierId" AND category=''COMPANY'') THEN RAISE EXCEPTION ''INVALID_BRAND_NEW_SUPPLIER'' USING ERRCODE=''23514''; END IF; changed_basis:=']
  ] LOOP
   IF strpos(definition,pair[1])=0 THEN RAISE EXCEPTION 'SETTLEMENT_MONEY_BASE_MISMATCH'; END IF;
   definition:=replace(definition,pair[1],pair[2]);
@@ -147,6 +151,7 @@ BEGIN
  -- References/amounts may change; immutable original payment payees may not.
  SELECT e.payload INTO prior FROM vamotors."EntityReadVersion" e WHERE e."entityType"='PurchaseRecord' AND e."entityId"=p.id AND e.sequence<c."businessSequence" ORDER BY e.sequence DESC LIMIT 1;
  IF NEW."companyId" IS NOT NULL AND (prior#>>'{settlement,companyId}' IS DISTINCT FROM NEW."companyId"::text) AND NOT EXISTS(SELECT 1 FROM vamotors."FinanceCompany" f WHERE f.id=NEW."companyId" AND f.active AND f.name=NEW."institutionNameSnapshot") THEN RAISE EXCEPTION 'INVALID_SETTLEMENT_COMPANY' USING ERRCODE='23514'; END IF;
+ IF NEW."companyId" IS NOT NULL AND prior#>>'{settlement,companyId}'=NEW."companyId"::text AND prior#>>'{settlement,institutionNameSnapshot}' IS DISTINCT FROM NEW."institutionNameSnapshot" THEN RAISE EXCEPTION 'IMMUTABLE_COMPANY_NAME_SNAPSHOT' USING ERRCODE='23514'; END IF;
  RETURN NULL;
 END $$;
 CREATE CONSTRAINT TRIGGER settlement_graph AFTER INSERT OR UPDATE ON vamotors."LeasePurchaseDetail" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vamotors.settlement_detail_guard();
