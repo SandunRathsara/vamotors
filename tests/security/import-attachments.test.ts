@@ -117,6 +117,7 @@ describe("T06b staging trust boundaries", () => {
               "ImportBatch",
               "ApprovalRequest",
               "Disposal",
+              "RepairRecord",
             ].includes(name)
         )
         .map(([name, actions]) => [

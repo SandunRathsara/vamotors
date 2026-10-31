@@ -172,6 +172,14 @@ export function PartyDetail({ kind, id }: { kind: DirectoryKind; id: string }) {
                             >
                               View purchase
                             </Link>
+                          ) : link.type === "REPAIR" && link.id ? (
+                            <Link
+                              prefetch={false}
+                              className="underline"
+                              href={`/repairs/${link.id}`}
+                            >
+                              View repair
+                            </Link>
                           ) : (
                             "Navigation pending"
                           )}

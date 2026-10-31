@@ -1,4 +1,8 @@
-# T07a/T08a WRITE_OFF — bounded exactc462 ACCEPTED/P2 CLOSED/four original LOCAL; REPAIR active
+# T07a/T08a WRITE_OFF — bounded exactc462 ACCEPTED; REPAIR612 frozen/released for REVIEW
+
+**Current ownership override:** REPAIR author ses_e7376ed96ffe2a8RsopfGvBwgI returned **FROZEN SOURCE / SHARED OWNERSHIP RELEASE ACK** at **612e09cb93ce78b59e77cfe116fc902f7eb2711a**; no active shared writer remains. [Ordinary recordse2+612 containing REVIEW assembly/exact612 source18SQL+registry14/parent attribution](evidence/T08-612e09c-review-assembly.md), not repair acceptance or primary promotion. Distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 READY with BOTH161/166+44/48 preparation seals, standing by/NOT review-dispatched pending parent verification of ONE returned FINAL COMBINED target. All34 clauses/R003+R029 typed-UTC/R030 acquisition15 BOTH future roots/full frozen bodies/matrix31 LOCAL103 U134 and prior boundedc462 acceptance unchanged; primaryc462/humanG2d0/G3–G6 pending preserved. Earlier active/UNKNOWN labels below are historical, not current ownership.
+
+## Previous bounded WRITE_OFF acceptance / REPAIR continuation snapshot
 
 **Parent ACCEPTS bounded WRITE_OFF/T07aT08a+combined EXACTc462b7ac3f5111ebacd74cf326fc3da386d88993/tree500a9d41325ad28b44481f210aa97fc6faa730b8; CLOSES REPLAY_REQUESTER_AUTHORITY P2; separately ACCEPTS complete ORIGINAL APRV-02/WROF-01/NOTF-01/NOTF-04 LOCALc462.** [Per-clause evidence/724+726 parent verification/24 normals/equivalence+failures/actual primaryFF](evidence/T07a-T08a-c462b7a-acceptance-attributed.md). Distinct ses_e73866f03ffef8LtV6wZH4jIq7 **COMPLETED bounded PASS/no new relevant finding/not running**;57 dispositions=56 bounded PASS+C033 future-owner boundary, not57 PASS. This later records descendant is not the accepted source. Corrector b136 remains frozen/released; source4/unified45/author seals/bindings/failures unchanged.
 

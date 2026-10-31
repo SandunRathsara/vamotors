@@ -38,6 +38,7 @@ export const privateAttachmentAPIs = {
   "/api/v1/attachments/[attachmentId]": "GET",
 } as const
 export const importStagingPages = ["/imports", "/imports/[id]"]
+export const persistedRepairPages = ["/repairs", "/repairs/[id]"]
 export const approvalPages = ["/approvals", "/approvals/[id]"]
 export const unavailablePages = [
   "/cash-flow",
@@ -46,7 +47,6 @@ export const unavailablePages = [
   "/lease-deals/[id]",
   "/lease-dispatch",
   "/lease-reconciliation",
-  "/repairs",
   "/reports",
   "/reports/advances",
   "/reports/audit",

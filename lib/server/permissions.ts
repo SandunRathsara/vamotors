@@ -23,6 +23,19 @@ export const sourcePaymentFields = [
   "reversalOf",
   "reason",
 ] as const
+export const repairReadFields = [
+  "id",
+  "revision",
+  "vendorId",
+  "request",
+  "sentDate",
+  "returnedDate",
+  "summary",
+  "invoiceAmount",
+  "invoiceDate",
+  "payments",
+  ...sourcePaymentFields.map((p) => `payments.${p}`),
+] as const
 export const mileageReadFields = [
   "id",
   "reading",
@@ -325,6 +338,18 @@ export const registry = {
       "reason",
     ],
     pay: ["costId", ...paymentWriteFields, ...correctionWriteFields],
+  },
+  RepairRecord: {
+    read: repairReadFields,
+    create: ["cycleId", "vendorId", "request", "sentDate"],
+    update: [
+      "repairId",
+      "invoiceAmount",
+      "invoiceDate",
+      "returnedDate",
+      "summary",
+    ],
+    pay: ["repairId", ...paymentWriteFields, ...correctionWriteFields],
   },
   Supplier: {
     // category is retained only to validate immutable legacy permissions. The
@@ -695,8 +720,8 @@ export const registry = {
     update: ["uploadId"],
   },
 } as const
-// Preserve accepted236 v12 populations; only the two approval/disposal subjects are new.
-export const registryVersion = 13
+// Preserve every accepted c462 v13 population; only RepairRecord is new here.
+export const registryVersion = 14
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   ApprovalRequest: ["createdBy"],
@@ -707,6 +732,7 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   Customer: ["createdBy"],
   PurchaseRecord: ["createdBy"],
   VehicleCost: ["createdBy"],
+  RepairRecord: ["createdBy"],
   Supplier: ["createdBy"],
   RepairVendor: ["createdBy"],
   FinanceCompany: ["createdBy"],

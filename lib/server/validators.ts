@@ -385,6 +385,51 @@ export const cashInput = z
     reference: text.max(200).optional(),
   })
   .strict()
+export const repairInputs = {
+  sendRepair: z
+    .object({ cycleId: id, vendorId: id, request: text, sentDate: dateOnly })
+    .strict(),
+  returnRepair: z
+    .object({
+      repairId: id,
+      invoiceAmount: moneyInput,
+      invoiceDate: dateOnly,
+      returnedDate: dateOnly,
+      summary: text,
+      payment: cashInput.optional(),
+    })
+    .strict(),
+  payRepair: z.object({ repairId: id, payment: cashInput }).strict(),
+} as const
+export type RepairCommand = keyof typeof repairInputs
+export function repairEnvelope(name: RepairCommand) {
+  return customerEnvelope("createCustomer").extend({
+    input: repairInputs[name],
+  })
+}
+// The REPAIR branch is routed to the exact child owner, not the cycle-money owner.
+export const repairReversalInput = z
+  .object({
+    sourceType: z.literal("REPAIR"),
+    sourceId: id,
+    paymentId: id,
+    replacement: cashInput.optional(),
+    reason: text,
+  })
+  .strict()
+// A source explicitly typed as another owner is malformed, not a missing repair.
+// UUIDs may coincide across tables; a matching repair ref resolves that ambiguity.
+export const repairReversalEnvelope = customerEnvelope("createCustomer")
+  .extend({ input: repairReversalInput })
+  .refine(
+    ({ input, expected }) =>
+      !expected.some(
+        (ref) => ref.id === input.sourceId && ref.type !== "RepairRecord"
+      ) ||
+      expected.some(
+        (ref) => ref.id === input.sourceId && ref.type === "RepairRecord"
+      )
+  )
 export const writeOffInput = z
   .object({
     cycleId: id,

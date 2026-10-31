@@ -106,6 +106,7 @@ export async function writeReadVersion(
       | "Quote"
       | "ImportBatch"
       | "Document"
+      | "RepairRecord"
       | "ApprovalRequest"
     entityId: string
     revision: number

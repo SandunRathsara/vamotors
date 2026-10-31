@@ -77,6 +77,12 @@ GRANT UPDATE ("institutionType", "companyId", "institutionNameSnapshot", referen
 -- The accepted acquisition trigger remains invoker-security. Its three new
 -- read-only helpers need named EXECUTE, never a blanket function grant.
 GRANT EXECUTE ON FUNCTION vamotors.settlement_json(uuid), vamotors.purchase_outstanding_json(uuid), vamotors.purchase_payee(jsonb,text) TO vamotors_runtime;
+-- T08 exact repair columns; no owner/send-tuple UPDATE, DELETE, definer EXECUTE.
+GRANT SELECT (id,"cycleId","vendorId",request,"sentDate","returnedDate",summary,"invoiceAmount","invoiceDate",revision,"createdBy","commandId","returnCommandId","createdAt","updatedAt") ON vamotors."RepairRecord" TO vamotors_runtime;
+GRANT INSERT (id,"cycleId","vendorId",request,"sentDate",revision,"createdBy","commandId","createdAt","updatedAt") ON vamotors."RepairRecord" TO vamotors_runtime;
+GRANT UPDATE ("returnedDate",summary,"invoiceAmount","invoiceDate","returnCommandId",revision,"updatedAt") ON vamotors."RepairRecord" TO vamotors_runtime;
+GRANT SELECT (id,"repairId","cycleId",amount,direction,category,"occurredDate",method,currency,scale,reference,"reversalOf",reason,"createdBy","commandId","lineKey","recordedAt"), INSERT (id,"repairId","cycleId",amount,direction,category,"occurredDate",method,currency,scale,reference,"reversalOf",reason,"createdBy","commandId","lineKey","recordedAt") ON vamotors."RepairPayment" TO vamotors_runtime;
+GRANT EXECUTE ON FUNCTION vamotors.repair_components(uuid) TO vamotors_runtime;
 -- T07a/T08a: final-graph evidenced CURRENT approval/disposal only.
 GRANT SELECT, INSERT ON vamotors."ApprovalRequest", vamotors."Disposal", vamotors."DisposalReceipt" TO vamotors_runtime;
 GRANT UPDATE (state, revision, "reviewedBy", "reviewedAt", "reviewNote", "reviewerName", "reviewCommandId", "appliedCommandId") ON vamotors."ApprovalRequest" TO vamotors_runtime;

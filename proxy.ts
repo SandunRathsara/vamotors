@@ -1,11 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server"
+import { authenticate } from "@/lib/server/actor"
+import { repairPagePurchase } from "@/lib/server/repair-detail"
 import { authenticatedApprovalDetail } from "@/lib/server/approvals"
-import { CommandError } from "@/lib/server/errors"
+import { CommandError, publicError } from "@/lib/server/errors"
 
 // Defense in depth for framework-generated 404/405/redirect/RSC responses too.
 // Authorization lives at each actual read/command, never in this proxy alone.
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next()
+  let response: Response = NextResponse.next()
+  const repair = request.nextUrl.pathname.match(/^\/repairs\/([^/]+)\/?$/)
+  if (repair) {
+    try {
+      await repairPagePurchase(await authenticate(request.headers), repair[1])
+    } catch (error) {
+      // Resolve before any layout/loading RSC stream can commit a soft200.
+      response = publicError(error, crypto.randomUUID())
+    }
+  }
   const approval = request.nextUrl.pathname.match(/^\/approvals\/([^/]+)\/?$/)
   if (approval && ["GET", "HEAD"].includes(request.method)) {
     // Next may stream its RSC shell before notFound() can change HTTP status.

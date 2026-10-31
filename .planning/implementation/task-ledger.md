@@ -1,6 +1,12 @@
 # Full-v1 implementation task ledger
 
-## Current WRITE_OFFc462 accepted/31 LOCAL103 U; REPAIR sole writer; fixture READY with required erratum
+## Current REPAIR612 frozen/released — LOCAL containing REVIEW target only
+
+- **FROZEN SOURCE / SHARED OWNERSHIP RELEASE ACK:** ses_e7376ed96ffe2a8RsopfGvBwgI at **612e09cb93ce78b59e77cfe116fc902f7eb2711a/tree875f202d9f31799f2516ed7dc3272ca02d99a25a**; no active shared writer. [Ordinary e2+612 merge/48-source+10-records zero-overlap union/parent attribution and anchors](evidence/T08-612e09c-review-assembly.md); app/tests/schema18SQL/registry14/grants/contracts/packages/native/PWA/authored ops exact612. AUTHOR-PASS ONLY, no repair/ID/capability acceptance or primary promotion.
+- **Distinct reviewer ses_e734bc50bffeWMSjm7Ed2xdxA2 READY only with BOTH161/166+44/48 seals; standing by/NOT review-dispatched.** Parent verifies returned ONE FINAL COMBINED containing SHA/tree then explicitly dispatches. No source-only612 or later docs-only substitute; all34 clauses/R003+R029 typed-UTC normalized epochs/R030 acquisition15 BOTH future roots; NEW fresh candidate+SAME genuine NONEMPTYc46217/v13→18/v14/repeat before test mutations.
+- Entire matrix/all134 rows/bindings/owners/scenarios remain byte-exacte2 **31 LOCAL103 U134**, hash **2e2d4444ccfd2ec0d64fef9debb824448a244403c93dc99b31583c74dba76efd**. Full frozen scopes/history/failures retained; RepairVendor PENDING_DOMAIN/VPRC-02 LOCAL236/VSTS-03 U/prior bounded acceptance unchanged. Primary clean acceptedc462/humanG2d0/URL8000/G3–G6 pending/protected refs+named dirty fingerprints preserved. No new runtime/FF/author live inspection/delegation; final containing SHA/seal external. Earlier active/UNKNOWN/proof-pending labels below are historical snapshots.
+
+## Previous WRITE_OFFc462 acceptance / REPAIR continuation and readiness snapshot
 
 - **Parent ACCEPTS literal LOCAL G2 at EXACTd0b13455cdec498e0913c0b74566b90ee930e353**, human http://127.0.0.1:8000/login; distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 COMPLETED independent7-clause PASS/no product findings. [109 hashes/exact proof/limits/parent read-only binding attribution](evidence/G2-d0-literal-acceptance-attributed.md). Human app+PG intentionally left running, reviewer browsers/clients closed; no ledger service check/change.
 - Prior bounded **T05c.1+555/P3 closure** and **T05c.2+combined236/FC-UI P2 closure/ORIGINAL VPRC-02 LOCAL236** remain [accepted history](evidence/T05c2-2360cbb-acceptance-attributed.md), no new555 runtime rerun.374/379/22 verification/per-clause limits and then-effective27 LOCAL107 U/only VPRC-02 delta remain source-bound history; VSTS-03 U/G2 d0/G3–G6 pending/no wholeT05/G3/v1 acceptance.

@@ -24,6 +24,7 @@ import { importQuery } from "./import-staging"
 import { downloadQuery } from "./attachments"
 import { approvalQuery, approvalReplay, approvalAudit } from "./approvals"
 import { notificationQuery, notificationReplay } from "./notifications"
+import { repairReplay } from "./repairs"
 import { runtimeConfig } from "./config"
 
 const canAdminister = (actor: Actor) =>
@@ -114,6 +115,10 @@ export async function securityQuery(
               "reviewApproval",
               "markNotificationRead",
               "markAllNotificationsRead",
+              "sendRepair",
+              "returnRepair",
+              "payRepair",
+              "reversePayment",
             ]),
             idempotencyKey: id,
           })
@@ -133,7 +138,11 @@ export async function securityQuery(
         if (!receipt) return { ok: true, status: "NOT_COMMITTED" }
         return ["requestApproval", "reviewApproval"].includes(parsed.data.name)
           ? approvalReplay(tx, actor, receipt)
-          : notificationReplay(tx, actor, receipt)
+          : ["markNotificationRead", "markAllNotificationsRead"].includes(
+                parsed.data.name
+              )
+            ? notificationReplay(tx, actor, receipt)
+            : repairReplay(tx, actor, receipt)
       }
       if (name === "importBatches" || name === "importBatchFiles")
         return importQuery(tx, actor, name, args)
@@ -145,7 +154,9 @@ export async function securityQuery(
       if (name === "quote") return rateQuery(tx, actor, name, args)
       if (
         name === "audit" &&
-        ["Vehicle", "PurchaseRecord", "VehicleCost"].includes(args.type)
+        ["Vehicle", "PurchaseRecord", "VehicleCost", "RepairRecord"].includes(
+          args.type
+        )
       )
         return purchaseQuery(tx, actor, name, args)
       if (

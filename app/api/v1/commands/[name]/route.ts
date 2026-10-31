@@ -1,5 +1,7 @@
 import { authenticate } from "@/lib/server/actor"
 import { executeAdmin } from "@/lib/server/admin"
+import { executeRepair } from "@/lib/server/repairs"
+import { repairInputs, type RepairCommand } from "@/lib/server/validators"
 import { commandInputs, type CommandName } from "@/lib/server/validators"
 import {
   endpoint,
@@ -63,6 +65,7 @@ export async function POST(
       !Object.hasOwn(stockInputs, name) &&
       !Object.hasOwn(cycleMoneyInputs, name) &&
       !Object.hasOwn(cycleEditInputs, name) &&
+      !Object.hasOwn(repairInputs, name) &&
       !customer &&
       !party &&
       !rates &&
@@ -75,57 +78,71 @@ export async function POST(
       party &&
       (name !== "archiveParty" ||
         (raw as { input?: { type?: string } })?.input?.type !== "CUSTOMER")
-    const result = Object.hasOwn(approvalInputs, name)
-      ? await executeApproval(identity, name as ApprovalCommand, raw)
-      : Object.hasOwn(notificationInputs, name)
-        ? await executeNotification(identity, name as NotificationCommand, raw)
-        : name === "stageImport"
-          ? await executeStageImport(identity, raw)
-          : name === "initUpload"
-            ? await initUpload(identity, raw)
-            : name === "completeUpload"
-              ? await completeUpload(identity, raw)
-              : rates
-                ? await executeRates(identity, name as RateCommandName, raw)
-                : name === "recordPurchase"
-                  ? await recordPurchase(identity, raw)
-                  : Object.hasOwn(cycleEditInputs, name)
-                    ? await executeCycleEdit(
-                        identity,
-                        name as CycleEditCommand,
-                        raw
-                      )
-                    : Object.hasOwn(cycleMoneyInputs, name)
-                      ? await executeCycleMoney(
-                          identity,
-                          name as CycleMoneyCommand,
-                          raw
-                        )
-                      : Object.hasOwn(stockInputs, name)
-                        ? await executeStock(
+    const result =
+      Object.hasOwn(repairInputs, name) ||
+      (name === "reversePayment" &&
+        (raw as { input?: { sourceType?: string } })?.input?.sourceType ===
+          "REPAIR")
+        ? await executeRepair(
+            identity,
+            name as RepairCommand | "reversePayment",
+            raw
+          )
+        : Object.hasOwn(approvalInputs, name)
+          ? await executeApproval(identity, name as ApprovalCommand, raw)
+          : Object.hasOwn(notificationInputs, name)
+            ? await executeNotification(
+                identity,
+                name as NotificationCommand,
+                raw
+              )
+            : name === "stageImport"
+              ? await executeStageImport(identity, raw)
+              : name === "initUpload"
+                ? await initUpload(identity, raw)
+                : name === "completeUpload"
+                  ? await completeUpload(identity, raw)
+                  : rates
+                    ? await executeRates(identity, name as RateCommandName, raw)
+                    : name === "recordPurchase"
+                      ? await recordPurchase(identity, raw)
+                      : Object.hasOwn(cycleEditInputs, name)
+                        ? await executeCycleEdit(
                             identity,
-                            name as StockCommand,
+                            name as CycleEditCommand,
                             raw
                           )
-                        : name === "updateSettings"
-                          ? await executeSettings(identity, raw)
-                          : directory
-                            ? await executeParty(
+                        : Object.hasOwn(cycleMoneyInputs, name)
+                          ? await executeCycleMoney(
+                              identity,
+                              name as CycleMoneyCommand,
+                              raw
+                            )
+                          : Object.hasOwn(stockInputs, name)
+                            ? await executeStock(
                                 identity,
-                                name as PartyCommandName,
+                                name as StockCommand,
                                 raw
                               )
-                            : customer
-                              ? await executeCustomer(
-                                  identity,
-                                  name as CustomerCommandName,
-                                  raw
-                                )
-                              : await executeAdmin(
-                                  identity,
-                                  name as CommandName,
-                                  raw
-                                )
+                            : name === "updateSettings"
+                              ? await executeSettings(identity, raw)
+                              : directory
+                                ? await executeParty(
+                                    identity,
+                                    name as PartyCommandName,
+                                    raw
+                                  )
+                                : customer
+                                  ? await executeCustomer(
+                                      identity,
+                                      name as CustomerCommandName,
+                                      raw
+                                    )
+                                  : await executeAdmin(
+                                      identity,
+                                      name as CommandName,
+                                      raw
+                                    )
     if (result.status === "UPLOAD_READY") return noStoreJSON(result, 201)
     if (result.status === "PENDING_APPROVAL") return noStoreJSON(result, 202)
     const created =
@@ -133,6 +150,7 @@ export async function POST(
       name === "createUser" ||
       name === "recordPurchase" ||
       name === "addCost" ||
+      name === "sendRepair" ||
       name === "createCustomer" ||
       name === "createDirectoryParty" ||
       name === "createFinanceCompany" ||

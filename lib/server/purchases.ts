@@ -19,6 +19,7 @@ import {
   disposalAuth,
   visibleDisposal,
   requireWriteOffAuthority,
+  currentWrittenOff,
 } from "./disposals"
 import { transaction, nextBusinessSequence } from "./transactions"
 import { audit, writeReadVersion } from "./audit"
@@ -47,6 +48,7 @@ import {
   sourcePaymentFields,
   mileageReadFields,
   physicalFields,
+  repairReadFields,
 } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { currentSettings } from "./settings"
@@ -78,6 +80,15 @@ const include = {
       },
     },
   },
+  repairs: {
+    orderBy: [{ sentDate: "asc" as const }, { id: "asc" as const }],
+    include: {
+      vendor: true,
+      payments: {
+        orderBy: [{ occurredDate: "asc" as const }, { id: "asc" as const }],
+      },
+    },
+  },
   mileage: {
     orderBy: [{ recordedDate: "asc" as const }, { id: "asc" as const }],
   },
@@ -87,7 +98,11 @@ const include = {
 } satisfies Prisma.PurchaseRecordInclude
 type Row = Prisma.PurchaseRecordGetPayload<{ include: typeof include }>
 type Cost = Row["costs"][number]
-type Payment = Row["payments"][number] | Cost["payments"][number]
+type Repair = Row["repairs"][number]
+type Payment =
+  | Row["payments"][number]
+  | Cost["payments"][number]
+  | Repair["payments"][number]
 const netPaid = (payments: readonly Payment[]) => {
   const cash = cashTotals(
     payments.map((p) => ({
@@ -195,8 +210,13 @@ function paymentDTO(p: Payment) {
   return {
     id: p.id,
     owner: {
-      type: "costId" in p ? ("COST" as const) : ("PURCHASE" as const),
-      id: "costId" in p ? p.costId : p.cycleId,
+      type:
+        "repairId" in p
+          ? ("REPAIR" as const)
+          : "costId" in p
+            ? ("COST" as const)
+            : ("PURCHASE" as const),
+      id: "repairId" in p ? p.repairId : "costId" in p ? p.costId : p.cycleId,
     },
     commandId: p.commandId,
     amount: p.amount.toString(),
@@ -227,6 +247,28 @@ const costAuth = (cost: Cost) => ({
   ...costDTO(cost),
   createdBy: cost.createdBy,
 })
+export function repairDTO(repair: Repair): PurchaseCycleDTO["repairs"][number] {
+  return {
+    id: repair.id,
+    revision: repair.revision,
+    vendorId: repair.vendorId,
+    request: repair.request,
+    sentDate: date(repair.sentDate),
+    ...(repair.returnedDate
+      ? {
+          returnedDate: date(repair.returnedDate),
+          summary: repair.summary!,
+          invoiceAmount: repair.invoiceAmount!.toString(),
+          invoiceDate: date(repair.invoiceDate!),
+        }
+      : {}),
+    payments: repair.payments.map(paymentDTO),
+  }
+}
+export const repairAuth = (repair: Repair) => ({
+  ...repairDTO(repair),
+  createdBy: repair.createdBy,
+})
 function physical(row: Row["vehicle"]): VehicleInput {
   return {
     engineNumber: row.engineNumber,
@@ -249,6 +291,7 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
     [
       ...row.payments,
       ...row.costs.flatMap((c) => c.payments),
+      ...row.repairs.flatMap((r) => r.payments),
       ...(row.disposal?.payments ?? []),
     ].map((p) => ({
       direction: p.direction as "IN" | "OUT",
@@ -298,7 +341,7 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
       ).toString(),
     },
     costs: row.costs.map(costDTO),
-    repairs: [],
+    repairs: row.repairs.map(repairDTO),
     mileage: row.mileage.map((m) => ({
       id: m.id,
       reading: m.reading,
@@ -312,7 +355,10 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
             currency: basis.currency,
             scale: 2 as const,
             purchase: row.purchasePrice.toString(),
-            repairs: "0",
+            repairs: sum(
+              row.repairs.map((r) => r.invoiceAmount ?? 0n),
+              C
+            ).toString(),
             additionalCosts: sum(
               row.costs.map((c) => c.amount),
               C
@@ -462,6 +508,136 @@ function visibleCost(
     delete projected.outstanding
   return projected
 }
+export function visibleRepair(actor: Actor, row: Row, repair: Repair) {
+  if (
+    !actor.ability.can(
+      "read",
+      subject("PurchaseRecord", auth(row)),
+      "repairs"
+    ) ||
+    !actor.ability.can("read", subject("RepairRecord", repairAuth(repair)))
+  )
+    return null
+  const value = repairDTO(repair)
+  const { redactedFields: unused, ...projected } = project(
+    actor.ability,
+    "RepairRecord",
+    repairAuth(repair)
+  )
+  void unused
+  delete projected.createdBy
+  if (
+    "payments" in projected ||
+    sourcePaymentFields.some((f) =>
+      actor.ability.can(
+        "read",
+        subject("RepairRecord", repairAuth(repair)),
+        `payments.${f}`
+      )
+    )
+  )
+    projected.payments = value.payments.map((p) => {
+      const output: Record<string, unknown> = {}
+      for (const field of sourcePaymentFields) {
+        if (
+          !actor.ability.can(
+            "read",
+            subject("RepairRecord", repairAuth(repair)),
+            `payments.${field}`
+          )
+        )
+          continue
+        const [first, second] = field.split(".")
+        const v = second
+          ? (p[first as keyof typeof p] as Record<string, unknown>)[second]
+          : p[first as keyof typeof p]
+        if (v === undefined) continue
+        if (second)
+          output[first] = { ...(output[first] as object), [second]: v }
+        else output[first] = v
+      }
+      return output
+    })
+  if (
+    "vendorId" in projected &&
+    !actor.ability.can("read", subject("RepairVendor", repair.vendor), "id")
+  )
+    delete projected.vendorId
+  return projected
+}
+const repairReadable = (
+  actor: Actor,
+  row: Row,
+  repair: Repair,
+  fields: string[]
+) =>
+  actor.ability.can("read", subject("PurchaseRecord", auth(row)), "repairs") &&
+  fields.every((f) =>
+    actor.ability.can("read", subject("RepairRecord", repairAuth(repair)), f)
+  )
+
+/** New repair populations are independently authorized in every consuming owner.
+ * Empty pre-repair contexts keep their accepted command/field requirements. */
+function requireRepairContributions(
+  actor: Actor,
+  row: Row,
+  chronology = false
+) {
+  if (!row.repairs.length) return
+  requireFields(actor.ability, "PurchaseRecord", "read", auth(row), ["repairs"])
+  for (const r of row.repairs)
+    requireFields(actor.ability, "RepairRecord", "read", repairAuth(r), [
+      "invoiceAmount",
+      "returnedDate",
+      "payments.amount",
+      "payments.direction",
+      ...(chronology ? ["sentDate"] : []),
+    ])
+}
+
+/** Commands and readiness consume the same complete basis/cash populations. */
+export function requireRepairFinancialSources(actor: Actor, row: Row) {
+  requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+    "financial.currency",
+    "financial.scale",
+    "financial.cashIn",
+    "financial.cashOut",
+    "financial.basis",
+    "purchasePrice",
+    "payments.amount",
+    "payments.direction",
+  ])
+  if (row.purchaseType === "LEASE_SETTLEMENT")
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "settlement.amount",
+      "settlement.cashToSeller",
+    ])
+  for (const c of row.costs) {
+    requireFields(actor.ability, "VehicleCost", "read", costAuth(c), [
+      "amount",
+      "payments.amount",
+      "payments.direction",
+    ])
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "costs.amount",
+      "costs.payments.amount",
+      "costs.payments.direction",
+    ])
+  }
+  requireRepairContributions(actor, row)
+  if (row.disposal?.payments.length) {
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "disposal",
+    ])
+    requireFields(
+      actor.ability,
+      "Disposal",
+      "read",
+      disposalAuth(row.disposal),
+      ["payments.amount", "payments.direction"]
+    )
+  }
+}
 
 function correctionSourceReadable(actor: Actor, row: Row) {
   const source = subject("PurchaseRecord", auth(row))
@@ -487,6 +663,22 @@ function correctionSourceReadable(actor: Actor, row: Row) {
           ]
         : []),
     ].every((f) => actor.ability.can("read", source, f)) &&
+    row.repairs.every(
+      (r) =>
+        actor.ability.can("read", subject("RepairVendor", r.vendor), "id") &&
+        actor.ability.can("read", subject("RepairVendor", r.vendor), "name") &&
+        repairReadable(actor, row, r, [
+          "vendorId",
+          "request",
+          "summary",
+          "invoiceAmount",
+          "invoiceDate",
+          "returnedDate",
+          "payments.amount",
+          "payments.direction",
+          "payments.reason",
+        ])
+    ) &&
     row.costs.every((c) =>
       [
         "category",
@@ -509,6 +701,27 @@ function correctionSourceReadable(actor: Actor, row: Row) {
 export function visiblePurchase(actor: Actor, row: Row) {
   const result = project(actor.ability, "PurchaseRecord", auth(row))
   const root = subject("PurchaseRecord", auth(row))
+  if (actor.ability.can("read", root, "repairs")) {
+    result.repairs = row.repairs.flatMap((r) => {
+      const value = visibleRepair(actor, row, r)
+      if (!value) {
+        result.redactedFields.push("repairs")
+        return []
+      }
+      for (const field of repairReadFields)
+        if (!repairReadable(actor, row, r, [field]))
+          result.redactedFields.push(`repairs.${field}`)
+      if (value.vendorId === undefined)
+        result.redactedFields.push("repairs.vendorId")
+      return [value]
+    })
+  }
+  const allRepairs = row.repairs.every((r) =>
+    repairReadable(actor, row, r, ["returnedDate", "invoiceAmount"])
+  )
+  const allRepairCash = row.repairs.every((r) =>
+    repairReadable(actor, row, r, ["payments.amount", "payments.direction"])
+  )
   if (row.disposal) {
     const disposal = actor.ability.can("read", root, "disposal")
       ? visibleDisposal(actor, row.disposal)
@@ -575,18 +788,22 @@ export function visiblePurchase(actor: Actor, row: Row) {
   const reasonsReadable = correctionSourceReadable(actor, row)
   if (result.financial) {
     const financial = result.financial as Record<string, unknown>
-    if (!allCosts)
-      for (const f of ["additionalCosts", "basis"]) {
+    if (!allCosts || !allRepairs)
+      for (const f of [
+        ...(!allCosts ? ["additionalCosts"] : []),
+        ...(!allRepairs ? ["repairs"] : []),
+        "basis",
+      ]) {
         delete financial[f]
         result.redactedFields.push(`financial.${f}`)
       }
-    if (!allCostCash)
+    if (!allCostCash || !allRepairCash)
       for (const f of ["cashIn", "cashOut", "net"]) {
         delete financial[f]
         result.redactedFields.push(`financial.${f}`)
       }
   }
-  if (!allCosts) {
+  if (!allCosts || !allRepairs) {
     delete result.basisVersions
     result.redactedFields.push("basisVersions")
   } else if (
@@ -683,7 +900,18 @@ export function visiblePurchase(actor: Actor, row: Row) {
                   : row.status !== "IN_STOCK"
               )
                 return false
-              if (name === "releaseStock" && row.available) return false
+              if (
+                name === "releaseStock" &&
+                (row.available ||
+                  (row.repairs.length > 0 &&
+                    !actor.ability.can("read", root, "repairs")) ||
+                  row.repairs.some(
+                    (r) =>
+                      !r.returnedDate ||
+                      !repairReadable(actor, row, r, ["returnedDate"])
+                  ))
+              )
+                return false
               const { action, fields } = stockCapability(name)
               return fields.every((f) =>
                 actor.ability.can(
@@ -772,12 +1000,132 @@ export function visiblePurchase(actor: Actor, row: Row) {
       }
     }
   }
-  if ("nextActions" in result)
+  if ("nextActions" in result) {
     result.nextActions = [
       ...(result.nextActions as string[]),
       ...availableMoneyActions(actor, row),
       ...availableCycleEdits(actor, row),
     ]
+    const canParent = (action: string) =>
+      actor.ability.can(action, root, "cycleId")
+    const canRepair = (
+      r: Record<string, unknown>,
+      action: string,
+      fields: string[]
+    ) =>
+      fields.every((f) =>
+        actor.ability.can(action, subject("RepairRecord", r), f)
+      )
+    const facts =
+      [
+        "id",
+        "revision",
+        "vehicleId",
+        "status",
+        "closedAt",
+        "purchaseDate",
+        "repairs",
+      ].every((f) => actor.ability.can("read", root, f)) &&
+      ["id", "identityRevision", "cycleId"].every((f) =>
+        actor.ability.can("read", v, f)
+      )
+    let financialSources = false
+    try {
+      requireRepairFinancialSources(actor, row)
+      financialSources = true
+    } catch (error) {
+      if (!(error instanceof CommandError)) throw error
+    }
+    if (
+      facts &&
+      row.acquisitionCommandId &&
+      !row.closedAt &&
+      row.status === "IN_STOCK" &&
+      row.vehicle.activePurchaseId === row.id &&
+      !row.repairs.some((r) => !r.returnedDate) &&
+      row.repairs.every((r) =>
+        repairReadable(actor, row, r, ["returnedDate"])
+      ) &&
+      canRepair({ createdBy: actor.userId }, "read", ["id", "revision"]) &&
+      canParent("update") &&
+      canRepair({ createdBy: actor.userId }, "create", [
+        "cycleId",
+        "vendorId",
+        "request",
+        "sentDate",
+      ])
+    )
+      (result.nextActions as string[]).push("sendRepair")
+    for (const repair of row.repairs) {
+      if (
+        !facts ||
+        !financialSources ||
+        !repairReadable(actor, row, repair, [
+          "id",
+          "revision",
+          "sentDate",
+          "returnedDate",
+          "invoiceAmount",
+          "payments.amount",
+          "payments.direction",
+        ])
+      )
+        continue
+      if (
+        !repair.returnedDate &&
+        !row.closedAt &&
+        row.vehicle.activePurchaseId === row.id &&
+        row.status === "IN_REPAIR" &&
+        canParent("update") &&
+        canRepair(repairAuth(repair), "update", [
+          "repairId",
+          "invoiceAmount",
+          "invoiceDate",
+          "returnedDate",
+          "summary",
+        ])
+      )
+        (result.nextActions as string[]).push("returnRepair")
+      if (
+        repair.returnedDate &&
+        canParent("pay") &&
+        canRepair(repairAuth(repair), "pay", [
+          "repairId",
+          "payment.amount",
+          "payment.date",
+          "payment.method",
+        ])
+      )
+        (result.nextActions as string[]).push("payRepair")
+      if (
+        repair.returnedDate &&
+        canParent("pay") &&
+        repairReadable(actor, row, repair, [
+          "payments.id",
+          "payments.owner.type",
+          "payments.owner.id",
+          "payments.date",
+          "payments.method",
+          "payments.reference",
+          "payments.reversalOf",
+        ]) &&
+        canRepair(repairAuth(repair), "pay", [
+          "sourceType",
+          "sourceId",
+          "paymentId",
+          "reason",
+        ]) &&
+        repair.payments.some(
+          (p) =>
+            p.direction === "OUT" &&
+            !p.reversalOf &&
+            !repair.payments.some((r) => r.reversalOf === p.id)
+        )
+      )
+        (result.nextActions as string[]).push("reversePayment")
+    }
+    result.nextActions = [...new Set(result.nextActions as string[])]
+  }
   if (
     "nextActions" in result &&
     row.acquisitionCommandId &&
@@ -851,7 +1199,25 @@ export function visibleVehicle(actor: Actor, row: Row) {
     )
     if (!Object.keys(result.identity as object).length) delete result.identity
   }
-  result.redactedFields = result.redactedFields.filter((f) => f !== "createdBy")
+  const inherited = [
+    "status",
+    "available",
+    "holdReason",
+    "listedPrice",
+    "financial",
+    "mileage",
+    "identity",
+    "identityRevision",
+    "repairs",
+  ]
+  result.redactedFields = [
+    ...new Set([
+      ...result.redactedFields.filter((f) => f !== "createdBy"),
+      ...purchase.redactedFields.filter((f) =>
+        inherited.some((root) => f === root || f.startsWith(`${root}.`))
+      ),
+    ]),
+  ]
   return result
 }
 export const loadPurchase = (tx: Tx, cycleId: string) =>
@@ -892,6 +1258,7 @@ function requireRef(expected: Dependency[], ref: Dependency) {
   if (supplied.revision !== ref.revision)
     throw new CommandError("STALE_REVISION", 409, false, [ref])
 }
+export { auth as purchaseAuth, requireRef }
 export async function recordPurchase(
   identity: Identity,
   raw: unknown
@@ -1330,6 +1697,23 @@ export async function executeStock(
         revision: row.vehicle.revision,
       },
     ]
+    // Empty legacy cycles consume no repair population or repair fields.
+    if (
+      row.repairs.length > 0 &&
+      (name === "releaseStock" || (name === "receiveStock" && !held))
+    ) {
+      requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+        "repairs",
+      ])
+      for (const repair of row.repairs)
+        requireFields(
+          actor.ability,
+          "RepairRecord",
+          "read",
+          repairAuth(repair),
+          ["returnedDate"]
+        )
+    }
     const invalidate: Applied["invalidate"] = [
       "inventory",
       "purchases",
@@ -1382,6 +1766,8 @@ export async function executeStock(
           : null
     const available =
       name === "releaseStock" || (name === "receiveStock" && !held)
+    if (available && row.repairs.some((r) => !r.returnedDate))
+      fail("OBLIGATION_OPEN")
     // A fresh no-change intent is not a mutation; an exact retry uses its receipt above.
     if (
       name !== "receiveStock" &&
@@ -1931,6 +2317,15 @@ function moneyAuthority(
   cost?: Cost
 ) {
   const { name, input } = intent
+  requireRepairContributions(actor, row, name === "editPurchase")
+  if (currentWrittenOff(row)) {
+    requireRepairFinancialSources(actor, row)
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "vehicleId",
+      "status",
+      "closedAt",
+    ])
+  }
   requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
     "id",
     "revision",
@@ -2127,11 +2522,13 @@ function moneyAuthority(
   }
 }
 function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
+  const closed = currentWrittenOff(row)
   if (
     !row.acquisitionCommandId ||
-    row.closedAt ||
-    row.vehicle.activePurchaseId !== row.id ||
-    !["PURCHASED", "IN_STOCK"].includes(row.status)
+    (!closed &&
+      (row.closedAt ||
+        row.vehicle.activePurchaseId !== row.id ||
+        !["PURCHASED", "IN_STOCK"].includes(row.status)))
   )
     return []
   const allowed = (intent: MoneyIntent, cost?: Cost) => {
@@ -2144,6 +2541,7 @@ function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
   }
   const result: CycleMoneyCommand[] = []
   if (
+    !closed &&
     allowed({
       name: "addCost",
       input: {
@@ -2156,6 +2554,14 @@ function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
     })
   )
     result.push("addCost")
+  let purchasePatch: MoneyInput<"editPurchase">["patch"] = closed
+    ? { purchasePrice: "1" }
+    : { purchaseDate: "", purchasePrice: "1", notes: null }
+  if (closed && row.purchaseType === "LEASE_SETTLEMENT") {
+    const { institutionNameSnapshot: unused, ...terms } = settlementDTO(row)!
+    void unused
+    purchasePatch = { settlement: terms }
+  }
   if (
     [
       "purchaseDate",
@@ -2171,7 +2577,7 @@ function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
       input: {
         cycleId: row.id,
         reason: "",
-        patch: { purchaseDate: "", purchasePrice: "1", notes: null },
+        patch: purchasePatch,
         cashCorrections: [],
       },
     })
@@ -2483,13 +2889,20 @@ export async function executeCycleMoney(
       }
     }
     for (const ref of refs) requireRef(envelope.expected, ref)
+    const closed = currentWrittenOff(row)
     if (
       !row.acquisitionCommandId ||
-      row.closedAt ||
-      row.vehicle.activePurchaseId !== row.id ||
       row.acquisitionKind !== "SUPPLIER" ||
       !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
-      !["PURCHASED", "IN_STOCK"].includes(row.status)
+      (closed
+        ? intent.name === "addCost" ||
+          (patch &&
+            Object.keys(patch).some(
+              (f) => !["purchasePrice", "settlement"].includes(f)
+            ))
+        : row.closedAt ||
+          row.vehicle.activePurchaseId !== row.id ||
+          !["PURCHASED", "IN_STOCK"].includes(row.status))
     )
       fail("INVALID_STATE")
     if (row.revision === 2147483647 || cost?.revision === 2147483647)
@@ -2624,6 +3037,7 @@ export async function executeCycleMoney(
       if (
         row.mileage.some((m) => date(m.recordedDate) < purchaseDate) ||
         row.costs.some((c) => date(c.incurredDate) < purchaseDate) ||
+        row.repairs.some((r) => date(r.sentDate) < purchaseDate) ||
         (row.receivedDate && date(row.receivedDate) < purchaseDate)
       )
         fail("INVALID_INPUT", 422)
@@ -2882,7 +3296,8 @@ export async function executeCycleMoney(
       // user-reachable aggregate boundary here, not as an arbitrary HTTP error.
       const total = after.costs.reduce(
         (total, cost) => total + cost.amount,
-        after.purchasePrice
+        after.purchasePrice +
+          after.repairs.reduce((n, r) => n + (r.invoiceAmount ?? 0n), 0n)
       )
       if (total > C) fail("MONEY_OVERFLOW", 422)
       await tx.cycleBasisVersion.create({
@@ -2898,7 +3313,10 @@ export async function executeCycleMoney(
           supersedesId: basis.id,
           components: {
             purchase: after.purchasePrice.toString(),
-            repairs: [],
+            repairs: after.repairs
+              .filter((r) => r.returnedDate)
+              .map((r) => ({ id: r.id, amount: r.invoiceAmount!.toString() }))
+              .sort((a, b) => a.id.localeCompare(b.id)),
             costs: after.costs.map((c) => ({
               id: c.id,
               amount: c.amount.toString(),
@@ -3007,7 +3425,12 @@ export async function purchaseQuery(
   if (name === "audit") {
     const parsed = listParams
       .extend({
-        type: z.enum(["Vehicle", "PurchaseRecord", "VehicleCost"]),
+        type: z.enum([
+          "Vehicle",
+          "PurchaseRecord",
+          "VehicleCost",
+          "RepairRecord",
+        ]),
         id,
       })
       .strict()
@@ -3018,30 +3441,43 @@ export async function purchaseQuery(
       input.type === "VehicleCost"
         ? await tx.vehicleCost.findUnique({ where: { id: input.id } })
         : null
+    const targetRepair =
+      input.type === "RepairRecord"
+        ? await tx.repairRecord.findUnique({ where: { id: input.id } })
+        : null
     const row =
       input.type === "PurchaseRecord"
         ? await load(tx, input.id)
-        : input.type === "VehicleCost"
-          ? targetCost
-            ? await load(tx, targetCost.cycleId)
+        : input.type === "RepairRecord"
+          ? targetRepair
+            ? await load(tx, targetRepair.cycleId)
             : null
-          : await tx.purchaseRecord.findFirst({
-              where: { vehicleId: input.id },
-              include,
-              orderBy: { cycleNumber: "desc" },
-            })
+          : input.type === "VehicleCost"
+            ? targetCost
+              ? await load(tx, targetCost.cycleId)
+              : null
+            : await tx.purchaseRecord.findFirst({
+                where: { vehicleId: input.id },
+                include,
+                orderBy: { cycleNumber: "desc" },
+              })
     if (!row) fail("NOT_FOUND", 404)
     const cost = row.costs.find((c) => c.id === input.id)
-    if (input.type === "VehicleCost")
+    const repair = row.repairs.find((r) => r.id === input.id)
+    if (input.type === "VehicleCost" || input.type === "RepairRecord")
       requireFields(actor.ability, "PurchaseRecord", "read", auth(row), ["id"])
     const visible =
       input.type === "PurchaseRecord"
         ? visiblePurchase(actor, row)
-        : input.type === "VehicleCost"
-          ? cost
-            ? visibleCost(actor, row, cost)
+        : input.type === "RepairRecord"
+          ? repair
+            ? visibleRepair(actor, row, repair)
             : null
-          : visibleVehicle(actor, row)
+          : input.type === "VehicleCost"
+            ? cost
+              ? visibleCost(actor, row, cost)
+              : null
+            : visibleVehicle(actor, row)
     if (!visible) fail("NOT_FOUND", 404)
     if (!visible.id) fail("FIELD_FORBIDDEN", 403)
     // Historical hold values (including duplicated stock audit reasons) inherit
@@ -3463,10 +3899,41 @@ export async function purchaseQuery(
         (c) => c.id === (input.data.cycleId ?? vehicle.activePurchaseId)
       ) ?? (!input.data.cycleId ? cycles[0] : undefined)
     if (!selected) fail("NOT_FOUND", 404)
+    const visible = visibleVehicle(actor, selected)
+    const visibleCycles = cycles.map((c) => visiblePurchase(actor, c))
+    const repairsVisible = visibleCycles.every((c) => Array.isArray(c.repairs))
     return {
-      ...visibleVehicle(actor, selected),
-      cycles: cycles.map((c) => visiblePurchase(actor, c)),
-      repairs: [],
+      ...visible,
+      cycles: visibleCycles,
+      ...(repairsVisible
+        ? {
+            repairs: visibleCycles
+              .flatMap((c) => {
+                if (!c.id || !Array.isArray(c.repairs)) return []
+                return (c.repairs as Record<string, unknown>[]).map(
+                  ({ revision: unused, payments: ignored, ...r }) => {
+                    void unused
+                    void ignored
+                    return { ...r, cycleId: c.id }
+                  }
+                )
+              })
+              .sort((a, b) =>
+                String((a as Record<string, unknown>).sentDate).localeCompare(
+                  String((b as Record<string, unknown>).sentDate)
+                )
+              ),
+          }
+        : {}),
+      redactedFields: [
+        ...new Set([
+          ...visible.redactedFields,
+          ...(!repairsVisible ||
+          visibleCycles.some((c) => c.redactedFields.includes("repairs"))
+            ? ["repairs"]
+            : []),
+        ]),
+      ],
     }
   }
   const parsed = listParams
