@@ -1,6 +1,10 @@
 # Evidence index
 
-## Current REPAIR612 frozen/released — containing LOCAL REVIEW assembly only
+## Current f37 REJECTED / T08-P2-001 OPEN — correction active
+
+**[Parent rejection of EXACTf37 / completed distinct REQUEST_CHANGES / one P2 / safe anchors, actual proof and unreached clauses](T08-f37a336-rejection-attributed.md):** reviewer stopped/retained/not running; R022/R023 FAIL, potential original REPR-01/02/03/05+TPRT-05 KEEP_U. Parent ACTUALLY resumed original author ses_e7376ed96ffe2a8RsopfGvBwgI in background SOLE ACTIVE shared CORRECTION owner from rejectedf37/new owned path+HEAD UNKNOWN; minimal authorization-order seam/test-first four-owner proof only,18SQL/v14 frozen/no broader authority. Old612 seals preserved; no corrected target/acceptance/promotion. SAME genuine runtime/source now advancedf37/original prep+erratum immutable; future parent-verified ONE NEW correction assembly and same-verifier P2 closure+ALL unreached proof required. Source/full matrix31/103/frozen scopes/history/primaryc462/G2d0/G3–G6 pending unchanged. Prior no-writer/standing-by/running statuses below describe historical checkpoints.
+
+## Previous frozen612 assembly / f37 review-dispatch snapshot
 
 **[Ordinary recordse2+frozen612 assembly / complete external source-union maps / package anchors and precise parent attribution](T08-612e09c-review-assembly.md):** FROZEN SOURCE / SHARED OWNERSHIP RELEASE ACK, no active shared writer.48 source paths+10 records paths/zero overlap; app/tests/schema18SQL/registry14/grants/contracts/packages/native/PWA/authored ops exact612. Entire matrix byte-exacte2:31 LOCAL103 U134/all bindings; full scopes/history/failures retained. AUTHOR-PASS ONLY/not repair acceptance/RepairVendor PENDING_DOMAIN/no promotion. Distinct reviewer READY with BOTH original161/166+timestamp44/48 seals, standing by/NOT review-dispatched; parent verifies returned ONE FINAL COMBINED containing target before explicit dispatch, not source-only612 or later docs-only substitute. Primaryc462/humanG2d0/G3–G6 pending/protected refs+named dirty fingerprints unchanged; no integration runtime/FF/delegation. Prior sole-active/UNKNOWN/proof-pending entries below are historical snapshots.
 

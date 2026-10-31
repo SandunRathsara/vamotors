@@ -1,6 +1,12 @@
 # Full-v1 execution handoff — LOCAL implementation; deployment deferred
 
-## Current REPAIR612 frozen/released — containing LOCAL REVIEW assembly only
+## Current f37 REJECTED / T08-P2-001 OPEN — original author correcting
+
+**Parent REJECTS EXACT f37a336c3e8aeb85b9082547eae3d3004a9c8f6e/tree79485bf5819c245447e35216bb1510891685231a.** Distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 **COMPLETED REQUEST_CHANGES**, one reproduced **P2 T08-P2-001 / R022-R023 FAIL**, stopped/retained/not running. [Attributed rejection, both-root SEND-only receipt-oracle proof, safe seals and unreached scope](evidence/T08-f37a336-rejection-attributed.md). No acceptance/promotion; this docs descendant is not corrected source or a review target.
+
+**Parent ACTUALLY resumed original author ses_e7376ed96ffe2a8RsopfGvBwgI in background as SOLE ACTIVE shared CORRECTION owner**, new owned worktree/branch from rejectedf37; **new path/HEAD UNKNOWN until return**, no other writer. Minimal trusted current repairReplay authorization BEFORE digest mismatch in shared executeRepair, committed test-first correct seam/own red→green four owners/focused proof/freeze+release only; no schema/registry/grants/contract-wide authority,18SQL/v14 remain exact. Old612 worktree/builds/seals remain frozen. SAME reviewer genuine runtime/source NOW advancedf37, original preparation+erratum seals historical/immutable, not intactc462; retain for future corrected review. Parent must verify a later frozen correction assembly before assigning ONE NEW target to the same distinct verifier for P2 closure+ALL unreached clauses. Matrix31 LOCAL103 U134/RepairVendor PENDING_DOMAIN/primaryc462/humanG2d0/G3–G6 pending unchanged; prior no-writer/RUNNING-review/standing-by labels below are historical.
+
+## Previous frozen612 assembly / f37 review-dispatch snapshot
 
 **REPAIR author ses_e7376ed96ffe2a8RsopfGvBwgI returned FROZEN SOURCE / SHARED OWNERSHIP RELEASE ACK** at **612e09cb93ce78b59e77cfe116fc902f7eb2711a**, tree **875f202d9f31799f2516ed7dc3272ca02d99a25a**; **no active shared writer remains**. [Assembly, package anchors, precise parent attribution and exact source union](evidence/T08-612e09c-review-assembly.md). Ordinary no-FF merge into clean recordse2 is conflict-free:48 source paths/10 records paths/zero overlap; application/tests/schema18SQL/registry14/grants/contracts/packages/native/PWA/authored operations are exact612 bytes/modes. This is **AUTHOR-PASS ONLY / REVIEW ONLY**, not repair acceptance, capability READY, original-ID promotion or primary promotion. Earlier sole-active/UNKNOWN/remaining-proof statuses below are historical, not current ownership.
 
