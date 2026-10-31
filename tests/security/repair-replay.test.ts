@@ -6,7 +6,7 @@ import type { Tx } from "../../lib/server/db"
 import { abilityFor, registry } from "../../lib/server/permissions"
 import { repairReplay } from "../../lib/server/repairs"
 import { notificationQuery } from "../../lib/server/notifications"
-import type { loadPurchase } from "../../lib/server/purchases"
+import { visiblePurchase, type loadPurchase } from "../../lib/server/purchases"
 
 vi.mock("server-only", () => ({}))
 
@@ -109,6 +109,56 @@ function fixture(name: string, withCash = true) {
 }
 
 describe("repair receipt recovery shares current authority, not old state", () => {
+  it("keeps empty repair release legacy-readable while authorizing every real repair independently", () => {
+    const f = fixture("sendRepair", false)
+    f.row.acquisitionCommandId = command
+    f.row.closedAt = null
+    f.row.status = "IN_STOCK"
+    f.row.vehicle.activePurchaseId = f.row.id
+    const repairs = f.row.repairs
+    f.row.repairs = []
+    const limited: Grant[] = [
+      {
+        subject: "PurchaseRecord",
+        action: "read",
+        fields: [
+          "id",
+          "revision",
+          "status",
+          "available",
+          "receivedDate",
+          "holdReason",
+          "nextActions",
+        ],
+      },
+      {
+        subject: "Vehicle",
+        action: "read",
+        fields: ["id", "identityRevision"],
+      },
+      { subject: "PurchaseRecord", action: "release", fields: ["cycleId"] },
+    ]
+    expect(visiblePurchase(actor(limited), f.row).nextActions).toContain(
+      "releaseStock"
+    )
+    f.row.repairs = repairs
+    expect(visiblePurchase(actor(limited), f.row).nextActions).not.toContain(
+      "releaseStock"
+    )
+    const repairReads: Grant[] = [
+      ...limited,
+      { subject: "PurchaseRecord", action: "read", fields: ["repairs"] },
+      { subject: "RepairRecord", action: "read", fields: ["returnedDate"] },
+    ]
+    expect(visiblePurchase(actor(repairReads), f.row).nextActions).toContain(
+      "releaseStock"
+    )
+    f.row.repairs[0].returnedDate = null
+    expect(
+      visiblePurchase(actor(repairReads), f.row).nextActions
+    ).not.toContain("releaseStock")
+  })
+
   it.each(["sendRepair", "returnRepair", "payRepair", "reversePayment"])(
     "recovers %s after later revisions/closure/vendor archival without any old session or business write",
     async (name) => {

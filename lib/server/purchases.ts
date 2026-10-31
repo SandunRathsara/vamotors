@@ -903,7 +903,8 @@ export function visiblePurchase(actor: Actor, row: Row) {
               if (
                 name === "releaseStock" &&
                 (row.available ||
-                  !actor.ability.can("read", root, "repairs") ||
+                  (row.repairs.length > 0 &&
+                    !actor.ability.can("read", root, "repairs")) ||
                   row.repairs.some(
                     (r) =>
                       !r.returnedDate ||
@@ -1696,7 +1697,11 @@ export async function executeStock(
         revision: row.vehicle.revision,
       },
     ]
-    if (name === "releaseStock" || (name === "receiveStock" && !held)) {
+    // Empty legacy cycles consume no repair population or repair fields.
+    if (
+      row.repairs.length > 0 &&
+      (name === "releaseStock" || (name === "receiveStock" && !held))
+    ) {
       requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
         "repairs",
       ])

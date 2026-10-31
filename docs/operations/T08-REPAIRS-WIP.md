@@ -1,5 +1,61 @@
 # T08 direct REPAIR — ACTIVE accepted-c462 reconciliation
 
+## Parent-approved completion adapters and empty-repair stock regression
+
+Parent independently verified the two original b7fd launcher exit1 receipts and
+the recovery/blocked-closeout hashes, closing the missing-notification blocker.
+All original logs, partial19-group settlement histories and missing child exits
+remain retained. Subsequent907 source/proof is separate: genuine settlement20 is
+uninterrupted effective-driver exit0; fresh settlement is explicitly composite19+1.
+All previously unblocked required cases and both final5-file grids passed, with
+all16 own PostgreSQL roots stopped before this authorized continuation.
+
+Parent then authorized only two external test-premise changes: stock line609 adds
+sendRepair to the incomplete-input422 list, retaining other unsupported404 controls;
+attachment line445 requires actual18 rather than17, retaining every original
+checksum/runtime assertion and additionally checking exact17accepted+002 names/
+bytes and registry14. Original committed drivers stay byte-exact. Parent also
+authorized one bounded manual capacity renewal of only the two retained final-C
+policies. Actual review found about50.6GB free, private-file use15376/15462 bytes
+and20/22 entries against unchanged256MiB/4GiB-reserve/10000 limits. Exact expired
+policies were copied immutably; only reviewedThrough changed to
+2026-10-31T10:21:19.136Z (six hours). No upload-intent expiry, clock, other policy,
+limit or root identity changed. Receipt
+`20261031T042118906073Z-approved-manual-final-c-capacity-policy-review.json`.
+
+Both approved stock16 runs passed the adapted fifth group, then found a real
+product403 at the unchanged limited-grant positive receiveStock control. The
+cycle has NO repairs, but the new JS guard unconditionally demanded a parent
+repairs read grant for RELEASE receipt; the nextActions projection similarly
+hid legacy release. SQL and existing financial-contributor helpers already make
+their repair-population checks conditional on actual repair rows. Retained REDs:
+`20261031T042252959291Z-approved-fresh-stock16.json`,
+`20261031T042252959380Z-approved-genuine-stock16.json`, and the minimal real
+retained-row probe
+`20261031T062304718389Z-approved-stock-empty-repair-authority-red.json`.
+The probe used only the existing exact limited test role, with audited temporary
+assignment and exact restoration, never an original role-definition edit.
+
+The smallest correction gates those two repair-read checks on a nonempty actual
+repair collection. Nonempty collections still require the parent grant, each
+child returnedDate grant, and no open repair; no hidden/partial repair fact is
+treated as zero. A projection unit covers empty legacy release, hidden nonempty
+repair denial, authorized returned repair and open-repair blocking. Its RED
+assertion was captured, but the initial Vitest fork teardown timed out without a
+terminal wrapper receipt; bounded own-CWD verification afterward found no test
+worker. The later focused GREEN exited0. A new fixture typing error is also
+retained and corrected by preserving the existing typed repair-array reference.
+Migration002, all17 accepted SQL, schema/client and registry bytes are unchanged.
+
+The first attachment adapter launches failed before app startup because relative
+ESM import rewriting also matched its added registry child-process source string.
+Both failures and semantic copies/diffs are retained; the loader needs only an
+absolute file-URL for that child import, not another semantic adaptation.
+New source checkpoint/build binding, affected stock/repair checks, full remaining
+attachment proofs, exact membership restoration/useful nonadmin controls and NEW
+all-linked-file restart grids remain required before sealing. No source freeze,
+shared ownership release, feature acceptance or READY promotion is declared here.
+
 ## b7fd terminal campaigns and typed-owner compatibility correction
 
 Checkpoint `b7fd1d7eb3cc681725499b30e0a23e7bd501f5fa`, tree
