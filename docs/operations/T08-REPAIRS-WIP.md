@@ -1,5 +1,77 @@
 # T08 direct REPAIR — ACTIVE accepted-c462 reconciliation
 
+## Candidate4f retained failure and originating-status correction
+
+Active checkpoint `4f1765c9fc55790abcb7658097a20f8c77b7c9fd`, tree
+`1a483c77514d985791971ee096696619df4c3d38`, retained all preceding work with
+acceptedc462 ancestry. NEW `final-fresh-a` actually installed18/v14. The original
+new genuine exactc462 source was explicitly fast-forwarded to4f, its real client
+regenerated and its same nonempty17/v13 DB actually upgraded18/v14 and repeated.
+Both strict preservation checks passed: old rows/immutable permissions/conditions/
+memberships/compound ceilings/functions/ACL/files retained; exactly four new Admin
+links/one Admin revision, migration+setup AdminGuard delta8 and inert repeat delta1:
+`20261031T002459818148Z-genuine-c462-upgrade18-preservation.json`,
+`20261031T002648274113Z-genuine-c462-repeat18-preservation.json`.
+Both frozen4f production builds passed, as did its full168 units, contracts20,
+SW5, native Prisma validation and full baseline lint0. These are honest4f facts,
+NOT proof for any later changed002 bytes.
+
+The two finite candidate plans ran through real repair lifecycle/privacy/evidence/
+exact correction/contributor/recovery/observed races/closed write-off liability/
+closed-settlement and accepted approval P1–P8/security/SQL campaigns successfully.
+Both stopped at the same retained approval UI driver failure: its original
+unscoped `getByText("85.00")` now matches original AND current net-loss displays.
+No completed job was polled/restarted or any failed row/evidence discarded.
+The original accepted test file/assertions remain untouched. An append-only
+effective driver scopes that exact85.00 assertion by the ORIGINAL `Net loss`
+label and additionally asserts CURRENT85.00, keeping all8 groups/actor premises.
+The first external launcher failed package resolution before app startup and is
+retained; v2 resolves the actual CWD's own ESM package. Full8-group native D UI
+then passed:
+`20261031T003902231104Z-reconcile-d-approval-ui-semantic-v2-full.json`.
+
+A separate real probe confirmed a substantive remaining002 issue, not a selector
+failure: a newly created user with accepted Vehicle.read condition IN_STOCK was
+authorized by JS to dispatch actual held stock, but SQL checked the physical
+Vehicle row (which has NO status column), returning500/REPAIR_READ_AUTHORITY_REQUIRED.
+Receipt `20261031T003141797739Z-final-fresh-a-vehicle-status-read-red-probe.json`.
+Both4f candidate roots/apps/PG are now stopped with data/failures retained. Their
+installed migration ledgers were NOT edited, and they cannot be adopted as final
+proof for the correction.
+
+Current002 uses the actual server-resolved cycle's originating OLD.status in the
+Vehicle authorization projection, matching JS vehicleAuth(row), never a client
+status or GUC. New closed financial branches also check the same current Vehicle,
+settlement/payee/reversal and selected child/source read populations consumed by
+their JS owners. All17 accepted SQL remain untouched; allocation/count stay002/
+18 and registry14. Accepted requester helper/commandStatus guard ordering and
+ReadCommitted-only recovery semantics are unchanged.
+
+NEW diagnostic D installed that source and passed all four conditional execution/
+current-replay/status/return/pay groups with a NEW status-conditioned role/user;
+no baseline role was altered. Old-state execution succeeds, lost CURRENT authority
+denies old receipt recovery without effects, then explicitly changed current
+authority recovers the identical old key/body without rerunning old CAS/state:
+`20261031T003646772675Z-reconcile-d-originating-conditions-green.json`.
+Real closed repair/cost/purchase guards and settlement-only nonadmin correction
+also passed:
+`20261031T003731269320Z-reconcile-d-real-writeoff-current-guards.json`,
+`20261031T003946987519Z-reconcile-d-closed-finance-current-source-guards.json`.
+Current types/new-driver lint passed; D app/PG stopped, data retained
+(`20261031T004200947657Z-reconcile-d-stop-retain.json`).
+
+To avoid changing installed002 or adopting old18 backmarkers, a NEW independent
+own `final-b/genuine-c462-source` was created at EXACTc462 with separate offline
+dependencies/real parent client; NEW `final-b/genuine-c462-native` installed17/v13.
+At allocation its nonempty preparation was next; no passed upgrade was inferred.
+The subsequent NEW B17/v13 baseline actually completed, with all named histories,
+roles, current approvals/disposals, replay and FINAL/staged/INIT files retained:
+`20261031T004235916383Z-candidate-b-genuine-nonempty-c462-fixture.json`.
+Its app is stopped, native data remains17/v13 with no repair table/marker; no B
+upgrade/final proof is claimed before explicit source promotion and migration.
+All earlier32aa/2d/4f packages/history/roots/failures remain preserved. Source
+ownership remains ACTIVE; no final shared release, acceptance or READY promotion.
+
 ## Post-reconciliation active checkpoint (not a final handback)
 
 All finite jobs from this reconciliation boundary are terminal. Current production
