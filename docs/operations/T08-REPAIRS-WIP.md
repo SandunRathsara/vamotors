@@ -1,5 +1,144 @@
 # T08 direct REPAIR — ACTIVE accepted-c462 reconciliation
 
+## Post-reconciliation active checkpoint (not a final handback)
+
+All finite jobs from this reconciliation boundary are terminal. Current production
+build/types passed on C
+(`20261031T001847442884Z-accepted-reconcile-c-current-build.json`); current full
+units passed **21 files/168 tests**
+(`20261031T002204216007Z-accepted-reconcile-c-current-full-units.json`), all43
+owned TS/TSX lint passed
+(`20261031T002204217699Z-accepted-reconcile-c-current-owned-lint.json`), and all
+owned formatting passed
+(`20261031T002120276150Z-accepted-reconcile-current-owned-format.json`). No final
+full-baseline/contracts/SW/native-Prisma/frozen-source quality claim is made yet.
+
+Additional B diagnostic campaigns passed: six observed current-authority waits,
+including shared commandStatus revocation/deactivation under actual AdminGuard
+blocking PID observations, and existing-money-owner repair contributor checks:
+`20261031T000831863149Z-accepted-reconcile-b-repair-status-observed-races.json`,
+`20261031T000946073196Z-accepted-reconcile-b-consumed-current-owner.json`.
+The actual A/C/C+1 campaign passed all five groups using100 real returned invoices
+of A plus acquisition99 to reach C, not seeded totals;101st real zero invoice is
+lawful, invoice/addCost C+1 and gross-cash C+1 reject atomically. Real immutable
+opposites reach incoming C, then actual proposed write-off proceeds C+1 fail
+without approval/close/cash residue:
+`20261031T001150612634Z-accepted-reconcile-b-real-a-c-plus-one.json`.
+
+B then retained a further real closed-settlement failure: a new nonadmin with
+`patch.settlement` but no invented `patch.purchasePrice` grant passed the JS
+originating-input check, but the new SQL helper incorrectly demanded a price
+grant for the settlement-derived total and returned500. Receipt
+`20261031T001653489094Z-accepted-reconcile-b-closed-settlement-field-red.json`.
+The current helper instead checks the actual changed settlement input leaves;
+closed readiness uses that same settlement contribution. NEW diagnostic C
+installed18/v14, built current source and passed the real nonadmin closed lease
+restatement/readiness/immutable-original-disposal proof:
+`20261031T002042282691Z-accepted-reconcile-c-closed-settlement-field-green.json`.
+No old role/user was altered for that test, and neither installed A/B SQL ledger
+nor indexed evidence was rewritten.
+
+The NEW genuine parent preparation actually passed at EXACTc46217/v13 with its
+separate genuine client, all acquisition channels, financial/physical/mileage/
+listed/cost/reversal/settlement/rates/quote facts, pending/rejected approvals,
+actual CURRENT zero/positive write-offs, replay/notifications, useful nonadmin
+and compound ceilings, FINAL CSV/XLSX and separate staged/INIT intents. Its full
+row hashes, immutable permissions/conditions/memberships, function definitions/
+ACLs and private-file hash/modes are captured in `parent-c462-before.json`:
+`20261031T000623435120Z-genuine-c462-nonempty-parent-fixture.json`.
+All linked parent FINAL-file query/GET200/403/404/401 checks passed. This is a
+genuine nonempty **parent baseline only**, not a completed upgrade. It still has
+17 installed SQL/v13 and NO RepairRecord table or repair migration marker.
+
+New upgrade/repeat and graceful app+PG+file-adapter restart drivers are authored
+and type/lint checked, **not executed as final proof**. They compare native JSON
+text for large financial histories, preserve original/current facts and known
+mutable AdminGuard deltas, and enumerate every linked FINAL file plus all staged/
+INIT bytes/modes. Final source promotion, actual18/v14 upgrade/repeat, NEW final
+fresh root, named regressions/full UI and complete final receipts remain pending.
+
+Every own PREBASE A–F, reconciliation A–C and genuine-parent app/PG service is now
+stopped with all data/evidence retained. Latest stops:
+`20261031T001759959055Z-accepted-reconcile-b-stop-retain.json`,
+`20261031T002204218653Z-accepted-reconcile-c-stop-retain.json`,
+`20261031T000740128781Z-genuine-c462-parent-stop-retain.json`.
+This safe source checkpoint does NOT release shared ownership or declare a final
+freeze/repair acceptance/READY promotion. Parent alone accepts.
+
+## Accepted-base semantic reconciliation (active; not frozen)
+
+The additive exact-base merge is committed as
+`ab8947788807ca4e10585c37c482816a25f4a68a`, tree
+`0837113db91f3d540c45c38897d0abd6f39977a2`, with both parents
+`2d45b54dbc4e2a4220f7f26bc9c8cce867d8d279` and EXACT acceptedc462. No checkpoint,
+failure, old sealed package, accepted SQL or incoming record history was dropped.
+Merge types/161 units/format/diff passed; no merge remains in progress.
+
+Current un-frozen source now reconciles002's accepted ApprovalRequest read type,
+Disposal cash branch and WRITTEN_OFF capability; protected Admin additions use
+the accepted bounded owner-only temporary guard bodies with exact restoration,
+never disabled triggers or a persistent maintenance bypass. Original17 migration
+files remain untouched. New closed financial checks are invoker helpers called
+only by trigger-definer graphs, with no runtime/public EXECUTE. They require an
+actual CURRENT approved Disposal and preserve its original basis/terms, closed
+status, inactive physical pointer, identity/mileage/listed fields. Supported old
+repair cash and existing reasoned editCost/editPurchase owners retain their
+independent complete receipt/read-version/audit/basis/payment guards; no closed
+new-cost, note, physical, asking, mileage, send, return or reopening waiver exists.
+
+Direct successful repair replay and accepted commandStatus now share one
+current-authority path reconstructed from immutable send/return/cash facts. No
+old CAS/state or originating session is rerun/required. Accepted commandStatus
+still locks AdminGuard BEFORE currentActor and alone uses ReadCommitted. Accepted
+requester helper remains semantically unchanged. New notices use typed
+`RepairRecord` and the accepted reader's `/repairs/[id]` href/nonfinancial message.
+Actual open repair blocks write-off and every returned invoice contributes to
+current basis, including unpaid invoices and existing money-owner rebuilds.
+
+New diagnostic roots `reconcile-native-a` and `reconcile-native-b` are NOT final
+fresh proof or genuine parents. A installed18 and passed real open-repair block,
+return-staled old proposal, fresh actual approval and archived old-vendor payment
+after real close. It then retained an actual editCost failure: the new SQL helper
+incorrectly selected a nonexistent PurchasePayment.createdBy. Fixed source uses
+that immutable payment's receipt actor, retaining CostPayment's own creator.
+Receipt `20261031T000234450413Z-accepted-reconcile-a-real-writeoff-liability.json`;
+A app/PG are stopped, data/failure retained. No installed SQL ledger was edited.
+
+B is a separate freshly installed18/v14 diagnostic. The full real write-off/
+old-liability/native closed-cost+purchase restatement/exact replacement/immutable
+physical guard/new-auth direct+commandStatus campaign passed all seven groups:
+`20261031T000349187294Z-accepted-reconcile-b-real-writeoff-liability.json`.
+Original Disposal basis11500 remains immutable while current reasoned basis moves
+11500→11700→11800; archived old liability cash4+6 and exact opposite plus distinct
+replacement preserve actual dates and Disposal proceeds in gross cash. No fake
+terminal SQL seed/reopening is used. B's actual360/1920 UI lifecycle also passed
+(`20261031T000417934401Z-accepted-reconcile-b-ui-lifecycle.json`), as did eight
+privacy/paired-recipient/10 durable-fault groups
+(`20261031T000459807517Z-accepted-reconcile-b-repair-privacy-seed-supplied.json`).
+An omitted driver seed argument failed before startup and remains retained;
+two earlier replay unit fixture expectation/null-field failures also remain
+retained. Corrected replay/notification focused units and current types passed;
+`20261031T000128643955Z-accepted-reconcile-a-build.json` passed production build.
+These are diagnostic source-bound facts, not final/fresh-upgrade acceptance.
+
+NEW own detached exactc462 source was provisioned at private
+`genuine-c462-source` with its own offline dependencies and genuine parent client;
+NEW native `genuine-c462-native` installed17/v13, and exact parent production
+build passed. No repair migration/table/marker has been applied there. A dedicated
+parent driver has now prepared all named actual nonempty histories, real approvals/
+CURRENT disposals, useful nonadmin/compound ceilings and retained FINAL CSV/XLSX/
+staged/INIT files and full baseline hashes/functions/ACL/file modes as recorded above.
+Do not call this a passed upgrade: later explicit final
+source promotion/migration/repeat/restart/proof are still pending. Neither this
+source nor its DB belongs to the independent verifier or another author.
+
+Still outstanding: final current-source security/bounds/observed commandStatus
+waits/fault/UI campaigns and all affected accepted owner regressions; genuine
+nonempty baseline→frozen final18/v14/repeat and NEW final fresh18/v14; full actual
+app+PG+file-adapter restart/new-auth facts and ALL-file GET grids; final quality,
+criteria mapping/seals/full SHA/tree/identity-checked stops/release ACK. Ownership
+remains ACTIVE. No acceptance, READY promotion or shared release is declared.
+
 ## Exact-base merge overlap resolution
 
 Safe checkpoint `2d45b54dbc4e2a4220f7f26bc9c8cce867d8d279`, tree

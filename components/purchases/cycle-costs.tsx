@@ -62,7 +62,7 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
       supplierSearch,
       supplierPage,
     ],
-    enabled: name === "editPurchase",
+    enabled: name === "editPurchase" && !snapshot.closedAt,
     retry: false,
     queryFn: () =>
       privateRequest<{ data: { data: VisibleParty[]; total: number } }>(
@@ -247,7 +247,9 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
             cycleId: snapshot.id,
             reason: draft.reason,
             patch: {
-              purchaseDate: draft.purchaseDate,
+              ...(!snapshot.closedAt
+                ? { purchaseDate: draft.purchaseDate }
+                : {}),
               ...(draft.purchaseType !== "LEASE_SETTLEMENT"
                 ? { purchasePrice: parseMajor(draft.purchasePrice ?? "") }
                 : {}),
@@ -263,7 +265,9 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
                     draft.purchaseType !== "LEASE_SETTLEMENT"
                   ? { settlement: null }
                   : {}),
-              notes: draft.notes?.trim() ? draft.notes : null,
+              ...(!snapshot.closedAt
+                ? { notes: draft.notes?.trim() ? draft.notes : null }
+                : {}),
             },
             cashCorrections: corrections.map((c) => ({
               paymentId: c.paymentId,
@@ -526,104 +530,115 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
             )}
             {name === "editPurchase" && (
               <>
-                <Label htmlFor="cycle-money-purchaseType">
-                  Corrected purchase type *
-                </Label>
-                <select
-                  id="cycle-money-purchaseType"
-                  required
-                  value={draft.purchaseType ?? ""}
-                  onChange={(e) => change("purchaseType", e.target.value)}
-                  className="min-h-11 w-full rounded-md border bg-background px-3"
-                >
-                  <option value="CASH">Cash</option>
-                  <option value="BRAND_NEW">Brand-new</option>
-                  <option value="LEASE_SETTLEMENT">Lease settlement</option>
-                </select>
-                <Label htmlFor="cycle-money-supplier-search">
-                  Search corrected active supplier
-                </Label>
-                <Input
-                  id="cycle-money-supplier-search"
-                  value={supplierSearch}
-                  onChange={(e) => {
-                    setSupplierSearch(e.target.value)
-                    setSupplierPage(1)
-                  }}
-                  maxLength={200}
-                  className="min-h-11 text-base"
-                />
-                {suppliers.isError && (
-                  <p role="alert">
-                    Supplier read failed.{" "}
+                {snapshot.closedAt && (
+                  <p>
+                    Closed-cycle correction: only financial purchase or
+                    settlement terms and explicit cash corrections may change.
+                    The original disposal snapshot, physical identity and closed
+                    status remain unchanged; a reason is required.
+                  </p>
+                )}
+                <fieldset disabled={!!snapshot.closedAt} className="space-y-3">
+                  <Label htmlFor="cycle-money-purchaseType">
+                    Corrected purchase type *
+                  </Label>
+                  <select
+                    id="cycle-money-purchaseType"
+                    required
+                    value={draft.purchaseType ?? ""}
+                    onChange={(e) => change("purchaseType", e.target.value)}
+                    className="min-h-11 w-full rounded-md border bg-background px-3"
+                  >
+                    <option value="CASH">Cash</option>
+                    <option value="BRAND_NEW">Brand-new</option>
+                    <option value="LEASE_SETTLEMENT">Lease settlement</option>
+                  </select>
+                  <Label htmlFor="cycle-money-supplier-search">
+                    Search corrected active supplier
+                  </Label>
+                  <Input
+                    id="cycle-money-supplier-search"
+                    value={supplierSearch}
+                    onChange={(e) => {
+                      setSupplierSearch(e.target.value)
+                      setSupplierPage(1)
+                    }}
+                    maxLength={200}
+                    className="min-h-11 text-base"
+                  />
+                  {suppliers.isError && (
+                    <p role="alert">
+                      Supplier read failed.{" "}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void suppliers.refetch()}
+                      >
+                        Retry corrected suppliers
+                      </Button>
+                    </p>
+                  )}
+                  <Label htmlFor="cycle-money-supplier">
+                    Corrected supplier *
+                  </Label>
+                  <select
+                    id="cycle-money-supplier"
+                    value={draft.supplierId ?? ""}
+                    onChange={(e) => {
+                      change("supplierId", e.target.value)
+                      setSupplier(
+                        suppliers.data?.data.data.find(
+                          (p) => p.id === e.target.value
+                        ) ?? null
+                      )
+                    }}
+                    className="min-h-11 w-full rounded-md border bg-background px-3"
+                  >
+                    <option value="">
+                      Keep current supplier
+                      {snapshot.seller?.id ? "" : " (identity unavailable)"}
+                    </option>
+                    {snapshot.seller?.id &&
+                      !suppliers.data?.data.data.some(
+                        (p) => p.id === snapshot.seller?.id
+                      ) && (
+                        <option value={snapshot.seller.id}>
+                          {snapshot.seller.name ?? "Current supplier"}
+                        </option>
+                      )}
+                    {suppliers.data?.data.data
+                      .filter((p) => p.id && p.revision && p.active)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name ?? "Name unavailable"} ·{" "}
+                          {p.directory?.category ?? "Category unavailable"}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => void suppliers.refetch()}
+                      disabled={supplierPage === 1}
+                      onClick={() => setSupplierPage(supplierPage - 1)}
                     >
-                      Retry corrected suppliers
+                      Previous corrected suppliers
                     </Button>
-                  </p>
-                )}
-                <Label htmlFor="cycle-money-supplier">
-                  Corrected supplier *
-                </Label>
-                <select
-                  id="cycle-money-supplier"
-                  value={draft.supplierId ?? ""}
-                  onChange={(e) => {
-                    change("supplierId", e.target.value)
-                    setSupplier(
-                      suppliers.data?.data.data.find(
-                        (p) => p.id === e.target.value
-                      ) ?? null
-                    )
-                  }}
-                  className="min-h-11 w-full rounded-md border bg-background px-3"
-                >
-                  <option value="">
-                    Keep current supplier
-                    {snapshot.seller?.id ? "" : " (identity unavailable)"}
-                  </option>
-                  {snapshot.seller?.id &&
-                    !suppliers.data?.data.data.some(
-                      (p) => p.id === snapshot.seller?.id
-                    ) && (
-                      <option value={snapshot.seller.id}>
-                        {snapshot.seller.name ?? "Current supplier"}
-                      </option>
-                    )}
-                  {suppliers.data?.data.data
-                    .filter((p) => p.id && p.revision && p.active)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name ?? "Name unavailable"} ·{" "}
-                        {p.directory?.category ?? "Category unavailable"}
-                      </option>
-                    ))}
-                </select>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={supplierPage === 1}
-                    onClick={() => setSupplierPage(supplierPage - 1)}
-                  >
-                    Previous corrected suppliers
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={
-                      !suppliers.data ||
-                      supplierPage * 20 >= suppliers.data.data.total
-                    }
-                    onClick={() => setSupplierPage(supplierPage + 1)}
-                  >
-                    More corrected suppliers
-                  </Button>
-                </div>
-                {field("purchaseDate", "Corrected purchase date", "date")}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={
+                        !suppliers.data ||
+                        supplierPage * 20 >= suppliers.data.data.total
+                      }
+                      onClick={() => setSupplierPage(supplierPage + 1)}
+                    >
+                      More corrected suppliers
+                    </Button>
+                  </div>
+                </fieldset>
+                {!snapshot.closedAt &&
+                  field("purchaseDate", "Corrected purchase date", "date")}
                 {draft.purchaseType !== "LEASE_SETTLEMENT" &&
                   field(
                     "purchasePrice",
@@ -657,7 +672,8 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
                     )}
                   </>
                 )}
-                {field("notes", "Purchase notes", "text", false)}
+                {!snapshot.closedAt &&
+                  field("notes", "Purchase notes", "text", false)}
                 <h4 className="font-semibold">
                   Explicit seller / institution payment corrections
                 </h4>

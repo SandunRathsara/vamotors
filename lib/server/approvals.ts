@@ -214,6 +214,7 @@ function validInput(row: Cycle, input: WriteOff) {
     fail("BALANCE_MISMATCH", 422)
 }
 function eligible(row: Cycle) {
+  if (row.repairs.some((r) => !r.returnedDate)) fail("OBLIGATION_OPEN")
   if (
     !row.acquisitionCommandId ||
     row.acquisitionKind !== "SUPPLIER" ||

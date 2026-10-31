@@ -2,6 +2,7 @@ import "server-only"
 import { randomUUID } from "node:crypto"
 import { subject } from "@casl/ability"
 import { z } from "zod"
+import type { CommandReceipt } from "@prisma/client"
 import type {
   Applied,
   Dependency,
@@ -35,6 +36,7 @@ import { inputDigest } from "./idempotency"
 import { runtimeConfig } from "./config"
 import { cashTotals, C } from "../money"
 import { fail } from "./errors"
+import { currentWrittenOff } from "./disposals"
 
 type Name = RepairCommand | "reversePayment"
 type Intent =
@@ -92,6 +94,9 @@ function authority(
     "revision",
   ])
   if (intent.name === "sendRepair") {
+    requireFields(actor.ability, "PurchaseRecord", "read", parent, [
+      "receivedDate",
+    ])
     requireFields(actor.ability, "PurchaseRecord", "update", parent, [
       "cycleId",
     ])
@@ -165,8 +170,7 @@ function authority(
   }
 }
 
-/** Existing transactional notify seam only. The final accepted-base notification
- * reader/target owner is integrated at reconciliation, never copied from92. */
+/** Use the accepted transactional notification reader and exact typed target. */
 async function returnedNotifications(tx: Tx, row: Row, repair: Repair) {
   const users = await tx.user.findMany({
     where: { active: true },
@@ -210,9 +214,111 @@ async function returnedNotifications(tx: Tx, row: Row, repair: Repair) {
       recipientUserId: user.id,
       kind: "REPAIR_RETURNED",
       eventKey: `repair:returned:${repair.id}:2`,
-      targetType: "REPAIR",
+      targetType: "RepairRecord",
       targetId: repair.id,
     })
+  }
+}
+
+/** Recover originating fields from immutable facts, not old CAS or current state.
+ * The caller holds AdminGuard and supplies fresh current authority. No originating
+ * session, vendor-active check, sequence allocation or business write is needed. */
+export async function repairReplay(
+  tx: Tx,
+  actor: Actor,
+  prior: CommandReceipt
+): Promise<Applied> {
+  const result = prior.result as Applied["result"]
+  if (
+    prior.actorKey !== `USER:${actor.userId}` ||
+    result.type !== "RepairRecord"
+  )
+    fail("INVALID_INPUT", 422)
+  const target = await tx.repairRecord.findUnique({ where: { id: result.id } })
+  if (!target) fail("NOT_FOUND", 404)
+  const row = await loadPurchase(tx, target.cycleId)
+  const repair = row?.repairs.find((r) => r.id === target.id)
+  if (!row || !repair) fail("NOT_FOUND", 404)
+  const payments = repair.payments.filter((p) => p.commandId === prior.id)
+  const cash = (p: Repair["payments"][number]) => ({
+    amount: p.amount.toString(),
+    date: date(p.occurredDate),
+    method: p.method as "CASH" | "BANK_TRANSFER",
+    ...(p.reference !== null ? { reference: p.reference } : {}),
+  })
+  let intent: Intent
+  if (prior.commandName === "sendRepair") {
+    if (repair.commandId !== prior.id) fail("INTERNAL_ERROR", 500)
+    intent = {
+      name: "sendRepair",
+      input: {
+        cycleId: row.id,
+        vendorId: repair.vendorId,
+        request: repair.request,
+        sentDate: date(repair.sentDate),
+      },
+    }
+    requireFields(actor.ability, "RepairVendor", "read", repair.vendor, [
+      "id",
+      "revision",
+      "active",
+    ])
+  } else if (prior.commandName === "returnRepair") {
+    if (
+      repair.returnCommandId !== prior.id ||
+      !repair.returnedDate ||
+      !repair.invoiceDate ||
+      repair.invoiceAmount === null ||
+      repair.summary === null ||
+      payments.length > 1
+    )
+      fail("INTERNAL_ERROR", 500)
+    intent = {
+      name: "returnRepair",
+      input: {
+        repairId: repair.id,
+        returnedDate: date(repair.returnedDate),
+        invoiceDate: date(repair.invoiceDate),
+        invoiceAmount: repair.invoiceAmount.toString(),
+        summary: repair.summary,
+        ...(payments[0] ? { payment: cash(payments[0]) } : {}),
+      },
+    }
+  } else if (prior.commandName === "payRepair") {
+    if (payments.length !== 1 || payments[0].lineKey !== "payment")
+      fail("INTERNAL_ERROR", 500)
+    intent = {
+      name: "payRepair",
+      input: { repairId: repair.id, payment: cash(payments[0]) },
+    }
+  } else if (prior.commandName === "reversePayment") {
+    const opposite = payments.find((p) => p.reversalOf),
+      replacement = payments.find((p) => !p.reversalOf)
+    if (!opposite?.reversalOf || !opposite.reason || payments.length > 2)
+      fail("INTERNAL_ERROR", 500)
+    intent = {
+      name: "reversePayment",
+      input: {
+        sourceType: "REPAIR",
+        sourceId: repair.id,
+        paymentId: opposite.reversalOf,
+        reason: opposite.reason,
+        ...(replacement ? { replacement: cash(replacement) } : {}),
+      },
+    }
+  } else fail("INVALID_INPUT", 422)
+  authority(actor, row, repair, intent)
+  return {
+    ok: true,
+    status: "APPLIED",
+    commandId: prior.id,
+    replayed: true,
+    result,
+    affected: [
+      { type: "PurchaseRecord", id: row.id, revision: row.revision },
+      { type: "RepairRecord", id: repair.id, revision: repair.revision },
+    ],
+    invalidate,
   }
 }
 
@@ -261,13 +367,15 @@ export async function executeRepair(
     const prior = await tx.commandReceipt.findUnique({
       where: { environmentId_actorKey_commandName_idempotencyKey: scope },
     })
+    if (prior) {
+      if (prior.inputHash !== digest) fail("IDEMPOTENCY_MISMATCH")
+      return repairReplay(tx, actor, prior)
+    }
     let cycleId: string | undefined =
       intent.name === "sendRepair" ? intent.input.cycleId : undefined
     let repairId =
       intent.name === "sendRepair"
-        ? prior
-          ? (prior.result as Applied["result"]).id
-          : undefined
+        ? undefined
         : intent.name === "reversePayment"
           ? undefined
           : intent.input.repairId
@@ -328,26 +436,6 @@ export async function executeRepair(
           ]
         : []),
     ]
-    if (prior) {
-      const result = prior.result as Applied["result"]
-      if (
-        prior.inputHash !== digest ||
-        result.type !== "RepairRecord" ||
-        result.id !== repair?.id ||
-        (intent.name === "sendRepair" &&
-          (repair.commandId !== prior.id || row.id !== intent.input.cycleId))
-      )
-        fail("IDEMPOTENCY_MISMATCH")
-      return {
-        ok: true,
-        status: "APPLIED",
-        commandId: prior.id,
-        replayed: true,
-        result,
-        affected: refs.filter((r) => r.type !== "RepairVendor"),
-        invalidate,
-      }
-    }
     for (const ref of refs) requireRef(envelope.expected, ref)
     if (!row.acquisitionCommandId) fail("INVALID_STATE")
     if (row.revision === 2147483647 || repair?.revision === 2147483647)
@@ -357,6 +445,7 @@ export async function executeRepair(
       if (
         row.closedAt ||
         row.status !== "IN_STOCK" ||
+        !row.receivedDate ||
         row.vehicle.activePurchaseId !== row.id
       )
         fail("INVALID_STATE")
@@ -387,7 +476,12 @@ export async function executeRepair(
         BigInt(intent.input.payment.amount) > BigInt(intent.input.invoiceAmount)
       )
         fail("BALANCE_MISMATCH", 422)
-    } else if (!repair?.returnedDate || repair.invoiceAmount === null)
+    } else if (
+      !repair?.returnedDate ||
+      repair.invoiceAmount === null ||
+      ((row.closedAt || row.vehicle.activePurchaseId !== row.id) &&
+        !currentWrittenOff(row))
+    )
       fail("INVALID_STATE")
     const payment =
       intent.name === "sendRepair"
@@ -522,6 +616,7 @@ export async function executeRepair(
         ...after.payments,
         ...after.costs.flatMap((c) => c.payments),
         ...after.repairs.flatMap((r) => r.payments),
+        ...(after.disposal?.payments ?? []),
       ].map((p) => ({
         direction: p.direction as "IN" | "OUT",
         amount: p.amount.toString(),

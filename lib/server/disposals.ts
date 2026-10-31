@@ -1,7 +1,7 @@
 import "server-only"
 import { randomUUID } from "node:crypto"
 import { subject } from "@casl/ability"
-import type { Prisma } from "@prisma/client"
+import type { Prisma, PurchaseRecord, Vehicle } from "@prisma/client"
 import type {
   PurchaseCycleDTO,
   WriteOff,
@@ -80,6 +80,21 @@ export function requireWriteOffRead(
         ?.payments
     )
   )
+  const repairs = (purchase.repairs ?? []) as Record<string, unknown>[]
+  const shown = visible.repairs as Record<string, unknown>[] | undefined
+  if (repairs.length && shown?.length !== repairs.length)
+    fail("FIELD_FORBIDDEN", 403)
+  for (const repair of repairs) {
+    const current = shown?.find((r) => r.id === repair.id)
+    if (
+      !current ||
+      (repair.returnedDate !== undefined &&
+        (current.returnedDate === undefined ||
+          current.invoiceAmount === undefined))
+    )
+      fail("FIELD_FORBIDDEN", 403)
+    cashReadable(repair.payments, current.payments)
+  }
 }
 /** Shared execution/nextActions capability check; state/CAS stay with the owner. */
 export function requireWriteOffAuthority(
@@ -144,6 +159,31 @@ export const disposalInclude = {
 export type DisposalRow = Prisma.DisposalGetPayload<{
   include: typeof disposalInclude
 }>
+/** Only an actual approved CURRENT write-off supports old financial owners.
+ * This is not a terminal-state waiver, and never reopens its physical pointer. */
+export function currentWrittenOff(
+  row: Pick<PurchaseRecord, "id" | "status" | "closedAt" | "available"> & {
+    vehicle: Pick<Vehicle, "activePurchaseId">
+    disposal: DisposalRow | null
+  }
+) {
+  const d = row.disposal,
+    a = d?.approval
+  return !!(
+    row.status === "WRITTEN_OFF" &&
+    row.closedAt &&
+    !row.available &&
+    row.vehicle.activePurchaseId === null &&
+    d?.approvalKind === "CURRENT" &&
+    d.cycleId === row.id &&
+    a?.kind === "WRITE_OFF" &&
+    a.state === "APPROVED" &&
+    a.cycleId === row.id &&
+    a.appliedCommandId === d.commandId &&
+    a.reviewCommandId === d.commandId &&
+    a.reviewedAt?.getTime() === row.closedAt.getTime()
+  )
+}
 export function disposalDTO(
   row: DisposalRow
 ): NonNullable<PurchaseCycleDTO["disposal"]> {

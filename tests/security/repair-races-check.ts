@@ -420,7 +420,7 @@ try {
         [],
         201
       )
-      async function membership(active: boolean, roleIds: string[]) {
+      async function membershipBody(active: boolean, roleIds: string[]) {
         const u = await user(),
           roles = await Promise.all(
             roleIds.map((id) =>
@@ -431,8 +431,7 @@ try {
               )
             )
           )
-        await cmd(
-          "updateUser",
+        return envelope(
           {
             id: u.id,
             name: u.name,
@@ -441,6 +440,13 @@ try {
             reason: "Observed repair current-authority proof",
           },
           [ref(u, "User"), ...roles.map((r) => ref(r, "Role"))]
+        )
+      }
+      async function membership(active: boolean, roleIds: string[]) {
+        await f.command(
+          admin,
+          "updateUser",
+          await membershipBody(active, roleIds)
         )
       }
       await membership(true, [role.result.id])
@@ -502,6 +508,90 @@ try {
             if (pending) await Promise.allSettled([pending])
           }
         }
+        // commandStatus waits on the accepted auth guard, not BusinessSequence.
+        // Queue a REAL audited admin mutation first, observe both lock waits,
+        // then release. Exclude exactly its one receipt/audit, nothing else.
+        const authWait = async (exclude: number[] = []) => {
+          const deadline = Date.now() + 1200
+          do {
+            const rows = (
+              await monitor.query(
+                "SELECT a.pid,a.wait_event_type,a.wait_event,pg_blocking_pids(a.pid) blockers FROM pg_stat_activity a WHERE a.datname=current_database() AND a.usename='vamotors_runtime' AND a.wait_event_type='Lock' AND a.query LIKE '%lock_admin_guard%' AND NOT(a.pid=ANY($1::int[]))",
+                [exclude]
+              )
+            ).rows
+            if (rows.length) return rows[0]
+          } while (Date.now() < deadline)
+          throw Error("NO_OBSERVED_REPAIR_STATUS_AUTH_WAIT")
+        }
+        const excludingAuth = async (commandId?: string) => {
+          const rows = JSON.parse(await f.snapshot(tables)) as Record<
+            string,
+            { row: { id: string; commandId?: string } }[]
+          >
+          if (commandId) {
+            rows.CommandReceipt = rows.CommandReceipt.filter(
+              ({ row }) => row.id !== commandId
+            )
+            rows.AuditEntry = rows.AuditEntry.filter(
+              ({ row }) => row.commandId !== commandId
+            )
+          }
+          return JSON.stringify(rows)
+        }
+        for (const deactivate of [false, true]) {
+          await membership(true, [role.result.id])
+          const mutationBody = await membershipBody(!deactivate, [
+            deactivate ? role.result.id : readRole.result.id,
+          ])
+          const before = await excludingAuth(),
+            blocker = await f.db.connect()
+          let mutation: ReturnType<APIRequestContext["post"]> | undefined,
+            recovery: ReturnType<APIRequestContext["get"]> | undefined
+          try {
+            await blocker.query("BEGIN")
+            const pid = (await blocker.query("SELECT pg_backend_pid() pid"))
+              .rows[0].pid
+            await blocker.query(
+              'SELECT id FROM vamotors."AdminGuard" WHERE id=1 FOR UPDATE'
+            )
+            mutation = admin.post("/api/v1/commands/updateUser", {
+              headers: { Origin: f.origin },
+              data: mutationBody,
+            })
+            const mutationWait = await authWait()
+            assert.ok(mutationWait.blockers.includes(pid))
+            recovery = staff.get(
+              `/api/v1/queries/commandStatus?name=payRepair&idempotencyKey=${appliedBody.idempotencyKey}`
+            )
+            const recoveryWait = await authWait([mutationWait.pid])
+            assert.ok(recoveryWait.blockers.length)
+            await blocker.query("COMMIT")
+            const [changed, recovered] = await Promise.all([mutation, recovery])
+            const applied = await changed.json(),
+              value = await recovered.json()
+            observations.push({
+              mode: deactivate
+                ? "deactivate-commandStatus"
+                : "revoke-commandStatus",
+              blocker: pid,
+              mutationWait,
+              recoveryWait,
+              mutationCommandId: applied.commandId,
+              status: recovered.status(),
+              value,
+            })
+            assert.equal(changed.status(), 200)
+            assert.equal(recovered.status(), 403)
+            assert.equal(await excludingAuth(applied.commandId), before)
+          } finally {
+            await blocker.query("ROLLBACK")
+            blocker.release()
+            await Promise.allSettled(
+              [mutation, recovery].filter((p) => p !== undefined)
+            )
+          }
+        }
       } finally {
         await membership(
           true,
@@ -528,7 +618,7 @@ try {
         repairId,
         source: process.cwd(),
         scope:
-          "Focused observed-lock PREBASE proof only, not final affected regressions or acceptance",
+          "Observed-lock repair commands/direct replay/shared commandStatus only; not all affected regressions or acceptance",
       },
       null,
       2

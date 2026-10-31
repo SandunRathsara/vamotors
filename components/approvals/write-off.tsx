@@ -489,6 +489,11 @@ export function DisposalHistory({ cycle }: { cycle: Cycle }) {
     basis !== undefined && disposal.proceeds !== undefined
       ? BigInt(basis) - BigInt(disposal.proceeds)
       : null
+  const currentBasis = cycle.financial?.basis,
+    currentLoss =
+      currentBasis !== undefined && disposal.proceeds !== undefined
+        ? BigInt(currentBasis) - BigInt(disposal.proceeds)
+        : null
   return (
     <section
       className="space-y-3 rounded-lg border p-4"
@@ -502,9 +507,18 @@ export function DisposalHistory({ cycle }: { cycle: Cycle }) {
           ["Method", disposal.method],
           ["Proceeds", money(disposal.proceeds)],
           ["Frozen basis", money(basis)],
+          ["Current basis", money(currentBasis)],
           [
             loss !== null && loss < 0n ? "Disposal gain" : "Net loss",
             loss === null ? "Unavailable" : major(loss < 0n ? -loss : loss),
+          ],
+          [
+            currentLoss !== null && currentLoss < 0n
+              ? "Current disposal gain"
+              : "Current net loss",
+            currentLoss === null
+              ? "Unavailable"
+              : major(currentLoss < 0n ? -currentLoss : currentLoss),
           ],
           [
             "Reviewer",
@@ -528,6 +542,11 @@ export function DisposalHistory({ cycle }: { cycle: Cycle }) {
           </div>
         ))}
       </dl>
+      <p>
+        The original disposal basis and proceeds are immutable. Reasoned cost or
+        purchase restatements append current basis versions; they do not reopen
+        the vehicle or rewrite the approved snapshot.
+      </p>
       {disposal.approval?.kind === "CURRENT" &&
         disposal.approval.approvalId && (
           <Link

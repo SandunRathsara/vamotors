@@ -19,6 +19,7 @@ import {
   disposalAuth,
   visibleDisposal,
   requireWriteOffAuthority,
+  currentWrittenOff,
 } from "./disposals"
 import { transaction, nextBusinessSequence } from "./transactions"
 import { audit, writeReadVersion } from "./audit"
@@ -624,6 +625,18 @@ export function requireRepairFinancialSources(actor: Actor, row: Row) {
     ])
   }
   requireRepairContributions(actor, row)
+  if (row.disposal?.payments.length) {
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "disposal",
+    ])
+    requireFields(
+      actor.ability,
+      "Disposal",
+      "read",
+      disposalAuth(row.disposal),
+      ["payments.amount", "payments.direction"]
+    )
+  }
 }
 
 function correctionSourceReadable(actor: Actor, row: Row) {
@@ -2300,6 +2313,14 @@ function moneyAuthority(
 ) {
   const { name, input } = intent
   requireRepairContributions(actor, row, name === "editPurchase")
+  if (currentWrittenOff(row)) {
+    requireRepairFinancialSources(actor, row)
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "vehicleId",
+      "status",
+      "closedAt",
+    ])
+  }
   requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
     "id",
     "revision",
@@ -2496,11 +2517,13 @@ function moneyAuthority(
   }
 }
 function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
+  const closed = currentWrittenOff(row)
   if (
     !row.acquisitionCommandId ||
-    row.closedAt ||
-    row.vehicle.activePurchaseId !== row.id ||
-    !["PURCHASED", "IN_STOCK"].includes(row.status)
+    (!closed &&
+      (row.closedAt ||
+        row.vehicle.activePurchaseId !== row.id ||
+        !["PURCHASED", "IN_STOCK"].includes(row.status)))
   )
     return []
   const allowed = (intent: MoneyIntent, cost?: Cost) => {
@@ -2513,6 +2536,7 @@ function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
   }
   const result: CycleMoneyCommand[] = []
   if (
+    !closed &&
     allowed({
       name: "addCost",
       input: {
@@ -2525,6 +2549,14 @@ function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
     })
   )
     result.push("addCost")
+  let purchasePatch: MoneyInput<"editPurchase">["patch"] = closed
+    ? { purchasePrice: "1" }
+    : { purchaseDate: "", purchasePrice: "1", notes: null }
+  if (closed && row.purchaseType === "LEASE_SETTLEMENT") {
+    const { institutionNameSnapshot: unused, ...terms } = settlementDTO(row)!
+    void unused
+    purchasePatch = { settlement: terms }
+  }
   if (
     [
       "purchaseDate",
@@ -2540,7 +2572,7 @@ function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
       input: {
         cycleId: row.id,
         reason: "",
-        patch: { purchaseDate: "", purchasePrice: "1", notes: null },
+        patch: purchasePatch,
         cashCorrections: [],
       },
     })
@@ -2852,13 +2884,20 @@ export async function executeCycleMoney(
       }
     }
     for (const ref of refs) requireRef(envelope.expected, ref)
+    const closed = currentWrittenOff(row)
     if (
       !row.acquisitionCommandId ||
-      row.closedAt ||
-      row.vehicle.activePurchaseId !== row.id ||
       row.acquisitionKind !== "SUPPLIER" ||
       !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
-      !["PURCHASED", "IN_STOCK"].includes(row.status)
+      (closed
+        ? intent.name === "addCost" ||
+          (patch &&
+            Object.keys(patch).some(
+              (f) => !["purchasePrice", "settlement"].includes(f)
+            ))
+        : row.closedAt ||
+          row.vehicle.activePurchaseId !== row.id ||
+          !["PURCHASED", "IN_STOCK"].includes(row.status))
     )
       fail("INVALID_STATE")
     if (row.revision === 2147483647 || cost?.revision === 2147483647)

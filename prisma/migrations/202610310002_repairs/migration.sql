@@ -3,10 +3,9 @@ SELECT value FROM vamotors."BusinessSequence" WHERE id=1 FOR UPDATE;
 SELECT vamotors.lock_admin_guard();
 
 ALTER TABLE vamotors."EntityReadVersion" DROP CONSTRAINT "EntityReadVersion_entityType_check";
-ALTER TABLE vamotors."EntityReadVersion" ADD CONSTRAINT "EntityReadVersion_entityType_check" CHECK("entityType" IN ('Vehicle','PurchaseRecord','Customer','Supplier','RepairVendor','FinanceCompany','Settings','RateSheet','Quote','VehicleCost','ImportBatch','Document','RepairRecord'));
+ALTER TABLE vamotors."EntityReadVersion" ADD CONSTRAINT "EntityReadVersion_entityType_check" CHECK("entityType" IN ('Vehicle','PurchaseRecord','Customer','Supplier','RepairVendor','FinanceCompany','Settings','RateSheet','Quote','VehicleCost','ImportBatch','Document','ApprovalRequest','RepairRecord'));
 
--- PREBASE accepted236 only. Reserved001 is deliberately absent until the parent
--- explicitly accepts its combined WRITE_OFF base; never counterfeit18/v14 here.
+-- Additive to EXACT accepted c462: all17 accepted migration bytes are retained.
 CREATE TABLE vamotors."RepairRecord" (
  id uuid PRIMARY KEY, "cycleId" uuid NOT NULL REFERENCES vamotors."PurchaseRecord"(id) ON DELETE RESTRICT,
  "vendorId" uuid NOT NULL REFERENCES vamotors."RepairVendor"(id) ON DELETE RESTRICT,
@@ -46,7 +45,8 @@ CREATE TRIGGER no_delete BEFORE DELETE OR TRUNCATE ON vamotors."RepairRecord" FO
 
 CREATE OR REPLACE VIEW vamotors."CashMovement" AS
  SELECT 'PURCHASE'::text AS "sourceType", "cycleId" AS "sourceId", id AS "paymentId", "occurredDate" AS date, direction, amount, method, category, "commandId" FROM vamotors."PurchasePayment"
- UNION ALL SELECT 'COST'::text,"costId",id,"occurredDate",direction,amount,method,category,"commandId" FROM vamotors."CostPayment"
+  UNION ALL SELECT 'COST'::text,"costId",id,"occurredDate",direction,amount,method,category,"commandId" FROM vamotors."CostPayment"
+  UNION ALL SELECT 'DISPOSAL'::text,"disposalId",id,"occurredDate",direction,amount,method,category,"commandId" FROM vamotors."DisposalReceipt"
  UNION ALL SELECT 'REPAIR'::text,"repairId",id,"occurredDate",direction,amount,method,category,"commandId" FROM vamotors."RepairPayment";
 
 CREATE FUNCTION vamotors.repair_components(cid uuid) RETURNS jsonb LANGUAGE sql STABLE SET search_path=pg_catalog AS $$
@@ -121,9 +121,9 @@ BEGIN
  child_after:=vamotors.repair_json(r.id);
  IF NOT vamotors.repair_fields(uid,'PurchaseRecord','read',to_jsonb(NEW),ARRAY['id','revision','vehicleId','status','closedAt','purchaseDate','repairs']) OR NOT vamotors.repair_fields(uid,'Vehicle','read',to_jsonb(v),ARRAY['id','identityRevision','cycleId']) OR NOT vamotors.repair_fields(uid,'RepairRecord','read',to_jsonb(r),ARRAY['id','revision']) THEN RAISE EXCEPTION 'REPAIR_READ_AUTHORITY_REQUIRED' USING ERRCODE='23514'; END IF;
  IF c."commandName"='sendRepair' THEN
-  IF child_before IS NOT NULL OR r.revision<>1 OR r."commandId"<>c.id OR r."createdBy"<>uid OR r."returnedDate" IS NOT NULL OR OLD.status<>'IN_STOCK' OR NEW.status<>'IN_REPAIR' OR NEW.available OR NEW."holdReason" IS NOT NULL OR NEW."closedAt" IS NOT NULL OR v."activePurchaseId" IS DISTINCT FROM NEW.id OR r."sentDate"<NEW."purchaseDate"
+  IF child_before IS NOT NULL OR r.revision<>1 OR r."commandId"<>c.id OR r."createdBy"<>uid OR r."returnedDate" IS NOT NULL OR OLD.status<>'IN_STOCK' OR NEW.status<>'IN_REPAIR' OR NEW.available OR NEW."holdReason" IS NOT NULL OR NEW."closedAt" IS NOT NULL OR NEW."receivedDate" IS NULL OR v."activePurchaseId" IS DISTINCT FROM NEW.id OR r."sentDate"<NEW."purchaseDate"
   OR NOT EXISTS(SELECT 1 FROM vamotors."RepairVendor" WHERE id=r."vendorId" AND active) OR NOT vamotors.repair_fields(uid,'RepairVendor','read',(SELECT to_jsonb(x) FROM vamotors."RepairVendor" x WHERE id=r."vendorId"),ARRAY['id','revision','active'])
-  OR NOT vamotors.repair_fields(uid,'PurchaseRecord','update',to_jsonb(NEW),ARRAY['cycleId']) OR NOT vamotors.repair_fields(uid,'RepairRecord','create',to_jsonb(r),ARRAY['cycleId','vendorId','request','sentDate']) THEN RAISE EXCEPTION 'INVALID_REPAIR_DISPATCH' USING ERRCODE='23514'; END IF;
+   OR NOT vamotors.repair_fields(uid,'PurchaseRecord','read',to_jsonb(NEW),ARRAY['receivedDate']) OR NOT vamotors.repair_fields(uid,'PurchaseRecord','update',to_jsonb(NEW),ARRAY['cycleId']) OR NOT vamotors.repair_fields(uid,'RepairRecord','create',to_jsonb(r),ARRAY['cycleId','vendorId','request','sentDate']) THEN RAISE EXCEPTION 'INVALID_REPAIR_DISPATCH' USING ERRCODE='23514'; END IF;
  ELSE
   IF child_before IS NULL OR r.revision::bigint<>(child_before->>'revision')::bigint+1 OR NOT vamotors.repair_fields(uid,'RepairRecord','read',to_jsonb(r),ARRAY['sentDate','returnedDate','invoiceAmount','payments.amount','payments.direction']) THEN RAISE EXCEPTION 'REPAIR_SOURCE_REQUIRED' USING ERRCODE='23514'; END IF;
    IF NOT vamotors.repair_fields(uid,'PurchaseRecord','read',to_jsonb(NEW),ARRAY['financial.currency','financial.scale','financial.cashIn','financial.cashOut','financial.basis','purchasePrice','payments.amount','payments.direction'])
@@ -142,10 +142,10 @@ BEGIN
  IF c."commandName"='reversePayment' AND ((SELECT count(*) FROM vamotors."RepairPayment" WHERE "commandId"=c.id AND "reversalOf" IS NOT NULL)<>1 OR (SELECT count(*) FROM vamotors."RepairPayment" WHERE "commandId"=c.id AND direction='OUT')>1) THEN RAISE EXCEPTION 'INVALID_REPAIR_REVERSAL_CARDINALITY' USING ERRCODE='23514'; END IF;
  IF (SELECT count(*) FROM vamotors."CycleBasisVersion" WHERE "commandId"=c.id)<>(CASE WHEN c."commandName"='returnRepair' THEN 1 ELSE 0 END) OR EXISTS(SELECT 1 FROM vamotors."CycleBasisVersion" b WHERE b."commandId"=c.id AND (b."cycleId"<>NEW.id OR b.reason<>'Actual repair invoice' OR b.xmin<>pg_current_xact_id()::xid)) THEN RAISE EXCEPTION 'INVALID_REPAIR_BASIS_CARDINALITY' USING ERRCODE='23514'; END IF;
  IF c."commandName"='returnRepair' THEN
-  IF EXISTS(SELECT 1 FROM vamotors."user" u WHERE u.active AND vamotors.repair_return_recipient(u.id,r.id) AND NOT EXISTS(SELECT 1 FROM vamotors."Notification" n WHERE n."recipientUserId"=u.id AND n."eventKey"='repair:returned:'||r.id::text||':2' AND n.kind='REPAIR_RETURNED' AND n."targetType"='REPAIR' AND n."targetId"=r.id AND n.xmin=pg_current_xact_id()::xid))
-  OR EXISTS(SELECT 1 FROM vamotors."Notification" n WHERE n."eventKey"='repair:returned:'||r.id::text||':2' AND (n.kind<>'REPAIR_RETURNED' OR n."targetType"<>'REPAIR' OR n."targetId"<>r.id OR NOT vamotors.repair_return_recipient(n."recipientUserId",r.id))) THEN RAISE EXCEPTION 'REPAIR_RETURN_NOTIFICATION_REQUIRED' USING ERRCODE='23514'; END IF;
+   IF EXISTS(SELECT 1 FROM vamotors."user" u WHERE u.active AND vamotors.repair_return_recipient(u.id,r.id) AND NOT EXISTS(SELECT 1 FROM vamotors."Notification" n WHERE n."recipientUserId"=u.id AND n."eventKey"='repair:returned:'||r.id::text||':2' AND n.kind='REPAIR_RETURNED' AND n."targetType"='RepairRecord' AND n."targetId"=r.id AND n.xmin=pg_current_xact_id()::xid))
+   OR EXISTS(SELECT 1 FROM vamotors."Notification" n WHERE n."eventKey"='repair:returned:'||r.id::text||':2' AND (n.kind<>'REPAIR_RETURNED' OR n."targetType"<>'RepairRecord' OR n."targetId"<>r.id OR NOT vamotors.repair_return_recipient(n."recipientUserId",r.id))) THEN RAISE EXCEPTION 'REPAIR_RETURN_NOTIFICATION_REQUIRED' USING ERRCODE='23514'; END IF;
  END IF;
- SELECT coalesce(sum(CASE direction WHEN 'IN' THEN amount::numeric ELSE 0 END),0),coalesce(sum(CASE direction WHEN 'OUT' THEN amount::numeric ELSE 0 END),0) INTO incoming,outgoing FROM vamotors."CashMovement" m WHERE (m."sourceType"='PURCHASE' AND m."sourceId"=NEW.id) OR (m."sourceType"='COST' AND m."sourceId" IN (SELECT id FROM vamotors."VehicleCost" WHERE "cycleId"=NEW.id)) OR (m."sourceType"='REPAIR' AND m."sourceId" IN (SELECT id FROM vamotors."RepairRecord" WHERE "cycleId"=NEW.id));
+  SELECT coalesce(sum(CASE direction WHEN 'IN' THEN amount::numeric ELSE 0 END),0),coalesce(sum(CASE direction WHEN 'OUT' THEN amount::numeric ELSE 0 END),0) INTO incoming,outgoing FROM vamotors."CashMovement" m WHERE (m."sourceType"='PURCHASE' AND m."sourceId"=NEW.id) OR (m."sourceType"='COST' AND m."sourceId" IN (SELECT id FROM vamotors."VehicleCost" WHERE "cycleId"=NEW.id)) OR (m."sourceType"='REPAIR' AND m."sourceId" IN (SELECT id FROM vamotors."RepairRecord" WHERE "cycleId"=NEW.id)) OR (m."sourceType"='DISPOSAL' AND m."sourceId" IN (SELECT id FROM vamotors."Disposal" WHERE "cycleId"=NEW.id));
  IF incoming>9999999999999999 OR outgoing>9999999999999999 THEN RAISE EXCEPTION 'MONEY_OVERFLOW' USING ERRCODE='23514'; END IF;
  SELECT coalesce(sum(amount::numeric),0) INTO incurred FROM vamotors."VehicleCost" WHERE "cycleId"=NEW.id;
  SELECT coalesce(sum("invoiceAmount"::numeric),0) INTO repair_total FROM vamotors."RepairRecord" WHERE "cycleId"=NEW.id AND "returnedDate" IS NOT NULL;
@@ -199,7 +199,7 @@ CREATE CONSTRAINT TRIGGER repair_child_graph AFTER INSERT OR UPDATE ON vamotors.
 CREATE CONSTRAINT TRIGGER repair_payment_graph AFTER INSERT ON vamotors."RepairPayment" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION vamotors.check_repair_child();
 CREATE FUNCTION vamotors.repair_notification_guard() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $$
 BEGIN
- IF NEW.kind='REPAIR_RETURNED' AND NOT EXISTS(SELECT 1 FROM vamotors."RepairRecord" r JOIN vamotors."CommandReceipt" c ON c.id=r."returnCommandId" WHERE r.id=NEW."targetId" AND NEW."targetType"='REPAIR' AND NEW."eventKey"='repair:returned:'||r.id::text||':2' AND r.xmin=pg_current_xact_id()::xid AND c.xmin=pg_current_xact_id()::xid AND c."commandName"='returnRepair' AND vamotors.repair_return_recipient(NEW."recipientUserId",r.id)) THEN RAISE EXCEPTION 'REPAIR_NOTIFICATION_COMMAND_REQUIRED' USING ERRCODE='23514'; END IF;
+  IF NEW.kind='REPAIR_RETURNED' AND (NEW."readAt" IS NOT NULL OR NEW.revision<>1 OR NOT EXISTS(SELECT 1 FROM vamotors."RepairRecord" r JOIN vamotors."CommandReceipt" c ON c.id=r."returnCommandId" WHERE r.id=NEW."targetId" AND NEW."targetType"='RepairRecord' AND NEW."eventKey"='repair:returned:'||r.id::text||':2' AND r.xmin=pg_current_xact_id()::xid AND c.xmin=pg_current_xact_id()::xid AND c."commandName"='returnRepair' AND vamotors.repair_return_recipient(NEW."recipientUserId",r.id))) THEN RAISE EXCEPTION 'REPAIR_NOTIFICATION_COMMAND_REQUIRED' USING ERRCODE='23514'; END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER repair_notification BEFORE INSERT ON vamotors."Notification" FOR EACH ROW EXECUTE FUNCTION vamotors.repair_notification_guard();
@@ -224,10 +224,76 @@ CREATE CONSTRAINT TRIGGER repair_receipt_graph AFTER INSERT ON vamotors."Command
 CREATE CONSTRAINT TRIGGER repair_version_graph AFTER INSERT ON vamotors."EntityReadVersion" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (NEW."entityType"='RepairRecord') EXECUTE FUNCTION vamotors.check_repair_evidence();
 CREATE CONSTRAINT TRIGGER repair_audit_graph AFTER INSERT ON vamotors."AuditEntry" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (NEW."entityType"='RepairRecord') EXECUTE FUNCTION vamotors.check_repair_evidence();
 
+-- A real CURRENT disposal is immutable. Only named existing financial owners
+-- may append evidence after it; no terminal status, identity or pointer escape.
+CREATE FUNCTION vamotors.current_written_off(cid uuid) RETURNS boolean LANGUAGE sql STABLE SET search_path=pg_catalog AS $$
+ SELECT EXISTS(SELECT 1 FROM vamotors."PurchaseRecord" p JOIN vamotors."Vehicle" v ON v.id=p."vehicleId"
+ JOIN vamotors."Disposal" d ON d."cycleId"=p.id JOIN vamotors."ApprovalRequest" a ON a.id=d."approvalId" AND a."cycleId"=p.id
+ JOIN vamotors."CycleBasisVersion" b ON b.id=d."basisVersionId" AND b."cycleId"=p.id JOIN vamotors."CommandReceipt" c ON c.id=d."commandId"
+ WHERE p.id=cid AND p.status='WRITTEN_OFF' AND p."closedAt" IS NOT NULL AND NOT p.available AND p."holdReason" IS NULL AND v."activePurchaseId" IS NULL
+ AND d."approvalKind"='CURRENT' AND a.kind='WRITE_OFF' AND a.state='APPROVED' AND a."appliedCommandId"=c.id AND a."reviewCommandId"=c.id AND a."reviewedAt"=p."closedAt" AND a."reviewedBy"=d."createdBy" AND a."reviewedBy"<>a."requestedBy"
+ AND c."commandName"='reviewApproval' AND c."actorKey"='USER:'||d."createdBy"::text AND c.result=jsonb_build_object('type','ApprovalRequest','id',a.id,'revision',a.revision)
+ AND d."basisVersionId"::text=a.snapshot->>'basisVersionId' AND d."netLoss"=b.total-d.proceeds
+ AND d."occurredDate"::text=a.proposal#>>'{input,date}' AND d.reason=a.proposal#>>'{input,reason}' AND d.method=a.proposal#>>'{input,method}' AND d.proceeds::text=a.proposal#>>'{input,proceeds}')
+$$;
+CREATE FUNCTION vamotors.check_closed_financial(old_root vamotors."PurchaseRecord", new_root vamotors."PurchaseRecord") RETURNS void LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
+DECLARE c vamotors."CommandReceipt"; uid uuid; k vamotors."VehicleCost"; r vamotors."RepairRecord"; correction_reason text; allowed_delta text[]:=ARRAY['revision','updatedAt']; payment record; fields text[]; settlement_changed boolean;
+BEGIN
+ SELECT x.* INTO c FROM vamotors."CommandReceipt" x JOIN vamotors."EntityReadVersion" e ON e."commandId"=x.id AND e."entityType"='PurchaseRecord' AND e."entityId"=new_root.id AND e.revision=new_root.revision AND e.sequence=x."businessSequence" WHERE x.xmin=pg_current_xact_id()::xid AND e.xmin=pg_current_xact_id()::xid;
+ IF old_root.status<>'WRITTEN_OFF' OR NOT vamotors.current_written_off(new_root.id) OR c.id IS NULL OR c."actorKey" NOT LIKE 'USER:%'
+ OR c."environmentId"<>(SELECT id FROM vamotors."Environment" WHERE singleton=1) OR NOT EXISTS(SELECT 1 FROM vamotors."BusinessSequence" WHERE id=1 AND value=c."businessSequence" AND xmin=pg_current_xact_id()::xid)
+ OR old_root.revision=2147483647 OR new_root.revision::bigint<>old_root.revision::bigint+1 OR new_root."acquisitionCommandId" IS NULL
+ OR EXISTS(SELECT 1 FROM vamotors."Vehicle" WHERE id=new_root."vehicleId" AND xmin=pg_current_xact_id()::xid)
+ OR EXISTS(SELECT 1 FROM vamotors."Disposal" WHERE "cycleId"=new_root.id AND xmin=pg_current_xact_id()::xid)
+ OR EXISTS(SELECT 1 FROM vamotors."DisposalReceipt" WHERE "commandId"=c.id) OR EXISTS(SELECT 1 FROM vamotors."StatusEvent" WHERE "commandId"=c.id) OR EXISTS(SELECT 1 FROM vamotors."MileageReading" WHERE "commandId"=c.id)
+ THEN RAISE EXCEPTION 'CLOSED_FINANCIAL_OWNER_REQUIRED' USING ERRCODE='23514'; END IF;
+ uid:=substring(c."actorKey" FROM 6)::uuid;
+ IF c.result->>'type'='RepairRecord' AND c."commandName" IN ('payRepair','reversePayment') THEN
+  SELECT * INTO r FROM vamotors."RepairRecord" WHERE id=(c.result->>'id')::uuid AND "cycleId"=new_root.id AND xmin=pg_current_xact_id()::xid;
+  IF r.id IS NULL OR r."returnedDate" IS NULL OR EXISTS(SELECT 1 FROM vamotors."CycleBasisVersion" WHERE "commandId"=c.id) THEN RAISE EXCEPTION 'CLOSED_REPAIR_LIABILITY_REQUIRED' USING ERRCODE='23514'; END IF;
+  -- repair_root/child/evidence independently validate the complete cash-only graph.
+ ELSIF c.result->>'type' IN ('VehicleCost','PurchaseRecord') AND c."commandName" IN ('editCost','payCost','editPurchase','payPurchase','reversePayment') THEN
+  IF c.result->>'type'='VehicleCost' THEN
+   SELECT * INTO k FROM vamotors."VehicleCost" WHERE id=(c.result->>'id')::uuid AND "cycleId"=new_root.id AND xmin=pg_current_xact_id()::xid;
+   IF k.id IS NULL OR c."commandName" NOT IN ('editCost','payCost','reversePayment') THEN RAISE EXCEPTION 'CLOSED_COST_OWNER_REQUIRED' USING ERRCODE='23514'; END IF;
+   IF c."commandName"='editCost' AND (NOT vamotors.repair_fields(uid,'PurchaseRecord','update',to_jsonb(new_root),ARRAY['cycleId']) OR NOT vamotors.repair_fields(uid,'VehicleCost','update',to_jsonb(k),ARRAY['costId','category','description','amount','incurredDate','reason'])) THEN RAISE EXCEPTION 'CLOSED_COST_AUTHORITY_REQUIRED' USING ERRCODE='23514'; END IF;
+  ELSE
+   IF c.result->>'id'<>new_root.id::text OR c."commandName" NOT IN ('editPurchase','payPurchase','reversePayment') THEN RAISE EXCEPTION 'CLOSED_PURCHASE_OWNER_REQUIRED' USING ERRCODE='23514'; END IF;
+   IF c."commandName"='editPurchase' THEN
+    allowed_delta:=allowed_delta||ARRAY['purchasePrice'];
+    SELECT vamotors.settlement_json(new_root.id) IS DISTINCT FROM payload->'settlement' INTO settlement_changed FROM vamotors."EntityReadVersion" WHERE "entityType"='PurchaseRecord' AND "entityId"=new_root.id AND sequence<c."businessSequence" ORDER BY sequence DESC LIMIT 1;
+    fields:=CASE WHEN settlement_changed AND new_root."purchaseType"='LEASE_SETTLEMENT' THEN ARRAY['patch.settlement.institutionType','patch.settlement.reference','patch.settlement.amount','patch.settlement.cashToSeller']||CASE WHEN vamotors.settlement_json(new_root.id)->>'institutionType'='FINANCE_COMPANY' THEN ARRAY['patch.settlement.companyId'] ELSE ARRAY['patch.settlement.institutionName'] END
+      WHEN new_root."purchasePrice"<>old_root."purchasePrice" THEN ARRAY['patch.purchasePrice'] ELSE ARRAY[]::text[] END;
+    IF NOT vamotors.repair_fields(uid,'PurchaseRecord','update',to_jsonb(new_root),ARRAY['cycleId','reason']||fields) THEN RAISE EXCEPTION 'CLOSED_PURCHASE_AUTHORITY_REQUIRED' USING ERRCODE='23514'; END IF;
+   END IF;
+  END IF;
+  SELECT reason INTO correction_reason FROM vamotors."AuditEntry" WHERE "commandId"=c.id AND "entityType"='PurchaseRecord' AND "entityId"=new_root.id AND xmin=pg_current_xact_id()::xid;
+  IF c."commandName" IN ('editCost','editPurchase','reversePayment') AND (correction_reason IS NULL OR length(btrim(correction_reason)) NOT BETWEEN 1 AND 2000) THEN RAISE EXCEPTION 'CLOSED_CORRECTION_REASON_REQUIRED' USING ERRCODE='23514'; END IF;
+  IF (SELECT count(*) FROM vamotors."EntityReadVersion" WHERE "commandId"=c.id)<>2 OR (SELECT count(*) FROM vamotors."AuditEntry" WHERE "commandId"=c.id)<>(CASE WHEN k.id IS NULL THEN 2 ELSE 3 END) OR EXISTS(SELECT 1 FROM vamotors."RepairRecord" WHERE "cycleId"=new_root.id AND xmin=pg_current_xact_id()::xid) THEN RAISE EXCEPTION 'CLOSED_MONEY_EVIDENCE_REQUIRED' USING ERRCODE='23514'; END IF;
+  FOR payment IN SELECT 'PurchaseRecord' typ,p.direction,p.reference,uid AS "createdBy" FROM vamotors."PurchasePayment" p WHERE p."commandId"=c.id
+    UNION ALL SELECT 'VehicleCost',p.direction,p.reference,p."createdBy" FROM vamotors."CostPayment" p WHERE p."commandId"=c.id LOOP
+   fields:=CASE c."commandName"
+    WHEN 'reversePayment' THEN ARRAY['sourceType','sourceId','paymentId','reason']||CASE WHEN payment.direction='OUT' THEN ARRAY['replacement.amount','replacement.date','replacement.method']||CASE WHEN payment.reference IS NULL THEN ARRAY[]::text[] ELSE ARRAY['replacement.reference'] END ELSE ARRAY[]::text[] END
+    WHEN 'editPurchase' THEN ARRAY['cycleId','cashCorrections.paymentId','cashCorrections.reason']||CASE WHEN payment.direction='OUT' THEN ARRAY['cashCorrections.replacement.amount','cashCorrections.replacement.date','cashCorrections.replacement.method']||CASE WHEN payment.reference IS NULL THEN ARRAY[]::text[] ELSE ARRAY['cashCorrections.replacement.reference'] END ELSE ARRAY[]::text[] END
+    ELSE CASE WHEN payment.typ='VehicleCost' THEN ARRAY['costId'] ELSE ARRAY['cycleId','recipient'] END||ARRAY['payment.amount','payment.date','payment.method']||CASE WHEN payment.reference IS NULL THEN ARRAY[]::text[] ELSE ARRAY['payment.reference'] END END;
+   IF payment."createdBy"<>uid OR NOT vamotors.repair_fields(uid,'PurchaseRecord','pay',to_jsonb(new_root),CASE WHEN payment.typ='VehicleCost' THEN ARRAY['cycleId'] ELSE fields END)
+   OR (payment.typ='VehicleCost' AND NOT vamotors.repair_fields(uid,'VehicleCost','pay',to_jsonb(k),fields)) THEN RAISE EXCEPTION 'CLOSED_CASH_AUTHORITY_REQUIRED' USING ERRCODE='23514'; END IF;
+  END LOOP;
+  -- Existing cycle_cost_root/child/settlement graphs still validate every delta,
+  -- exact opposite/replacement, payment source/currency/net cap and new basis.
+ ELSE RAISE EXCEPTION 'UNSUPPORTED_CLOSED_OWNER' USING ERRCODE='23514';
+ END IF;
+ IF (to_jsonb(new_root)-allowed_delta) IS DISTINCT FROM (to_jsonb(old_root)-allowed_delta) THEN RAISE EXCEPTION 'IMMUTABLE_CLOSED_PHYSICAL_TERMS' USING ERRCODE='23514'; END IF;
+ IF NOT vamotors.repair_fields(uid,'PurchaseRecord','read',to_jsonb(new_root),ARRAY['id','revision','vehicleId','status','closedAt','financial.currency','financial.scale','financial.cashIn','financial.cashOut','financial.basis','purchasePrice','payments.amount','payments.direction'])
+ OR EXISTS(SELECT 1 FROM vamotors."VehicleCost" x WHERE x."cycleId"=new_root.id AND (NOT vamotors.repair_fields(uid,'PurchaseRecord','read',to_jsonb(new_root),ARRAY['costs.amount','costs.payments.amount','costs.payments.direction']) OR NOT vamotors.repair_fields(uid,'VehicleCost','read',to_jsonb(x),ARRAY['amount','payments.amount','payments.direction'])))
+ OR EXISTS(SELECT 1 FROM vamotors."RepairRecord" x WHERE x."cycleId"=new_root.id AND (NOT vamotors.repair_fields(uid,'PurchaseRecord','read',to_jsonb(new_root),ARRAY['repairs']) OR NOT vamotors.repair_fields(uid,'RepairRecord','read',to_jsonb(x),ARRAY['invoiceAmount','returnedDate','payments.amount','payments.direction'])))
+ OR EXISTS(SELECT 1 FROM vamotors."DisposalReceipt" WHERE "cycleId"=new_root.id) AND (NOT vamotors.repair_fields(uid,'PurchaseRecord','read',to_jsonb(new_root),ARRAY['disposal']) OR NOT vamotors.repair_fields(uid,'Disposal','read',(SELECT to_jsonb(d) FROM vamotors."Disposal" d WHERE d."cycleId"=new_root.id),ARRAY['payments.amount','payments.direction'])) THEN RAISE EXCEPTION 'CLOSED_CURRENT_SOURCE_READ_REQUIRED' USING ERRCODE='23514'; END IF;
+END $$;
+
 -- Forward-only, fragment-asserted extensions to the accepted owners. A repair
 -- branch needs an actual same-transaction child and the separate complete graph.
 ALTER TABLE vamotors."PurchaseRecord" DROP CONSTRAINT initial_cycle_capability,
- ADD CONSTRAINT initial_cycle_capability CHECK(status IN ('PURCHASED','IN_STOCK','IN_REPAIR') AND "closedAt" IS NULL AND "purchaseType" IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') AND "acquisitionKind"='SUPPLIER');
+ ADD CONSTRAINT initial_cycle_capability CHECK(((status IN ('PURCHASED','IN_STOCK','IN_REPAIR') AND "closedAt" IS NULL) OR (status='WRITTEN_OFF' AND "closedAt" IS NOT NULL AND NOT available)) AND "purchaseType" IN ('CASH','BRAND_NEW','LEASE_SETTLEMENT') AND "acquisitionKind"='SUPPLIER');
 DO $$
 DECLARE source text; updated text; fragment text;
 BEGIN
@@ -273,18 +339,64 @@ BEGIN
  EXECUTE updated;
 END $$;
 
+-- Reconcile the accepted approval/disposal graphs instead of replacing them.
+-- The original immutable disposal remains pinned to its original basis version.
+DO $$
+DECLARE source text; updated text; fragment text;
+BEGIN
+ SELECT pg_get_functiondef('vamotors.check_disposal_graph()'::regprocedure) INTO source;
+ updated:=replace(source,'BEGIN',E'BEGIN\n IF TG_TABLE_NAME=''PurchaseRecord'' THEN\n  IF OLD.status=''WRITTEN_OFF'' THEN PERFORM vamotors.check_closed_financial(OLD,NEW); RETURN NULL; END IF;\n END IF;');
+ IF updated=source THEN RAISE EXCEPTION 'REPAIR_DISPOSAL_GRAPH_BASE_MISMATCH'; END IF;
+ fragment:='i:=a.proposal->''input'';';
+ IF strpos(updated,fragment)=0 THEN RAISE EXCEPTION 'REPAIR_DISPOSAL_OBLIGATION_BASE_MISMATCH'; END IF;
+ updated:=replace(updated,fragment,fragment||E'\n IF EXISTS(SELECT 1 FROM vamotors."RepairRecord" WHERE "cycleId"=cid AND "returnedDate" IS NULL) THEN RAISE EXCEPTION ''REPAIR_OBLIGATION_OPEN'' USING ERRCODE=''23514''; END IF;');
+ EXECUTE updated;
+ SELECT pg_get_functiondef('vamotors.check_disposal_root()'::regprocedure) INTO source;
+ updated:=replace(source,'BEGIN',E'BEGIN\n IF OLD.status=''WRITTEN_OFF'' THEN PERFORM vamotors.check_closed_financial(OLD,NEW); RETURN NULL; END IF;');
+ IF updated=source THEN RAISE EXCEPTION 'REPAIR_DISPOSAL_ROOT_BASE_MISMATCH'; END IF;
+ fragment:='OR (m."sourceType"=''DISPOSAL'' AND m."sourceId"=d.id)';
+ IF strpos(updated,fragment)=0 THEN RAISE EXCEPTION 'REPAIR_DISPOSAL_CASH_BASE_MISMATCH'; END IF;
+ EXECUTE replace(updated,fragment,fragment||' OR (m."sourceType"=''REPAIR'' AND m."sourceId" IN (SELECT id FROM vamotors."RepairRecord" WHERE "cycleId"=NEW.id))');
+ SELECT pg_get_functiondef('vamotors.approval_origin(uuid,vamotors."ApprovalRequest",vamotors."PurchaseRecord",vamotors."Vehicle",boolean)'::regprocedure) INTO source;
+ fragment:='IF reviewing THEN';
+ updated:=replace(source,fragment,E'IF EXISTS(SELECT 1 FROM vamotors."RepairRecord" r WHERE r."cycleId"=p.id AND (NOT vamotors.approval_fields(uid,''PurchaseRecord'',''read'',cycle_data,ARRAY[''repairs'']) OR NOT vamotors.approval_fields(uid,''RepairRecord'',''read'',to_jsonb(r),ARRAY[''id'',''returnedDate'',''invoiceAmount'',''payments.amount'',''payments.direction'']))) THEN RETURN false; END IF;\n '||fragment);
+ IF updated=source THEN RAISE EXCEPTION 'REPAIR_APPROVAL_READ_BASE_MISMATCH'; END IF; EXECUTE updated;
+ SELECT pg_get_functiondef('vamotors.check_approval_graph()'::regprocedure) INTO source;
+ fragment:='i:=a.proposal->''input'';';
+ updated:=replace(source,fragment,fragment||E'\n IF EXISTS(SELECT 1 FROM vamotors."RepairRecord" WHERE "cycleId"=p.id AND "returnedDate" IS NULL) THEN RAISE EXCEPTION ''REPAIR_OBLIGATION_OPEN'' USING ERRCODE=''23514''; END IF;');
+ IF updated=source THEN RAISE EXCEPTION 'REPAIR_APPROVAL_OBLIGATION_BASE_MISMATCH'; END IF; EXECUTE updated;
+ SELECT pg_get_functiondef('vamotors.cycle_cost_root_graph()'::regprocedure) INTO source;
+ fragment:='OR v."activePurchaseId" IS DISTINCT FROM NEW.id';
+ updated:=replace(source,fragment,'OR (v."activePurchaseId" IS DISTINCT FROM NEW.id AND NOT vamotors.current_written_off(NEW.id))');
+ IF updated=source THEN RAISE EXCEPTION 'REPAIR_CLOSED_MONEY_POINTER_BASE_MISMATCH'; END IF;
+ fragment:='OR (m."sourceType"=''COST'' AND m."sourceId" IN (SELECT id FROM vamotors."VehicleCost" WHERE "cycleId"=NEW.id))';
+ IF strpos(updated,fragment)=0 THEN RAISE EXCEPTION 'REPAIR_CLOSED_CASH_BASE_MISMATCH'; END IF;
+ EXECUTE replace(updated,fragment,fragment||' OR (m."sourceType"=''DISPOSAL'' AND m."sourceId" IN (SELECT id FROM vamotors."Disposal" WHERE "cycleId"=NEW.id))');
+ SELECT pg_get_functiondef('vamotors.cycle_cost_child_graph()'::regprocedure) INTO source;
+ fragment:='p."closedAt" IS NOT NULL OR p.status NOT IN (''PURCHASED'',''IN_STOCK'')';
+ updated:=replace(source,fragment,'((p."closedAt" IS NOT NULL OR p.status NOT IN (''PURCHASED'',''IN_STOCK'')) AND NOT vamotors.current_written_off(p.id))');
+ IF updated=source THEN RAISE EXCEPTION 'REPAIR_CLOSED_MONEY_CHILD_BASE_MISMATCH'; END IF; EXECUTE updated;
+ SELECT pg_get_functiondef('vamotors.settlement_detail_guard()'::regprocedure) INTO source;
+ updated:=replace(source,fragment,'((p."closedAt" IS NOT NULL OR p.status NOT IN (''PURCHASED'',''IN_STOCK'')) AND NOT vamotors.current_written_off(p.id))');
+ IF updated=source THEN RAISE EXCEPTION 'REPAIR_CLOSED_SETTLEMENT_BASE_MISMATCH'; END IF; EXECUTE updated;
+END $$;
+
 -- New subject only: unchanged old universes mean old wildcard/compound and
--- delegation ceilings remain exactly the accepted v12 populations and hashes.
+-- delegation ceilings remain exactly the accepted v13 populations and hashes.
 CREATE FUNCTION vamotors.repair_canonical(j jsonb) RETURNS text LANGUAGE sql IMMUTABLE SET search_path=pg_catalog AS $$
  SELECT CASE jsonb_typeof(j) WHEN 'object' THEN '{'||coalesce((SELECT string_agg(to_jsonb(key)::text||':'||vamotors.repair_canonical(value),',' ORDER BY key COLLATE "C") FROM jsonb_each(j)),'')||'}' WHEN 'array' THEN '['||coalesce((SELECT string_agg(vamotors.repair_canonical(value),',' ORDER BY n) FROM jsonb_array_elements(j) WITH ORDINALITY a(value,n)),'')||']' ELSE j::text END
 $$;
-ALTER TABLE vamotors."RolePermission" DISABLE TRIGGER protected_permissions;
-ALTER TABLE vamotors."Role" DISABLE TRIGGER protected_role;
 DO $$
-DECLARE new_rule jsonb; pid uuid; admin_id uuid;
+DECLARE new_rule jsonb; pid uuid; admin_id uuid; protected_permissions text; protected_role text; temporary text;
 BEGIN
- IF EXISTS(SELECT 1 FROM vamotors."Permission" p WHERE p.rule->>'subject'='RepairRecord') THEN RAISE EXCEPTION 'UNEXPECTED_PREBASE_REPAIR_GRANT'; END IF;
- IF EXISTS(SELECT 1 FROM vamotors."Permission" p WHERE p."ruleHash"<>encode(sha256(convert_to(vamotors.repair_canonical(p.rule),'UTF8')),'hex')) THEN RAISE EXCEPTION 'INVALID_PREBASE_HASH'; END IF;
+  IF EXISTS(SELECT 1 FROM vamotors."Permission" p WHERE p.rule->>'subject'='RepairRecord') THEN RAISE EXCEPTION 'UNEXPECTED_PARENT_REPAIR_GRANT'; END IF;
+  IF EXISTS(SELECT 1 FROM vamotors."Permission" p WHERE p."ruleHash"<>encode(sha256(convert_to(vamotors.repair_canonical(p.rule),'UTF8')),'hex')) THEN RAISE EXCEPTION 'INVALID_PARENT_HASH'; END IF;
+  SELECT pg_get_functiondef('vamotors.protect_admin_permissions()'::regprocedure) INTO protected_permissions;
+  SELECT pg_get_functiondef('vamotors.protect_system_role()'::regprocedure) INTO protected_role;
+  temporary:=replace(protected_permissions,'BEGIN',E'BEGIN\n IF current_user=''vamotors_migrator'' AND TG_OP=''INSERT'' AND EXISTS(SELECT 1 FROM vamotors."Permission" p WHERE p.id=NEW."permissionId" AND p.rule->>''subject''=''RepairRecord'') THEN RETURN NEW; END IF;');
+  IF temporary=protected_permissions THEN RAISE EXCEPTION 'REPAIR_PERMISSION_GUARD_BASE_MISMATCH'; END IF; EXECUTE temporary;
+  temporary:=replace(protected_role,'BEGIN',E'BEGIN\n IF current_user=''vamotors_migrator'' AND TG_OP=''UPDATE'' AND NEW.revision=OLD.revision+1 AND (to_jsonb(NEW)-''revision'')=(to_jsonb(OLD)-''revision'') THEN RETURN NEW; END IF;');
+  IF temporary=protected_role THEN RAISE EXCEPTION 'REPAIR_ROLE_GUARD_BASE_MISMATCH'; END IF; EXECUTE temporary;
  SELECT id INTO admin_id FROM vamotors."Role" WHERE "systemKey"='ADMINISTRATOR';
  IF admin_id IS NOT NULL THEN
   FOR new_rule IN SELECT value FROM jsonb_array_elements('[{"subject":"RepairRecord","action":"read","fields":["id","revision","vendorId","request","sentDate","returnedDate","summary","invoiceAmount","invoiceDate","payments","payments.id","payments.owner.type","payments.owner.id","payments.commandId","payments.amount","payments.direction","payments.category","payments.date","payments.method","payments.recordedAt","payments.reference","payments.reversalOf","payments.reason"]},{"subject":"RepairRecord","action":"create","fields":["cycleId","vendorId","request","sentDate"]},{"subject":"RepairRecord","action":"update","fields":["repairId","invoiceAmount","invoiceDate","returnedDate","summary"]},{"subject":"RepairRecord","action":"pay","fields":["repairId","payment.amount","payment.date","payment.method","payment.reference","sourceType","sourceId","paymentId","reason","replacement.amount","replacement.date","replacement.method","replacement.reference"]}]'::jsonb) LOOP
@@ -294,13 +406,13 @@ BEGIN
   END LOOP;
   UPDATE vamotors."Role" SET revision=revision+1 WHERE id=admin_id;
  END IF;
+ EXECUTE protected_permissions; EXECUTE protected_role;
 END $$;
 SET CONSTRAINTS ALL IMMEDIATE;
-ALTER TABLE vamotors."Role" ENABLE TRIGGER protected_role;
-ALTER TABLE vamotors."RolePermission" ENABLE TRIGGER protected_permissions;
 DROP FUNCTION vamotors.repair_canonical(jsonb);
 REVOKE ALL ON FUNCTION vamotors.repair_json(uuid),vamotors.repairs_json(uuid),vamotors.repair_diff(jsonb,jsonb),vamotors.repair_fields(uuid,text,text,jsonb,text[]),vamotors.repair_return_recipient(uuid,uuid),vamotors.repair_owner_guard(),vamotors.check_repair_root(),vamotors.check_repair_child(),vamotors.repair_notification_guard(),vamotors.check_repair_evidence() FROM PUBLIC;
 REVOKE ALL ON FUNCTION vamotors.repair_components(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION vamotors.current_written_off(uuid),vamotors.check_closed_financial(vamotors."PurchaseRecord",vamotors."PurchaseRecord") FROM PUBLIC;
 -- These existing trigger-only owners now inspect same-transaction xmin evidence.
 -- Do not widen runtime system-column SELECT or grant callable definer entrypoints.
 ALTER FUNCTION vamotors.acquisition_root_guard() SECURITY DEFINER SET search_path=pg_catalog,pg_temp;
