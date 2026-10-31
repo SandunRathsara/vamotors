@@ -1,5 +1,81 @@
 # T08 direct REPAIR — ACTIVE accepted-c462 reconciliation
 
+## b7fd terminal campaigns and typed-owner compatibility correction
+
+Checkpoint `b7fd1d7eb3cc681725499b30e0a23e7bd501f5fa`, tree
+`a42b9791ccb3415e37ec260ad72da1c8902b7025`, retains exact acceptedc462 ancestry.
+NEW B fresh installed18/v14; NEW genuinely nonempty exactc46217/v13 B parent
+actually upgraded18/v14 and repeated with strict preservation PASS. Its baseline
+had11 cycles,4 approvals,2 disposals,7 notices,2 FINAL files,4 upload intents,
+13 basis versions,3 cost payments,16 purchase payments,12 mileage rows,1 quote
+and1 rate sheet, with no repair table/model/data before upgrade. All original
+rows, grants/conditions/memberships/compound ceilings/functions/ACL/files survived;
+four Admin links/one Admin revision and AdminGuard deltas8 then1 were explicit.
+Both b7fd builds passed. Its actual quality was168 units/21 files, contracts20,
+SW5, types/native Prisma, full lint0 errors/46 warnings and44 owned formatted TS
+files. Read-only client/schema/native inventories matched47 models/497 columns,
+actual18 installed migrations and registry14 (19 subjects/61 actions). These are
+historical b7fd facts, not proof for the next candidate. The metadata/array-helper
+failures and subsequent v3 PASS inventories are retained in
+`b7fd-helper-errata.json`; no source/client/DB was changed for those helper fixes.
+
+Both original b7fd finite plans are terminal exit1, receipts
+`20261031T004757015925Z-b7fd-fresh-finite-plan.json` and
+`20261031T004817828732Z-b7fd-genuine-finite-plan.json`. Each first15 campaigns
+passed, including all direct repair checks, WRITE_OFF P1–P8/security/SQL/UI8 and
+accepted requester replay. Settlement passed groups1–19; the outer1800s timeout
+interrupted its final restart group. Original FAIL manifests/logs remain, with
+`browser.newContext: Target page, context or browser has been closed`. Its child
+wrapper emitted no terminal receipt: no child exit or whole20-group PASS is
+invented. The original approval UI and all17 accepted regression drivers remain
+byte-exact; the external semantic selector scopes ORIGINAL85.00 and additionally
+asserts CURRENT85.00, without dropping any of the8 groups.
+
+The live-page diagnostic exited0 but needed SIGKILL for its first app; it is NOT
+graceful proof. The one-variable page-drained probe retained the SAME browser
+contexts/cookies and required both app exits code0/signalnull, passing. Separate
+retained-data final-group proofs passed on both roots using their original30
+settlement cycles and real FINAL CSV, native PG-text snapshots, actual graceful
+app/PG restart and NEW browser/SECOND UI authentication:
+`20261031T012533277388Z-b7fd-fresh-settlement20-composite-final-group.json`,
+`20261031T012533281854Z-b7fd-genuine-settlement20-composite-final-group.json`.
+This is explicitly **composite19+1**, never an uninterrupted original20 exit0.
+Captured original STAFF membership/activation was restored through real audited
+commands where needed after the original timeouts; no original role changed.
+
+Both continuation plans are also terminal exit1:
+`20261031T012853189230Z-b7fd-fresh-finite-tail.json`,
+`20261031T012927603124Z-b7fd-genuine-finite-tail-corrected-launch.json`.
+Settlement UI and source-equivalent drained cycle-edits passed; cost17 passed4
+groups then its unchanged fifth-group negative failed404 versus expected422.
+The erroneous genuine nested `run.py INVALID` launch failed before startup and
+is separately retained, not hidden by the corrected launch. The cost failures
+are `20261031T013008285206Z-b7fd-fresh-cost17.stderr` and
+`20261031T013043090734Z-b7fd-genuine-cost17.stderr`. A minimal retained-row HTTP
+probe reproduced the same defect without new fixtures or changed roles:
+`20261031T013423227696Z-b7fd-reversal-typed-owner-red.json`.
+
+The root cause is typed wire compatibility: a REPAIR reversal whose sourceId is
+explicitly referenced as a PurchaseRecord owner is malformed input422, not a
+missing repair404. The new envelope rejects an explicit foreign owner unless a
+matching RepairRecord ref resolves possible cross-table UUID coincidence.
+Unknown/untyped IDs still reach normal404; real repair/cycle CAS and valid exact
+reversals remain required. No accepted assertion/actor premise or migration byte
+was changed. Focused unit, types and lint passed at the dirty correction source:
+`20261031T013702001870Z-typed-owner-focused-unit.json`,
+`20261031T013702001870Z-typed-owner-types.json`,
+`20261031T013702006370Z-typed-owner-focused-lint.json`.
+
+No campaign remains active at this boundary. Remaining stock16/audit32/
+acquisition15/rates8+F1/attachments18/incurred/gross/repair A–C–C+1 did NOT run in
+the b7fd tail. Next: validate correction through HTTP, checkpoint exact source,
+identity-check/stop own B services with data retained, review actual capacity,
+then NEW fresh and NEW genuine exactc46217/v13→candidate18/v14/repeat roots.
+All required current coverage must finish there, using controlled page drain
+without changing original sessions/assertions/expiry. Final restart/all-linked
+file grids, quality/maps/seals and release remain pending. No frozen handback,
+independent acceptance, READY promotion or ownership release is declared.
+
 ## Candidate4f retained failure and originating-status correction
 
 Active checkpoint `4f1765c9fc55790abcb7658097a20f8c77b7c9fd`, tree

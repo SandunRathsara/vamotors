@@ -417,6 +417,19 @@ export const repairReversalInput = z
     reason: text,
   })
   .strict()
+// A source explicitly typed as another owner is malformed, not a missing repair.
+// UUIDs may coincide across tables; a matching repair ref resolves that ambiguity.
+export const repairReversalEnvelope = customerEnvelope("createCustomer")
+  .extend({ input: repairReversalInput })
+  .refine(
+    ({ input, expected }) =>
+      !expected.some(
+        (ref) => ref.id === input.sourceId && ref.type !== "RepairRecord"
+      ) ||
+      expected.some(
+        (ref) => ref.id === input.sourceId && ref.type === "RepairRecord"
+      )
+  )
 export const writeOffInput = z
   .object({
     cycleId: id,

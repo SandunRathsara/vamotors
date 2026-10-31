@@ -16,8 +16,7 @@ import { abilityFor, grantSchema, requireFields } from "./permissions"
 import {
   repairEnvelope,
   repairInputs,
-  repairReversalInput,
-  customerEnvelope,
+  repairReversalEnvelope,
   type RepairCommand,
 } from "./validators"
 import {
@@ -46,7 +45,10 @@ type Intent =
         input: z.infer<(typeof repairInputs)[N]>
       }
     }[RepairCommand]
-  | { name: "reversePayment"; input: z.infer<typeof repairReversalInput> }
+  | {
+      name: "reversePayment"
+      input: z.infer<typeof repairReversalEnvelope>["input"]
+    }
 type Row = NonNullable<Awaited<ReturnType<typeof loadPurchase>>>
 type Repair = Row["repairs"][number]
 const date = (d: Date) => d.toISOString().slice(0, 10)
@@ -343,11 +345,7 @@ export async function executeRepair(
   }
   overflow(raw)
   const parsed = (
-    name === "reversePayment"
-      ? customerEnvelope("createCustomer").extend({
-          input: repairReversalInput,
-        })
-      : repairEnvelope(name)
+    name === "reversePayment" ? repairReversalEnvelope : repairEnvelope(name)
   ).safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const envelope = parsed.data,

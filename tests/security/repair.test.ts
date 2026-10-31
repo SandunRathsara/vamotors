@@ -5,6 +5,7 @@ import {
   repairEnvelope,
   repairInputs,
   repairReversalInput,
+  repairReversalEnvelope,
 } from "../../lib/server/validators"
 import {
   abilityFor,
@@ -218,6 +219,33 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
     expect(
       ability.can("pay", subject("RepairRecord", { createdBy: id }), "repairId")
     ).toBe(false)
+  })
+
+  it("rejects an explicitly different typed owner without conflating unknown IDs with invalid input", () => {
+    const body = {
+      schemaVersion: 1,
+      idempotencyKey: id,
+      expected: [{ type: "PurchaseRecord", id, revision: 1 }],
+      input: {
+        sourceType: "REPAIR",
+        sourceId: id,
+        paymentId: other,
+        reason: "Original wrong-source negative",
+      },
+    }
+    expect(repairReversalEnvelope.safeParse(body).success).toBe(false)
+    expect(
+      repairReversalEnvelope.safeParse({
+        ...body,
+        expected: [{ type: "PurchaseRecord", id: other, revision: 1 }],
+      }).success
+    ).toBe(true)
+    expect(
+      repairReversalEnvelope.safeParse({
+        ...body,
+        expected: [...body.expected, { type: "RepairRecord", id, revision: 1 }],
+      }).success
+    ).toBe(true)
   })
 
   it("uses bigint over complete authorized payment facts, never a hidden/partial zero", () => {
