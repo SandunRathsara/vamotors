@@ -50,7 +50,7 @@ let facts: Retained, admin: APIRequestContext, staff: APIRequestContext
 let stage = "start",
   restored = false
 const clients: APIRequestContext[] = []
-const excluded = ["Session", "AdminGuard"]
+const excluded = ["session", "Session", "AdminGuard"]
 // Snapshot ALL rows, not WHERE test-owned. Auth-session churn and guard generation
 // are excluded explicitly; bigint/date facts are native PG text, never JS numbers.
 async function snapshot(authCommand?: string) {
@@ -64,7 +64,14 @@ async function snapshot(authCommand?: string) {
   for (const t of tables) {
     if (
       authCommand &&
-      ["User", "UserRole", "Role", "RolePermission", "Permission"].includes(t)
+      [
+        "user",
+        "User",
+        "UserRole",
+        "Role",
+        "RolePermission",
+        "Permission",
+      ].includes(t)
     )
       continue
     const where =
@@ -82,7 +89,10 @@ async function snapshot(authCommand?: string) {
 }
 function expectStatus(
   label: string,
-  response: { status: number; value: any },
+  response: {
+    status: number
+    value: { error?: { code?: string }; data?: { status?: string } }
+  },
   status: number,
   code?: string
 ) {
@@ -126,23 +136,22 @@ async function unchanged(
 }
 const current = (id = facts.cycleId) =>
   f.query<PurchaseCycleDTO>(admin, "purchase", `?cycleId=${id}`)
-async function role(grants: Grant[]) {
+async function roleBody(grants: Grant[]) {
   const r = await f.query<RoleDTO>(admin, "role", `?id=${facts.roleId}`)
-  return f.command(
-    admin,
-    "saveRole",
-    envelope(
-      {
-        id: r.id,
-        name: r.name,
-        reason: "Replay current-authority regression",
-        grants,
-      },
-      [ref(r, "Role")]
-    )
+  return envelope(
+    {
+      id: r.id,
+      name: r.name,
+      reason: "Replay current-authority regression",
+      grants,
+    },
+    [ref(r, "Role")]
   )
 }
-async function membership(active: boolean, roleIds: string[]) {
+async function role(grants: Grant[]) {
+  return f.command(admin, "saveRole", await roleBody(grants))
+}
+async function membershipBody(active: boolean, roleIds: string[]) {
   const u = await f.query<UserAdminDTO>(
     admin,
     "user",
@@ -151,20 +160,19 @@ async function membership(active: boolean, roleIds: string[]) {
   const roles = await Promise.all(
     roleIds.map((id) => f.query<RoleDTO>(admin, "role", `?id=${id}`))
   )
-  return f.command(
-    admin,
-    "updateUser",
-    envelope(
-      {
-        id: u.id,
-        name: u.name,
-        active,
-        roleIds,
-        reason: "Bounded replay test membership; restore captured original",
-      },
-      [ref(u, "User"), ...roles.map((r) => ref(r, "Role"))]
-    )
+  return envelope(
+    {
+      id: u.id,
+      name: u.name,
+      active,
+      roleIds,
+      reason: "Bounded replay test membership; restore captured original",
+    },
+    [ref(u, "User"), ...roles.map((r) => ref(r, "Role"))]
   )
+}
+async function membership(active: boolean, roleIds: string[]) {
+  return f.command(admin, "updateUser", await membershipBody(active, roleIds))
 }
 const action = (name: Name) =>
   name === "sendRepair" ? "create" : name === "returnRepair" ? "update" : "pay"
@@ -178,7 +186,7 @@ function restricted(
     )
   if (kind === "other-target")
     return facts.grants.map((g) =>
-      g.subject === "PurchaseRecord" && g.action === "read"
+      g.subject === "Vehicle" && g.action === "read"
         ? {
             ...g,
             conditions: { status: "IN_STOCK" },
@@ -210,7 +218,16 @@ function restricted(
 }
 function altered(name: Name, kind: "payload" | "refs" | "target") {
   const b = structuredClone(facts.bodies[name])
-  const i = b.input as Record<string, any>
+  const i = b.input as {
+    cycleId?: string
+    sourceId?: string
+    paymentId?: string
+    repairId?: string
+    request?: string
+    summary?: string
+    reason?: string
+    payment?: { reference?: string }
+  }
   if (kind === "refs")
     b.expected = b.expected.map((r) => ({ ...r, revision: r.revision + 1 }))
   else if (kind === "target") {
@@ -222,7 +239,7 @@ function altered(name: Name, kind: "payload" | "refs" | "target") {
     } else i.repairId = facts.alternate.repairId
   } else if (name === "sendRepair") i.request = "Valid changed request"
   else if (name === "returnRepair") i.summary = "Valid changed return"
-  else if (name === "payRepair")
+  else if (name === "payRepair" && i.payment)
     i.payment.reference = "Valid changed cash reference"
   else i.reason = "Valid changed correction reason"
   return b
@@ -708,6 +725,13 @@ async function locks() {
         await role(facts.grants)
         await membership(true, [facts.roleId])
         stage = `${name} POST post-wait ${kind}`
+        const postMutationBody =
+          kind === "inactive"
+            ? await membershipBody(false, [facts.roleId])
+            : await roleBody(restricted(name, kind))
+        const postBefore = await snapshot(
+          "00000000-0000-4000-8000-000000000000"
+        )
         const blocker = await f.db.connect()
         let pending: Promise<APIResponse> | undefined
         try {
@@ -720,14 +744,24 @@ async function locks() {
           pending = post(staff, name, altered(name, "payload"))
           const observed = await wait("BusinessSequence")
           assert.ok(observed.blockers.includes(pid))
-          if (kind === "inactive") await membership(false, [facts.roleId])
-          else await role(restricted(name, kind))
-          const before = await snapshot()
+          const applied = await f.command(
+            admin,
+            kind === "inactive" ? "updateUser" : "saveRole",
+            postMutationBody
+          )
           await blocker.query("COMMIT")
           const response = await read(await pending),
-            after = await snapshot()
-          events.push({ stage, pid, observed, before, after, response })
-          assert.deepEqual(after, before)
+            after = await snapshot(applied.commandId)
+          events.push({
+            stage,
+            pid,
+            observed,
+            authCommand: applied.commandId,
+            before: postBefore,
+            after,
+            response,
+          })
+          assert.deepEqual(after, postBefore)
           expectStatus(
             stage,
             response,
@@ -746,6 +780,13 @@ async function locks() {
         await membership(true, [facts.roleId])
         await role(facts.grants)
         stage = `${name} commandStatus post-wait ${kind}`
+        const statusMutationBody =
+          kind === "inactive"
+            ? await membershipBody(false, [facts.roleId])
+            : await roleBody(restricted(name, kind))
+        // Compare all business/source populations; only the known real audited
+        // mutation's exact receipt/audit + auth tables are excluded below.
+        const before = await snapshot("00000000-0000-4000-8000-000000000000")
         const guard = await f.db.connect()
         let mutation: Promise<Applied> | undefined,
           recovery: Promise<APIResponse> | undefined
@@ -756,18 +797,16 @@ async function locks() {
           await guard.query(
             'SELECT id FROM vamotors."AdminGuard" WHERE id=1 FOR UPDATE'
           )
-          mutation =
-            kind === "inactive"
-              ? membership(false, [facts.roleId])
-              : role(restricted(name, kind))
+          mutation = f.command(
+            admin,
+            kind === "inactive" ? "updateUser" : "saveRole",
+            statusMutationBody
+          )
           const writer = await wait("lock_admin_guard")
           assert.ok(writer.blockers.includes(pid))
           recovery = staff.get(statusPath(name))
           const reader = await wait("lock_admin_guard", [writer.pid])
           assert.ok(reader.blockers.length)
-          // Compare all business/source populations; only the known real audited
-          // mutation's exact receipt/audit + auth tables are excluded below.
-          const before = await snapshot("00000000-0000-4000-8000-000000000000")
           await guard.query("COMMIT")
           const applied = await mutation,
             response = await read(await recovery),

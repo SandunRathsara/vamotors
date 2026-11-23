@@ -366,8 +366,9 @@ export async function executeRepair(
       where: { environmentId_actorKey_commandName_idempotencyKey: scope },
     })
     if (prior) {
+      const replay = await repairReplay(tx, actor, prior)
       if (prior.inputHash !== digest) fail("IDEMPOTENCY_MISMATCH")
-      return repairReplay(tx, actor, prior)
+      return replay
     }
     let cycleId: string | undefined =
       intent.name === "sendRepair" ? intent.input.cycleId : undefined
