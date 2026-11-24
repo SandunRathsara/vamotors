@@ -11,6 +11,7 @@ import { currentActor, type Actor, type Identity } from "./actor"
 import { assertEnvironment, database, type Tx } from "./db"
 import { authorizedAttachment, privateStorage } from "./attachments"
 import { audit, writeReadVersion } from "./audit"
+import { executeImportedWriteOff } from "./approvals"
 import { CommandError, fail } from "./errors"
 import { canonical } from "./idempotency"
 import {
@@ -23,6 +24,7 @@ import {
 } from "./import-staging"
 import {
   adapterFor,
+  archiveImportedParty,
   ImportRowError,
   need,
   type ImportContext,
@@ -35,6 +37,7 @@ import {
   type ImportParseError,
 } from "./import-parsers"
 import { requireFields } from "./permissions"
+import { currentSettings } from "./settings"
 import {
   isDbConstraintError,
   nextBusinessSequence,
@@ -261,13 +264,51 @@ function order(rows: Row[], namespace: string, errors: Issue[]) {
   const prerequisites = (row: Row) => {
     const data = row.data
     const deps = new Set<Row>()
+    if (data.type === "SALES" && data.payload.reservation) {
+      const reservation = data.payload.reservation
+      const advance =
+        !("existingId" in reservation) && reservation.namespace === namespace
+          ? sources.get(referenceKey(reservation))
+          : undefined
+      if (advance?.data.type !== "ADVANCES") {
+        errors.push(
+          rowIssue(
+            row,
+            "reservation",
+            "INVALID_STATE",
+            "A historical sale must convert an advance in the same import batch"
+          )
+        )
+      } else {
+        const depositKeys = new Set(
+          advance.data.payload.payments.map((payment) => payment.sourceKey)
+        )
+        if (
+          data.payload.payments.some((payment) =>
+            depositKeys.has(payment.sourceKey)
+          )
+        )
+          errors.push(
+            rowIssue(
+              row,
+              "payments",
+              "IMPORT_DUPLICATE",
+              "Payment source keys must be unique across the two rows of a shared sale case"
+            )
+          )
+      }
+    }
     for (const ref of adapterFor(data.type)?.dependencies?.(data) ?? []) {
       if (ref && !("existingId" in ref) && ref.namespace === namespace) {
         const dependency = sources.get(referenceKey(ref))
         if (dependency) deps.add(dependency)
       }
     }
-    if (data.type === "SALES" || data.type === "REPAIRS") {
+    if (
+      data.type === "SALES" ||
+      data.type === "REPAIRS" ||
+      data.type === "ADVANCES"
+    ) {
       for (const repair of rows) {
         if (
           repair.data.type !== "REPAIRS" ||
@@ -277,7 +318,7 @@ function order(rows: Row[], namespace: string, errors: Issue[]) {
         )
           continue
         if (
-          data.type === "SALES" ||
+          data.type !== "REPAIRS" ||
           repair.data.payload.sentDate < data.payload.sentDate
         )
           deps.add(repair)
@@ -357,6 +398,13 @@ async function runGraph(
     identity,
     key: getKey,
     costIds,
+    commitmentCycles: new Set(
+      rows.flatMap(({ data }) =>
+        data.type === "ADVANCES" && !("existingId" in data.payload.cycle)
+          ? [data.payload.cycle.sourceKey]
+          : []
+      )
+    ),
     cycleCloseDates: new Map(),
     releaseAfterRepair: new Set(),
     async resolve(ref, field) {
@@ -384,7 +432,14 @@ async function runGraph(
       return committed.targetVersion.entityId
     },
   }
-  const imported = []
+  const imported: {
+    row: Row
+    keys: string[]
+    versionId: string
+    targetId: string
+    sequence: bigint
+    disposal?: { rowId: string; versionId: string }
+  }[] = []
   for (const row of rows) {
     const keys = keysOf(row)
     const priorCosts = preview ? new Map(costIds) : null
@@ -458,14 +513,86 @@ async function runGraph(
     }
   }
   if (errors.length) return errors
+  for (const entry of imported) {
+    const { row } = entry
+    if (row.data.type !== "VEHICLES" || !row.data.payload.disposal) continue
+    const {
+      closedAt,
+      disposal: { legacyApproval, ...terms },
+    } = row.data.payload
+    const rowId = randomUUID()
+    if (preview) await tx.$executeRawUnsafe("SAVEPOINT import_disposal")
+    try {
+      const versionId = await executeImportedWriteOff(
+        tx,
+        identity,
+        {
+          cycleId: entry.targetId,
+          ...terms,
+        },
+        {
+          batchId: batch.id,
+          rowId,
+          closedAt: closedAt!,
+          legacy: legacyApproval,
+        }
+      )
+      entry.disposal = { rowId, versionId }
+      if (preview)
+        await tx.$executeRawUnsafe("RELEASE SAVEPOINT import_disposal")
+    } catch (error) {
+      if (
+        !preview ||
+        (!(error instanceof CommandError) && !isDbConstraintError(error))
+      )
+        throw error
+      await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT import_disposal")
+      await tx.$executeRawUnsafe("RELEASE SAVEPOINT import_disposal")
+      errors.push(
+        rowIssue(
+          row,
+          "disposal",
+          error instanceof CommandError ? error.code : "IMPORT_CONSTRAINT",
+          (error instanceof CommandError && error.safeMessage) ||
+            "The historical write-off could not be applied"
+        )
+      )
+    }
+  }
+  if (errors.length) return errors
   for (const { row, targetId } of imported) {
     if (row.data.type === "VEHICLES") {
       const expected = row.data.payload
       const cycle = await tx.purchaseRecord.findUniqueOrThrow({
         where: { id: targetId },
       })
+      if (expected.status === "DELIVERED") {
+        const supported =
+          cycle.status === "SOLD" &&
+          imported.some(
+            (candidate) =>
+              candidate.row.data.type === "SALES" &&
+              candidate.row.data.payload.completion &&
+              referenceKey(candidate.row.data.payload.cycle) ===
+                referenceKey({
+                  type: "VEHICLES",
+                  namespace: batch.namespace,
+                  sourceKey: expected.cycleSourceKey,
+                })
+          )
+        if (!supported)
+          errors.push(
+            rowIssue(
+              row,
+              "status",
+              "DELIVERED_WITHOUT_COMPLETION",
+              "Historical Delivered requires a completed companion sale with handover and financial evidence"
+            )
+          )
+      }
       if (
-        cycle.status !== expected.status ||
+        cycle.status !==
+          (expected.status === "DELIVERED" ? "SOLD" : expected.status) ||
         cycle.available !== expected.available
       )
         errors.push(
@@ -476,6 +603,44 @@ async function runGraph(
             "Companion repair or sale rows do not produce the declared cycle state"
           )
         )
+    } else if (row.data.type === "ADVANCES") {
+      const p = row.data.payload
+      const reservation = await tx.reservation.findUniqueOrThrow({
+        where: { id: targetId },
+      })
+      try {
+        need(
+          reservation.state === p.state,
+          "state",
+          "Companion sale does not produce the declared reservation state"
+        )
+        if (p.state === "CONVERTED") {
+          need(
+            p.completedSale &&
+              (await ctx.resolve(p.completedSale, "completedSale")) ===
+                reservation.saleCaseId &&
+              (await ctx.resolve(
+                {
+                  type: "SALES",
+                  namespace: batch.namespace,
+                  sourceKey: p.saleCaseSourceKey,
+                },
+                "saleCaseSourceKey"
+              )) === reservation.saleCaseId,
+            "completedSale",
+            "Converted advance must refer to its companion sale and share its sale case key"
+          )
+          need(
+            reservation.resolvedAt?.toISOString().slice(0, 10) ===
+              p.resolutionDate,
+            "resolutionDate",
+            "Advance must resolve on the completion date"
+          )
+        }
+      } catch (error) {
+        if (!(error instanceof ImportRowError)) throw error
+        errors.push(rowIssue(row, error.field, error.code, error.safeMessage!))
+      }
     } else if (
       row.data.type === "SALES" &&
       row.data.payload.tradeIn?.acquiredCycle
@@ -505,6 +670,36 @@ async function runGraph(
         )
     }
   }
+  if (!errors.length) {
+    for (const entry of imported) {
+      try {
+        const archived = await archiveImportedParty(
+          ctx,
+          entry.row.data,
+          entry.targetId
+        )
+        if (!archived) continue
+        const version = await tx.entityReadVersion.findFirstOrThrow({
+          where: {
+            entityId: entry.targetId,
+            entityType: archived.result.type,
+            commandId: archived.commandId,
+          },
+        })
+        entry.versionId = version.id
+      } catch (error) {
+        if (!(error instanceof CommandError) || !preview) throw error
+        errors.push(
+          rowIssue(
+            entry.row,
+            "isActive",
+            error.code,
+            error.safeMessage ?? "The party could not be archived"
+          )
+        )
+      }
+    }
+  }
   if (preview || errors.length) return errors
 
   await tx.importedFile.createMany({
@@ -514,7 +709,14 @@ async function runGraph(
       batchId: batch.id,
     })),
   })
-  for (const { row, keys, versionId, targetId, sequence } of imported) {
+  for (const {
+    row,
+    keys,
+    versionId,
+    targetId,
+    sequence,
+    disposal,
+  } of imported) {
     const file = prepared.files.find(
       (f) => f.source.attachmentId === row.source.attachmentId
     )!
@@ -527,10 +729,27 @@ async function runGraph(
         sourceKey: keys[0],
         aliases: keys.slice(1),
         rowNumber: row.rowNumber,
-        metadata: row.data.legacy ?? undefined,
+        metadata:
+          row.data.type === "VEHICLES" &&
+          row.data.payload.status === "DELIVERED"
+            ? { ...row.data.legacy, historicalStatus: "DELIVERED" }
+            : (row.data.legacy ?? undefined),
         targetVersionId: versionId,
       },
     })
+    if (disposal)
+      await tx.importSourceRow.create({
+        data: {
+          id: disposal.rowId,
+          batchId: batch.id,
+          fileHash: file.sha256,
+          namespace: batch.namespace,
+          sourceType: "VEHICLE_DISPOSAL",
+          sourceKey: keys[0],
+          rowNumber: row.rowNumber,
+          targetVersionId: disposal.versionId,
+        },
+      })
     if (row.data.type === "VEHICLES") {
       const cycle = await tx.purchaseRecord.findUniqueOrThrow({
         where: { id: targetId },
@@ -597,7 +816,8 @@ async function transition(
   })
   await audit(tx, {
     commandId,
-    userId: actor.userId,
+    userId: commandName === "confirmImport" ? null : actor.userId,
+    importActor: commandName === "confirmImport" ? actor.userId : undefined,
     entityType: "ImportBatch",
     entityId: batch.id,
     action: commandName,
@@ -707,6 +927,7 @@ export async function previewImport(identity: Identity, raw: unknown) {
         revision,
         previewHash,
         valid: !errors.length,
+        currency: (await currentSettings(tx)).currency,
         errors,
         controlTotals,
         rows: prepared.rows.map((r) => ({

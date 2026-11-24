@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { subject } from "@casl/ability"
 import type { Prisma, PurchaseRecord, Vehicle } from "@prisma/client"
 import type {
+  ApprovalProvenance,
   PurchaseCycleDTO,
   WriteOff,
 } from "../../.planning/implementation/contracts/api"
@@ -188,13 +189,23 @@ export function disposalDTO(
   row: DisposalRow
 ): NonNullable<PurchaseCycleDTO["disposal"]> {
   const a = row.approval
-  if (
-    row.approvalKind !== "CURRENT" ||
-    !a.reviewedBy ||
-    !a.reviewedAt ||
-    !a.reviewer
-  )
-    fail("INTERNAL_ERROR", 500)
+  let approval: ApprovalProvenance
+  if (row.approvalKind === "IMPORTED" && row.importedApproval) {
+    approval = row.importedApproval as Extract<
+      ApprovalProvenance,
+      { kind: "IMPORTED" }
+    >
+  } else {
+    if (!a?.reviewedBy || !a.reviewedAt || !a.reviewer)
+      fail("INTERNAL_ERROR", 500)
+    approval = {
+      kind: "CURRENT",
+      approvalId: a.id,
+      reviewerId: a.reviewedBy,
+      reviewerName: a.reviewerName!,
+      reviewedAt: a.reviewedAt.toISOString(),
+    }
+  }
   return {
     id: row.id,
     date: row.occurredDate.toISOString().slice(0, 10),
@@ -202,13 +213,7 @@ export function disposalDTO(
     method: row.method as WriteOff["method"],
     proceeds: row.proceeds.toString(),
     basisVersionId: row.basisVersionId,
-    approval: {
-      kind: "CURRENT",
-      approvalId: a.id,
-      reviewerId: a.reviewedBy,
-      reviewerName: a.reviewerName!,
-      reviewedAt: a.reviewedAt.toISOString(),
-    },
+    approval,
     payments: row.payments.map((p) => ({
       id: p.id,
       owner: { type: "DISPOSAL", id: row.id },
@@ -267,7 +272,9 @@ export async function applyApprovedWriteOff(
   context: {
     cycleId: string
     vehicleId: string
-    approvalId: string
+    approvalId?: string
+    importedApproval?: Extract<ApprovalProvenance, { kind: "IMPORTED" }>
+    disposalId?: string
     commandId: string
     reviewerId: string
     input: WriteOff
@@ -282,7 +289,7 @@ export async function applyApprovedWriteOff(
 ) {
   const { input, reviewerId, commandId } = context
   const now = context.reviewedAt,
-    id = randomUUID()
+    id = context.disposalId ?? randomUUID()
   bounded(context.basis, C)
   bounded(context.cashIn + BigInt(input.proceeds), C)
   bounded(context.cashOut, C)
@@ -305,7 +312,8 @@ export async function applyApprovedWriteOff(
       id,
       cycleId: context.cycleId,
       approvalId: context.approvalId,
-      approvalKind: "CURRENT",
+      approvalKind: context.importedApproval ? "IMPORTED" : "CURRENT",
+      importedApproval: context.importedApproval,
       occurredDate: new Date(input.date),
       reason: input.reason,
       method: input.method,

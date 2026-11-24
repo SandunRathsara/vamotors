@@ -546,6 +546,7 @@ model PurchaseRecord {
   cycleNumber          Int
   purchaseType         String
   acquisitionKind      String
+  historicalPaymentSchedule Boolean @default(false)
   supplierId           String?              @db.Uuid
   supplier             Supplier?            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   sellerCustomerId      String?                @db.Uuid
@@ -702,9 +703,10 @@ model Disposal {
   id             String            @id @db.Uuid
   cycleId        String            @unique @db.Uuid
   cycle          PurchaseRecord    @relation(fields: [cycleId], references: [id], onDelete: Restrict)
-  approvalId     String            @unique @db.Uuid
-  approval       ApprovalRequest   @relation(fields: [approvalId, cycleId], references: [id, cycleId], onDelete: Restrict)
+  approvalId     String?           @unique @db.Uuid
+  approval       ApprovalRequest?  @relation(fields: [approvalId, cycleId], references: [id, cycleId], onDelete: Restrict)
   approvalKind   String            @default("CURRENT")
+  importedApproval Json?
   occurredDate   DateTime          @db.Date
   reason         String
   method         String
@@ -758,6 +760,7 @@ model SaleCase {
   kind             String
   agreedPrice      BigInt
   listedSnapshot   BigInt?
+  legacyApproval   Json?
   reference        String?
   notes            String?
   state            String

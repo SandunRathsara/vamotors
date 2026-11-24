@@ -902,3 +902,61 @@ describe("T16 import parsers, templates & canonical validator", () => {
     expect(computeImportDigest(res.validRows)).toBe(res.digest)
   })
 })
+
+it("parses a lease sale that converts a historical advance", async () => {
+  const columns = getImportTemplateSchema("SALES").columns
+  const values: Record<string, string> = {
+    kind: "LEASE", price: "5500000.00", reservationSourceKey: "adv-001",
+    financeCompanySourceKey: "lender-001", downPayment: "500000.00",
+    financeAmount: "4500000.00", termMonths: "36", doIssueDate: "2026-01-19",
+    payments: "[]",
+  }
+  const result = await parseImportBuffer("SALES", "XLSX", buildXlsx([{
+    name: "SALES",
+    rows: [columns.map((c) => c.name), columns.map((c) => values[c.name] ?? c.example)],
+  }]), { namespace: "synthetic" })
+  expect(result.validRows).toHaveLength(1)
+})
+
+it.each(["SUPPLIERS", "CUSTOMERS", "REPAIR_VENDORS"] as const)(
+  "preserves an explicitly inactive historical %s row",
+  async (type) => {
+    const columns = getImportTemplateSchema(type).columns
+    const book = buildXlsx([{
+      name: type,
+      rows: [
+        [...columns.filter((c) => c.name !== "isActive").map((c) => c.name), "isActive"],
+        [...columns.filter((c) => c.name !== "isActive").map((c) => c.example), "false"],
+      ],
+    }])
+    const result = await parseImportBuffer(type, "XLSX", book)
+    expect(result.errors).toEqual([])
+    expect(result.validRows[0]?.payload).toMatchObject({ isActive: false })
+  }
+)
+
+it("retains staged notice evidence and distinct historical notice lines", async () => {
+  const columns = getImportTemplateSchema("REMITTANCES").columns
+  const values: Record<string, string> = {
+    draftId: "11111111-1111-4111-8111-111111111111",
+    noticeAttachmentId: "22222222-2222-4222-8222-222222222222",
+    noticeLines: '[{"key":"L1","amount":"8000.00","description":"Lease"},{"key":"L2","amount":"2000.00","description":"Brokerage"}]',
+    allocations: '[{"type":"SALES","sourceKey":"sale-001","amount":"8000.00","noticeLineKey":"L1"},{"type":"BROKERAGE","sourceKey":"deal-001","amount":"2000.00","noticeLineKey":"L2"}]',
+  }
+  const extra = Object.keys(values).filter((key) => !columns.some((c) => c.name === key))
+  const buffer = buildXlsx([{
+    name: "REMITTANCES",
+    rows: [
+      [...columns.map((c) => c.name), ...extra],
+      [...columns.map((c) => values[c.name] ?? c.example), ...extra.map((key) => values[key])],
+    ],
+  }])
+  const result = await parseImportBuffer("REMITTANCES", "XLSX", buffer)
+  expect(result.errors).toEqual([])
+  expect(result.validRows[0]?.payload).toMatchObject({
+    draftId: values.draftId,
+    noticeAttachmentId: values.noticeAttachmentId,
+    noticeLines: [{ key: "L1", amount: "800000" }, { key: "L2", amount: "200000" }],
+    allocations: [{ noticeLineKey: "L1" }, { noticeLineKey: "L2" }],
+  })
+})

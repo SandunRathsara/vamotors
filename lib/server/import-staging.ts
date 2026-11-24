@@ -400,6 +400,11 @@ export async function importQuery(
       include: { targetVersion: true, file: { include: { attachment: true } } },
       orderBy: [{ sourceType: "asc" }, { rowNumber: "asc" }],
     })
+    const reservationIds = records.filter((entry) => entry.targetVersion.entityType === "Reservation")
+      .map((entry) => entry.targetVersion.entityId)
+    const reservations = await tx.reservation.findMany({
+      where: { id: { in: reservationIds } }, select: { id: true, saleCaseId: true },
+    })
     visible.importedRecords = records.flatMap((entry) => {
       const attachment = subject("Document", documentSubject(entry.file.attachment))
       if (!actor.ability.can("read", record, "uploads.attachmentId") ||
@@ -412,6 +417,10 @@ export async function importQuery(
         RepairVendor: `/third-parties/${id}?type=REPAIR_VENDOR`,
         FinanceCompany: `/third-parties/${id}?type=FINANCE_COMPANY`,
         BrokerageDeal: `/lease-deals/${id}`,
+        Remittance: `/lease-reconciliation`,
+        ...(type === "Reservation" ? {
+          Reservation: `/sales/${reservations.find((row) => row.id === id)!.saleCaseId}`,
+        } : {}),
       }
       return paths[type] ? [{ type, row: entry.rowNumber, sourceKey: entry.sourceKey, href: paths[type] }] : []
     })

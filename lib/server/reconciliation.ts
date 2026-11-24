@@ -12,7 +12,7 @@ import type {
   Dependency,
 } from "../../.planning/implementation/contracts/api"
 import type { Actor, Identity } from "./actor"
-import { audit } from "./audit"
+import { audit, writeReadVersion } from "./audit"
 import { runtimeConfig } from "./config"
 import type { Tx } from "./db"
 import {
@@ -22,6 +22,7 @@ import {
 } from "./domain-math"
 import { fail } from "./errors"
 import { inputDigest } from "./idempotency"
+import { importProvenance } from "./import-provenance"
 import {
   bump,
   checkRefs,
@@ -689,6 +690,7 @@ export async function reconciliationRead(
     const company = await companyOf(tx, actor, row.companyId)
     return {
       ...remittanceSummary(row, actor),
+      provenance: await importProvenance(tx, actor, "Remittance", row.id),
       company: ref("FinanceCompany", company),
       ...(await histories(tx, actor, { remittanceId: row.id })),
       canReceive: actor.ability.can(
@@ -1537,7 +1539,8 @@ export async function reconciliationReplay(
 export async function executeReconciliation(
   identity: Identity,
   name: ReconciliationCommand,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
   const envelope = reconciliationEnvelope(name).safeParse(raw)
   if (!envelope.success) fail("INVALID_INPUT", 422)
@@ -1563,6 +1566,7 @@ export async function executeReconciliation(
       now: new Date(),
     }
     let result!: Applied["result"]
+    let sequence: bigint
     const affected = await writeCommand(
       ctx,
       payload.input,
@@ -1573,12 +1577,18 @@ export async function executeReconciliation(
             ...scope,
             id: commandId,
             inputHash,
-            businessSequence: await nextBusinessSequence(tx),
+            businessSequence: (sequence = await nextBusinessSequence(tx)),
             result,
           },
         })
       }
     )
+    if (existingTx && (result.type === "Remittance" || result.type === "ReconciliationRun")) {
+      await writeReadVersion(tx, {
+        commandId, sequence: sequence!, entityType: result.type, entityId: result.id,
+        revision: result.revision, payload: { id: result.id, ...(result.type === "Remittance" ? { revision: result.revision } : {}) },
+      })
+    }
     return {
       ok: true,
       status: "APPLIED",
@@ -1588,7 +1598,7 @@ export async function executeReconciliation(
       affected,
       invalidate: ["finance", "reports", "sales"],
     }
-  })
+  }, existingTx)
 }
 
 type CashTransfer = { date: string; method: string; reference?: string }

@@ -1460,6 +1460,7 @@ export async function acquireVehicleCycle(
     mileage: Mileage
     paymentMethod?: "CASH" | "BANK_TRANSFER"
     paymentReferences?: Record<string, string | undefined>
+    historicalPaymentSchedule?: boolean
     settlement?: Settlement
     company?: { id: string; name: string } | null
     commandId: string
@@ -1655,6 +1656,7 @@ export async function acquireVehicleCycle(
       cycleNumber,
       purchaseType,
       acquisitionKind,
+      historicalPaymentSchedule: params.historicalPaymentSchedule,
       ...(supplierId ? { supplierId } : {}),
       ...(sellerCustomerId ? { sellerCustomerId } : {}),
       ...(tradeInSourceSaleId ? { tradeInSourceSaleId } : {}),
@@ -1689,7 +1691,7 @@ export async function acquireVehicleCycle(
       },
     })
   }
-  if (acquisitionKind === "SUPPLIER") {
+  if (acquisitionKind === "SUPPLIER" && !params.historicalPaymentSchedule) {
     for (const [category, component] of [
       ["SELLER", settlement ? BigInt(settlement.cashToSeller) : purchasePrice],
       ["SETTLEMENT", settlement ? BigInt(settlement.amount) : 0n],
@@ -1815,8 +1817,10 @@ export async function recordPurchase(
   identity: Identity,
   raw: unknown,
   existingTx?: Tx,
-  paymentReferences?: Record<string, string | undefined>
+  paymentReferences?: Record<string, string | undefined>,
+  historicalPaymentSchedule?: boolean
 ): Promise<Applied> {
+  if (historicalPaymentSchedule && !existingTx) fail("INVALID_INPUT", 422)
   if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
@@ -2007,6 +2011,7 @@ export async function recordPurchase(
       mileage: input.mileage,
       paymentMethod: input.paymentMethod,
       paymentReferences,
+      historicalPaymentSchedule,
       settlement: settlement ?? undefined,
       company,
       commandId,

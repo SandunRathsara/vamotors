@@ -133,6 +133,14 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
   })
 
   it("keeps every accepted c462 non-sales subject/action/field universe byte-equivalent after sorting", () => {
+    const importedDisposalFields = [
+      "approval.batchId",
+      "approval.rowId",
+      "approval.initiatedByAdminId",
+      "approval.historicalApprovalBypass",
+      "approval.legacy.approverName",
+      "approval.legacy.approvalReference",
+    ]
     const old = Object.fromEntries(
       Object.entries(registry)
         .filter(
@@ -140,8 +148,8 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
             ![
               "RepairRecord",
               "Reservation",
-            "ReservationExpiryJob",
-            "SaleCase",
+              "ReservationExpiryJob",
+              "SaleCase",
               "PurchaseRecord",
               "ApprovalRequest",
               "BrokerageDeal",
@@ -162,6 +170,12 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
               .map(([a, fields]) => [a, [...fields].sort()])
           ),
         ])
+    )
+    expect(old.Disposal.read).toEqual(
+      expect.arrayContaining(importedDisposalFields)
+    )
+    old.Disposal.read = old.Disposal.read.filter(
+      (field) => !importedDisposalFields.includes(field)
     )
     expect(Object.keys(old)).toHaveLength(16)
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(

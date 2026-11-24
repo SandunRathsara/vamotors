@@ -6,6 +6,7 @@ import type { ApprovalRequest, CommandReceipt, Prisma } from "@prisma/client"
 import type {
   Applied,
   ApprovalDTO,
+  LegacyApprovalEvidence,
   Dependency,
   ImmediateSale,
   Pending,
@@ -25,6 +26,7 @@ import { transaction, nextBusinessSequence } from "./transactions"
 import {
   approvalEnvelope,
   approvalInputs,
+  writeOffInput,
   id,
   listParams,
   dateOnly,
@@ -402,6 +404,69 @@ async function lockedCycle(tx: Tx, cycleId: string) {
   const row = await loadPurchase(tx, cycleId)
   if (!row || row.vehicleId !== plan.vehicleId) fail("NOT_FOUND", 404)
   return row
+}
+/** Historical approval evidence is admitted only by the import graph. */
+export async function executeImportedWriteOff(
+  tx: Tx,
+  identity: Identity,
+  raw: WriteOff,
+  evidence: { batchId: string; rowId: string; closedAt: string; legacy: LegacyApprovalEvidence }
+) {
+  return transaction(async (step) => {
+    const actor = await currentActor(step, identity)
+    const batch = await step.importBatch.findUniqueOrThrow({ where: { id: evidence.batchId } })
+    if (!actor.administrator || batch.state === "COMMITTED") fail("FORBIDDEN", 403)
+    requireFields(actor.ability, "ImportBatch", "read", batch, ["id", "state"])
+    const input = writeOffInput.parse(raw)
+    const row = await lockedCycle(step, input.cycleId)
+    eligible(row)
+    validInput(row, input)
+    requireWriteOffAuthority(actor, auth(row), vehicleAuth(row), visiblePurchase(actor, row), input)
+    const date = new Date(evidence.closedAt)
+    if (date < new Date(`${input.date}T00:00:00+05:30`) || date > new Date())
+      fail("INVALID_INPUT", 422)
+    const commandId = randomUUID()
+    const disposalId = randomUUID()
+    const action = "importWriteOff"
+    const sequence = await nextBusinessSequence(step)
+    await step.commandReceipt.create({
+      data: {
+        id: commandId, environmentId: runtimeConfig().ENVIRONMENT_ID,
+        actorKey: `USER:${actor.userId}`, commandName: action, idempotencyKey: commandId,
+        inputHash: inputDigest({ input, evidence }, runtimeConfig().BETTER_AUTH_SECRET),
+        businessSequence: sequence, result: { type: "Disposal", id: disposalId, revision: 1 },
+      },
+    })
+    const basis = row.basisVersions.at(-1)!
+    const financial = purchaseDTO(row).financial!
+    await applyApprovedWriteOff(step, {
+      cycleId: row.id, vehicleId: row.vehicleId, disposalId, commandId,
+      reviewerId: actor.userId, reviewedAt: date, input,
+      importedApproval: {
+        kind: "IMPORTED", historicalApprovalBypass: true, initiatedByAdminId: actor.userId,
+        batchId: evidence.batchId, rowId: evidence.rowId, legacy: evidence.legacy,
+      },
+      basisVersionId: basis.id, basis: basis.total, cashIn: BigInt(financial.cashIn),
+      cashOut: BigInt(financial.cashOut), currency: basis.currency, scale: basis.scale,
+    })
+    await step.statusEvent.create({
+      data: { cycleId: row.id, from: row.status, to: "WRITTEN_OFF", action,
+        commandId, userId: actor.userId, occurredAt: new Date(input.date) },
+    })
+    const after = (await loadPurchase(step, row.id))!
+    let disposalVersionId: string | undefined
+    for (const [entityType, entityId, revision, before, payload] of [
+      ["PurchaseRecord", row.id, after.revision, purchaseDTO(row), purchaseDTO(after)],
+      ["Vehicle", row.vehicleId, after.vehicle.revision, vehicleDTO(row), vehicleDTO(after)],
+      ["Disposal", disposalId, 1, null, disposalDTO(after.disposal!)],
+    ] as const) {
+      await audit(step, { commandId, userId: null, importActor: actor.userId, entityType, entityId, action,
+        reason: input.reason, before, after: payload })
+      const version = await writeReadVersion(step, { commandId, sequence, entityType, entityId, revision, payload })
+      if (entityType === "Disposal") disposalVersionId = version.id
+    }
+    return disposalVersionId!
+  }, tx)
 }
 async function eligibleReviewers(tx: Tx, row: Cycle, a: ApprovalRequest) {
   const users = await tx.user.findMany({

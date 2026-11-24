@@ -78,11 +78,12 @@ function parseCursor(cursor?: string) {
   return { expiresAt, id: identifier }
 }
 
-async function processReservation(
+export async function processReservation(
   identity: Identity | null,
   saleId: string,
   cycleId: string,
-  cutoff: Date
+  cutoff: Date,
+  existingTx?: Tx
 ) {
   return transaction(async (tx) => {
     const sequence = await nextBusinessSequence(tx)
@@ -136,7 +137,7 @@ async function processReservation(
       where: { active: true },
       select: { id: true },
     })
-    for (const recipient of recipients) {
+    for (const recipient of existingTx ? [] : recipients) {
       const authority = await userAuthority(tx, recipient.id)
       const saleSubject = subject("SaleCase", saleAuth(sale))
       if (
@@ -177,7 +178,7 @@ async function processReservation(
       sale
     )
     return expired ? "expired" : "warned"
-  })
+  }, existingTx)
 }
 
 export async function executeExpiry(identity: Identity | null, raw: unknown) {

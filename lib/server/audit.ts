@@ -97,6 +97,7 @@ export async function audit(
     action: string
     reason?: string
     initiatedBy?: string
+    importActor?: string
     approverId?: string
     before: Record<string, unknown> | null
     after: Record<string, unknown> | null
@@ -105,14 +106,19 @@ export async function audit(
   return tx.auditEntry.create({
     data: {
       commandId: input.commandId,
-      userId: input.userId,
+      userId: input.importActor ? null : input.userId,
       entityType: input.entityType,
       entityId: input.entityId,
-      actorKind: input.userId ? "USER" : "SYSTEM",
-      systemScope: input.userId ? null : "RESERVATION_EXPIRY",
+      actorKind: input.importActor
+        ? "IMPORT"
+        : input.userId
+          ? "USER"
+          : "SYSTEM",
+      systemScope:
+        input.userId || input.importActor ? null : "RESERVATION_EXPIRY",
       action: input.action,
       reason: input.reason,
-      initiatedBy: input.initiatedBy,
+      initiatedBy: input.importActor ?? input.initiatedBy,
       approverId: input.approverId,
       fieldDiff: diffFields(
         input.entityType === "SaleCompletion"
@@ -198,6 +204,9 @@ export async function writeReadVersion(
       | "SaleCase"
       | "SaleCompletion"
       | "Reservation"
+      | "Remittance"
+      | "ReconciliationRun"
+      | "Disposal"
     entityId: string
     revision: number
     payload: Record<string, unknown>

@@ -19,12 +19,12 @@ import {
   commitmentEnvelope,
   commitmentInputs,
   type CommitmentCommand,
-  type refundInput,
+  refundInput,
 } from "./validators"
 import { requireFields } from "./permissions"
 import { fail } from "./errors"
 import { currentSettings } from "./settings"
-import { calculateAdvanceValidity } from "./domain-math"
+import { calculateAdvanceValidity, addCalendarDays, localMidnightToUtc } from "./domain-math"
 import { C, commission } from "../money"
 import {
   colomboToday,
@@ -59,6 +59,20 @@ type Context = {
   initiatedBy?: string
   approverId?: string
 }
+type HistoricalCommitment = {
+  advance?: {
+    listedBasis: string
+    validThrough: string
+    expiresAt: string
+    policySnapshot: import("../../.planning/implementation/contracts/api").ImportPayloads["ADVANCES"]["policySnapshot"]
+  }
+  refund?: CashInput
+  resolutionDate?: string
+  missingDeliveryOrder?: boolean
+  closedAt?: string
+  approval?: { approverName: string; approvalReference?: string }
+}
+
 type Refund = z.infer<typeof refundInput>
 
 const caseRef = (row: { id: string; revision: number }): Dependency => ({
@@ -76,10 +90,10 @@ const reservationRef = (
 ): Dependency => ({ type: "Reservation", id: row.id, revision: row.revision })
 const openReservation = (sale: SaleRow) =>
   sale.reservation && ["RESERVED", "EXPIRED"].includes(sale.state)
-function effectiveExpiry(row: NonNullable<SaleRow["reservation"]>) {
+function effectiveExpiry(row: NonNullable<SaleRow["reservation"]>, at = new Date()) {
   return (
     row.expiredAt ??
-    (row.state === "ACTIVE" && row.expiresAt <= new Date()
+    (row.state === "ACTIVE" && row.expiresAt <= at
       ? row.expiresAt
       : undefined)
   )
@@ -239,7 +253,8 @@ export async function transitionCommitment(
   row: Cycle,
   to: VehicleStatus,
   occurredAt: Date,
-  disposition?: Input<"cancelRetained">["disposition"]
+  disposition?: Input<"cancelRetained">["disposition"],
+  closedAt = new Date()
 ) {
   const sold = to === "SOLD"
   const release = disposition?.kind === "RELEASE"
@@ -249,7 +264,7 @@ export async function transitionCommitment(
       status: to,
       available: release,
       holdReason: disposition?.kind === "HOLD" ? disposition.reason : null,
-      closedAt: sold ? new Date() : null,
+      closedAt: sold ? closedAt : null,
       revision: { increment: 1 },
     },
   })
@@ -346,7 +361,8 @@ async function complete(
   tx: Tx,
   context: Context,
   sale: SaleRow,
-  input: { date: string; mileage: number; reason?: string }
+  input: { date: string; mileage: number; reason?: string },
+  historical?: HistoricalCommitment
 ) {
   const row = sale.purchaseRecord
   const userId = ensureUser(context)
@@ -415,15 +431,18 @@ async function complete(
     where: { id: sale.id },
     data: { state: "COMPLETED", revision: { increment: 1 } },
   })
-  await transitionCommitment(tx, context, row, "SOLD", date)
+  const closedAt = historical ? new Date(historical.closedAt ?? input.date) : undefined
+  if (closedAt && (closedAt > new Date() || closedAt < new Date(`${input.date}T00:00:00+05:30`)))
+    fail("INVALID_INPUT", 422)
+  await transitionCommitment(tx, context, row, "SOLD", date, undefined, closedAt)
   if (sale.reservation)
     await tx.reservation.update({
       where: { id: sale.reservation.id },
       data: {
         state: "CONVERTED",
-        expiredAt: effectiveExpiry(sale.reservation),
+        expiredAt: effectiveExpiry(sale.reservation, historical ? date : undefined),
         revision: { increment: 1 },
-        resolvedAt: new Date(),
+        resolvedAt: historical ? date : new Date(),
         resolutionReason: input.reason,
       },
     })
@@ -518,7 +537,8 @@ async function resolveCancellation(
   tx: Tx,
   context: Context,
   sale: SaleRow,
-  input: Pick<Refund, "reason" | "disposition" | "retainedAmount"> & { refund?: CashInput }
+  input: Pick<Refund, "reason" | "disposition" | "retainedAmount"> & { refund?: CashInput },
+  resolvedAt = new Date()
 ) {
   const refund = input.refund
   if (refund) {
@@ -546,10 +566,10 @@ async function resolveCancellation(
       where: { id: sale.reservation.id },
       data: {
         state: refund ? "REFUNDED" : "CANCELLED",
-        expiredAt: effectiveExpiry(sale.reservation),
+        expiredAt: effectiveExpiry(sale.reservation, resolvedAt),
         revision: { increment: 1 },
         retainedAmount: BigInt(input.retainedAmount),
-        resolvedAt: new Date(),
+        resolvedAt,
         resolutionReason: input.reason,
         disposition: input.disposition.kind,
       },
@@ -563,7 +583,7 @@ async function resolveCancellation(
     context,
     sale.purchaseRecord,
     "IN_STOCK",
-    new Date(),
+    resolvedAt,
     input.disposition
   )
 }
@@ -776,6 +796,7 @@ async function openCommitment(
     context: Context
     dryRun?: boolean
     approvalId?: string
+    historical?: HistoricalCommitment
   }
 ) {
   const {
@@ -788,6 +809,7 @@ async function openCommitment(
     context,
     dryRun,
     approvalId,
+    historical,
   } = options
   const initiatedBy = context.initiatedBy ?? actor.userId
   const customer = await tx.customer.findUnique({
@@ -845,6 +867,7 @@ async function openCommitment(
       row.listedPrice !== null &&
       price < row.listedPrice &&
       !approvalId &&
+      !historical?.approval &&
       !dryRun
     )
       fail("APPROVAL_REQUIRED")
@@ -856,10 +879,11 @@ async function openCommitment(
           customerId: customer.id,
           agreedPrice: price,
           listedSnapshot: row.listedPrice,
+          legacyApproval: historical?.approval,
           kind: "receipt" in input ? "ADVANCE" : "LEASE",
           state: "receipt" in input ? "RESERVED" : "FINANCE_PENDING",
           reference: input.reference,
-          openedAt: new Date(),
+          openedAt: historical ? new Date(("receipt" in input ? input.receipt : input.downPayment).date) : new Date(),
           createdBy: initiatedBy,
           commandId: context.commandId,
           approvalId,
@@ -882,16 +906,18 @@ async function openCommitment(
     checkDate(input.receipt.date, row)
     authorizePayment(actor, payee, input.receipt)
     const amount = BigInt(input.receipt.amount)
-    if (!row.listedPrice || amount > price) fail("INVALID_INPUT", 422)
+    if (!row.listedPrice || amount > price ||
+      (historical?.advance && BigInt(historical.advance.listedBasis) !== row.listedPrice))
+      fail("INVALID_INPUT", 422)
     const { percentHundredths, expiresAt, warningAt, validThrough, ...tier } =
       calculateAdvanceValidity({
         advanceAmount: amount,
         listedPrice: row.listedPrice,
         agreedPrice: price,
         placedDate: input.receipt.date,
-        timezone: settings.timezone,
-        leadDays: settings.warningLeadDays,
-        tiers: settings.tiers,
+        timezone: historical?.advance?.policySnapshot.timezone ?? settings.timezone,
+        leadDays: historical?.advance?.policySnapshot.leadDays ?? settings.warningLeadDays,
+        tiers: historical?.advance?.policySnapshot.tiers ?? settings.tiers,
       })
     if (dryRun) return { row, required, snapshot }
     await tx.reservation.create({
@@ -902,12 +928,15 @@ async function openCommitment(
         listedBasis: row.listedPrice,
         policySnapshot: {
           ...tier,
+          ...historical?.advance?.policySnapshot,
           percentHundredths: percentHundredths.toString(),
           version: settings.policyVersion,
         },
-        validThrough: new Date(validThrough),
-        expiresAt,
-        warningAt,
+        validThrough: new Date(historical?.advance?.validThrough ?? validThrough),
+        expiresAt: historical?.advance ? new Date(historical.advance.expiresAt) : expiresAt,
+        warningAt: historical?.advance
+          ? localMidnightToUtc(addCalendarDays(historical.advance.validThrough, -tier.leadDays), tier.timezone)
+          : warningAt,
         state: "ACTIVE",
       },
     })
@@ -964,7 +993,7 @@ async function openCommitment(
         where: { id: sale.reservation!.id },
         data: {
           state: "CONVERTING",
-          expiredAt: effectiveExpiry(sale.reservation!),
+          expiredAt: effectiveExpiry(sale.reservation!, historical ? new Date(input.downPayment.date) : undefined),
           revision: { increment: 1 },
         },
       })
@@ -1066,9 +1095,15 @@ export async function commitmentReplay(
 export async function executeCommitment<N extends CommitmentCommand>(
   identity: Identity,
   name: N,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx,
+  historical?: HistoricalCommitment
 ): Promise<Applied> {
-  const parsed = commitmentEnvelope(name).safeParse(raw)
+  if (historical && !existingTx) fail("INVALID_INPUT", 422)
+  const envelopeSchema = name === "recordDO" && historical?.missingDeliveryOrder
+    ? commitmentEnvelope("recordDO").extend({ input: commitmentInputs.recordDO.omit({ attachmentId: true }) })
+    : commitmentEnvelope(name)
+  const parsed = envelopeSchema.safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const envelope = parsed.data
   const config = runtimeConfig()
@@ -1144,6 +1179,7 @@ export async function executeCommitment<N extends CommitmentCommand>(
         input,
         expected,
         context,
+        historical,
       })
     } else {
       if (!sale) fail("NOT_FOUND", 404)
@@ -1183,15 +1219,26 @@ export async function executeCommitment<N extends CommitmentCommand>(
             purchaseAuth(row),
             ["financial.basis", "mileage"]
           )
-          await complete(tx, context, sale, conversion)
+          await complete(tx, context, sale, conversion, historical)
           break
         }
         case "cancelRetained": {
           const cancellation = input as Input<"cancelRetained">
           if (!openReservation(sale)) fail("INVALID_STATE")
-          if (BigInt(cancellation.retainedAmount) !== sale.reservation!.amount)
+          const resolvedAt = historical?.resolutionDate
+            ? new Date(historical.resolutionDate)
+            : undefined
+          if (historical?.resolutionDate)
+            checkDate(historical.resolutionDate, row, sale.reservation!.placedDate)
+          if (historical?.refund) {
+            const refund = refundInput.parse({ ...cancellation, refund: historical.refund })
+            await prepareRefund(tx, actor, refund, expected)
+          } else if (BigInt(cancellation.retainedAmount) !== sale.reservation!.amount) {
             fail("BALANCE_MISMATCH", 422)
-          await resolveCancellation(tx, context, sale, cancellation)
+          }
+          await resolveCancellation(tx, context, sale, {
+            ...cancellation, refund: historical?.refund,
+          }, resolvedAt)
           break
         }
         case "recordDO": {
@@ -1199,22 +1246,22 @@ export async function executeCommitment<N extends CommitmentCommand>(
           if (sale.state !== "FINANCE_PENDING" || !sale.inventoryLease)
             fail("INVALID_STATE")
           checkDate(delivery.issueDate, row, sale.inventoryLease.openedDate)
-          const attachment = await authorizedAttachment(
-            tx,
-            actor,
-            delivery.attachmentId
-          )
-          if (attachment.saleCaseId !== sale.id || attachment.purpose !== "DO")
-            fail("NOT_FOUND", 404)
-          const upload = await tx.uploadIntent.findUniqueOrThrow({
-            where: { id: attachment.uploadIntentId },
-          })
-          if (upload.capturedTargetRevision !== sale.revision)
-            fail("STALE_REVISION")
+          let attachmentId: string | undefined
+          if (!historical?.missingDeliveryOrder) {
+            const attachment = await authorizedAttachment(tx, actor, delivery.attachmentId)
+            if (attachment.saleCaseId !== sale.id || attachment.purpose !== "DO")
+              fail("NOT_FOUND", 404)
+            const upload = await tx.uploadIntent.findUniqueOrThrow({
+              where: { id: attachment.uploadIntentId },
+            })
+            if (upload.capturedTargetRevision !== sale.revision)
+              fail("STALE_REVISION")
+            attachmentId = attachment.id
+          }
           await tx.inventoryLease.update({
             where: { saleCaseId: sale.id },
             data: {
-              doAttachmentId: attachment.id,
+              doAttachmentId: attachmentId,
               issueDate: new Date(delivery.issueDate),
             },
           })
@@ -1243,7 +1290,7 @@ export async function executeCommitment<N extends CommitmentCommand>(
             purchaseAuth(row),
             ["financial.basis", "mileage"]
           )
-          await complete(tx, context, sale, handover)
+          await complete(tx, context, sale, handover, historical)
           break
         }
         case "recordLenderReceipt": {
@@ -1295,5 +1342,5 @@ export async function executeCommitment<N extends CommitmentCommand>(
         ...(name === "recordLenderReceipt" ? (["finance", "reports"] as const) : []),
       ],
     }
-  })
+  }, existingTx)
 }

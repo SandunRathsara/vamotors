@@ -206,7 +206,7 @@ export interface Commands {
   continueReportExport: { exportId: Id }; // bounded resumable generation, never changes filter
   runExpiry: { through?: Instant; cursor?: string; limit: number };
 }
-export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES" | "FINANCE_COMPANIES" | "BROKERAGE";
+export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES" | "FINANCE_COMPANIES" | "BROKERAGE" | "REMITTANCES";
 export type LegacyRef = { namespace: string; type: ImportType;
   sourceKey: string } | { existingId: Id };
 export type LegacyPayment = CashInput & { sourceKey: string; direction: "IN" | "OUT";
@@ -219,16 +219,32 @@ export type ApprovalProvenance =
   { kind: "CURRENT"; approvalId: Id; reviewerId: Id; reviewerName: string; reviewedAt: Instant } |
   { kind: "IMPORTED"; batchId: Id; rowId: Id; initiatedByAdminId: Id;
     historicalApprovalBypass: true; legacy: LegacyApprovalEvidence };
+type HistoricalBrokerageCommand = "recordInspection" | "adjustLoan" | "setChecklist" |
+  "verifyDocuments" | "setProcessingFee" | "informCompany" | "referDeal" |
+  "rejectDeal" | "completeBrokerage";
+export type LegacyBrokerageStep =
+  { [K in HistoricalBrokerageCommand]: { command: K; input: Omit<Commands[K], "dealId"> } }[HistoricalBrokerageCommand] |
+  { command: "recordEligibility"; input: Omit<Commands["recordEligibility"], "dealId" | "guarantorId"> & { guarantorIdentity?: string } } |
+  { command: "dispatchBatch"; input: Omit<Commands["dispatchBatch"], "sourceIds"> };
 export type ImportPayloads = {
-  FINANCE_COMPANIES: Commands["createFinanceCompany"];
-  BROKERAGE: {
-    customer: LegacyRef;
-    quoteId: Id;
-    guarantors: Commands["openBrokerage"]["guarantors"];
+  REMITTANCES: {
+    company: LegacyRef;
+    payment: CashInput & { method: "BANK_TRANSFER"; reference: string };
+    asOfDate: DateOnly;
+    draftId?: Id;
+    noticeAttachmentId?: Id;
+    noticeLines?: { key: string; amount: Money; description: string }[];
+    reversal?: { date: DateOnly; reason: string };
+    allocations: { source: LegacyRef; sourceType: "SALES" | "BROKERAGE"; amount: Money; noticeLineKey?: string }[];
   };
-  SUPPLIERS: DirectoryInput;
-  CUSTOMERS: CustomerInput;
-  REPAIR_VENDORS: DirectoryInput;
+  FINANCE_COMPANIES: Commands["createFinanceCompany"];
+  BROKERAGE: ({ customer: LegacyRef; quoteId: Id; guarantors: Commands["openBrokerage"]["guarantors"];
+      existingDealId?: never } |
+    { existingDealId: Id; customer?: never; quoteId?: never; guarantors?: never }) &
+    { history?: LegacyBrokerageStep[] };
+  SUPPLIERS: DirectoryInput & { isActive?: boolean };
+  CUSTOMERS: CustomerInput & { isActive?: boolean };
+  REPAIR_VENDORS: DirectoryInput & { isActive?: boolean };
   VEHICLES: { vehicle: VehicleInput; supplier?: LegacyRef; sellerCustomer?: LegacyRef;
     tradeInSale?: LegacyRef; cycleSourceKey: string; cycleNumber: number;
     purchaseType: "CASH" | "LEASE_SETTLEMENT" | "BRAND_NEW"; purchaseDate: DateOnly;
@@ -375,7 +391,7 @@ export type UploadReady = { ok: true; status: "UPLOAD_READY"; uploadId: Id; revi
 export type InvoicePending = { ok: true; status: "DOCUMENT_PENDING"; invoiceId: Id; version: number;
   state: "PENDING" | "FAILED"; retryable: boolean };
 export type ImportPreview = { ok: true; status: "IMPORT_PREVIEW"; batchId: Id; revision: Revision;
-  previewHash: string; valid: boolean;
+  previewHash: string; valid: boolean; currency: string;
   rows: { attachmentId: Id; row: number; sourceKey: string; type: ImportType; normalized: ImportRowInput }[];
   errors: { attachmentId?: Id; rowNumber: number; field: string; code: string; message: string; sourceKey?: string }[];
   controlTotals: ControlTotals };

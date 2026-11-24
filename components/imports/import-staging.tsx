@@ -16,6 +16,7 @@ import type {
 import { useActor } from "@/components/providers/auth-boundary"
 import { abilityFor } from "@/lib/server/permissions"
 import { privateRequest, RequestError } from "@/lib/security-client"
+import { formatCurrency } from "@/lib/money"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -644,10 +645,7 @@ export function ImportStaging({
                             <dd className="font-medium">
                               {label === "Rows"
                                 ? amount
-                                : (Number(amount) / 100).toLocaleString(
-                                    undefined,
-                                    { minimumFractionDigits: 2 }
-                                  )}
+                                : formatCurrency(amount, preview.currency)}
                             </dd>
                           </div>
                         ))}

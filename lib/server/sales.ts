@@ -469,6 +469,13 @@ export function immediateCreateFields(input: ImmediateSale) {
   ]
 }
 
+type HistoricalSale = {
+  receiptReference?: string
+  notes?: string
+  closedAt?: string
+  approval?: { approverName: string; approvalReference?: string }
+}
+
 export async function completeImmediateInTx(
   tx: Tx,
   actor: Actor,
@@ -483,7 +490,7 @@ export async function completeImmediateInTx(
     approverId?: string
     dryRunOnly?: boolean
     saleCaseId?: string
-    historical?: { receiptReference?: string; notes?: string; closedAt?: string }
+    historical?: HistoricalSale
   }
 ) {
   const {
@@ -668,6 +675,7 @@ export async function completeImmediateInTx(
     row.listedPrice !== null &&
     agreedPrice < row.listedPrice &&
     !approvalId &&
+    !params.historical?.approval &&
     !dryRunOnly
   )
     fail("APPROVAL_REQUIRED")
@@ -743,6 +751,7 @@ export async function completeImmediateInTx(
       kind: input.kind,
       agreedPrice,
       listedSnapshot: row.listedPrice,
+      legacyApproval: params.historical?.approval,
       reference: input.reference ?? null,
       notes: params.historical?.notes,
       state: "COMPLETED",
@@ -1068,8 +1077,9 @@ export async function executeSale(
   name: SaleCommand,
   raw: unknown,
   existingTx?: Tx,
-  historical?: { receiptReference?: string; notes?: string; closedAt?: string }
+  historical?: HistoricalSale
 ): Promise<Applied> {
+  if (historical && !existingTx) fail("INVALID_INPUT", 422)
   if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)

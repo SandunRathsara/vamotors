@@ -142,3 +142,4 @@ GRANT SELECT ("remittanceId"), INSERT ("remittanceId") ON vamotors."Attachment",
 -- Retained report projections and generated parts are append-only.
 GRANT SELECT, INSERT ON vamotors."ExportJob", vamotors."ExportRowSnapshot", vamotors."ExportPart" TO vamotors_runtime;
 GRANT UPDATE (revision, "renderedRows", state) ON vamotors."ExportJob" TO vamotors_runtime;
+GRANT SELECT ("historicalPaymentSchedule"), INSERT ("historicalPaymentSchedule") ON vamotors."PurchaseRecord" TO vamotors_runtime;

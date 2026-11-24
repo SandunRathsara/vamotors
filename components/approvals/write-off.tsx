@@ -524,17 +524,26 @@ export function DisposalHistory({ cycle }: { cycle: Cycle }) {
               : major(currentLoss < 0n ? -currentLoss : currentLoss),
           ],
           [
-            "Reviewer",
+            disposal.approval?.kind === "IMPORTED"
+              ? "Historical approver"
+              : "Reviewer",
             disposal.approval?.kind === "CURRENT"
               ? disposal.approval.reviewerName
-              : undefined,
+              : disposal.approval?.kind === "IMPORTED"
+                ? disposal.approval.legacy?.approverName
+                : undefined,
           ],
-          [
-            "Reviewed at",
-            disposal.approval?.kind === "CURRENT"
-              ? disposal.approval.reviewedAt
-              : undefined,
-          ],
+          disposal.approval?.kind === "IMPORTED"
+            ? [
+                "Historical approval reference",
+                disposal.approval.legacy?.approvalReference,
+              ]
+            : [
+                "Reviewed at",
+                disposal.approval?.kind === "CURRENT"
+                  ? disposal.approval.reviewedAt
+                  : undefined,
+              ],
           ["Closed at", cycle.closedAt],
         ].map(([label, value]) => (
           <div key={String(label)}>
@@ -767,15 +776,19 @@ export function ApprovalDetail({
     }
   }
   const input = a.proposal?.kind === "WRITE_OFF" ? a.proposal.input : undefined
-  const discount = a.proposal?.kind === "DISCOUNT" ? a.proposal.command?.input : undefined
+  const discount =
+    a.proposal?.kind === "DISCOUNT" ? a.proposal.command?.input : undefined
   const refund = a.proposal?.kind === "REFUND" ? a.proposal.input : undefined
   const saleEdit =
     a.proposal?.kind === "SALE_EDIT" &&
     a.proposal.operation === "EDIT_COMPLETION"
       ? a.proposal.input
       : undefined
-  const financeError = a.proposal?.kind === "SALE_EDIT" &&
-    a.proposal.operation === "CANCEL_FINANCE_ERROR" ? a.proposal.input : undefined
+  const financeError =
+    a.proposal?.kind === "SALE_EDIT" &&
+    a.proposal.operation === "CANCEL_FINANCE_ERROR"
+      ? a.proposal.input
+      : undefined
   const canNote = abilityFor(actor.presentationGrants, actor.user.id).can(
     "approve",
     subject("ApprovalRequest", { createdBy: a.requestedBy }),
@@ -787,8 +800,12 @@ export function ApprovalDetail({
         {a.proposal?.kind === "DISCOUNT"
           ? "Saved discount approval request"
           : a.proposal?.kind === "SALE_EDIT"
-            ? financeError ? "Saved finance error reversal request" : "Saved sale edit approval request"
-            : refund ? "Saved refund request" : "Saved write-off request"}
+            ? financeError
+              ? "Saved finance error reversal request"
+              : "Saved sale edit approval request"
+            : refund
+              ? "Saved refund request"
+              : "Saved write-off request"}
       </h1>
       <dl className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
         {[
@@ -811,41 +828,99 @@ export function ApprovalDetail({
             : []),
           ...(discount
             ? [
-                ["Sale kind", "kind" in discount ? discount.kind : "receipt" in discount ? "Advance" : "Inventory lease"],
+                [
+                  "Sale kind",
+                  "kind" in discount
+                    ? discount.kind
+                    : "receipt" in discount
+                      ? "Advance"
+                      : "Inventory lease",
+                ],
                 ["Discounted price", money(discount.price)],
                 ["Customer ID", discount.customerId],
-                ["Date", "date" in discount ? discount.date : "receipt" in discount ? discount.receipt?.date : "downPayment" in discount ? discount.downPayment?.date : undefined],
-                ["Handover mileage", "mileage" in discount ? discount.mileage?.toString() : undefined],
+                [
+                  "Date",
+                  "date" in discount
+                    ? discount.date
+                    : "receipt" in discount
+                      ? discount.receipt?.date
+                      : "downPayment" in discount
+                        ? discount.downPayment?.date
+                        : undefined,
+                ],
+                [
+                  "Handover mileage",
+                  "mileage" in discount
+                    ? discount.mileage?.toString()
+                    : undefined,
+                ],
               ]
             : []),
           ...(saleEdit
             ? [
                 ["Target Sale", saleEdit.saleId],
                 ["Edit reason", saleEdit.reason],
-                ["Patched price", saleEdit.patch?.price ? money(saleEdit.patch.price) : undefined],
+                [
+                  "Patched price",
+                  saleEdit.patch?.price
+                    ? money(saleEdit.patch.price)
+                    : undefined,
+                ],
                 ["Patched sale date", saleEdit.patch?.saleDate],
                 ["Patched reference", saleEdit.patch?.reference],
                 ["Patched handover mileage", saleEdit.patch?.handoverMileage],
-                ["Corrected down payment", saleEdit.patch?.finance?.downPayment ? money(saleEdit.patch.finance.downPayment) : undefined],
+                [
+                  "Corrected down payment",
+                  saleEdit.patch?.finance?.downPayment
+                    ? money(saleEdit.patch.finance.downPayment)
+                    : undefined,
+                ],
               ]
             : []),
-          ...(financeError ? [
-            ["Target sale", financeError.saleCaseId],
-            ["Accounting reversal reason", financeError.reason],
-            ["Down payment receipts to reverse", financeError.receiptReversals?.join(", ")],
-            ["Stock disposition", financeError.disposition?.kind],
-            ["Hold reason", financeError.disposition?.kind === "HOLD" ? financeError.disposition.reason : undefined],
-          ] : []),
-          ...(refund ? [
-            ["Refund amount", refund.refund?.amount ? money(refund.refund.amount) : undefined],
-            ["Refund date", refund.refund?.date],
-            ["Refund method", refund.refund?.method],
-            ["Refund reference", refund.refund?.reference],
-            ["Retained amount", refund.retainedAmount ? money(refund.retainedAmount) : undefined],
-            ["Disposition", refund.disposition?.kind],
-            ["Hold reason", refund.disposition?.kind === "HOLD" ? refund.disposition.reason : undefined],
-            ["Refund reason", refund.reason],
-          ] : []),
+          ...(financeError
+            ? [
+                ["Target sale", financeError.saleCaseId],
+                ["Accounting reversal reason", financeError.reason],
+                [
+                  "Down payment receipts to reverse",
+                  financeError.receiptReversals?.join(", "),
+                ],
+                ["Stock disposition", financeError.disposition?.kind],
+                [
+                  "Hold reason",
+                  financeError.disposition?.kind === "HOLD"
+                    ? financeError.disposition.reason
+                    : undefined,
+                ],
+              ]
+            : []),
+          ...(refund
+            ? [
+                [
+                  "Refund amount",
+                  refund.refund?.amount
+                    ? money(refund.refund.amount)
+                    : undefined,
+                ],
+                ["Refund date", refund.refund?.date],
+                ["Refund method", refund.refund?.method],
+                ["Refund reference", refund.refund?.reference],
+                [
+                  "Retained amount",
+                  refund.retainedAmount
+                    ? money(refund.retainedAmount)
+                    : undefined,
+                ],
+                ["Disposition", refund.disposition?.kind],
+                [
+                  "Hold reason",
+                  refund.disposition?.kind === "HOLD"
+                    ? refund.disposition.reason
+                    : undefined,
+                ],
+                ["Refund reason", refund.reason],
+              ]
+            : []),
           ["Reviewer", a.reviewedBy],
           ["Reviewed at", a.reviewedAt],
           ["Review note", a.reviewNote],
