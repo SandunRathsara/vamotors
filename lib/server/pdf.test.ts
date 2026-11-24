@@ -406,6 +406,38 @@ describe("PDF 1.4 deterministic engine", () => {
     )
   })
 
+  it("paginates a long multiline buyer address and keeps both signatures", async () => {
+    const address = Array.from(
+      { length: 90 },
+      (_, index) => `Address line ${index + 1}`
+    ).join("\n")
+    const parsed = await validateAndParsePdf(
+      renderSaleInvoicePdf(
+        makeBaseInvoice({
+          issuedBy: "Synthetic operator",
+          buyer: { ...baseBuyer, address },
+          transaction: {
+            kind: "CASH",
+            agreedPrice: "100",
+            payment: { amount: "100", date: "2026-10-29", method: "CASH" },
+            totalReceived: "100",
+          },
+        })
+      ),
+      "long-address.pdf"
+    )
+    expect(parsed.numPages).toBeGreaterThan(1)
+    expect(parsed.pages[0].text).toContain("Synthetic operator")
+    expect(parsed.pages[0].text).toContain("Address line 1")
+    expect(
+      parsed.pages
+        .slice(1)
+        .some((page) => page.text.includes("Address line 90"))
+    ).toBe(true)
+    expect(parsed.pages.at(-1)?.text).toContain("Seller / Authorized Signatory")
+    expect(parsed.pages.at(-1)?.text).toContain("Buyer / Customer Signature")
+  })
+
   it("renders multi-page landscape report with repeating column headers, filters, totals, and passes validator", async () => {
     const rows = Array.from({ length: 150 }, (_, idx) => {
       const n = String(idx + 1).padStart(3, "0")

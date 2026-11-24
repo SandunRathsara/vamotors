@@ -19,6 +19,7 @@ import { approvalEnvelope, saleEnvelope } from "@/lib/server/validators"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SaleInvoices } from "./sale-invoices"
 import { Textarea } from "@/components/ui/textarea"
 
 type VisibleSale = Visible<SaleDTO>
@@ -501,6 +502,8 @@ export function SaleDetailView({ id }: { id: string }) {
           </ul>
         )}
       </div>
+
+      <SaleInvoices sale={sale} cycleRevision={cycle?.revision} />
 
       {sale.nextActions?.includes("requestApproval") && (
         <div className="space-y-3 rounded-lg border p-4">

@@ -88,6 +88,27 @@ export async function writeAll(file: FileHandle, bytes: Buffer): Promise<void> {
   }
 }
 
+const pdfMime = "application/pdf"
+
+function checkGeneratedPdf(bytes: Buffer) {
+  if (
+    bytes.subarray(0, 9).toString("ascii") !== "%PDF-1.4\n" ||
+    bytes.subarray(-6).toString("ascii") !== "%%EOF\n"
+  )
+    fail("UPLOAD_MISMATCH")
+}
+
+/** Server-generated artifacts can reserve a key before making any filesystem calls. */
+export function newPrivateFinalKey(
+  environmentId: string,
+  intentId: string,
+  attemptId: string
+): string {
+  if (![environmentId, intentId, attemptId].every((id) => idPattern.test(id)))
+    fail("INVALID_KEY")
+  return `f.${environmentId}.${intentId}.${attemptId}.${randomUUID()}`
+}
+
 export async function openPrivateFiles(config: PrivateFilesConfig) {
   return safe(async () => {
     const { root, environmentId, mayWrite } = config
@@ -291,9 +312,7 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
         return `s.${environmentId}.${intentId}.${randomUUID()}`
       },
       newFinalKey(intentId: string, attemptId: string): string {
-        if (!idPattern.test(intentId) || !idPattern.test(attemptId))
-          fail("INVALID_KEY")
-        return `f.${environmentId}.${intentId}.${attemptId}.${randomUUID()}`
+        return newPrivateFinalKey(environmentId, intentId, attemptId)
       },
       writeStage(
         name: string,
@@ -338,6 +357,52 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
           }
           await publish(name, source(), token.metadata)
           return { ...token.metadata }
+        })
+      },
+      /** The server renderer produces bounded, escaped PDF syntax. Publish its
+       * exact bytes through the same exclusive, hash-checked private store. */
+      writeGeneratedPdf(
+        name: string,
+        source: Uint8Array
+      ): Promise<FileMetadata> {
+        return safe(async () => {
+          key(name, finalPattern)
+          if (!source.byteLength || source.byteLength > maxBytes)
+            fail("UPLOAD_MISMATCH")
+          const bytes = Buffer.from(source)
+          checkGeneratedPdf(bytes)
+          const metadata = {
+            mime: pdfMime,
+            size: bytes.length,
+            sha256: digest(bytes),
+          }
+          // A crash between publication and DB commit can adopt the verified bytes.
+          try {
+            await read(name, metadata)
+            return metadata
+          } catch (error) {
+            if (
+              !(error instanceof PrivateFileError) ||
+              error.code !== "DOCUMENT_NOT_READY"
+            )
+              throw error
+          }
+          async function* contents() {
+            yield bytes
+          }
+          await publish(name, contents(), metadata)
+          return metadata
+        })
+      },
+      readGeneratedPdf(
+        name: string,
+        expected: Pick<FileMetadata, "size" | "sha256">
+      ): Promise<Buffer> {
+        return safe(async () => {
+          key(name, finalPattern)
+          const bytes = await read(name, { ...expected, mime: pdfMime })
+          checkGeneratedPdf(bytes)
+          return bytes
         })
       },
       readFinal(name: string, expected: FileMetadata): Promise<Buffer> {

@@ -92,6 +92,7 @@ export interface SaleInvoicePdfInput {
   invoiceNumber: string
   version: number
   issuedDate: string
+  issuedBy?: string
   saleDate: string
   currency: string
   saleReference?: string | null
@@ -707,31 +708,36 @@ class InvoiceDocumentBuilder {
         lines: wrapText(entry.value || "-", valueW, "F1", 8.5),
       }))
       const maxLines = Math.max(...wrapped.map((w) => w.lines.length))
-      const rowH = maxLines * lineH + 4
-      this.ensureSpace(rowH)
-
-      wrapped.forEach((item, colIdx) => {
-        const baseX = this.margin + 4 + colIdx * (colWidth + 12)
-        this.currentPage.text(
-          item.label,
-          baseX,
-          this.y - 9.5,
-          "F2",
-          8,
-          COLOR_MUTED
-        )
-        item.lines.forEach((ln, lineIdx) => {
-          this.currentPage.text(
-            ln,
-            baseX + labelW,
-            this.y - 9.5 - lineIdx * lineH,
-            "F1",
-            8.5,
-            COLOR_TEXT
-          )
+      let offset = 0
+      while (offset < maxLines) {
+        this.ensureSpace(lineH + 4)
+        const remaining = Math.floor((this.y - this.minBottomY - 4) / lineH)
+        const count = Math.min(maxLines - offset, remaining)
+        wrapped.forEach((item, colIdx) => {
+          const baseX = this.margin + 4 + colIdx * (colWidth + 12)
+          if (offset < item.lines.length)
+            this.currentPage.text(
+              item.label,
+              baseX,
+              this.y - 9.5,
+              "F2",
+              8,
+              COLOR_MUTED
+            )
+          item.lines.slice(offset, offset + count).forEach((line, lineIdx) => {
+            this.currentPage.text(
+              line,
+              baseX + labelW,
+              this.y - 9.5 - lineIdx * lineH,
+              "F1",
+              8.5,
+              COLOR_TEXT
+            )
+          })
         })
-      })
-      this.y -= rowH
+        this.y -= count * lineH + 4
+        offset += count
+      }
     }
     this.y -= 4
   }
@@ -967,38 +973,36 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
   const leftW = b.contentWidth * 0.56
   const rightX = b.margin + leftW + 12
   const rightW = b.contentWidth - leftW - 12
+  const oneLine = (value: string) => value.replace(/\s+/g, " ")
 
   const sellerLines = [
-    ...wrapText(invoice.seller.name, leftW, "F2", 12).map((text) => ({
+    ...wrapText(oneLine(invoice.seller.name), leftW, "F2", 12).map((text) => ({
       text,
       font: "F2" as FontKey,
       size: 12,
       color: COLOR_TEXT,
     })),
-    {
-      text: `Identity: ${invoice.seller.identity}`,
-      font: "F1" as FontKey,
-      size: 8.5,
-      color: COLOR_MUTED,
-    },
-    ...wrapText(invoice.seller.address, leftW, "F1", 8.5).map((text) => ({
-      text,
-      font: "F1" as FontKey,
-      size: 8.5,
-      color: COLOR_TEXT,
-    })),
-    {
-      text: `Tel: ${invoice.seller.phone} | Email: ${invoice.seller.email}`,
-      font: "F1" as FontKey,
-      size: 8.5,
-      color: COLOR_MUTED,
-    },
+    ...[
+      `Identity: ${invoice.seller.identity}`,
+      invoice.seller.address,
+      `Tel: ${invoice.seller.phone} | Email: ${invoice.seller.email}`,
+    ]
+      .flatMap((value) => wrapText(oneLine(value), leftW, "F1", 8.5))
+      .map((text) => ({
+        text,
+        font: "F1" as FontKey,
+        size: 8.5,
+        color: COLOR_TEXT,
+      })),
   ]
 
   const metaLines: { label: string; value: string }[] = [
     { label: "Invoice No:", value: invoice.invoiceNumber },
     { label: "Version:", value: `v${invoice.version}` },
     { label: "Issued Date:", value: invoice.issuedDate },
+    ...(invoice.issuedBy
+      ? [{ label: "Issued By:", value: invoice.issuedBy }]
+      : []),
     { label: "Sale Date:", value: invoice.saleDate },
     { label: "Sale Type:", value: invoice.transaction.kind },
   ]
@@ -1007,7 +1011,14 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
   }
 
   const leftHeight = sellerLines.reduce((acc, l) => acc + l.size + 3.5, 0)
-  const rightHeight = 18 + metaLines.length * 12
+  const metaLabelWidth = 55
+  const wrappedMeta = metaLines.map(({ label, value }) => ({
+    label,
+    lines: wrapText(oneLine(value), rightW - metaLabelWidth, "F2", 8.5),
+  }))
+  const rightHeight =
+    18 +
+    wrappedMeta.reduce((height, entry) => height + entry.lines.length * 12, 0)
   const headerH = Math.max(leftHeight, rightHeight) + 6
 
   b.ensureSpace(headerH)
@@ -1035,10 +1046,20 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
     "right"
   )
   ry -= 16
-  for (const m of metaLines) {
-    b.currentPage.text(m.label, rightX, ry, "F2", 8.5, COLOR_MUTED)
-    b.currentPage.textAligned(m.value, rightX, rightW, ry, "F2", 8.5, "right")
-    ry -= 12
+  for (const { label, lines } of wrappedMeta) {
+    b.currentPage.text(label, rightX, ry, "F2", 8.5, COLOR_MUTED)
+    for (const line of lines) {
+      b.currentPage.textAligned(
+        line,
+        rightX + metaLabelWidth,
+        rightW - metaLabelWidth,
+        ry,
+        "F2",
+        8.5,
+        "right"
+      )
+      ry -= 12
+    }
   }
   b.y -= headerH
   b.currentPage.line(
@@ -1167,7 +1188,7 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
   txRows.forEach((row, idx) => {
     const font: FontKey = row.emphasize ? "F2" : "F1"
     const itemLines = wrapText(row.item, colItemW - 10, font, 8.5)
-    const detailLines = wrapText(row.detail, colDetailW - 10, "F1", 8)
+    const detailLines = wrapText(oneLine(row.detail), colDetailW - 10, "F1", 8)
     const lineCount = Math.max(itemLines.length, detailLines.length)
     const rowH = lineCount * 11 + 6
 
@@ -1276,7 +1297,7 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
     8.5
   )
   b.currentPage.text(
-    `${invoice.seller.name} | Date: _______________`,
+    "Date: _______________",
     leftSigX,
     sigLineY - 22,
     "F1",
@@ -1300,7 +1321,7 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
     8.5
   )
   b.currentPage.text(
-    `${invoice.buyer.fullName} | Date: _______________`,
+    "Date: _______________",
     rightSigX,
     sigLineY - 22,
     "F1",
@@ -1308,6 +1329,7 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
     COLOR_MUTED
   )
 
+  if (b.pages.length > 50) throw new RangeError("Invoice PDF exceeds 50 pages")
   b.finalizeFooters()
   return buildPdf14(b.pages, b.pageWidth, b.pageHeight)
 }

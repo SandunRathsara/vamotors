@@ -114,3 +114,7 @@ GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."ApprovalRequest"
 GRANT SELECT, INSERT ON vamotors."SaleCase", vamotors."SaleReceipt", vamotors."SaleCompletion", vamotors."SaleCorrection", vamotors."TradeInConsideration" TO vamotors_runtime;
 GRANT UPDATE ("customerId", "agreedPrice", reference, notes, revision) ON vamotors."SaleCase" TO vamotors_runtime;
 GRANT UPDATE ("customerId", description, value, "acquiredVehicleId", "acquiredPurchaseId", "intakeCommandId") ON vamotors."TradeInConsideration" TO vamotors_runtime;
+-- T14 immutable snapshots and final bytes, with bounded generation state updates.
+GRANT SELECT, INSERT ON vamotors."InvoiceVersion" TO vamotors_runtime;
+GRANT UPDATE (state, revision, "generationAt", "generatorId", "generatorName", size, sha256)
+  ON vamotors."InvoiceVersion" TO vamotors_runtime;

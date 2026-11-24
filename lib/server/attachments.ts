@@ -163,7 +163,7 @@ export async function writableStorage() {
     throw new CommandError("QUOTA_STOP", 429, true)
   return store
 }
-async function fileIO<T>(run: () => Promise<T>) {
+export async function fileIO<T>(run: () => Promise<T>) {
   if ((stores.importFileIO ?? 0) >= 2)
     throw new CommandError("STORAGE_UNAVAILABLE", 503, true)
   stores.importFileIO = (stores.importFileIO ?? 0) + 1

@@ -2,6 +2,7 @@ import { authenticate } from "@/lib/server/actor"
 import { executeAdmin } from "@/lib/server/admin"
 import { executeRepair } from "@/lib/server/repairs"
 import { executeSale } from "@/lib/server/sales"
+import { issueInvoice } from "@/lib/server/invoices"
 import {
   repairInputs,
   saleInputs,
@@ -62,6 +63,10 @@ export async function POST(
     const identity = await authenticate(request.headers)
     sameOrigin(request)
     const { name } = await context.params
+    if (name === "issueInvoice") {
+      const result = await issueInvoice(identity, await boundedJSON(request))
+      return noStoreJSON(result, result.status === "DOCUMENT_PENDING" ? 202 : 200)
+    }
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
     const rates = Object.hasOwn(rateCommands, name)

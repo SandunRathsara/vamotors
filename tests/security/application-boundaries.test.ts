@@ -18,6 +18,8 @@ import {
   salesPages,
 } from "./route-inventory"
 
+const invoiceDownload = "/api/v1/sales/[saleId]/invoices/[version]"
+
 function files(root: string): string[] {
   return readdirSync(root, { withFileTypes: true }).flatMap((entry) =>
     entry.isDirectory()
@@ -36,6 +38,7 @@ describe("global entry-point inventory", () => {
         ...legacyAPIs,
         ...Object.keys(persistedRateAPIs),
         ...Object.keys(privateAttachmentAPIs),
+        invoiceDownload,
         "/api/auth/[...all]",
         "/api/v1/commands/[name]",
         "/api/v1/queries/[name]",
@@ -57,7 +60,10 @@ describe("global entry-point inventory", () => {
       if (method === "POST") expect(text).toContain("sameOrigin(request)")
       expect(text).not.toMatch(/mock-data|prototype/)
     }
-    for (const [route, method] of Object.entries(privateAttachmentAPIs)) {
+    for (const [route, method] of Object.entries({
+      ...privateAttachmentAPIs,
+      [invoiceDownload]: "GET",
+    })) {
       const text = readFileSync(`app${route}/route.ts`, "utf8")
       expect(text).toContain(`export async function ${method}`)
       expect(text).toContain("await authenticate(request.headers)")
