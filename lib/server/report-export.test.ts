@@ -209,11 +209,13 @@ describe("report-export", () => {
 
       const headers = parsed[0]
       expect(headers).toEqual(
-        REPORT_COLUMNS.INVENTORY.map((column) => column.label)
+        REPORT_COLUMNS.INVENTORY.map((column) =>
+          column.format === "money" ? `${column.label} (LKR)` : column.label
+        )
       )
 
-      const listedIdx = headers.indexOf("Listed Price")
-      const basisIdx = headers.indexOf("Cost Basis")
+      const listedIdx = headers.indexOf("Listed Price (LKR)")
+      const basisIdx = headers.indexOf("Cost Basis (LKR)")
       const holdIdx = headers.indexOf("Hold Reason")
       expect(parsed[1][listedIdx]).toBe("9007199254740993.12")
       expect(parsed[1][holdIdx]).toBe("")

@@ -1,5 +1,6 @@
 import { deflateSync } from "node:zlib"
-import { B, major, minor } from "../money"
+import { formatCurrency } from "../money"
+import { PdfFontSubsets, unicodeRuns } from "./pdf-fonts"
 
 export type PdfMoney = string | bigint
 export type SaleKind = "CASH" | "ADVANCE" | "LEASE" | "TRADE_IN"
@@ -276,11 +277,31 @@ function encodePdfLiteral(input: string): string {
   return out
 }
 
+function needsUnicode(text: string) {
+  return [...text].some((char) => {
+    const code = char.codePointAt(0)!
+    return (
+      code > 0xff &&
+      !WIN_ANSI_UNICODE_TO_BYTE.has(code) &&
+      !(char in SYMBOL_FALLBACKS)
+    )
+  })
+}
+
+// PDF generation is synchronous. Pending snapshots created before the font
+// change must retain their original encoding to adopt already published bytes.
+let legacyEncoding = false
+
 function measureTextWidth(
   text: string,
   font: FontKey,
   fontSize: number
 ): number {
+  if (!legacyEncoding && needsUnicode(text))
+    return unicodeRuns(text).reduce(
+      (width, run) => width + run.width * fontSize,
+      0
+    )
   const bytes = sanitizeLine(text)
   if (font === "F3") {
     return bytes.length * 0.6 * fontSize
@@ -333,7 +354,11 @@ function wrapText(
         }
         // Hard-break an oversized unbroken token (e.g. long chassis/reference).
         let chunk = ""
-        for (const ch of token) {
+        for (const ch of legacyEncoding
+          ? [...token]
+          : [...new Intl.Segmenter().segment(token)].map(
+              ({ segment }) => segment
+            )) {
           if (chunk && measureTextWidth(chunk + ch, font, fontSize) > safeMax) {
             lines.push(chunk)
             chunk = ch
@@ -373,14 +398,7 @@ function wrapText(
 
 /** Format canonical minor-unit money (bigint or decimal-integer string) without JS float conversion. */
 export function formatPdfMoney(value: PdfMoney, currency = "LKR"): string {
-  const amount = typeof value === "bigint" ? value : minor(value, B, true)
-  const decimal = major(amount)
-  const negative = decimal.startsWith("-")
-  const unsigned = negative ? decimal.slice(1) : decimal
-  const [whole, frac] = unsigned.split(".")
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-  const prefix = currency ? `${currency} ` : ""
-  return `${prefix}${negative ? "-" : ""}${grouped}.${frac}`
+  return formatCurrency(value, currency)
 }
 
 function formatInteger(value: number): string {
@@ -419,6 +437,8 @@ const COLOR_WARN_TEXT: Rgb = [0.58, 0.12, 0.12]
 
 class PageStream {
   readonly ops: string[] = []
+
+  constructor(private readonly fonts: PdfFontSubsets) {}
 
   setFill(rgb: Rgb) {
     this.ops.push(`${rgb[0]} ${rgb[1]} ${rgb[2]} rg`)
@@ -475,6 +495,11 @@ class PageStream {
     size: number,
     color: Rgb = COLOR_TEXT
   ) {
+    if (!legacyEncoding && needsUnicode(str)) {
+      this.setFill(color)
+      this.ops.push(this.fonts.text(str, x, yBaseline, size))
+      return
+    }
     this.ops.push(
       `BT /${font} ${fmtNum(size)} Tf ${color[0]} ${color[1]} ${color[2]} rg 1 0 0 1 ${fmtNum(x)} ${fmtNum(yBaseline)} Tm ${encodePdfLiteral(str)} Tj ET`
     )
@@ -507,7 +532,8 @@ class PageStream {
 function buildPdf14(
   pages: PageStream[],
   pageWidth: number,
-  pageHeight: number
+  pageHeight: number,
+  fonts: PdfFontSubsets
 ): Uint8Array {
   if (!pages.length) {
     throw new RangeError("PDF must contain at least one page")
@@ -541,8 +567,9 @@ function buildPdf14(
     )
   )
 
+  const embeddedFonts = fonts.embed(objects)
   for (let i = 0; i < pageCount; i++) {
-    const contentId = 6 + i * 2
+    const contentId = objects.length + 1
     const pageId = contentId + 1
     kidRefs.push(`${pageId} 0 R`)
 
@@ -559,7 +586,7 @@ function buildPdf14(
     )
     objects.push(
       Buffer.from(
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${fmtNum(pageWidth)} ${fmtNum(pageHeight)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents ${contentId} 0 R >>`,
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${fmtNum(pageWidth)} ${fmtNum(pageHeight)}] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R${embeddedFonts ? ` ${embeddedFonts}` : ""} >> >> /Contents ${contentId} 0 R >>`,
         "ascii"
       )
     )
@@ -613,18 +640,19 @@ class InvoiceDocumentBuilder {
   readonly contentWidth = A4_WIDTH - 42 * 2
   readonly footerY = 30
   readonly minBottomY = 48
+  readonly fonts = new PdfFontSubsets()
   readonly pages: PageStream[] = []
   currentPage: PageStream
   y: number
 
   constructor(private readonly input: SaleInvoicePdfInput) {
-    this.currentPage = new PageStream()
+    this.currentPage = new PageStream(this.fonts)
     this.pages.push(this.currentPage)
     this.y = this.pageHeight - this.margin
   }
 
   startNewPage() {
-    this.currentPage = new PageStream()
+    this.currentPage = new PageStream(this.fonts)
     this.pages.push(this.currentPage)
     this.y = this.pageHeight - this.margin
     const notice = this.input.devNotice?.trim() || DEFAULT_INVOICE_DEV_NOTICE
@@ -972,7 +1000,19 @@ function buildTransactionRows(
  * Render a deterministic, printable A4 portrait PDF 1.4 sale invoice across all
  * four sale workflows (`CASH`, `ADVANCE`, `LEASE`, `TRADE_IN`) and restated versions.
  */
-export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
+export function renderSaleInvoicePdf(
+  invoice: SaleInvoicePdfInput,
+  templateVersion = 2
+): Uint8Array {
+  legacyEncoding = templateVersion === 1
+  try {
+    return renderInvoice(invoice)
+  } finally {
+    legacyEncoding = false
+  }
+}
+
+function renderInvoice(invoice: SaleInvoicePdfInput): Uint8Array {
   const b = new InvoiceDocumentBuilder(invoice)
   const devNotice = invoice.devNotice?.trim() || DEFAULT_INVOICE_DEV_NOTICE
 
@@ -1340,7 +1380,7 @@ export function renderSaleInvoicePdf(invoice: SaleInvoicePdfInput): Uint8Array {
 
   if (b.pages.length > 50) throw new RangeError("Invoice PDF exceeds 50 pages")
   b.finalizeFooters()
-  return buildPdf14(b.pages, b.pageWidth, b.pageHeight)
+  return buildPdf14(b.pages, b.pageWidth, b.pageHeight, b.fonts)
 }
 
 interface ReportColumnLayout {
@@ -1440,12 +1480,13 @@ export function renderReportPdf(report: ReportPdfInput): Uint8Array {
   const maxColHeaderLines = Math.max(...colHeaderLines.map((l) => l.length))
   const colHeaderH = maxColHeaderLines * 10 + 8
 
+  const fonts = new PdfFontSubsets()
   const pages: PageStream[] = []
   let currentPage: PageStream
   let y = 0
 
   const startPage = () => {
-    currentPage = new PageStream()
+    currentPage = new PageStream(fonts)
     pages.push(currentPage)
     y = pageHeight - margin
 
@@ -1693,5 +1734,5 @@ export function renderReportPdf(report: ReportPdfInput): Uint8Array {
     )
   })
 
-  return buildPdf14(pages, pageWidth, pageHeight)
+  return buildPdf14(pages, pageWidth, pageHeight, fonts)
 }

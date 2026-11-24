@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   currentSettingsRef,
+  useCurrencyLabel,
   FinanceCompanyField,
   FinancePaymentFields,
   type CompanyOption,
@@ -70,6 +71,7 @@ export function CommitmentActions({
   customer?: Visible<CustomerDTO>
 }) {
   const queryClient = useQueryClient()
+  const currency = useCurrencyLabel()
   const [active, setActive] = useState<Action>()
   const [company, setCompany] = useState<CompanyOption>()
   const [hold, setHold] = useState(false)
@@ -451,13 +453,13 @@ export function CommitmentActions({
               )}
               {active === "recordLenderReceipt" && (
                 <Label className="grid gap-2">
-                  Received amount (LKR)
+                  Received amount{currency}
                   <Input name="lenderAmount" required inputMode="decimal" />
                 </Label>
               )}
               {active === "requestApproval" && (
                 <Label className="grid gap-2">
-                  Refund amount (LKR)
+                  Refund amount{currency}
                   <Input
                     name="refundAmount"
                     inputMode="decimal"

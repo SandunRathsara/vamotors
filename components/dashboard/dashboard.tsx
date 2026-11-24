@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { privateRequest } from "@/lib/security-client"
 import { abilityFor } from "@/lib/server/permissions"
-import { major } from "@/lib/money"
+import { formatCurrency } from "@/lib/money"
 import type { dashboardQuery } from "@/lib/server/reports"
 
 type Metrics = Awaited<ReturnType<typeof dashboardQuery>>
@@ -190,7 +190,7 @@ export function Dashboard({ today }: { today: string }) {
                       </span>
                       {row.price !== undefined && (
                         <span className="tabular-nums">
-                          LKR {major(BigInt(row.price))}
+                          {formatCurrency(row.price, metrics.currency)}
                         </span>
                       )}
                     </li>

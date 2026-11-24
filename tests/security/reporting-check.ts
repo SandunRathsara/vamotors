@@ -1,8 +1,7 @@
 /** Run after pnpm build against a private cluster provisioned by pnpm local:setup. */
 import assert from "node:assert/strict"
 import { createHash, randomUUID } from "node:crypto"
-import { execFileSync } from "node:child_process"
-import { readFile } from "node:fs/promises"
+import { readFile, writeFile } from "node:fs/promises"
 import { chromium, expect, request } from "@playwright/test"
 import type {
   ApprovalDTO,
@@ -15,6 +14,7 @@ import type {
   Pending,
   PurchaseCycleDTO,
 } from "../../.planning/implementation/contracts/api"
+import type { ReportExportStatus } from "../../lib/server/report-http"
 import { reportKinds, reportPages } from "../../lib/report-kinds"
 import { fixture, envelope, purchaseInput, ref } from "./cycle-edits-fixture"
 
@@ -462,6 +462,78 @@ try {
   assert.equal(inventory.total, 36)
   assert.equal(inventory.data.length, 10)
   assert.equal(inventory.totals.basis, "360000")
+
+  const exportPath = "/api/v1/report-exports"
+  const jobId = randomUUID()
+  const startInput = {
+    id: jobId,
+    format: "pdf",
+    query: `kind=INVENTORY&make=${tag}&status=IN_STOCK&page=99&pageSize=10`,
+  }
+  const openExport = () =>
+    admin.post(exportPath, { headers: { Origin: f.origin }, data: startInput })
+  const started = await openExport()
+  assert.equal(started.status(), 201, await started.text())
+  let job: ReportExportStatus = (await started.json()).data
+  assert.equal(job.totalRows, 36)
+  assert.equal(job.renderedRows, 0)
+  assert.equal(job.complete, false)
+  assert.equal((await openExport()).status(), 201)
+  const step = async () => {
+    const continued = await admin.post(`${exportPath}/${jobId}`, {
+      headers: { Origin: f.origin },
+      data: { revision: job.revision },
+    })
+    assert.equal(continued.status(), 200, await continued.text())
+    job = (await continued.json()).data
+  }
+  const policyPath = f.runtime.PRIVATE_FILES_POLICY!
+  const policy = await readFile(policyPath, "utf8")
+  try {
+    await writeFile(
+      policyPath,
+      JSON.stringify({ ...JSON.parse(policy), allowWrites: false })
+    )
+    await step()
+    assert.equal(job.state, "PAUSED_QUOTA")
+    assert.equal(job.error, "QUOTA_STOP")
+    assert.deepEqual(job.parts, [])
+  } finally {
+    await writeFile(policyPath, policy)
+  }
+  await step()
+  assert.equal(job.renderedRows, 35)
+  assert.deepEqual(job.parts, [])
+  const digest = job.digest
+  await acquire("after-export-cutoff", { kind: "RELEASE" })
+  assert.equal((await read("INVENTORY", `&make=${tag}&status=IN_STOCK`)).total, 37)
+  await f.stop()
+  await f.start()
+  assert.equal((await staff.get(`${exportPath}/${jobId}`)).status(), 404)
+  const resumed = await admin.get(`${exportPath}/${jobId}`)
+  assert.equal(resumed.status(), 200, await resumed.text())
+  job = (await resumed.json()).data
+  assert.equal(job.renderedRows, 35)
+  await step()
+  assert.equal(job.complete, true)
+  assert.equal(job.digest, digest)
+  assert.equal(job.parts.length, 2)
+  let through = 0
+  for (const part of job.parts) {
+    const url = `${exportPath}/${jobId}/${part.id}`
+    const download = await admin.get(url)
+    assert.equal(download.status(), 200, await download.text())
+    assert.equal((await staff.get(url)).status(), 404)
+    const bytes = await download.body()
+    assert.equal(bytes.subarray(0, 5).toString(), "%PDF-")
+    assert.equal(createHash("sha256").update(bytes).digest("hex"), part.sha256)
+    assert.equal(part.firstRow, through + 1)
+    through = part.lastRow
+  }
+  assert.equal(through, job.totalRows)
+  console.log(
+    "PASS retained export resumes after restart and quota pause, with exact verified part coverage and owner-only access"
+  )
   const redacted = await read("INVENTORY", `&make=${tag}`, limited)
   assert.ok(redacted.data.length)
   assert.ok(redacted.data.every(({ financial }) => !financial))
@@ -657,50 +729,34 @@ try {
       await page.getByLabel("Status", { exact: true }).selectOption("IN_STOCK")
       await page.getByRole("button", { name: "Apply filters" }).click()
       await expect(
-        page.getByText("36 matching records", { exact: false })
+        page.getByText("37 matching records", { exact: false })
       ).toBeVisible()
     }
     for (const format of ["CSV", "PDF"]) {
-      const pendingDownload = page.waitForEvent("download")
-      await page.getByRole("link", { name: `Export ${format}` }).click()
-      const download = await pendingDownload
+      await page
+        .getByRole("button", { name: `Export ${format}`, exact: true })
+        .click()
+      const link = page
+        .getByRole("link", { name: `Download ${format}`, exact: false })
+        .first()
+      await expect(link).toBeVisible()
+      const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        link.click(),
+      ])
       assert.equal(await download.failure(), null)
-      const path = (await download.path())!
-      const bytes = await readFile(path)
+      const bytes = await readFile((await download.path())!)
       if (format === "CSV") {
         assert.ok(bytes.length > 40)
         if (kind === "INVENTORY")
-          assert.equal(bytes.toString().split(tag).length - 1, 36)
-      } else if (kind === "INVENTORY") {
-        assert.equal(download.suggestedFilename(), "inventory-report.zip")
-        const manifest = JSON.parse(
-          execFileSync("unzip", ["-p", path, "manifest.json"], {
-            encoding: "utf8",
-          })
-        ) as {
-          totalRows: number
-          parts: {
-            name: string
-            firstRow: number
-            lastRow: number
-            sha256: string
-          }[]
-        }
-        assert.equal(manifest.totalRows, 36)
-        assert.equal(manifest.parts.length, 2)
-        let through = 0
-        for (const part of manifest.parts) {
-          const pdf = execFileSync("unzip", ["-p", path, part.name])
-          assert.equal(pdf.subarray(0, 5).toString(), "%PDF-")
-          assert.equal(
-            createHash("sha256").update(pdf).digest("hex"),
-            part.sha256
-          )
-          assert.equal(part.firstRow, through + 1)
-          through = part.lastRow
-        }
-        assert.equal(through, manifest.totalRows)
-      } else assert.match(bytes.subarray(0, 5).toString(), /%PDF|^PK/)
+          assert.equal(bytes.toString().split(tag).length - 1, 37)
+      } else {
+        assert.equal(bytes.subarray(0, 5).toString(), "%PDF-")
+        if (kind === "INVENTORY")
+          await expect(
+            page.getByRole("link", { name: "Download PDF part 2" })
+          ).toBeVisible()
+      }
     }
     await page.getByRole("link", { name: "All reports" }).click()
   }

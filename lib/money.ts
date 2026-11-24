@@ -112,6 +112,20 @@ export function major(value: bigint): string {
   return `${value < 0n ? "-" : ""}${abs / 100n}.${(abs % 100n).toString().padStart(2, "0")}`
 }
 
+/** Format exact minor units. CSV keeps its decimal cells machine-readable. */
+export function formatCurrency(
+  value: string | bigint,
+  currency: string,
+  mode: "display" | "decimal" = "display"
+): string {
+  const decimal = major(typeof value === "bigint" ? value : minor(value, B, true))
+  if (mode === "decimal") return decimal
+  const [whole, fraction] = decimal.split(".")
+  const amount = `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fraction}`
+  return currency ? `${currency} ${amount}` : amount
+}
+
+
 export function sum(values: readonly bigint[], bound = B): bigint {
   return bounded(
     values.reduce((total, value) => total + bounded(value, bound), 0n),
