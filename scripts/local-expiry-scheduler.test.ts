@@ -332,13 +332,14 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       0o600
     )
 
+    const firstResponse = Promise.withResolvers<void>()
     let activeRequests = 0
     let maxConcurrent = 0
     const srv = await startTestServer(async (_call, idx, res) => {
       activeRequests += 1
       maxConcurrent = Math.max(maxConcurrent, activeRequests)
       if (idx === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 95))
+        await firstResponse.promise
       }
       activeRequests -= 1
       res.writeHead(200, { "content-type": "application/json" })
@@ -367,6 +368,8 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       output: { write: () => {} },
       onTick: (record) => {
         captured.push(record)
+        if (captured.filter((r) => r.event === "expiry_overlap_skipped").length === 2)
+          firstResponse.resolve()
       },
     })
 
@@ -540,15 +543,8 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       0o600
     )
 
-    const srv = await startTestServer(async (_call, _idx, res) => {
-      await new Promise((resolve) => setTimeout(resolve, 250))
-      if (!res.writableEnded) {
-        res.writeHead(200, { "content-type": "application/json" })
-        res.end(JSON.stringify({ ok: true, nextCursor: null }))
-      }
-    })
-
     const controller = new AbortController()
+    const srv = await startTestServer(() => controller.abort())
     const scheduler = createExpiryScheduler({
       baseUrl: srv.baseUrl,
       secretFilePath: secretFile,
@@ -558,7 +554,6 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
     })
 
     await scheduler.start()
-    setTimeout(() => controller.abort(), 35)
     const health = await scheduler.waitUntilDone()
 
     expect(health.totalTicks).toBe(1)
@@ -603,15 +598,8 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
     expect(ticks[0]!.ok).toBe(false)
 
     // Verify per-request AbortController timeout recovers on subsequent tick.
-    const slowThenFast = await startTestServer(async (_call, idx, res) => {
-      if (idx === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 120))
-        if (!res.writableEnded) {
-          res.writeHead(200)
-          res.end(JSON.stringify({ ok: true, nextCursor: null }))
-        }
-        return
-      }
+    const slowThenFast = await startTestServer((_call, idx, res) => {
+      if (idx === 0) return
       res.writeHead(200, { "content-type": "application/json" })
       res.end(
         JSON.stringify({
@@ -634,7 +622,7 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       baseUrl: slowThenFast.baseUrl,
       secretFilePath: secretFile,
       intervalMs: 25,
-      requestTimeoutMs: 40,
+      requestTimeoutMs: 750,
       maxTicks: 2,
       output: { write: () => {} },
       onTick: (r) => {

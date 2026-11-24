@@ -130,3 +130,11 @@ GRANT UPDATE ("workflowCommandId", validation, state) ON vamotors."ImportBatch" 
 GRANT SELECT, INSERT ON vamotors."ImportedFile", vamotors."ImportSourceRow" TO vamotors_runtime;
 GRANT SELECT, UPDATE (id) ON vamotors."ImportCommandAnchor" TO vamotors_runtime;
 GRANT EXECUTE ON FUNCTION vamotors.command_write_xid() TO vamotors_runtime;
+
+-- T13: finance reconciliation retains payment, allocation and resolution history.
+GRANT SELECT, INSERT ON vamotors."Remittance", vamotors."RemittancePayment", vamotors."NoticeLine",
+  vamotors."ReconciliationRun", vamotors."CommissionAllocation", vamotors."CommissionDiscrepancy" TO vamotors_runtime;
+GRANT UPDATE (revision, state, "noticeAttachmentId") ON vamotors."Remittance" TO vamotors_runtime;
+GRANT UPDATE (revision, state, "updatedAt") ON vamotors."CommissionEntitlement" TO vamotors_runtime;
+GRANT UPDATE ("reconciliationWatermark") ON vamotors."FinanceCompany" TO vamotors_runtime;
+GRANT SELECT ("remittanceId"), INSERT ("remittanceId") ON vamotors."Attachment", vamotors."UploadIntent" TO vamotors_runtime;

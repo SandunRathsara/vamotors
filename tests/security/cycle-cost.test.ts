@@ -160,7 +160,7 @@ describe("T05c bounded costs and immutable source corrections", () => {
       ],
       id
     )
-    expect(registryVersion).toBe(19)
+    expect(registryVersion).toBe(20)
     expect(ability.can("update", "PurchaseRecord", "cycleId")).toBe(false)
     expect(ability.can("pay", "VehicleCost")).toBe(false)
     expect(

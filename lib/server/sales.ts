@@ -31,6 +31,7 @@ import {
 import { project, readScope, requireFields } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { currentSettings } from "./settings"
+import { appliedAllocations, checkIndependentLenderReceipt, refreshLenderEntitlement } from "./reconciliation"
 import { invoiceDetail, queueInvoice } from "./invoice-data"
 import { A, C, tradeInResidual } from "../money"
 import {
@@ -52,6 +53,10 @@ export const saleInclude = {
   customer: true,
   reservation: true,
   inventoryLease: true,
+  entitlement: { select: {
+    allocations: { select: { amount: true, reversalOf: true } },
+    discrepancies: { where: { resolution: "CARRY_CREDIT" }, select: { allocationId: true, expectedMinusAllocated: true, resolution: true } },
+  } },
   purchaseRecord: { include: purchaseInclude },
   receipts: {
     orderBy: [
@@ -105,9 +110,16 @@ async function resolveActorNames(
   return new Map(users.map((u) => [u.id, u.name]))
 }
 
-export const lenderPaid = (row: SaleRow) => row.receipts
+export const directLenderPaid = (row: SaleRow) => row.receipts
   .filter((receipt) => receipt.category === "LENDER")
   .reduce((total, receipt) => total + (receipt.direction === "IN" ? receipt.amount : -receipt.amount), 0n)
+
+export function lenderPaid(row: SaleRow) {
+  const direct = directLenderPaid(row)
+  if (!row.inventoryLease) return direct
+  const received = direct + (row.entitlement ? appliedAllocations(row.entitlement).applied : 0n)
+  return received > row.inventoryLease.principal ? row.inventoryLease.principal : received
+}
 
 export function reservationDTO(row: NonNullable<SaleRow["reservation"]>, now = new Date()) {
   const expiryFlagPending = row.state === "ACTIVE" && row.expiresAt <= now
@@ -1560,14 +1572,19 @@ export async function prepareSaleEditApproval(
           (date < formatDate(lease!.openedDate) || (method === "CASH" && !reference))))
         fail("INVALID_INPUT", 422)
     }
+    if (target.category === "LENDER" && corr.replacement)
+      await checkIndependentLenderReceipt(tx, lease!.companyId, corr.replacement)
     add(target.category, BigInt(corr.replacement?.amount ?? "0") - target.amount)
   }
   const amount = (category: string) => projected.get(category) ?? 0n
   const advance = sale.reservation?.amount ?? 0n
   if (lease) {
     const down = finance ? BigInt(finance.downPayment) : lease.down
+    const allocated = sale.entitlement ? appliedAllocations(sale.entitlement).applied : 0n
+    const lenderIncreased = amount("LENDER") > directLenderPaid(sale)
     if (amount("DOWN_PAYMENT") !== down || down + advance + lease.principal !== nextPrice ||
-        amount("LENDER") < 0n || amount("LENDER") > lease.principal)
+        amount("LENDER") < 0n || amount("LENDER") > lease.principal ||
+        (lenderIncreased && amount("LENDER") + allocated > lease.principal))
       fail("BALANCE_MISMATCH", 422)
   } else if (sale.reservation) {
     if (amount("BALANCE") !== nextPrice - advance || nextPrice < advance)
@@ -1842,6 +1859,19 @@ export async function applySaleEditApproval(
         },
       })
     }
+  }
+
+  if (input.cashCorrections.some((corr) =>
+    sale.receipts.some((receipt) => receipt.id === corr.paymentId && receipt.category === "LENDER")
+  )) {
+    await refreshLenderEntitlement(tx, sale.id, {
+      commandId,
+      userId: actor.userId,
+      initiatedBy,
+      approverId: actor.userId,
+      action: "reviewApproval",
+      reason: input.reason,
+    })
   }
 
   await tx.purchaseRecord.update({

@@ -949,6 +949,22 @@ export const registry = {
     create: ["sourceIds", "handedOverAt", "courier", "tracking"],
     dispatch: ["sourceIds", "handedOverAt", "courier", "tracking"],
   },
+  ReconciliationRun: {
+    read: ["id", "companyId", "company", "asOfDate", "method", "policyVersion", "previousWatermarkDate", "newWatermarkDate", "snapshot"],
+    reconcile: ["asOfDate", "allocations", "resolutions"],
+  },
+  Remittance: {
+    read: [
+      "id", "revision", "companyId", "reference", "state", "currency", "scale", "method", "policyVersion",
+      "noticeAttachmentId", "documents", "lines", "allocations", "discrepancies", "unallocated", "carriedCredit",
+      "payments.id", "payments.date", "payments.direction", "payments.amount", "payments.method", "payments.category",
+      "payments.reference", "payments.reversalOf",
+    ],
+    create: ["reference"],
+    receive: ["payment", "lines", "noticeAttachmentId", "documents"],
+    reconcile: ["allocations", "discrepancies"],
+    pay: ["payment", "reason"],
+  },
   CommissionEntitlement: {
     read: [
       "id",
@@ -963,7 +979,11 @@ export const registry = {
       "sentDate",
       "sentDateSource",
       "state",
+      "balance",
+      "allocations",
+      "discrepancies",
     ],
+    reconcile: ["balance", "allocations", "discrepancies"],
     create: [
       "companyId",
       "sourceType",
@@ -976,8 +996,8 @@ export const registry = {
     ],
   },
 } as const
-// Registry v19 adds approved commitment corrections and purchase reporting.
-export const registryVersion = 19
+// Registry v20 combines historical import, commitment corrections and reconciliation.
+export const registryVersion = 20
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   ApprovalRequest: ["createdBy"],
@@ -1007,6 +1027,8 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   CashFacility: ["createdBy"],
   DispatchBatch: ["createdBy"],
   CommissionEntitlement: ["financeCompanyId"],
+  ReconciliationRun: ["financeCompanyId"],
+  Remittance: ["financeCompanyId"],
 }
 const conditionSchema = z
   .object({
@@ -1281,7 +1303,7 @@ export function readScope(
         Object.entries(g.conditions ?? {}).map(([k, v]) => [
           (type === "RateSheet" || type === "Quote") && k === "financeCompanyId"
             ? "companyId"
-            : (type === "BrokerageDeal" || type === "CommissionEntitlement") &&
+            : (["BrokerageDeal", "CommissionEntitlement", "ReconciliationRun", "Remittance"] as string[]).includes(type) &&
                 k === "financeCompanyId"
               ? "companyId"
               : type === "ApprovalRequest" && k === "createdBy"

@@ -918,6 +918,7 @@ export const attachmentCommands = {
       target: z.discriminatedUnion("type", [
         z.object({ type: z.literal("IMPORT_BATCH"), id: attachmentId }).strict(),
         z.object({ type: z.literal("SALE_CASE"), id: attachmentId }).strict(),
+        z.object({ type: z.literal("REMITTANCE"), id: attachmentId }).strict(),
         z
           .object({ type: z.literal("BROKERAGE_DEAL"), id: attachmentId })
           .strict(),
@@ -929,6 +930,8 @@ export const attachmentCommands = {
         "PARTICIPANT_DOCUMENT",
         "VEHICLE_DOCUMENT",
         "PROCESSING_DOCUMENT",
+        "RECONCILIATION_NOTICE",
+        "REMITTANCE_RECEIPT",
       ]),
       filename: z.string().min(1).max(200),
       contentType: z.union([importContentTypes, documentContentTypes]),
@@ -949,6 +952,7 @@ export const attachmentCommands = {
       const isSale = value.target.type === "SALE_CASE"
       if (
         (isSale !== (value.purpose === "DO")) ||
+        ((value.target.type === "REMITTANCE") !== ["RECONCILIATION_NOTICE", "REMITTANCE_RECEIPT"].includes(value.purpose)) ||
         (isImport &&
           (value.purpose !== "IMPORT_SOURCE" ||
             ![
@@ -1282,3 +1286,43 @@ export const dispatchPreviewInput = z
       .refine((rows) => new Set(rows.map((r) => r.id)).size === rows.length),
   })
   .strict()
+
+const bankPayment = cashInput.extend({ method: z.literal("BANK_TRANSFER"), reference: name }).strict()
+const reconciliationSource = z.enum(["VEHICLE_SALE", "BROKERAGE"])
+const allocatedMoney = moneyInput.refine((value) => value !== "0")
+export const reconciliationInputs = {
+  stageRemittance: z.object({ companyId: id, reference: name }).strict(),
+  recordRemittance: z.object({
+    draftId: id,
+    companyId: id,
+    payment: bankPayment,
+    noticeAttachmentId: id.optional(),
+    lines: z.array(z.object({
+      key: name,
+      source: z.object({ type: reconciliationSource, id }).strict().optional(),
+      amount: allocatedMoney,
+      description: text,
+    }).strict()).max(100).refine((lines) => new Set(lines.map((line) => line.key)).size === lines.length),
+  }).strict(),
+  reconcile: z.object({
+    companyId: id,
+    asOfDate: dateOnly,
+    allocations: z.array(z.object({
+      remittanceId: id,
+      entitlementId: id,
+      noticeLineId: id.optional(),
+      amount: allocatedMoney,
+    }).strict()).max(100),
+    resolutions: z.array(z.object({
+      entitlementId: id,
+      kind: z.enum(["KEEP_OPEN", "ACCEPT_SHORTFALL", "CARRY_CREDIT", "RETURN_OVERPAYMENT"]),
+      reason: text,
+    }).strict()).max(100).refine((rows) => new Set(rows.map((row) => row.entitlementId)).size === rows.length),
+  }).strict(),
+  reverseAllocation: z.object({ allocationId: id, reason: text }).strict(),
+  returnRemittanceOverpayment: z.object({ remittanceId: id, discrepancyId: id, payment: bankPayment, reason: text }).strict(),
+  reversePayment: z.object({ sourceType: z.literal("REMITTANCE"), sourceId: id, paymentId: id, date: dateOnly.optional(), reason: text }).strict(),
+} as const
+export type ReconciliationCommand = keyof typeof reconciliationInputs
+export const reconciliationEnvelope = <N extends ReconciliationCommand>(name: N) =>
+  customerEnvelope("createCustomer").extend({ input: reconciliationInputs[name] })

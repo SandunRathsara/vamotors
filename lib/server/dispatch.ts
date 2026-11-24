@@ -327,17 +327,18 @@ export async function executeDispatch(
           },
         })
         const policy = row.effectivePolicySnapshot as Record<string, unknown>
+        const expectedAmount = payment(policy, row.approvedLoan)
         const entitlement = await tx.commissionEntitlement.create({
           data: {
             companyId: row.companyId,
             sourceType: "BROKERAGE",
             brokerageDealId: row.id,
-            expectedAmount: payment(policy, row.approvedLoan),
+            expectedAmount,
             policySnapshot: policy as Prisma.InputJsonObject,
             eligibleAt: handedOverAt,
             sentDate: new Date(`${colomboDate(handedOverAt)}T00:00:00.000Z`),
             sentDateSource: "DISPATCH",
-            state: "OPEN",
+            state: expectedAmount === 0n ? "SETTLED" : "OPEN",
             revision: 1,
             createdBy: actor.userId,
             commandId,

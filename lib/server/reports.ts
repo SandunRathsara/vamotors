@@ -630,7 +630,7 @@ const purchases: ReadReport = async (tx, actor, filter, asOf) => {
 }
 
 const cashNotice =
-  "Cash totals include posted sale, advance, refund, facility, brokerage, purchase, cost, repair and disposal payments. Retained advances remain counted on their original receipt date. Commission reconciliation cash is pending integration."
+  "Cash totals include posted sale, advance, refund, facility, brokerage, purchase, cost, repair and disposal and reconciliation payments. Retained advances remain counted on their original receipt date."
 
 function outstandingAdvanceWhere(
   actor: Actor,
@@ -791,6 +791,11 @@ const cashSources: CashSource[] = [
     ],
   },
   {
+    kind: "REMITTANCE",
+    joins: Prisma.sql`JOIN vamotors."Remittance" m_owner ON m_owner.id = m."sourceId"`,
+    requirements: [["m_owner", "Remittance", ["id", ...payments]]],
+  },
+  {
     kind: "BROKERAGE_FEE",
     joins: Prisma.sql`JOIN vamotors."BrokerageDeal" b ON b.id = m."sourceId"`,
     requirements: [["b", "BrokerageDeal", ["id", "processingFee"]]],
@@ -801,6 +806,8 @@ function cashScope(
   actor: Actor,
   [alias, type, fields]: CashSource["requirements"][number]
 ) {
+  // Existing report grants retain their prior coverage when remittances are added.
+  if (type === "Remittance" && !actor.ability.can("read", type)) return Prisma.sql`false`
   const conditions = scope(actor, type, fields).OR
   if (!conditions) return Prisma.sql`true`
   // Alias and column names come from the hardcoded source list and registry.

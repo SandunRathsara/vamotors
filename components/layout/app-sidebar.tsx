@@ -8,6 +8,7 @@ import {
   FileUp,
   FileText,
   ClipboardCheck,
+  Banknote,
 } from "lucide-react"
 import {
   Sidebar,
@@ -33,6 +34,7 @@ export function AppSidebar() {
     abilityFor(actor.presentationGrants, actor.user.id).can("read", type)
   )
   const finance = abilityFor(actor.presentationGrants, actor.user.id)
+  const reconciliation = finance.can("read", "ReconciliationRun") && finance.can("read", "CommissionEntitlement")
   const compareRates =
     finance.can("read", "RateSheet") && finance.can("read", "FinanceCompany")
   const publishRates =
@@ -121,6 +123,17 @@ export function AppSidebar() {
                 <Link href="/reports" prefetch={false}>
                   <FileText />
                   Reports
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+          {reconciliation && (
+            <SidebarMenuItem>
+              <div className="px-2 pt-3 pb-1 text-xs font-medium text-sidebar-foreground/70">Finance</div>
+              <SidebarMenuButton asChild>
+                <Link href="/lease-reconciliation" prefetch={false}>
+                  <Banknote />
+                  Reconciliation
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

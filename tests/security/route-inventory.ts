@@ -63,7 +63,8 @@ export const reportingPages = [
   "/reports/sales",
   "/reports/stock",
 ]
-export const unavailablePages = ["/lease-reconciliation"]
+export const financePages = ["/lease-reconciliation"]
+export const unavailablePages: string[] = []
 export const methods = [
   "GET",
   "HEAD",
@@ -74,6 +75,7 @@ export const methods = [
   "DELETE",
 ] as const
 export const queryNames = [
+  "reconciliationCompanies", "reconciliation", "reconciliationEntitlement", "remittances", "remittance",
   "importBatches",
   "importBatchFiles",
   "download",

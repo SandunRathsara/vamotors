@@ -1,3 +1,5 @@
+import { executeReconciliation } from "@/lib/server/reconciliation"
+import { reconciliationInputs, type ReconciliationCommand } from "@/lib/server/validators"
 import { authenticate } from "@/lib/server/actor"
 import { executeAdmin } from "@/lib/server/admin"
 import { executeRepair } from "@/lib/server/repairs"
@@ -79,6 +81,10 @@ export async function POST(
       const command = name === "previewImport" ? previewImport : confirmImport
       return noStoreJSON(await command(identity, await boundedJSON(request)))
     }
+    if (name !== "reversePayment" && Object.hasOwn(reconciliationInputs, name)) {
+      const result = await executeReconciliation(identity, name as ReconciliationCommand, await boundedJSON(request))
+      return noStoreJSON(result, name === "stageRemittance" && !result.replayed ? 201 : 200)
+    }
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
     const rates = Object.hasOwn(rateCommands, name)
@@ -103,6 +109,8 @@ export async function POST(
     )
       fail("NOT_FOUND", 404)
     const raw = await boundedJSON(request)
+    if (name === "reversePayment" && (raw as { input?: { sourceType?: string } })?.input?.sourceType === "REMITTANCE")
+      return noStoreJSON(await executeReconciliation(identity, name, raw))
     const brokerageReversal =
       name === "reversePayment" &&
       ["FACILITY", "BROKERAGE_FEE"].includes(

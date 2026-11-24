@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest"
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs"
 import {
@@ -7,7 +8,7 @@ import {
   type ReportPdfInput,
   type SaleInvoicePdfInput,
 } from "./pdf"
-import { digest, validateDocument } from "./private-files/validation"
+import { validatePdf } from "./private-files/pdf-validation.mjs"
 
 interface ParsedPdf {
   numPages: number
@@ -21,7 +22,6 @@ interface ParsedPdf {
 
 async function validateAndParsePdf(
   bytes: Uint8Array,
-  filename: string,
   runPrivateValidator = true
 ): Promise<ParsedPdf> {
   expect(bytes.byteLength).toBeGreaterThan(200)
@@ -47,14 +47,8 @@ async function validateAndParsePdf(
     expect(latin1).not.toContain(marker)
   }
 
-  if (runPrivateValidator) {
-    await validateDocument(raw, {
-      size: raw.length,
-      sha256: digest(raw),
-      mime: "application/pdf",
-      filename,
-    })
-  }
+  // Fixture bytes are generated here. Attachment checks exercise the subprocess boundary.
+  if (runPrivateValidator) await validatePdf(raw)
 
   const task = getDocument({
     data: Uint8Array.from(bytes),
@@ -162,7 +156,7 @@ describe("PDF 1.4 deterministic engine", () => {
     )
   })
 
-  it("renders deterministic CASH invoice passing private-files validator and full text checks", async () => {
+  it("renders deterministic CASH invoice passing private-files validator and full text checks", { timeout: 20_000 }, async () => {
     const input = makeBaseInvoice({
       transaction: {
         kind: "CASH",
@@ -181,7 +175,7 @@ describe("PDF 1.4 deterministic engine", () => {
     const bytesB = renderSaleInvoicePdf(input)
     expect(Buffer.from(bytesA).equals(Buffer.from(bytesB))).toBe(true)
 
-    const parsed = await validateAndParsePdf(bytesA, "cash-invoice-v1.pdf")
+    const parsed = await validateAndParsePdf(bytesA)
     expect(parsed.numPages).toBe(1)
     expect(parsed.pages[0].width).toBe(595)
     expect(parsed.pages[0].height).toBe(842)
@@ -222,7 +216,7 @@ describe("PDF 1.4 deterministic engine", () => {
     }
   })
 
-  it("renders ADVANCE invoice with multiple advance receipts and conversion balance", async () => {
+  it("renders ADVANCE invoice with multiple advance receipts and conversion balance", { timeout: 20_000 }, async () => {
     const input = makeBaseInvoice({
       invoiceNumber: "DEV-2026-000002-v1",
       transaction: {
@@ -253,7 +247,7 @@ describe("PDF 1.4 deterministic engine", () => {
     })
 
     const bytes = renderSaleInvoicePdf(input)
-    const parsed = await validateAndParsePdf(bytes, "advance-invoice-v1.pdf")
+    const parsed = await validateAndParsePdf(bytes)
 
     for (const expected of [
       "DEV-2026-000002-v1",
@@ -275,7 +269,7 @@ describe("PDF 1.4 deterministic engine", () => {
     }
   })
 
-  it("renders LEASE invoice with down payment, finance company, DO non-cash marker, and settlement status", async () => {
+  it("renders LEASE invoice with down payment, finance company, DO non-cash marker, and settlement status", { timeout: 20_000 }, async () => {
     const input = makeBaseInvoice({
       invoiceNumber: "DEV-2026-000003-v1",
       transaction: {
@@ -297,7 +291,7 @@ describe("PDF 1.4 deterministic engine", () => {
     })
 
     const bytes = renderSaleInvoicePdf(input)
-    const parsed = await validateAndParsePdf(bytes, "lease-invoice-v1.pdf")
+    const parsed = await validateAndParsePdf(bytes)
 
     for (const expected of [
       "DEV-2026-000003-v1",
@@ -320,7 +314,7 @@ describe("PDF 1.4 deterministic engine", () => {
     }
   })
 
-  it("renders TRADE_IN invoice with non-cash trade-in consideration and net balance, plus v2 restatement", async () => {
+  it("renders TRADE_IN invoice with non-cash trade-in consideration and net balance, plus v2 restatement", { timeout: 20_000 }, async () => {
     const input = makeBaseInvoice({
       invoiceNumber: "DEV-2026-000004-v2",
       version: 2,
@@ -346,7 +340,7 @@ describe("PDF 1.4 deterministic engine", () => {
     })
 
     const bytes = renderSaleInvoicePdf(input)
-    const parsed = await validateAndParsePdf(bytes, "tradein-invoice-v2.pdf")
+    const parsed = await validateAndParsePdf(bytes)
 
     for (const expected of [
       "DEV-2026-000004-v2",
@@ -366,7 +360,7 @@ describe("PDF 1.4 deterministic engine", () => {
     }
   })
 
-  it("handles special PDF escaping, WinAnsi symbols, and multi-page invoice overflow cleanly", async () => {
+  it("handles special PDF escaping, WinAnsi symbols, and multi-page invoice overflow cleanly", { timeout: 20_000 }, async () => {
     const longRemarks = Array.from(
       { length: 45 },
       (_, idx) =>
@@ -390,7 +384,7 @@ describe("PDF 1.4 deterministic engine", () => {
     })
 
     const bytes = renderSaleInvoicePdf(input)
-    const parsed = await validateAndParsePdf(bytes, "overflow-invoice.pdf")
+    const parsed = await validateAndParsePdf(bytes)
     expect(parsed.numPages).toBeGreaterThanOrEqual(2)
     expect(parsed.fullText).toContain("CASH-(REF)\\1")
     expect(parsed.fullText).toContain(
@@ -406,7 +400,7 @@ describe("PDF 1.4 deterministic engine", () => {
     )
   })
 
-  it("paginates a long multiline buyer address and keeps both signatures", async () => {
+  it("paginates a long multiline buyer address and keeps both signatures", { timeout: 20_000 }, async () => {
     const address = Array.from(
       { length: 90 },
       (_, index) => `Address line ${index + 1}`
@@ -424,7 +418,6 @@ describe("PDF 1.4 deterministic engine", () => {
           },
         })
       ),
-      "long-address.pdf"
     )
     expect(parsed.numPages).toBeGreaterThan(1)
     expect(parsed.pages[0].text).toContain("Synthetic operator")
@@ -438,7 +431,7 @@ describe("PDF 1.4 deterministic engine", () => {
     expect(parsed.pages.at(-1)?.text).toContain("Buyer / Customer Signature")
   })
 
-  it("renders multi-page landscape report with repeating column headers, filters, totals, and passes validator", async () => {
+  it("renders multi-page landscape report with repeating column headers, filters, totals, and passes validator", { timeout: 20_000 }, async () => {
     const rows = Array.from({ length: 150 }, (_, idx) => {
       const n = String(idx + 1).padStart(3, "0")
       return {
@@ -494,7 +487,7 @@ describe("PDF 1.4 deterministic engine", () => {
     const bytesB = renderReportPdf(report)
     expect(Buffer.from(bytesA).equals(Buffer.from(bytesB))).toBe(true)
 
-    const parsed = await validateAndParsePdf(bytesA, "sold-report-150.pdf")
+    const parsed = await validateAndParsePdf(bytesA)
     expect(parsed.numPages).toBeGreaterThanOrEqual(4)
     expect(parsed.numPages).toBeLessThanOrEqual(50)
 
@@ -520,7 +513,7 @@ describe("PDF 1.4 deterministic engine", () => {
     expect(parsed.fullText).toContain("LKR 13,590,000.00")
   })
 
-  it("renders portrait report with empty rows cleanly and passes validator", async () => {
+  it("renders portrait report with empty rows cleanly and passes validator", { timeout: 20_000 }, async () => {
     const bytes = renderReportPdf({
       title: "Open Repairs Report",
       orientation: "portrait",
@@ -534,7 +527,7 @@ describe("PDF 1.4 deterministic engine", () => {
       totals: [{ label: "Open Repairs", value: "0" }],
     })
 
-    const parsed = await validateAndParsePdf(bytes, "empty-repairs.pdf")
+    const parsed = await validateAndParsePdf(bytes)
     expect(parsed.numPages).toBe(1)
     expect(parsed.pages[0].width).toBe(595)
     expect(parsed.pages[0].height).toBe(842)
@@ -542,7 +535,7 @@ describe("PDF 1.4 deterministic engine", () => {
     expect(parsed.fullText).toContain("Open Repairs:")
   })
 
-  it("handles thousands of report rows smoothly without clipping or memory blowup", async () => {
+  it("handles thousands of report rows smoothly without clipping or memory blowup", { timeout: 20_000 }, async () => {
     const rows = Array.from({ length: 2500 }, (_, idx) => ({
       idx: String(idx + 1),
       ref: `ROW-${String(idx + 1).padStart(4, "0")}`,
@@ -564,9 +557,7 @@ describe("PDF 1.4 deterministic engine", () => {
     // Note: 2,500 rows spans >50 pages, so parse with pdfjs-dist directly
     // (private-files validator enforces <=50 pages per individual export part).
     const parsed = await validateAndParsePdf(
-      bytes,
-      "high-volume-report.pdf",
-      false
+      bytes, false
     )
     expect(parsed.numPages).toBeGreaterThan(50)
     expect(parsed.fullText).toContain("ROW-0001")

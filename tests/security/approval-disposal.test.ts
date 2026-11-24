@@ -49,6 +49,8 @@ describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
             "CashFacility",
             "DispatchBatch",
             "CommissionEntitlement",
+            "Remittance",
+            "ReconciliationRun",
             "Report",
           ].includes(name)
       )
@@ -59,7 +61,7 @@ describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
       "49e1efcb68f307ff0c7ffe4d55e62570db81705f8047f5482584665525ef7f83"
     )
-    expect(registryVersion).toBe(19)
+    expect(registryVersion).toBe(20)
     expect(registry.PurchaseRecord.read).toEqual(
       expect.arrayContaining([
         "tradeInSourceSaleId",

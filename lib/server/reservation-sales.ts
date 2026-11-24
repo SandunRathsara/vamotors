@@ -1,4 +1,5 @@
 import "server-only"
+import { checkIndependentLenderReceipt, refreshLenderEntitlement } from "./reconciliation"
 import { randomUUID } from "node:crypto"
 import type { VehicleStatus } from "@prisma/client"
 import type { z } from "zod"
@@ -467,7 +468,7 @@ async function complete(
         sourceType: "VEHICLE_SALE",
         expectedAmount,
         policySnapshot: lease.policySnapshot!,
-        eligibleAt: new Date(),
+        eligibleAt: date,
         sentDate: date,
         sentDateSource: "HANDOVER",
         createdBy: userId,
@@ -1255,7 +1256,9 @@ export async function executeCommitment<N extends CommitmentCommand>(
           )
             fail("BALANCE_MISMATCH", 422)
           authorizePayment(actor, sale, payment)
+          await checkIndependentLenderReceipt(tx, sale.inventoryLease.companyId, payment)
           await recordPayment(tx, context, sale.id, row.id, payment, "LENDER")
+          await refreshLenderEntitlement(tx, sale.id, context)
           await tx.saleCase.update({
             where: { id: sale.id },
             data: { revision: { increment: 1 } },
@@ -1282,6 +1285,7 @@ export async function executeCommitment<N extends CommitmentCommand>(
         "purchases",
         "customers",
         "notifications",
+        ...(name === "recordLenderReceipt" ? (["finance", "reports"] as const) : []),
       ],
     }
   })
