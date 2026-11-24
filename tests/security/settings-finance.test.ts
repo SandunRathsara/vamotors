@@ -160,7 +160,7 @@ describe("Settings and finance trust boundaries", () => {
     ).toBe(false)
   })
   it("has explicit Settings updates and independently grantable policy leaves", () => {
-    expect(registryVersion).toBe(15)
+    expect(registryVersion).toBe(16)
     expect(
       grantSchema.safeParse({
         subject: "Settings",

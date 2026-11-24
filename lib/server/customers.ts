@@ -73,6 +73,24 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
       },
       orderBy: [{ purchaseDate: "asc" }, { id: "asc" }],
     })
+    const sales = await tx.saleCase.findMany({
+      where: {
+        AND: [
+          { customerId: row.id },
+          readScope(actor.grants, actor.userId, "SaleCase"),
+        ],
+      },
+      select: {
+        id: true,
+        customerId: true,
+        createdBy: true,
+        openedAt: true,
+        state: true,
+        agreedPrice: true,
+        completion: { select: { saleDate: true } },
+      },
+      orderBy: [{ openedAt: "asc" }, { id: "asc" }],
+    })
     const links: CustomerDTO["links"] = purchases.flatMap((p) => {
       if (
         !["id", "purchaseDate", "status"].every((f) =>
@@ -98,6 +116,34 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
         },
       ]
     })
+    const saleLinks = sales.flatMap((s) => {
+      const saleSubject = subject("SaleCase", {
+        ...s,
+        createdBy: s.createdBy,
+        customerId: s.customerId,
+      })
+      if (
+        !["id", "state", ...(s.completion ? ["completion.date"] : [])].every(
+          (f) => actor.ability.can("read", saleSubject, f)
+        )
+      ) {
+        visible.redactedFields.push("links")
+        return []
+      }
+      const amount = actor.ability.can("read", saleSubject, "price")
+      if (!amount) visible.redactedFields.push("links.amount")
+      return [
+        {
+          type: "SALE",
+          id: s.id,
+          date: (s.completion?.saleDate ?? s.openedAt)
+            .toISOString()
+            .slice(0, 10),
+          status: s.state,
+          ...(amount ? { amount: s.agreedPrice.toString() } : {}),
+        },
+      ]
+    })
     const deals = await tx.brokerageDeal.findMany({
       where: {
         AND: [
@@ -112,11 +158,15 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
         approvedLoan: true,
         createdBy: true,
         companyId: true,
+        customerId: true,
       },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     })
     for (const deal of deals) {
-      const record = subject("BrokerageDeal", deal)
+      const record = subject("BrokerageDeal", {
+        ...deal,
+        financeCompanyId: deal.companyId,
+      })
       if (
         !["id", "state", "createdAt"].every((f) =>
           actor.ability.can("read", record, f)
@@ -135,7 +185,10 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
         ...(amount ? { amount: deal.approvedLoan.toString() } : {}),
       })
     }
-    visible.links = links
+    visible.links = [...links, ...saleLinks].sort(
+      (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)
+    )
+    visible.redactedFields = [...new Set(visible.redactedFields)]
   }
   return visible
 }

@@ -33,18 +33,45 @@ const input = {
 }
 
 describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
-  it("keeps every accepted236 subject/action/field byte-identical, adding only two owners", () => {
+  it("keeps every accepted236 subject/action/field byte-identical outside v15 sale extensions", () => {
     const old = Object.fromEntries(
       Object.entries(registry).filter(
         ([name]) =>
-          !["ApprovalRequest", "Disposal", "RepairRecord", "BrokerageDeal", "CashFacility", "DispatchBatch", "CommissionEntitlement"].includes(name)
+          ![
+            "ApprovalRequest",
+            "Disposal",
+            "RepairRecord",
+            "SaleCase",
+            "PurchaseRecord",
+            "BrokerageDeal",
+            "CashFacility",
+            "DispatchBatch",
+            "CommissionEntitlement",
+          ].includes(name)
       )
     )
-    // Derived from exact accepted236, not the candidate's current expected value.
+    // Exact accepted236 baseline for every subject that T09 did not expand.
+    // (PurchaseRecord/ApprovalRequest expansions and SaleCase are asserted below.)
+    expect(Object.keys(old)).toHaveLength(15)
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
-      "6bbd6e95627fa94c4a5b92fb75b00185f7d9c396756e39cfd7af85d22f3e587e"
+      "49e1efcb68f307ff0c7ffe4d55e62570db81705f8047f5482584665525ef7f83"
     )
-    expect(registryVersion).toBe(15)
+    expect(registryVersion).toBe(16)
+    expect(registry.PurchaseRecord.read).toEqual(
+      expect.arrayContaining([
+        "tradeInSourceSaleId",
+        "financial.originalBasis",
+        "financial.salePrice",
+        "financial.originalProfit",
+        "financial.restatedProfit",
+      ])
+    )
+    expect(registry.SaleCase.pay).toEqual([
+      "amount",
+      "date",
+      "method",
+      "reference",
+    ])
     expect(
       registry.PurchaseRecord.read.filter((f) => f.startsWith("disposal"))
     ).toEqual(["disposal"])

@@ -14,7 +14,10 @@ import type {
   BrokerageDTO,
   CustomerDTO,
   PartyDTO,
+  PurchaseCycleDTO,
 } from "../../.planning/implementation/contracts/api"
+
+import { purchaseInput } from "./cycle-edits-fixture"
 
 process.umask(0o077)
 const root = process.argv[2]
@@ -1597,9 +1600,43 @@ try {
     assert.equal(absent.status(), 404)
   })
 
-  await group("customer links include BROKERAGE", async () => {
-    const customer = await f.query<CustomerDTO>(admin, "customer", `?id=${applicationCustomer.result.id}`)
-    assert.ok(customer.links?.some((link) => link.type === "BROKERAGE" && link.id === applicationDealId))
+  await group("sale receipts and facility payments coexist in cash and customer history", async () => {
+    const supplier = await f.command(admin, "createDirectoryParty", envelope({
+      type: "SUPPLIER",
+      values: { name: `Combined supplier ${suffix}`, category: "COMPANY", contacts: [] },
+    }), 201)
+    const purchase = await f.command(admin, "recordPurchase", envelope(
+      purchaseInput(supplier.result.id, suffix, "combined", 500),
+      [ref(supplier.result, "Supplier")]
+    ), 201)
+    const cycleOf = () => f.query<PurchaseCycleDTO>(admin, "purchase", `?cycleId=${purchase.result.id}`)
+    await f.command(admin, "receiveStock", envelope({
+      cycleId: purchase.result.id,
+      date: "2026-10-02",
+      disposition: { kind: "RELEASE" },
+    }, [ref(await cycleOf(), "PurchaseRecord")]))
+    const customerOf = () => f.query<CustomerDTO>(admin, "customer", `?id=${applicationCustomer.result.id}`)
+    const sale = await f.command(admin, "completeImmediate", envelope({
+      cycleId: purchase.result.id,
+      customerId: applicationCustomer.result.id,
+      kind: "CASH",
+      price: "15000",
+      date: "2026-10-03",
+      mileage: 520,
+      method: "CASH",
+    }, [ref(await cycleOf(), "PurchaseRecord"), ref(await customerOf(), "Customer")]), 201)
+
+    const movements = await f.restricted.query(
+      `SELECT "sourceType", direction, amount FROM vamotors."CashMovement"
+       WHERE ("sourceType" = 'SALE' AND "sourceId" = $1)
+          OR ("sourceType" = 'FACILITY' AND "sourceId" = $2)`,
+      [sale.result.id, facilityId]
+    )
+    assert.ok(movements.rows.some(row => row.sourceType === "SALE" && row.direction === "IN" && row.amount === "15000"))
+    assert.ok(movements.rows.some(row => row.sourceType === "FACILITY" && row.direction === "OUT" && row.amount === "8800000"))
+    const linked = await customerOf()
+    assert.ok(linked.links?.some(link => link.type === "SALE" && link.id === sale.result.id))
+    assert.ok(linked.links?.some(link => link.type === "BROKERAGE" && link.id === applicationDealId))
   })
 } catch (error) {
   console.error(

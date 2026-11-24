@@ -6,6 +6,7 @@ import type {
   Applied,
   ApprovalDTO,
   Dependency,
+  ImmediateSale,
   Pending,
   WriteOff,
   Visible,
@@ -44,6 +45,15 @@ import {
   requireWriteOffAuthority,
   requireWriteOffRead,
 } from "./disposals"
+import {
+  completeImmediateInTx,
+  immediateCreateFields,
+  prepareDiscountApproval,
+  prepareSaleEditApproval,
+  applySaleEditApproval,
+  loadSale,
+  saleAuth,
+} from "./sales"
 import { audit, writeReadVersion, notify } from "./audit"
 import { canonical, inputDigest } from "./idempotency"
 import { runtimeConfig } from "./config"
@@ -73,12 +83,12 @@ function saved(a: ApprovalRequest) {
   const expected = approvalEnvelope("requestApproval").shape.expected.safeParse(
     a.expected
   )
+  if (!proposal.success || !expected.success || a.schemaVersion !== 1 || a.kind !== proposal.data.kind)
+    fail("INTERNAL_ERROR", 500)
   if (
-    !proposal.success ||
-    !expected.success ||
-    a.schemaVersion !== 1 ||
-    a.kind !== "WRITE_OFF" ||
-    proposal.data.input.cycleId !== a.cycleId
+    (proposal.data.kind === "WRITE_OFF" && proposal.data.input.cycleId !== a.cycleId) ||
+    (proposal.data.kind === "DISCOUNT" && proposal.data.command.input.cycleId !== a.cycleId) ||
+    (proposal.data.kind === "SALE_EDIT" && proposal.data.input.saleId !== a.saleCaseId)
   )
     fail("INTERNAL_ERROR", 500)
   return { proposal: proposal.data, expected: expected.data }
@@ -130,14 +140,113 @@ function readableRefs(actor: Authority, row: Cycle) {
   return refs(row)
 }
 /** Originating fields, not state/CAS: also safe for successful receipt replay. */
-function domainAuthority(actor: Authority, row: Cycle, input: WriteOff) {
-  requireWriteOffAuthority(
-    actor,
-    auth(row),
-    vehicleAuth(row),
-    visiblePurchase(actor, row),
-    input
-  )
+async function domainAuthority(
+  tx: Tx,
+  actor: Authority,
+  row: Cycle,
+  a: Pick<ApprovalRequest, "proposal" | "expected" | "schemaVersion" | "kind" | "cycleId" | "saleCaseId" | "requestedBy">
+) {
+  const { proposal } = saved(a as ApprovalRequest)
+  if (proposal.kind === "WRITE_OFF") {
+    requireWriteOffAuthority(
+      actor,
+      auth(row),
+      vehicleAuth(row),
+      visiblePurchase(actor, row),
+      proposal.input
+    )
+    return
+  }
+  readableRefs(actor, row)
+  if (proposal.kind === "DISCOUNT") {
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "listedPrice",
+      "purchasePrice",
+      "financial.basis",
+    ])
+    const customer = await tx.customer.findUnique({
+      where: { id: proposal.command.input.customerId },
+    })
+    if (!customer) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "Customer", "read", customer, [
+      "id",
+      "revision",
+      "active",
+    ])
+    const command = proposal.command.input
+    requireFields(
+      actor.ability,
+      "SaleCase",
+      "create",
+      { createdBy: a.requestedBy, customerId: customer.id },
+      immediateCreateFields(command)
+    )
+    const residual =
+      BigInt(command.price) -
+      (command.kind === "TRADE_IN" ? BigInt(command.tradeIn.value) : 0n)
+    if (residual > 0n)
+      requireFields(
+        actor.ability,
+        "SaleCase",
+        "pay",
+        { createdBy: a.requestedBy, customerId: customer.id },
+        [
+          "amount",
+          "date",
+          "method",
+          ...(command.reference !== undefined ? ["reference"] : []),
+        ]
+      )
+    if (command.kind === "TRADE_IN" && command.tradeIn.intake)
+      requireFields(
+        actor.ability,
+        "PurchaseRecord",
+        "create",
+        { createdBy: actor.userId, status: "PURCHASED" },
+        [
+          "vehicle",
+          "purchaseDate",
+          "purchasePrice",
+          "mileage",
+          ...(command.tradeIn.intake.listedPrice !== undefined ? ["listedPrice"] : []),
+        ]
+      )
+    return
+  }
+  const sale = await loadSale(tx, proposal.input.saleId)
+  if (!sale) fail("NOT_FOUND", 404)
+  requireFields(actor.ability, "SaleCase", "read", saleAuth(sale), [
+    "id",
+    "revision",
+    "cycleId",
+    "customerId",
+    "kind",
+    "state",
+    "price",
+    "payments.id",
+    "payments.amount",
+    "payments.direction",
+  ])
+  if (proposal.input.patch.customerId) {
+    const cu = await tx.customer.findUnique({
+      where: { id: proposal.input.patch.customerId },
+    })
+    if (!cu) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "Customer", "read", cu, [
+      "id",
+      "revision",
+      "active",
+    ])
+  }
+  const patchKeys = Object.entries(proposal.input.patch)
+    .filter(([, v]) => v !== undefined)
+    .map(([k]) => (k === "tradeIn" ? "patch.tradeIn" : `patch.${k}`))
+  requireFields(actor.ability, "SaleCase", "update", saleAuth(sale), [
+    "saleId",
+    "reason",
+    ...patchKeys,
+    ...(proposal.input.cashCorrections.length ? ["cashCorrections"] : []),
+  ])
 }
 /** Caller holds the auth guard. No requester session or old business/CAS checks. */
 async function currentRequesterAuthority(
@@ -148,7 +257,11 @@ async function currentRequesterAuthority(
   const requester = await userAuthority(tx, a.requestedBy)
   if (!requester?.user.active) fail("APPROVAL_STALE")
   try {
-    domainAuthority(requester, row, saved(a).proposal.input)
+    requireFields(requester.ability, "ApprovalRequest", "create", rowSubject(a), [
+      "proposal",
+      "proposal.kind",
+    ])
+    await domainAuthority(tx, requester, row, a)
   } catch (e) {
     if (e instanceof CommandError) fail("APPROVAL_STALE")
     throw e
@@ -164,7 +277,8 @@ function requestAuthority(actor: Authority, row: Cycle, input: WriteOff) {
     true
   )
 }
-function reviewAuthority(
+async function reviewAuthority(
+  tx: Tx,
   actor: Authority,
   row: Cycle,
   a: ApprovalRequest,
@@ -179,25 +293,43 @@ function reviewAuthority(
     "decision",
     ...(note ? ["note"] : []),
   ])
-  domainAuthority(actor, row, saved(a).proposal.input)
-  const input = saved(a).proposal.input
+  await domainAuthority(tx, actor, row, a)
+  const { proposal } = saved(a)
+  if (proposal.kind === "WRITE_OFF") {
+    const input = proposal.input
+    requireFields(actor.ability, "ApprovalRequest", "read", rowSubject(a), [
+      "proposal.kind",
+      ...inputFields(input).map((f) => `proposal.input.${f}`),
+      "expected",
+      "payloadHash",
+      "reason",
+    ])
+    const candidate = { ...input, createdBy: a.requestedBy }
+    requireFields(
+      actor.ability,
+      "Disposal",
+      "read",
+      candidate,
+      inputFields(input)
+        .filter((f) => f !== "cycleId")
+        .map((f) => f.replace("receipt.", "payments."))
+    )
+    return
+  }
   requireFields(actor.ability, "ApprovalRequest", "read", rowSubject(a), [
     "proposal.kind",
-    ...inputFields(input).map((f) => `proposal.input.${f}`),
     "expected",
     "payloadHash",
     "reason",
   ])
-  const candidate = { ...input, createdBy: a.requestedBy }
-  requireFields(
-    actor.ability,
-    "Disposal",
-    "read",
-    candidate,
-    inputFields(input)
-      .filter((f) => f !== "cycleId")
-      .map((f) => f.replace("receipt.", "payments."))
-  )
+  if (proposal.kind === "SALE_EDIT") {
+    const sale = await loadSale(tx, proposal.input.saleId)
+    if (!sale) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "SaleCase", "update", saleAuth(sale), [
+      "saleId",
+      "reason",
+    ])
+  }
 }
 function validInput(row: Cycle, input: WriteOff) {
   if (
@@ -215,9 +347,10 @@ function validInput(row: Cycle, input: WriteOff) {
 }
 function eligible(row: Cycle) {
   if (row.repairs.some((r) => !r.returnedDate)) fail("OBLIGATION_OPEN")
+  if (row.sales.some((s) => s.state !== "CANCELLED")) fail("OBLIGATION_OPEN")
   if (
     !row.acquisitionCommandId ||
-    row.acquisitionKind !== "SUPPLIER" ||
+    !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
     !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
     row.closedAt ||
     row.vehicle.activePurchaseId !== row.id ||
@@ -259,7 +392,7 @@ async function eligibleReviewers(tx: Tx, row: Cycle, a: ApprovalRequest) {
     const authority = await userAuthority(tx, user.id)
     if (!authority?.user.active) continue
     try {
-      reviewAuthority(authority, row, a, false)
+      await reviewAuthority(tx, authority, row, a, false)
       const visible = visibleApproval(authority, a, row)
       if (!visible.id) continue
       recipients.push(user.id)
@@ -285,45 +418,66 @@ export function visibleApproval(
 ) {
   const value = project(actor.ability, "ApprovalRequest", rowSubject(a))
   readableRefs(actor, row)
-  const input = saved(a).proposal.input
-  const candidate = subject("Disposal", { ...input, createdBy: a.requestedBy })
+  const proposal = saved(a).proposal
   let full = true
-  const projectedInput = (
-    value.proposal as { input?: Record<string, unknown> } | undefined
-  )?.input
-  for (const field of inputFields(input)) {
-    if (at(projectedInput, field) !== at(input, field)) full = false
-    const allowed =
-      field === "cycleId" ||
-      actor.ability.can(
-        "read",
-        candidate,
-        field.startsWith("receipt.")
-          ? field.replace("receipt.", "payments.")
-          : field
-      )
-    if (allowed) continue
-    full = false
-    if (projectedInput) {
-      if (field.startsWith("receipt."))
-        delete (
-          projectedInput.receipt as Record<string, unknown> | undefined
-        )?.[field.slice(8)]
-      else delete projectedInput[field]
+  if (proposal.kind === "WRITE_OFF") {
+    const input = proposal.input
+    const candidate = subject("Disposal", { ...input, createdBy: a.requestedBy })
+    const projectedInput = (
+      value.proposal as { input?: Record<string, unknown> } | undefined
+    )?.input
+    for (const field of inputFields(input)) {
+      if (at(projectedInput, field) !== at(input, field)) full = false
+      const allowed =
+        field === "cycleId" ||
+        actor.ability.can(
+          "read",
+          candidate,
+          field.startsWith("receipt.")
+            ? field.replace("receipt.", "payments.")
+            : field
+        )
+      if (allowed) continue
+      full = false
+      if (projectedInput) {
+        if (field.startsWith("receipt."))
+          delete (
+            projectedInput.receipt as Record<string, unknown> | undefined
+          )?.[field.slice(8)]
+        else delete projectedInput[field]
+      }
+      value.redactedFields.push(`proposal.input.${field}`)
     }
-    value.redactedFields.push(`proposal.input.${field}`)
-  }
-  if (!actor.ability.can("read", candidate, "reason")) {
-    for (const f of ["reason", "reviewNote"]) {
-      delete value[f]
-      value.redactedFields.push(f)
+    if (!actor.ability.can("read", candidate, "reason")) {
+      for (const f of ["reason", "reviewNote"]) {
+        delete value[f]
+        value.redactedFields.push(f)
+      }
     }
-  }
-  try {
-    requireWriteOffRead(auth(row), visiblePurchase(actor, row))
-  } catch (e) {
-    if (!(e instanceof CommandError)) throw e
-    full = false
+    try {
+      requireWriteOffRead(auth(row), visiblePurchase(actor, row))
+    } catch (e) {
+      if (!(e instanceof CommandError)) throw e
+      full = false
+    }
+  } else {
+    const saleCheckId =
+      proposal.kind === "SALE_EDIT" ? proposal.input.saleId : undefined
+    const saleTarget = row.sales.find((s) => s.id === saleCheckId)
+    const saleCond = {
+      createdBy: saleTarget?.createdBy ?? a.requestedBy,
+      customerId:
+        proposal.kind === "DISCOUNT"
+          ? proposal.command.input.customerId
+          : saleTarget?.customerId,
+    }
+    if (
+      !actor.ability.can("read", subject("SaleCase", saleCond), "price")
+    ) {
+      full = false
+      delete value.payloadHash
+      value.redactedFields.push("payloadHash")
+    }
   }
   if (!full) {
     delete value.payloadHash
@@ -362,15 +516,13 @@ export async function approvalDetail(
     cycle = visiblePurchase(actor, row)
   let canReview = false
   try {
-    reviewAuthority(actor, row, a, false)
-    const requester = await userAuthority(tx, a.requestedBy)
-    if (requester?.user.active)
-      domainAuthority(requester, row, saved(a).proposal.input)
+    await reviewAuthority(tx, actor, row, a, false)
+    await currentRequesterAuthority(tx, row, a)
     canReview =
-      !!requester?.user.active &&
       a.requestedBy !== actor.userId &&
       a.state === "PENDING" &&
-      canonical(refs(row)) === canonical(saved(a).expected)
+      (a.kind !== "WRITE_OFF" ||
+        canonical(refs(row)) === canonical(saved(a).expected))
   } catch (e) {
     if (!(e instanceof CommandError)) throw e
   }
@@ -529,7 +681,10 @@ export async function approvalReplay(
   if (prior.commandName === "requestApproval") {
     if (a.requestCommandId !== prior.id || a.requestedBy !== actor.userId)
       fail("INTERNAL_ERROR", 500)
-    requestAuthority(actor, row, saved(a).proposal.input)
+    const savedProposal = saved(a).proposal
+    if (savedProposal.kind === "WRITE_OFF")
+      requestAuthority(actor, row, savedProposal.input)
+    else await domainAuthority(tx, actor, row, a)
     return {
       ok: true,
       status: "PENDING_APPROVAL",
@@ -542,7 +697,7 @@ export async function approvalReplay(
   }
   if (a.reviewCommandId !== prior.id || a.reviewedBy !== actor.userId)
     fail("INTERNAL_ERROR", 500)
-  reviewAuthority(actor, row, a, a.reviewNote !== null)
+  await reviewAuthority(tx, actor, row, a, a.reviewNote !== null)
   await currentRequesterAuthority(tx, row, a)
   return {
     ok: true,
@@ -685,6 +840,41 @@ export async function approvalAudit(
     redactedFields: [],
   }
 }
+async function resolveLiveRefs(
+  tx: Tx,
+  expected: Dependency[]
+): Promise<Dependency[]> {
+  const out: Dependency[] = []
+  for (const ref of expected) {
+    if (ref.type === "PurchaseRecord") {
+      const p = await tx.purchaseRecord.findUnique({
+        where: { id: ref.id },
+        select: { revision: true },
+      })
+      if (p) out.push({ type: "PurchaseRecord", id: ref.id, revision: p.revision })
+    } else if (ref.type === "Vehicle") {
+      const v = await tx.vehicle.findUnique({
+        where: { id: ref.id },
+        select: { revision: true },
+      })
+      if (v) out.push({ type: "Vehicle", id: ref.id, revision: v.revision })
+    } else if (ref.type === "Customer") {
+      const c = await tx.customer.findUnique({
+        where: { id: ref.id },
+        select: { revision: true },
+      })
+      if (c) out.push({ type: "Customer", id: ref.id, revision: c.revision })
+    } else if (ref.type === "SaleCase") {
+      const s = await tx.saleCase.findUnique({
+        where: { id: ref.id },
+        select: { revision: true },
+      })
+      if (s) out.push({ type: "SaleCase", id: ref.id, revision: s.revision })
+    }
+  }
+  return out
+}
+
 export async function executeApproval(
   identity: Identity,
   name: ApprovalCommand,
@@ -692,10 +882,33 @@ export async function executeApproval(
 ): Promise<Applied | Pending> {
   await database().$transaction((tx) => currentActor(tx, identity))
   // Preserve MONEY_OVERFLOW rather than silently recategorizing canonical A+1 as schema failure.
-  const proposed = (
-    raw as { input?: { proposal?: { input?: WriteOff } } } | null
-  )?.input?.proposal?.input
-  for (const amount of [proposed?.proceeds, proposed?.receipt?.amount])
+  const rawProp = (raw as { input?: { proposal?: Record<string, unknown> } } | null)
+    ?.input?.proposal
+  const rawAmounts: unknown[] = []
+  if (rawProp?.kind === "WRITE_OFF") {
+    const p = rawProp.input as WriteOff | undefined
+    rawAmounts.push(p?.proceeds, p?.receipt?.amount)
+  } else if (rawProp?.kind === "DISCOUNT") {
+    const c = (rawProp.command as { input?: ImmediateSale } | undefined)?.input
+    rawAmounts.push(
+      c?.price,
+      c && "tradeIn" in c ? c.tradeIn?.value : undefined,
+      c && "tradeIn" in c ? c.tradeIn?.intake?.listedPrice : undefined
+    )
+  } else if (rawProp?.kind === "SALE_EDIT") {
+    const se = rawProp.input as
+      | {
+          patch?: { price?: string; tradeIn?: { value?: string } }
+          cashCorrections?: { replacement?: { amount?: string } }[]
+        }
+      | undefined
+    rawAmounts.push(
+      se?.patch?.price,
+      se?.patch?.tradeIn?.value,
+      ...(se?.cashCorrections?.map((c) => c.replacement?.amount) ?? [])
+    )
+  }
+  for (const amount of rawAmounts)
     if (typeof amount === "string" && /^[1-9][0-9]{14,}$/.test(amount))
       fail("MONEY_OVERFLOW", 422)
   const parsed = approvalEnvelope(name).safeParse(raw)
@@ -723,40 +936,87 @@ export async function executeApproval(
     }
     const commandId = randomUUID()
     if (name === "requestApproval") {
-      const input = approvalInputs.requestApproval.parse(envelope.input),
-        writeOff = input.proposal.input
-      const row = await lockedCycle(tx, writeOff.cycleId)
-      requestAuthority(actor, row, writeOff)
-      checkRefs(envelope.expected, readableRefs(actor, row))
-      if (envelope.expected.length !== refs(row).length)
-        fail("INVALID_INPUT", 422)
-      eligible(row)
-      validInput(row, writeOff)
-      const expected = refs(row),
-        basis = row.basisVersions.at(-1)!
-      const snapshot = {
-        cycleId: row.id,
-        vehicleId: row.vehicleId,
-        basisVersionId: basis.id,
-        basis: basis.total.toString(),
-        currency: basis.currency,
-        scale: basis.scale,
-        purchasePrice: row.purchasePrice.toString(),
-        purchaseType: row.purchaseType,
-        ...(row.purchaseType === "LEASE_SETTLEMENT"
-          ? { settlement: purchaseDTO(row).settlement }
-          : {}),
-        ...(row.listedPrice !== null
-          ? { listedPrice: row.listedPrice.toString() }
-          : {}),
+      const input = approvalInputs.requestApproval.parse(envelope.input)
+      let row: Cycle
+      let expected: Dependency[]
+      let snapshot: Record<string, unknown>
+      let saleCaseId: string | null = null
+
+      if (input.proposal.kind === "WRITE_OFF") {
+        const writeOff = input.proposal.input
+        row = await lockedCycle(tx, writeOff.cycleId)
+        requestAuthority(actor, row, writeOff)
+        checkRefs(envelope.expected, readableRefs(actor, row))
+        if (envelope.expected.length !== refs(row).length)
+          fail("INVALID_INPUT", 422)
+        eligible(row)
+        validInput(row, writeOff)
+        expected = refs(row)
+        const basis = row.basisVersions.at(-1)!
+        snapshot = {
+          cycleId: row.id,
+          vehicleId: row.vehicleId,
+          basisVersionId: basis.id,
+          basis: basis.total.toString(),
+          currency: basis.currency,
+          scale: basis.scale,
+          purchasePrice: row.purchasePrice.toString(),
+          purchaseType: row.purchaseType,
+          ...(row.purchaseType === "LEASE_SETTLEMENT"
+            ? { settlement: purchaseDTO(row).settlement }
+            : {}),
+          ...(row.listedPrice !== null
+            ? { listedPrice: row.listedPrice.toString() }
+            : {}),
+        }
+      } else if (input.proposal.kind === "DISCOUNT") {
+        requireFields(
+          actor.ability,
+          "ApprovalRequest",
+          "create",
+          { createdBy: actor.userId },
+          ["proposal", "proposal.kind", "reason", "proposal.command", "proposal.command.name", "proposal.command.input"]
+        )
+        const prep = await prepareDiscountApproval(
+          tx,
+          actor,
+          input.proposal.command.input,
+          envelope.expected
+        )
+        if (envelope.expected.length !== prep.expectedDeps.length)
+          fail("INVALID_INPUT", 422)
+        row = prep.cycle
+        expected = prep.expectedDeps
+        snapshot = prep.snapshot
+      } else {
+        requireFields(
+          actor.ability,
+          "ApprovalRequest",
+          "create",
+          { createdBy: actor.userId },
+          ["proposal", "proposal.kind", "proposal.operation", "reason", "proposal.input.saleId"]
+        )
+        const prep = await prepareSaleEditApproval(
+          tx,
+          actor,
+          input.proposal.input,
+          envelope.expected,
+          true
+        )
+        row = prep.cycle
+        saleCaseId = prep.sale.id
+        expected = prep.deps
+        snapshot = prep.snapshot
       }
+
       const approvalId = randomUUID(),
         requestedAt = new Date(),
         result = { type: "ApprovalRequest", id: approvalId, revision: 1 }
       const data = {
         id: approvalId,
         cycleId: row.id,
-        kind: "WRITE_OFF",
+        saleCaseId,
+        kind: input.proposal.kind,
         schemaVersion: 1,
         proposal: input.proposal,
         expected,
@@ -836,24 +1096,58 @@ export async function executeApproval(
         businessEffect: false,
       }
     }
+
     const input = approvalInputs.reviewApproval.parse(envelope.input)
     const plan = await tx.approvalRequest.findUnique({
       where: { id: input.approvalId },
     })
     if (!plan) fail("NOT_FOUND", 404)
+    const planSaved = saved(plan)
+    // Lock proposal targets in A2 order before reading/updating ApprovalRequest.
+    if (planSaved.proposal.kind === "DISCOUNT") {
+      const ci = planSaved.proposal.command.input
+      if (ci.kind === "TRADE_IN" && ci.tradeIn.intake) {
+        const engine = ci.tradeIn.intake.vehicle.engineNumber
+          .toUpperCase()
+          .replace(/[\t\n\r\f\v ]/g, "")
+        const chassis = ci.tradeIn.intake.vehicle.chassisNumber
+          .toUpperCase()
+          .replace(/[\t\n\r\f\v ]/g, "")
+        for (const key of [`engine:${engine}`, `chassis:${chassis}`].sort())
+          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`
+      }
+    }
+    const lockVehicles: string[] = []
+    const lockPurchases: string[] = [plan.cycleId]
+    const lockSales: string[] = []
+    const lockCustomers: string[] = []
+    for (const ref of planSaved.expected) {
+      if (ref.type === "Vehicle") lockVehicles.push(ref.id)
+      else if (ref.type === "PurchaseRecord") lockPurchases.push(ref.id)
+      else if (ref.type === "SaleCase") lockSales.push(ref.id)
+      else if (ref.type === "Customer") lockCustomers.push(ref.id)
+    }
+    for (const vid of [...new Set(lockVehicles)].sort())
+      await tx.$queryRaw`SELECT id FROM vamotors."Vehicle" WHERE id=${vid}::uuid FOR UPDATE`
     const row = await lockedCycle(tx, plan.cycleId)
+    for (const pid of [...new Set(lockPurchases)].filter((x) => x !== plan.cycleId).sort())
+      await tx.$queryRaw`SELECT id FROM vamotors."PurchaseRecord" WHERE id=${pid}::uuid FOR UPDATE`
+    for (const sid of [...new Set(lockSales)].sort())
+      await tx.$queryRaw`SELECT id FROM vamotors."SaleCase" WHERE id=${sid}::uuid FOR UPDATE`
     await tx.$queryRaw`SELECT id FROM vamotors."ApprovalRequest" WHERE id=${plan.id}::uuid FOR UPDATE`
+    for (const cid of [...new Set(lockCustomers)].sort())
+      await tx.$queryRaw`SELECT id FROM vamotors."Customer" WHERE id=${cid}::uuid FOR UPDATE`
+
     const a = await tx.approvalRequest.findUniqueOrThrow({
       where: { id: plan.id },
     })
-    reviewAuthority(actor, row, a, input.note !== undefined)
+    await reviewAuthority(tx, actor, row, a, input.note !== undefined)
     if (a.requestedBy === actor.userId) fail("SELF_REVIEW", 403)
     if (a.state !== "PENDING") fail("ALREADY_REVIEWED")
     checkRefs(envelope.expected, [
       { type: "ApprovalRequest", id: a.id, revision: a.revision },
     ])
-    const savedValue = saved(a),
-      current = readableRefs(actor, row)
+    const savedValue = saved(a)
     for (const ref of savedValue.expected)
       if (
         !envelope.expected.some((r) => r.type === ref.type && r.id === ref.id)
@@ -862,6 +1156,7 @@ export async function executeApproval(
     if (envelope.expected.length !== savedValue.expected.length + 1)
       fail("INVALID_INPUT", 422)
     await currentRequesterAuthority(tx, row, a)
+    const current = await resolveLiveRefs(tx, savedValue.expected)
     if (
       a.payloadHash !==
         proposalHash(a.proposal, a.expected, a.snapshot, a.reason) ||
@@ -877,8 +1172,27 @@ export async function executeApproval(
       )
     )
       throw new CommandError("APPROVAL_STALE", 409, false, current)
-    eligible(row)
-    validInput(row, savedValue.proposal.input)
+
+    if (savedValue.proposal.kind === "WRITE_OFF") {
+      eligible(row)
+      validInput(row, savedValue.proposal.input)
+    } else if (savedValue.proposal.kind === "DISCOUNT") {
+      await prepareDiscountApproval(
+        tx,
+        actor,
+        savedValue.proposal.command.input,
+        savedValue.expected
+      )
+    } else {
+      await prepareSaleEditApproval(
+        tx,
+        actor,
+        savedValue.proposal.input,
+        savedValue.expected,
+        false
+      )
+    }
+
     const sequence = await nextBusinessSequence(tx),
       reviewedAt = new Date(),
       result = { type: "ApprovalRequest", id: a.id, revision: a.revision + 1 }
@@ -910,85 +1224,111 @@ export async function executeApproval(
         revision: { increment: 1 },
       },
     })
+    let domainAffected: Dependency[] = []
     if (input.decision === "APPROVE") {
-      const basis = row.basisVersions.at(-1)!
-      const financial = purchaseDTO(row).financial!
-      await applyApprovedWriteOff(tx, {
-        cycleId: row.id,
-        vehicleId: row.vehicleId,
-        approvalId: a.id,
-        commandId,
-        reviewerId: actor.userId,
-        reviewedAt,
-        input: savedValue.proposal.input,
-        basisVersionId: basis.id,
-        basis: basis.total,
-        cashIn: BigInt(financial.cashIn),
-        cashOut: BigInt(financial.cashOut),
-        currency: basis.currency,
-        scale: basis.scale,
-      })
-      await tx.statusEvent.create({
-        data: {
+      if (savedValue.proposal.kind === "WRITE_OFF") {
+        const basis = row.basisVersions.at(-1)!
+        const financial = purchaseDTO(row).financial!
+        await applyApprovedWriteOff(tx, {
           cycleId: row.id,
-          from: row.status,
-          to: "WRITTEN_OFF",
-          action: "approvedWriteOff",
+          vehicleId: row.vehicleId,
+          approvalId: a.id,
           commandId,
-          userId: actor.userId,
-          occurredAt: new Date(savedValue.proposal.input.date),
-        },
-      })
-      const after = (await loadPurchase(tx, row.id))!
-      for (const [entityType, entityId, revision, before, payload] of [
-        [
-          "PurchaseRecord",
-          row.id,
-          after.revision,
-          purchaseDTO(row),
-          purchaseDTO(after),
-        ],
-        [
-          "Vehicle",
-          row.vehicleId,
-          after.vehicle.revision,
-          vehicleDTO(row),
-          vehicleDTO(after),
-        ],
-      ] as const) {
+          reviewerId: actor.userId,
+          reviewedAt,
+          input: savedValue.proposal.input,
+          basisVersionId: basis.id,
+          basis: basis.total,
+          cashIn: BigInt(financial.cashIn),
+          cashOut: BigInt(financial.cashOut),
+          currency: basis.currency,
+          scale: basis.scale,
+        })
+        await tx.statusEvent.create({
+          data: {
+            cycleId: row.id,
+            from: row.status,
+            to: "WRITTEN_OFF",
+            action: "approvedWriteOff",
+            commandId,
+            userId: actor.userId,
+            occurredAt: new Date(savedValue.proposal.input.date),
+          },
+        })
+        const after = (await loadPurchase(tx, row.id))!
+        for (const [entityType, entityId, revision, before, payload] of [
+          [
+            "PurchaseRecord",
+            row.id,
+            after.revision,
+            purchaseDTO(row),
+            purchaseDTO(after),
+          ],
+          [
+            "Vehicle",
+            row.vehicleId,
+            after.vehicle.revision,
+            vehicleDTO(row),
+            vehicleDTO(after),
+          ],
+        ] as const) {
+          await audit(tx, {
+            commandId,
+            userId: actor.userId,
+            initiatedBy: a.requestedBy,
+            approverId: actor.userId,
+            entityType,
+            entityId,
+            action: "approvedWriteOff",
+            reason: savedValue.proposal.input.reason,
+            before,
+            after: payload,
+          })
+          await writeReadVersion(tx, {
+            commandId,
+            sequence,
+            entityType,
+            entityId,
+            revision,
+            payload,
+          })
+        }
         await audit(tx, {
           commandId,
           userId: actor.userId,
           initiatedBy: a.requestedBy,
           approverId: actor.userId,
-          entityType,
-          entityId,
+          entityType: "Disposal",
+          entityId: after.disposal!.id,
           action: "approvedWriteOff",
           reason: savedValue.proposal.input.reason,
-          before,
-          after: payload,
+          before: null,
+          after: disposalDTO(after.disposal!),
         })
-        await writeReadVersion(tx, {
+        domainAffected = refs(after)
+      } else if (savedValue.proposal.kind === "DISCOUNT") {
+        const done = await completeImmediateInTx(tx, actor, {
+          input: savedValue.proposal.command.input,
+          expected: savedValue.expected,
           commandId,
           sequence,
-          entityType,
-          entityId,
-          revision,
-          payload,
+          approvalId: a.id,
+          reviewedAt,
+          initiatedBy: a.requestedBy,
+          approverId: actor.userId,
         })
+        domainAffected = done.affected ?? []
+      } else {
+        const edited = await applySaleEditApproval(tx, actor, {
+          saleId: savedValue.proposal.input.saleId,
+          input: savedValue.proposal.input,
+          commandId,
+          sequence,
+          approvalId: a.id,
+          initiatedBy: a.requestedBy,
+        })
+        domainAffected = edited.affected
       }
-      await audit(tx, {
-        commandId,
-        userId: actor.userId,
-        initiatedBy: a.requestedBy,
-        approverId: actor.userId,
-        entityType: "Disposal",
-        entityId: after.disposal!.id,
-        action: "approvedWriteOff",
-        reason: savedValue.proposal.input.reason,
-        before: null,
-        after: disposalDTO(after.disposal!),
-      })
     }
     await audit(tx, {
       commandId,
@@ -1017,7 +1357,6 @@ export async function executeApproval(
       targetType: "ApprovalRequest",
       targetId: a.id,
     })
-    const after = (await loadPurchase(tx, row.id))!
     return {
       ok: true,
       status: "APPLIED",
@@ -1026,11 +1365,13 @@ export async function executeApproval(
       result,
       affected: [
         { type: "ApprovalRequest", id: a.id, revision: updated.revision },
-        ...(input.decision === "APPROVE" ? refs(after) : []),
+        ...domainAffected,
       ],
       invalidate: [
         "approvals",
         "notifications",
+        "sales",
+        "customers",
         "purchases",
         "inventory",
         "parties",

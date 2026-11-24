@@ -15,6 +15,12 @@ import {
   type VisibleCustomer,
 } from "./customer-form"
 
+const historyPaths = {
+  PURCHASE: "/purchases",
+  SALE: "/sales",
+  BROKERAGE: "/lease-deals",
+}
+
 export function CustomerDirectory({ id }: { id?: string }) {
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
@@ -406,15 +412,25 @@ export function CustomerDirectory({ id }: { id?: string }) {
             <p className="text-sm text-muted-foreground">
               {row.links?.length
                 ? "Authorized linked records"
-                : "No linked business records are available under your current permissions. Sale and brokerage history will appear when those domains are implemented."}
+                : "No linked business records are available under your current permissions."}
             </p>
           </section>
-          {row.links?.map((link) => (
-            <p key={`${link.type}:${link.id}`} className="text-sm break-words">
-              {link.type} · {link.id} · {link.date} · {link.status}
-              {link.amount !== undefined ? ` · ${link.amount} minor units` : ""}
-            </p>
-          ))}
+          {row.links?.map((link) => {
+            if (!link.type || !link.id) return null
+            return (
+              <p key={`${link.type}:${link.id}`} className="text-sm break-words">
+                <Link
+                  prefetch={false}
+                  className="underline"
+                  href={`${historyPaths[link.type]}/${link.id}`}
+                >
+                  {link.type} · {link.id}
+                </Link>{" "}
+                · {link.date} · {link.status}
+                {link.amount !== undefined ? ` · ${link.amount} minor units` : ""}
+              </p>
+            )
+          })}
           {history.data && (
             <section className="space-y-3" aria-label="Customer audit history">
               <h2 className="font-semibold">Customer change history</h2>

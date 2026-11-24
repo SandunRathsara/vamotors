@@ -431,6 +431,88 @@ export const repairReversalEnvelope = customerEnvelope("createCustomer")
         (ref) => ref.id === input.sourceId && ref.type === "RepairRecord"
       )
   )
+export const tradeInInput = z
+  .object({
+    description: text,
+    value: moneyInput.refine((v) => v !== "0"),
+    intake: z
+      .object({
+        vehicle: vehicleInput,
+        mileage: mileageInput,
+        listedPrice: moneyInput.optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+const immediateSaleCommon = {
+  cycleId: id,
+  customerId: id,
+  price: moneyInput.refine((v) => v !== "0"),
+  date: dateOnly,
+  mileage: z.number().int().min(0).max(99999999),
+  method: z.enum(["CASH", "BANK_TRANSFER"]),
+  reference: name.optional(),
+  reason: text.optional(),
+}
+export const immediateSaleInput = z.discriminatedUnion("kind", [
+  z.object({ ...immediateSaleCommon, kind: z.literal("CASH") }).strict(),
+  z
+    .object({
+      ...immediateSaleCommon,
+      kind: z.literal("TRADE_IN"),
+      tradeIn: tradeInInput,
+    })
+    .strict(),
+])
+export const intakeTradeInInput = z
+  .object({
+    saleId: id,
+    vehicle: vehicleInput,
+    mileage: mileageInput,
+    listedPrice: moneyInput.optional(),
+  })
+  .strict()
+export const saleInputs = {
+  completeImmediate: immediateSaleInput,
+  intakeTradeIn: intakeTradeInInput,
+} as const
+export type SaleCommand = keyof typeof saleInputs
+export function saleEnvelope(name: SaleCommand) {
+  return customerEnvelope("createCustomer").extend({ input: saleInputs[name] })
+}
+const saleCashCorrection = z
+  .object({ paymentId: id, replacement: cashInput.optional(), reason: text })
+  .strict()
+export const saleEditInput = z
+  .object({
+    saleId: id,
+    reason: text,
+    patch: z
+      .object({
+        customerId: id.optional(),
+        price: moneyInput.refine((v) => v !== "0").optional(),
+        reference: name.nullable().optional(),
+        saleDate: dateOnly.optional(),
+        handoverMileage: z.number().int().min(0).max(99999999).optional(),
+        notes: text.nullable().optional(),
+        tradeIn: z
+          .object({
+            description: text,
+            value: moneyInput.refine((v) => v !== "0"),
+          })
+          .strict()
+          .optional(),
+      })
+      .strict(),
+    cashCorrections: z.array(saleCashCorrection).max(100),
+  })
+  .strict()
+  .refine(
+    (v) =>
+      Object.values(v.patch).some((x) => x !== undefined) ||
+      v.cashCorrections.length > 0
+  )
 export const writeOffInput = z
   .object({
     cycleId: id,
@@ -444,9 +526,29 @@ export const writeOffInput = z
 export const approvalInputs = {
   requestApproval: z
     .object({
-      proposal: z
-        .object({ kind: z.literal("WRITE_OFF"), input: writeOffInput })
-        .strict(),
+      proposal: z.discriminatedUnion("kind", [
+        z
+          .object({ kind: z.literal("WRITE_OFF"), input: writeOffInput })
+          .strict(),
+        z
+          .object({
+            kind: z.literal("DISCOUNT"),
+            command: z
+              .object({
+                name: z.literal("completeImmediate"),
+                input: immediateSaleInput,
+              })
+              .strict(),
+          })
+          .strict(),
+        z
+          .object({
+            kind: z.literal("SALE_EDIT"),
+            operation: z.literal("EDIT_COMPLETION"),
+            input: saleEditInput,
+          })
+          .strict(),
+      ]),
       reason: text,
     })
     .strict(),

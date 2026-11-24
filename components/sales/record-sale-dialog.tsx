@@ -1,212 +1,815 @@
 "use client"
 
-import * as React from "react"
-
-import { vehicleFixtures } from "@/lib/mock-data/vehicles"
-import { customerFixtures } from "@/lib/mock-data/customers"
-import { useEntityMutation } from "@/hooks/use-entity-mutation"
+import { useState } from "react"
+import Link from "next/link"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import type {
+  Applied,
+  CustomerDTO,
+  Dependency,
+  Pending,
+  PurchaseCycleDTO,
+  Visible,
+} from "@/.planning/implementation/contracts/api"
+import { privateRequest, RequestError } from "@/lib/security-client"
+import { parseMajor, major } from "@/lib/money"
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
+  customerEnvelope,
+  saleEnvelope,
+  approvalEnvelope,
+} from "@/lib/server/validators"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 
-interface RecordSaleDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
+type VisibleCycle = Visible<PurchaseCycleDTO>
+type VisibleCustomer = Visible<CustomerDTO>
 
-export function RecordSaleDialog({ open, onOpenChange }: RecordSaleDialogProps) {
-  const [vehicleId, setVehicleId] = React.useState("")
-  const [customerId, setCustomerId] = React.useState("")
-  const [saleType, setSaleType] = React.useState<"Cash" | "Advance" | "LeaseFinance" | "TradeIn">("Cash")
-  const [salePrice, setSalePrice] = React.useState("")
-  const [paymentMethod, setPaymentMethod] = React.useState<"Cash" | "BankTransfer">("Cash")
-  const [date, setDate] = React.useState(new Date().toISOString().slice(0, 10))
-  const [mileage, setMileage] = React.useState("")
+export function RecordSaleDialog({
+  fixedCycle,
+  onCompleted,
+  open: controlledOpen,
+  onOpenChange,
+}: {
+  fixedCycle?: VisibleCycle
+  onCompleted?: (result: Applied | Pending) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}) {
+  const queries = useQueryClient()
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const resolved = typeof next === "function" ? next(open) : next
+    if (onOpenChange) onOpenChange(resolved)
+    else setUncontrolledOpen(resolved)
+  }
+  const [cycleId, setCycleId] = useState(fixedCycle?.id ?? "")
+  const [customerSearch, setCustomerSearch] = useState("")
+  const [buyer, setBuyer] = useState<VisibleCustomer>()
+  const [kind, setKind] = useState<"CASH" | "TRADE_IN">("CASH")
+  const [price, setPrice] = useState("")
+  const [date, setDate] = useState("")
+  const [mileage, setMileage] = useState("")
+  const [method, setMethod] = useState<"CASH" | "BANK_TRANSFER">("BANK_TRANSFER")
+  const [reference, setReference] = useState("")
+  const [reason, setReason] = useState("")
 
-  const { mutate, isPending } = useEntityMutation({
-    entityKey: "sales",
-    endpoint: "/api/sales",
-    method: "POST",
-    successMessage: "Sale recorded. Vehicle marked as Sold.",
+  // Trade-in fields
+  const [tradeDesc, setTradeDesc] = useState("")
+  const [tradeValue, setTradeValue] = useState("")
+  const [includeIntake, setIncludeIntake] = useState(false)
+  const [intakeVehicle, setIntakeVehicle] = useState({
+    engineNumber: "",
+    chassisNumber: "",
+    make: "",
+    model: "",
+    year: String(new Date().getFullYear()),
+    colour: "",
+    fuelType: "PETROL",
+    transmission: "AUTOMATIC",
+    vin: "",
+    crNumber: "",
+    notes: "",
+  })
+  const [intakeMileage, setIntakeMileage] = useState({
+    reading: "0",
+    date: "",
+    remark: "",
+    decreaseReason: "",
+  })
+  const [intakeListed, setIntakeListed] = useState("")
+
+  // Inline customer creation state (preserves all sale inputs!)
+  const [inlineCustomerOpen, setInlineCustomerOpen] = useState(false)
+  const [inlineCustDraft, setInlineCustDraft] = useState({
+    fullName: "",
+    callingName: "",
+    nicOrPassport: "",
+    address: "",
+    phone: "",
+    email: "",
+  })
+  const [inlineCustBody, setInlineCustBody] = useState<string | null>(null)
+  const [inlineCustPending, setInlineCustPending] = useState(false)
+  const [inlineCustErr, setInlineCustErr] = useState("")
+
+  // Retained sale / discount envelope state
+  const [body, setBody] = useState<string | null>(null)
+  const [discountMode, setDiscountMode] = useState(false)
+  const [discountReason, setDiscountReason] = useState("")
+  const [discountBody, setDiscountBody] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+  const [stale, setStale] = useState(false)
+  const [statusMsg, setStatusMsg] = useState("")
+  const [approvalLink, setApprovalLink] = useState<string | null>(null)
+  const [saleLink, setSaleLink] = useState<string | null>(null)
+
+  const stockQuery = useQuery({
+    queryKey: ["sales", "available-stock"],
+    enabled: open && !fixedCycle,
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: { data: VisibleCycle[] } }>(
+        `/api/v1/queries/purchases?statuses=${encodeURIComponent(JSON.stringify(["IN_STOCK"]))}&page=1&pageSize=100`
+      ),
+  })
+  const customersQuery = useQuery({
+    queryKey: ["sales", "customers-select", customerSearch.trim()],
+    enabled: open,
+    retry: false,
+    queryFn: ({ signal }) =>
+      privateRequest<{ data: { data: VisibleCustomer[] } }>(
+        `/api/v1/queries/customers?page=1&pageSize=100&q=${encodeURIComponent(customerSearch.trim())}`,
+        { signal }
+      ),
   })
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!vehicleId || !customerId || !salePrice || !date) return
-
-    mutate(
-      {
-        vehicleId,
-        customerId,
-        saleType,
-        salePrice: Math.round(parseFloat(salePrice) * 100),
-        paymentMethod,
-        date,
-        mileageAtSale: parseInt(mileage || "0", 10),
-        status: saleType === "Advance" ? "AdvancePlaced" : saleType === "LeaseFinance" ? "FinancePending" : "Completed",
-        timeline: [],
-      } as Parameters<typeof mutate>[0],
-      {
-        onSuccess: () => {
-          onOpenChange(false)
-          resetForm()
-        },
-      },
-    )
-  }
-
-  function resetForm() {
-    setVehicleId("")
-    setCustomerId("")
-    setSaleType("Cash")
-    setSalePrice("")
-    setPaymentMethod("Cash")
-    setDate(new Date().toISOString().slice(0, 10))
-    setMileage("")
-  }
-
-  // Filter to only InStock vehicles
-  const availableVehicles = vehicleFixtures.filter((v) =>
-    ["InStock", "AdvancePlaced", "FinancePending", "DOReceived"].includes(v.status),
+  const availableCycles = fixedCycle
+    ? [fixedCycle]
+    : (stockQuery.data?.data.data ?? []).filter((c) => c.available !== false)
+  const selectedCycle =
+    fixedCycle ?? availableCycles.find((c) => c.id === cycleId)
+  const customers = (customersQuery.data?.data.data ?? []).filter(
+    (c) => c.active !== false
   )
+  const selectedCustomer =
+    customers.find((c) => c.id === buyer?.id) ?? buyer
+  const customerOptions =
+    buyer && !customers.some((c) => c.id === buyer.id)
+      ? [buyer, ...customers]
+      : customers
+
+  async function submitInlineCustomer() {
+    if (inlineCustPending) return
+    setInlineCustPending(true)
+    setInlineCustErr("")
+    try {
+      let payload = inlineCustBody
+      if (!payload) {
+        const parsed = customerEnvelope("createCustomer").safeParse({
+          schemaVersion: 1,
+          idempotencyKey: crypto.randomUUID(),
+          expected: [],
+          input: {
+            fullName: inlineCustDraft.fullName,
+            callingName: inlineCustDraft.callingName,
+            nicOrPassport: inlineCustDraft.nicOrPassport,
+            address: inlineCustDraft.address,
+            phone: inlineCustDraft.phone,
+            ...(inlineCustDraft.email.trim()
+              ? { email: inlineCustDraft.email.trim() }
+              : {}),
+          },
+        })
+        if (!parsed.success)
+          throw Error("Valid customer details (name, NIC/passport, address, phone) required")
+        payload = JSON.stringify(parsed.data)
+        setInlineCustBody(payload)
+      }
+      const res = await privateRequest<Applied>(
+        "/api/v1/commands/createCustomer",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        }
+      )
+      const { data: customer } = await privateRequest<{ data: VisibleCustomer }>(
+        `/api/v1/queries/customer?id=${encodeURIComponent(res.result.id)}`
+      )
+      setInlineCustBody(null)
+      setBuyer(customer)
+      await queries.invalidateQueries({ queryKey: ["sales", "customers-select"] })
+      await queries.invalidateQueries({ queryKey: ["customers"] })
+      setInlineCustomerOpen(false)
+      setInlineCustDraft({
+        fullName: "",
+        callingName: "",
+        nicOrPassport: "",
+        address: "",
+        phone: "",
+        email: "",
+      })
+    } catch (e) {
+      const code = e instanceof RequestError ? e.code : e instanceof Error ? e.message : "ERROR"
+      if (e instanceof RequestError && e.status < 500 && code !== "IDEMPOTENCY_MISMATCH")
+        setInlineCustBody(null)
+      setInlineCustErr(code)
+    } finally {
+      setInlineCustPending(false)
+    }
+  }
+
+  async function buildSaleEnvelope() {
+    if (!selectedCycle?.id || !selectedCycle.revision)
+      throw Error("Select an available IN_STOCK purchase cycle")
+    if (!selectedCustomer?.id || !selectedCustomer.revision || selectedCustomer.active === false)
+      throw Error("Select an active customer")
+    const priceMinor = parseMajor(price)
+    const expected: Dependency[] = [
+      {
+        type: "PurchaseRecord",
+        id: selectedCycle.id,
+        revision: selectedCycle.revision,
+      },
+      {
+        type: "Customer",
+        id: selectedCustomer.id,
+        revision: selectedCustomer.revision,
+      },
+    ]
+    let tradeInPayload: Record<string, unknown> | undefined
+    if (kind === "TRADE_IN") {
+      const valMinor = parseMajor(tradeValue)
+      let intakeObj: Record<string, unknown> | undefined
+      if (includeIntake) {
+        const identity = await privateRequest<{
+          data: { id: string; revision: number } | null
+        }>(
+          `/api/v1/queries/vehicleIdentity?engineNumber=${encodeURIComponent(intakeVehicle.engineNumber)}&chassisNumber=${encodeURIComponent(intakeVehicle.chassisNumber)}`
+        )
+        if (identity.data) {
+          expected.push({
+            type: "Vehicle",
+            id: identity.data.id,
+            revision: identity.data.revision,
+          })
+        }
+        intakeObj = {
+          vehicle: {
+            engineNumber: intakeVehicle.engineNumber,
+            chassisNumber: intakeVehicle.chassisNumber,
+            make: intakeVehicle.make,
+            model: intakeVehicle.model,
+            year: Number(intakeVehicle.year),
+            colour: intakeVehicle.colour,
+            fuelType: intakeVehicle.fuelType,
+            transmission: intakeVehicle.transmission,
+            ...(intakeVehicle.vin.trim() ? { vin: intakeVehicle.vin.trim() } : {}),
+            ...(intakeVehicle.crNumber.trim()
+              ? { crNumber: intakeVehicle.crNumber.trim() }
+              : {}),
+            ...(intakeVehicle.notes.trim()
+              ? { notes: intakeVehicle.notes.trim() }
+              : {}),
+          },
+          mileage: {
+            reading: Number(intakeMileage.reading),
+            date: intakeMileage.date || date,
+            ...(intakeMileage.remark.trim()
+              ? { remark: intakeMileage.remark.trim() }
+              : {}),
+            ...(intakeMileage.decreaseReason.trim()
+              ? { decreaseReason: intakeMileage.decreaseReason.trim() }
+              : {}),
+          },
+          ...(intakeListed.trim() ? { listedPrice: parseMajor(intakeListed) } : {}),
+        }
+      }
+      tradeInPayload = {
+        description: tradeDesc,
+        value: valMinor,
+        ...(intakeObj ? { intake: intakeObj } : {}),
+      }
+    }
+    const parsed = saleEnvelope("completeImmediate").safeParse({
+      schemaVersion: 1,
+      idempotencyKey: crypto.randomUUID(),
+      expected,
+      input: {
+        cycleId: selectedCycle.id,
+        customerId: selectedCustomer.id,
+        kind,
+        price: priceMinor,
+        date,
+        mileage: Number(mileage),
+        method,
+        ...(reference.trim() ? { reference: reference.trim() } : {}),
+        ...(reason.trim() ? { reason: reason.trim() } : {}),
+        ...(tradeInPayload ? { tradeIn: tradeInPayload } : {}),
+      },
+    })
+    if (!parsed.success)
+      throw Error(
+        parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")
+      )
+    return parsed.data
+  }
+
+  async function submitSale(e: React.FormEvent) {
+    e.preventDefault()
+    if (pending || stale) return
+    setPending(true)
+    setStatusMsg("")
+    setSaleLink(null)
+    setApprovalLink(null)
+    try {
+      let submitted = body
+      if (!submitted) {
+        const env = await buildSaleEnvelope()
+        submitted = JSON.stringify(env)
+        setBody(submitted)
+      }
+      const res = await privateRequest<Applied>(
+        "/api/v1/commands/completeImmediate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: submitted,
+        }
+      )
+      setBody(null)
+      setSaleLink(`/sales/${res.result.id}`)
+      setStatusMsg(`Immediate sale completed (${res.commandId}).`)
+      for (const k of res.invalidate)
+        void queries.invalidateQueries({ queryKey: [k] })
+      onCompleted?.(res)
+    } catch (err) {
+      const code =
+        err instanceof RequestError
+          ? err.code
+          : err instanceof Error
+            ? err.message
+            : "ERROR"
+      if (code === "APPROVAL_REQUIRED") {
+        setDiscountMode(true)
+        setBody(null)
+        setStatusMsg(
+          "Price is below listed price. Enter a discount reason and submit for manager approval."
+        )
+      } else {
+        const isStale = ["STALE_REVISION", "REVISION_REQUIRED", "IDENTITY_CONFLICT"].includes(code)
+        setStale(isStale)
+        if (err instanceof RequestError && err.status < 500 && !isStale && code !== "IDEMPOTENCY_MISMATCH")
+          setBody(null)
+        setStatusMsg(code)
+      }
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function submitDiscountApproval(e: React.FormEvent) {
+    e.preventDefault()
+    if (pending || stale) return
+    setPending(true)
+    setStatusMsg("")
+    try {
+      let submitted = discountBody
+      if (!submitted) {
+        const base = await buildSaleEnvelope()
+        const env = approvalEnvelope("requestApproval").parse({
+          schemaVersion: 1,
+          idempotencyKey: crypto.randomUUID(),
+          expected: base.expected,
+          input: {
+            proposal: {
+              kind: "DISCOUNT",
+              command: { name: "completeImmediate", input: base.input },
+            },
+            reason: discountReason,
+          },
+        })
+        submitted = JSON.stringify(env)
+        setDiscountBody(submitted)
+      }
+      const res = await privateRequest<Pending>(
+        "/api/v1/commands/requestApproval",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: submitted,
+        }
+      )
+      setDiscountBody(null)
+      setDiscountMode(false)
+      setApprovalLink(`/approvals/${res.approvalId}`)
+      setStatusMsg(`Discount approval requested (${res.approvalId}).`)
+      void queries.invalidateQueries({ queryKey: ["approvals"] })
+      onCompleted?.(res)
+    } catch (err) {
+      const code =
+        err instanceof RequestError
+          ? err.code
+          : err instanceof Error
+            ? err.message
+            : "ERROR"
+      setStatusMsg(code)
+      if (err instanceof RequestError && err.status < 500 && code !== "IDEMPOTENCY_MISMATCH")
+        setDiscountBody(null)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  let netPreview = ""
+  try {
+    if (price) {
+      const p = BigInt(parseMajor(price))
+      const t = kind === "TRADE_IN" && tradeValue ? BigInt(parseMajor(tradeValue)) : 0n
+      netPreview = major(p - t)
+    }
+  } catch {
+    netPreview = ""
+  }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="sm:max-w-lg w-full overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Record Sale</SheetTitle>
-          <SheetDescription>Record a completed vehicle sale</SheetDescription>
-        </SheetHeader>
-        <div className="px-1 pb-4">
-          <form id="record-sale-form" onSubmit={handleSubmit} className="space-y-4">
-            {/* Vehicle */}
-            <div className="space-y-1.5">
-              <Label htmlFor="sale-vehicle" className="text-xs font-normal">Vehicle</Label>
-              <Select value={vehicleId} onValueChange={setVehicleId} required>
-                <SelectTrigger id="sale-vehicle">
-                  <SelectValue placeholder="Select vehicle" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableVehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.make} {v.model} {v.year} — {v.colour}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="space-y-4">
+      <Button type="button" onClick={() => setOpen((v) => !v)}>
+        {open ? "Close Immediate Sale Form" : "Complete Immediate Sale"}
+      </Button>
+      {open && (
+        <form
+          onSubmit={discountMode ? submitDiscountApproval : submitSale}
+          className="space-y-4 rounded-lg border p-4"
+        >
+          <h2 className="text-lg font-semibold">Complete Immediate Sale</h2>
 
-            {/* Customer */}
-            <div className="space-y-1.5">
-              <Label htmlFor="sale-customer" className="text-xs font-normal">Customer</Label>
-              <Select value={customerId} onValueChange={setCustomerId} required>
-                <SelectTrigger id="sale-customer">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customerFixtures.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {!fixedCycle && (
+            <div className="space-y-1">
+              <Label htmlFor="sale-cycle">Available Stock Cycle</Label>
+              <select
+                id="sale-cycle"
+                className="h-11 w-full rounded-md border bg-background px-3"
+                value={cycleId}
+                onChange={(e) => setCycleId(e.target.value)}
+                required
+              >
+                <option value="">Select IN_STOCK available vehicle…</option>
+                {availableCycles.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.identity?.make} {c.identity?.model} ({c.identity?.year}) · Listed{" "}
+                    {c.listedPrice ? major(BigInt(c.listedPrice)) : "None"}
+                  </option>
+                ))}
+              </select>
             </div>
+          )}
 
-            {/* Sale Type */}
-            <div className="space-y-1.5">
-              <Label htmlFor="sale-type" className="text-xs font-normal">Sale Type</Label>
-              <Select value={saleType} onValueChange={(v) => setSaleType(v as typeof saleType)}>
-                <SelectTrigger id="sale-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="Advance">Advance</SelectItem>
-                  <SelectItem value="LeaseFinance">Lease / Finance</SelectItem>
-                  <SelectItem value="TradeIn">Trade-In</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-2">
+            <Label htmlFor="sale-customer-search">Search customers</Label>
+            <Input
+              id="sale-customer-search"
+              type="search"
+              maxLength={200}
+              placeholder="Name, NIC or passport, or phone"
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+            />
+            {customersQuery.isError && <p role="status">Customer search is unavailable.</p>}
+            {customersQuery.isSuccess && customers.length === 0 && (
+              <p role="status">No matching active customers.</p>
+            )}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="sale-customer">Buyer Customer</Label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setInlineCustomerOpen((v) => !v)}
+              >
+                {inlineCustomerOpen ? "Cancel inline customer" : "New customer inline"}
+              </Button>
             </div>
+            <select
+              id="sale-customer"
+              className="h-11 w-full rounded-md border bg-background px-3"
+              value={buyer?.id ?? ""}
+              onChange={(e) => setBuyer(customerOptions.find((c) => c.id === e.target.value))}
+              required
+            >
+              <option value="">Select active customer…</option>
+              {customerOptions.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.fullName} ({c.nicOrPassport})
+                </option>
+              ))}
+            </select>
 
-            {/* Sale Price */}
-            <div className="space-y-1.5">
-              <Label htmlFor="sale-price" className="text-xs font-normal">Sale Price (LKR)</Label>
+            {inlineCustomerOpen && (
+              <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+                <h3 className="text-sm font-medium">Create Customer Inline</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    placeholder="Full name *"
+                    value={inlineCustDraft.fullName}
+                    onChange={(e) =>
+                      setInlineCustDraft({ ...inlineCustDraft, fullName: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Calling name *"
+                    value={inlineCustDraft.callingName}
+                    onChange={(e) =>
+                      setInlineCustDraft({ ...inlineCustDraft, callingName: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="NIC or Passport *"
+                    value={inlineCustDraft.nicOrPassport}
+                    onChange={(e) =>
+                      setInlineCustDraft({
+                        ...inlineCustDraft,
+                        nicOrPassport: e.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    placeholder="Phone *"
+                    value={inlineCustDraft.phone}
+                    onChange={(e) =>
+                      setInlineCustDraft({ ...inlineCustDraft, phone: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Address *"
+                    value={inlineCustDraft.address}
+                    onChange={(e) =>
+                      setInlineCustDraft({ ...inlineCustDraft, address: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Email"
+                    value={inlineCustDraft.email}
+                    onChange={(e) =>
+                      setInlineCustDraft({ ...inlineCustDraft, email: e.target.value })
+                    }
+                  />
+                </div>
+                {inlineCustErr && <p role="alert" className="text-sm">{inlineCustErr}</p>}
+                <Button
+                  type="button"
+                  disabled={inlineCustPending}
+                  onClick={() => void submitInlineCustomer()}
+                >
+                  {inlineCustPending ? "Creating customer…" : "Save Customer & Select"}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="sale-kind">Sale Kind</Label>
+              <select
+                id="sale-kind"
+                className="h-11 w-full rounded-md border bg-background px-3"
+                value={kind}
+                onChange={(e) => {
+                  setKind(e.target.value as "CASH" | "TRADE_IN")
+                  setDiscountMode(false)
+                }}
+              >
+                <option value="CASH">CASH</option>
+                <option value="TRADE_IN">TRADE_IN</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="sale-price">Agreed Sale Price (Major)</Label>
               <Input
                 id="sale-price"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={salePrice}
-                onChange={(e) => setSalePrice(e.target.value)}
                 required
+                placeholder="e.g. 5000000"
+                value={price}
+                onChange={(e) => {
+                  setPrice(e.target.value)
+                  setDiscountMode(false)
+                }}
               />
             </div>
-
-            {/* Payment Method */}
-            <div className="space-y-1.5">
-              <Label htmlFor="payment-method" className="text-xs font-normal">Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as typeof paymentMethod)}>
-                <SelectTrigger id="payment-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cash">Cash</SelectItem>
-                  <SelectItem value="BankTransfer">Bank Transfer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Date */}
-            <div className="space-y-1.5">
-              <Label htmlFor="sale-date" className="text-xs font-normal">Sale Date</Label>
+            <div>
+              <Label htmlFor="sale-date">Sale / Handover Date</Label>
               <Input
                 id="sale-date"
                 type="date"
+                required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                required
               />
             </div>
-
-            {/* Mileage */}
-            <div className="space-y-1.5">
-              <Label htmlFor="sale-mileage" className="text-xs font-normal">Mileage at Sale (km)</Label>
+            <div>
+              <Label htmlFor="sale-mileage">Handover Mileage (km)</Label>
               <Input
                 id="sale-mileage"
                 type="number"
-                min="0"
-                placeholder="0"
+                min={0}
+                required
                 value={mileage}
                 onChange={(e) => setMileage(e.target.value)}
               />
             </div>
-          </form>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isPending}>
-              Cancel
-            </Button>
-            <Button type="submit" form="record-sale-form" disabled={isPending || !vehicleId || !customerId || !salePrice}>
-              {isPending ? "Recording..." : "Record Sale"}
+            <div>
+              <Label htmlFor="sale-method">Receipt Method</Label>
+              <select
+                id="sale-method"
+                className="h-11 w-full rounded-md border bg-background px-3"
+                value={method}
+                onChange={(e) =>
+                  setMethod(e.target.value as "CASH" | "BANK_TRANSFER")
+                }
+              >
+                <option value="BANK_TRANSFER">BANK_TRANSFER</option>
+                <option value="CASH">CASH</option>
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="sale-ref">Reference</Label>
+              <Input
+                id="sale-ref"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {kind === "TRADE_IN" && (
+            <div className="space-y-3 rounded-md border p-3">
+              <h3 className="font-medium">Trade-In Consideration</h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  required
+                  placeholder="Trade-in vehicle description *"
+                  value={tradeDesc}
+                  onChange={(e) => setTradeDesc(e.target.value)}
+                />
+                <Input
+                  required
+                  placeholder="Trade-in valuation (Major) *"
+                  value={tradeValue}
+                  onChange={(e) => setTradeValue(e.target.value)}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={includeIntake}
+                  onChange={(e) => setIncludeIntake(e.target.checked)}
+                />
+                Intake trade-in vehicle into inventory now (optional)
+              </label>
+              {includeIntake && (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Input
+                    required
+                    placeholder="Engine number *"
+                    value={intakeVehicle.engineNumber}
+                    onChange={(e) =>
+                      setIntakeVehicle({
+                        ...intakeVehicle,
+                        engineNumber: e.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    required
+                    placeholder="Chassis number *"
+                    value={intakeVehicle.chassisNumber}
+                    onChange={(e) =>
+                      setIntakeVehicle({
+                        ...intakeVehicle,
+                        chassisNumber: e.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    required
+                    placeholder="Make *"
+                    value={intakeVehicle.make}
+                    onChange={(e) =>
+                      setIntakeVehicle({ ...intakeVehicle, make: e.target.value })
+                    }
+                  />
+                  <Input
+                    required
+                    placeholder="Model *"
+                    value={intakeVehicle.model}
+                    onChange={(e) =>
+                      setIntakeVehicle({ ...intakeVehicle, model: e.target.value })
+                    }
+                  />
+                  <Input
+                    required
+                    type="number"
+                    placeholder="Year *"
+                    value={intakeVehicle.year}
+                    onChange={(e) =>
+                      setIntakeVehicle({ ...intakeVehicle, year: e.target.value })
+                    }
+                  />
+                  <Input
+                    required
+                    placeholder="Colour *"
+                    value={intakeVehicle.colour}
+                    onChange={(e) =>
+                      setIntakeVehicle({
+                        ...intakeVehicle,
+                        colour: e.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    required
+                    placeholder="Odometer reading *"
+                    value={intakeMileage.reading}
+                    onChange={(e) =>
+                      setIntakeMileage({
+                        ...intakeMileage,
+                        reading: e.target.value,
+                      })
+                    }
+                  />
+                  <Input
+                    placeholder="Listed price (optional)"
+                    value={intakeListed}
+                    onChange={(e) => setIntakeListed(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {netPreview && (
+            <p className="text-sm text-muted-foreground">
+              Net cash receipt due: <strong>{netPreview}</strong>
+              {selectedCycle?.listedPrice !== undefined &&
+                ` · Listed price: ${major(BigInt(selectedCycle.listedPrice))}`}
+            </p>
+          )}
+
+          <div>
+            <Label htmlFor="sale-reason">Sale Notes / Reason (optional)</Label>
+            <Textarea
+              id="sale-reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+
+          {discountMode && (
+            <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+              <Label htmlFor="discount-reason">
+                Below-Listed Discount Approval Reason *
+              </Label>
+              <Textarea
+                id="discount-reason"
+                required
+                value={discountReason}
+                onChange={(e) => setDiscountReason(e.target.value)}
+              />
+            </div>
+          )}
+
+          {statusMsg && <p role="status" className="text-sm">{statusMsg}</p>}
+          {(approvalLink || discountMode) && (
+            <p
+              role="status"
+              className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+            >
+              {approvalLink
+                ? "Pending manager approval."
+                : "Manager approval is required before recording the sale and payment."}
+            </p>
+          )}
+          {saleLink && (
+            <Link prefetch={false} className="inline-block underline" href={saleLink}>
+              Open completed sale detail
+            </Link>
+          )}
+          {approvalLink && (
+            <Link prefetch={false} className="inline-block underline" href={approvalLink}>
+              Open pending approval request
+            </Link>
+          )}
+
+          <div className="flex gap-2">
+            {stale && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setStale(false)
+                  setBody(null)
+                  setDiscountBody(null)
+                  void queries.invalidateQueries({ queryKey: ["sales"] })
+                  void queries.invalidateQueries({ queryKey: ["purchases"] })
+                }}
+              >
+                Reload latest revisions
+              </Button>
+            )}
+            <Button type="submit" disabled={pending || stale}>
+              {pending
+                ? "Submitting…"
+                : discountMode
+                  ? "Request Discount Approval"
+                  : "Complete Immediate Sale"}
             </Button>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </form>
+      )}
+    </div>
   )
 }

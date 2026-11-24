@@ -6,10 +6,12 @@ import type { Prisma } from "@prisma/client"
 import type {
   Applied,
   Dependency,
+  Mileage,
   PurchaseCycleDTO,
+  SaleDTO,
+  Settlement,
   VehicleDTO,
   VehicleInput,
-  Settlement,
 } from "../../.planning/implementation/contracts/api"
 import { database, assertEnvironment, type Tx } from "./db"
 import { currentActor, type Authority as Actor, type Identity } from "./actor"
@@ -95,8 +97,28 @@ const include = {
   basisVersions: { orderBy: { version: "asc" as const } },
   settingsVersion: true,
   disposal: { include: disposalInclude },
+  sales: {
+    orderBy: [{ openedAt: "asc" as const }, { id: "asc" as const }],
+    include: { completion: true },
+  },
+  saleCompletion: true,
+  saleReceipts: {
+    orderBy: [{ occurredDate: "asc" as const }, { id: "asc" as const }],
+  },
 } satisfies Prisma.PurchaseRecordInclude
-type Row = Prisma.PurchaseRecordGetPayload<{ include: typeof include }>
+export { include as purchaseInclude }
+export type Row = Prisma.PurchaseRecordGetPayload<{ include: typeof include }>
+export { date as formatDate }
+export const currentSold = (row: Row) =>
+  row.status === "SOLD" &&
+  Boolean(row.closedAt) &&
+  !row.available &&
+  row.holdReason === null &&
+  row.vehicle.activePurchaseId !== row.id &&
+  Boolean(row.saleCompletion) &&
+  (row.sales ?? []).some(
+    (s) => s.id === row.saleCompletion?.saleCaseId && s.state === "COMPLETED"
+  )
 type Cost = Row["costs"][number]
 type Repair = Row["repairs"][number]
 type Payment =
@@ -116,9 +138,11 @@ const recipientPayments = (row: Row, recipient: "SELLER" | "SETTLEMENT") =>
   row.payments.filter((p) => p.category === recipient)
 const liabilities = (row: Row) => ({
   SELLER:
-    row.purchaseType === "LEASE_SETTLEMENT"
-      ? row.settlement!.cashToSeller
-      : row.purchasePrice,
+    row.acquisitionKind === "TRADE_IN"
+      ? 0n
+      : row.purchaseType === "LEASE_SETTLEMENT"
+        ? row.settlement!.cashToSeller
+        : row.purchasePrice,
   SETTLEMENT:
     row.purchaseType === "LEASE_SETTLEMENT" ? row.settlement!.amount : 0n,
 })
@@ -293,6 +317,7 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
       ...row.costs.flatMap((c) => c.payments),
       ...row.repairs.flatMap((r) => r.payments),
       ...(row.disposal?.payments ?? []),
+      ...(row.saleReceipts ?? []),
     ].map((p) => ({
       direction: p.direction as "IN" | "OUT",
       amount: p.amount.toString(),
@@ -300,6 +325,12 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
   )
   const liability = liabilities(row)
   const basis = row.basisVersions.at(-1)
+  const completedSale = row.saleCompletion
+    ? (row.sales ?? []).find((s) => s.id === row.saleCompletion!.saleCaseId)
+    : undefined
+  const originalBasis = row.saleCompletion
+    ? row.basisVersions.find((b) => b.id === row.saleCompletion!.basisVersionId)
+    : undefined
   // Legacy foundation fixtures have no financial evidence. Never synthesize a
   // cash fact or historical basis version to fill a DTO.
   return {
@@ -317,6 +348,9 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
       name: "name" in seller ? seller.name : seller.fullName,
       active: seller.active,
     },
+    ...(row.tradeInSourceSaleId
+      ? { tradeInSourceSaleId: row.tradeInSourceSaleId }
+      : {}),
     purchaseDate: date(row.purchaseDate),
     purchasePrice: row.purchasePrice.toString(),
     ...(row.purchaseType === "LEASE_SETTLEMENT"
@@ -364,6 +398,16 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
               C
             ).toString(),
             basis: basis.total.toString(),
+            ...(row.saleCompletion && completedSale && originalBasis
+              ? {
+                  originalBasis: originalBasis.total.toString(),
+                  salePrice: completedSale.agreedPrice.toString(),
+                  originalProfit: row.saleCompletion.originalProfit.toString(),
+                  restatedProfit: (
+                    completedSale.agreedPrice - basis.total
+                  ).toString(),
+                }
+              : {}),
             cashIn: cash.incoming,
             cashOut: cash.outgoing,
             net: cash.net,
@@ -376,7 +420,19 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
       total: b.total.toString(),
       reason: b.reason,
     })),
-    sales: [],
+    sales: (row.sales ?? []).map((s) => ({
+      saleCaseId: s.id,
+      revision: s.revision,
+      customerId: s.customerId,
+      kind: s.kind as SaleDTO["kind"],
+      state: s.state,
+      ...(s.completion
+        ? {
+            completionId: s.completion.id,
+            date: date(s.completion.saleDate),
+          }
+        : {}),
+    })),
     disposal: row.disposal ? disposalDTO(row.disposal) : null,
     provenance: { imported: false },
     nextActions: [],
@@ -384,6 +440,18 @@ export function purchaseDTO(row: Row): PurchaseCycleDTO {
 }
 export function vehicleDTO(row: Row): VehicleDTO {
   const cycle = purchaseDTO(row)
+  const vehicleFinancial = cycle.financial
+    ? (() => {
+        const {
+          originalBasis: _ob,
+          salePrice: _sp,
+          ...rest
+        } = cycle.financial
+        void _ob
+        void _sp
+        return rest
+      })()
+    : undefined
   return {
     id: row.vehicleId,
     identity: cycle.identity,
@@ -396,7 +464,7 @@ export function vehicleDTO(row: Row): VehicleDTO {
     ...(cycle.listedPrice !== undefined
       ? { listedPrice: cycle.listedPrice }
       : {}),
-    ...(cycle.financial ? { financial: cycle.financial } : {}),
+    ...(vehicleFinancial ? { financial: vehicleFinancial } : {}),
     mileage: cycle.mileage.map(({ id: unused, ...m }) => {
       void unused
       return m
@@ -747,6 +815,64 @@ export function visiblePurchase(actor: Actor, row: Row) {
           delete (result.financial as Record<string, unknown>)[f]
           result.redactedFields.push(`financial.${f}`)
         }
+    }
+  }
+  if ((row.sales?.length ?? 0) > 0 && result.financial) {
+    const saleReceiptReadable = (row.sales ?? []).every((s) =>
+      ["id", "payments.amount", "payments.direction"].every((f) =>
+        actor.ability.can(
+          "read",
+          subject("SaleCase", {
+            id: s.id,
+            customerId: s.customerId,
+            createdBy: s.createdBy,
+          }),
+          f
+        )
+      )
+    )
+    if ((row.saleReceipts?.length ?? 0) > 0 && !saleReceiptReadable) {
+      for (const f of ["cashIn", "cashOut", "net"]) {
+        delete (result.financial as Record<string, unknown>)[f]
+        result.redactedFields.push(`financial.${f}`)
+      }
+    }
+    const salePriceReadable = (row.sales ?? []).every((s) =>
+      actor.ability.can(
+        "read",
+        subject("SaleCase", {
+          id: s.id,
+          customerId: s.customerId,
+          createdBy: s.createdBy,
+        }),
+        "price"
+      )
+    )
+    if (row.saleCompletion && !salePriceReadable) {
+      for (const f of [
+        "originalBasis",
+        "salePrice",
+        "originalProfit",
+        "restatedProfit",
+      ]) {
+        delete (result.financial as Record<string, unknown>)[f]
+        result.redactedFields.push(`financial.${f}`)
+      }
+    }
+    const salesReadable = (row.sales ?? []).every((s) =>
+      actor.ability.can(
+        "read",
+        subject("SaleCase", {
+          id: s.id,
+          customerId: s.customerId,
+          createdBy: s.createdBy,
+        }),
+        "id"
+      )
+    )
+    if (!salesReadable) {
+      delete result.sales
+      result.redactedFields.push("sales")
     }
   }
   if (
@@ -1131,11 +1257,38 @@ export function visiblePurchase(actor: Actor, row: Row) {
     row.acquisitionCommandId &&
     !row.closedAt &&
     !row.disposal &&
+    !(row.sales ?? []).some((s) => s.state !== "CANCELLED") &&
     row.vehicle.activePurchaseId === row.id &&
-    row.acquisitionKind === "SUPPLIER" &&
+    ["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) &&
     ["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) &&
     ["PURCHASED", "IN_STOCK"].includes(row.status)
   ) {
+    if (
+      row.status === "IN_STOCK" &&
+      row.available &&
+      !row.repairs.some((r) => !r.returnedDate)
+    ) {
+      if (
+        ["cycleId", "customerId", "kind", "price", "date", "mileage", "method"].every(
+          (f) =>
+            actor.ability.can(
+              "create",
+              subject("SaleCase", { createdBy: actor.userId }),
+              f
+            )
+        )
+      )
+        (result.nextActions as string[]).push("completeImmediate")
+      if (
+        row.listedPrice !== null &&
+        actor.ability.can(
+          "create",
+          subject("ApprovalRequest", { createdBy: actor.userId }),
+          "proposal.kind"
+        )
+      )
+        (result.nextActions as string[]).push("requestApproval")
+    }
     try {
       requireWriteOffAuthority(
         actor,
@@ -1155,6 +1308,19 @@ export function visiblePurchase(actor: Actor, row: Row) {
     } catch (error) {
       if (!(error instanceof CommandError)) throw error
     }
+    result.nextActions = [...new Set(result.nextActions as string[])]
+  }
+  if (
+    "nextActions" in result &&
+    currentSold(row) &&
+    actor.ability.can(
+      "create",
+      subject("ApprovalRequest", { createdBy: actor.userId }),
+      "proposal.kind"
+    )
+  ) {
+    ;(result.nextActions as string[]).push("requestApproval")
+    result.nextActions = [...new Set(result.nextActions as string[])]
   }
   result.redactedFields = [
     ...new Set(result.redactedFields.filter((f) => f !== "createdBy")),
@@ -1258,7 +1424,381 @@ function requireRef(expected: Dependency[], ref: Dependency) {
   if (supplied.revision !== ref.revision)
     throw new CommandError("STALE_REVISION", 409, false, [ref])
 }
-export { auth as purchaseAuth, requireRef }
+export {
+  auth as purchaseAuth,
+  vehicleAuth as purchaseVehicleAuth,
+  requireRef,
+  checkMoneyInput,
+}
+
+export async function acquireVehicleCycle(
+  tx: Tx,
+  actor: Actor,
+  params: {
+    cycleId: string
+    vehicle: VehicleInput
+    expected: Dependency[]
+    acquisitionKind: "SUPPLIER" | "TRADE_IN"
+    purchaseType: "CASH" | "BRAND_NEW" | "LEASE_SETTLEMENT"
+    supplierId: string | null
+    sellerCustomerId: string | null
+    tradeInSourceSaleId: string | null
+    sourceVehicleIdToExclude?: string
+    purchaseDate: string
+    purchasePrice: bigint
+    listedPrice?: string
+    mileage: Mileage
+    paymentMethod?: "CASH" | "BANK_TRANSFER"
+    settlement?: Settlement
+    company?: { id: string; name: string } | null
+    commandId: string
+    sequence: bigint
+    action: "recordPurchase" | "completeImmediate" | "intakeTradeIn" | "reviewApproval"
+    initiatedBy?: string
+    approverId?: string
+    settings: {
+      currentVersionId: string
+      currency: string
+      scale: number
+    }
+    skipIdentityLock?: boolean
+    deferReadProjection?: boolean
+  }
+) {
+  const {
+    cycleId,
+    vehicle: vehicleInputData,
+    expected,
+    acquisitionKind,
+    purchaseType,
+    supplierId,
+    sellerCustomerId,
+    tradeInSourceSaleId,
+    sourceVehicleIdToExclude,
+    purchaseDate,
+    purchasePrice,
+    listedPrice,
+    mileage,
+    paymentMethod,
+    settlement,
+    company,
+    commandId,
+    sequence,
+    action,
+    initiatedBy,
+    approverId,
+    settings,
+    skipIdentityLock,
+  } = params
+  const engine = normalizeVehicleIdentity(vehicleInputData.engineNumber)
+  const chassis = normalizeVehicleIdentity(vehicleInputData.chassisNumber)
+  if (!skipIdentityLock) {
+    for (const key of [`engine:${engine}`, `chassis:${chassis}`].sort())
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`
+  }
+  const existing = await tx.vehicle.findUnique({
+    where: {
+      normalizedEngine_normalizedChassis: {
+        normalizedEngine: engine,
+        normalizedChassis: chassis,
+      },
+    },
+  })
+  const today = colomboToday()
+  if (
+    purchaseDate > today ||
+    mileage.date > today ||
+    mileage.date < purchaseDate
+  )
+    fail("INVALID_INPUT", 422)
+
+  let vehicleId: string = randomUUID()
+  let cycleNumber = 1
+  let priorLatestRow: Row | null = null
+  let nextVehicleRevision = 1
+
+  if (existing) {
+    if (!skipIdentityLock)
+      await tx.$queryRaw`SELECT id FROM vamotors."Vehicle" WHERE id=${existing.id}::uuid FOR UPDATE`
+    const lockedExisting = await tx.vehicle.findUniqueOrThrow({
+      where: { id: existing.id },
+    })
+    const cycles = await tx.purchaseRecord.findMany({
+      where: { vehicleId: lockedExisting.id },
+      include: { saleCompletion: true, mileage: true },
+      orderBy: { cycleNumber: "asc" },
+    })
+    const latestCycleStatus = cycles.at(-1)?.status
+    requireFields(
+      actor.ability,
+      "Vehicle",
+      "read",
+      {
+        id: lockedExisting.id,
+        identityRevision: lockedExisting.revision,
+        createdBy: lockedExisting.createdBy,
+        status: latestCycleStatus,
+      },
+      ["id", "identityRevision", ...physicalFields.map((f) => `identity.${f}`)]
+    )
+    requireRef(expected, {
+      type: "Vehicle",
+      id: lockedExisting.id,
+      revision: lockedExisting.revision,
+    })
+    const conflict = () => {
+      throw new CommandError("IDENTITY_CONFLICT", 409, false, [
+        {
+          type: "Vehicle",
+          id: lockedExisting.id,
+          revision: lockedExisting.revision,
+        },
+      ])
+    }
+    if (
+      sourceVehicleIdToExclude &&
+      lockedExisting.id === sourceVehicleIdToExclude
+    )
+      conflict()
+    if (cycles.some((c) => c.status === "WRITTEN_OFF"))
+      throw new CommandError("IDENTITY_WRITTEN_OFF", 409, false, [
+        {
+          type: "Vehicle",
+          id: lockedExisting.id,
+          revision: lockedExisting.revision,
+        },
+      ])
+    if (
+      lockedExisting.activePurchaseId !== null ||
+      cycles.length === 0 ||
+      cycles.some((c) => !c.closedAt || c.status !== "SOLD")
+    )
+      conflict()
+    const matchesPhysical =
+      lockedExisting.engineNumber === vehicleInputData.engineNumber &&
+      lockedExisting.chassisNumber === vehicleInputData.chassisNumber &&
+      lockedExisting.make === vehicleInputData.make &&
+      lockedExisting.model === vehicleInputData.model &&
+      lockedExisting.year === vehicleInputData.year &&
+      lockedExisting.colour === vehicleInputData.colour &&
+      lockedExisting.fuelType === vehicleInputData.fuelType &&
+      lockedExisting.transmission === vehicleInputData.transmission &&
+      lockedExisting.vin === (vehicleInputData.vin ?? null) &&
+      lockedExisting.crNumber === (vehicleInputData.crNumber ?? null) &&
+      lockedExisting.notes === (vehicleInputData.notes ?? null)
+    if (!matchesPhysical) conflict()
+    const maxPriorSaleDate = cycles
+      .map((c) => (c.saleCompletion ? date(c.saleCompletion.saleDate) : ""))
+      .filter(Boolean)
+      .sort()
+      .at(-1)
+    if (!maxPriorSaleDate || purchaseDate < maxPriorSaleDate)
+      fail("INVALID_INPUT", 422)
+    const mileageHistory = cycles
+      .flatMap((c) => c.mileage)
+      .sort(
+        (a, b) =>
+          date(a.recordedDate).localeCompare(date(b.recordedDate)) ||
+          a.id.localeCompare(b.id)
+      )
+    const before = mileageHistory
+      .filter((h) => date(h.recordedDate) <= mileage.date)
+      .at(-1)
+    const after = mileageHistory.find((h) => date(h.recordedDate) > mileage.date)
+    if (
+      (before && mileage.reading < before.reading && !mileage.decreaseReason) ||
+      (after && after.reading < mileage.reading && !mileage.decreaseReason)
+    )
+      fail("INVALID_INPUT", 422)
+    if (lockedExisting.revision === 2147483647) fail("REVISION_EXHAUSTED")
+    vehicleId = lockedExisting.id
+    cycleNumber = cycles.at(-1)!.cycleNumber + 1
+    nextVehicleRevision = lockedExisting.revision + 1
+    priorLatestRow = await load(tx, cycles.at(-1)!.id)
+  } else {
+    requireFields(
+      actor.ability,
+      "Vehicle",
+      "create",
+      { createdBy: actor.userId, status: "PURCHASED" },
+      Object.keys(vehicleInputData)
+    )
+  }
+
+  if (!existing) {
+    await tx.vehicle.create({
+      data: {
+        id: vehicleId,
+        ...vehicleInputData,
+        normalizedEngine: engine,
+        normalizedChassis: chassis,
+        activePurchaseId: cycleId,
+        createdBy: actor.userId,
+      },
+    })
+  }
+  await tx.purchaseRecord.create({
+    data: {
+      id: cycleId,
+      vehicleId,
+      cycleNumber,
+      purchaseType,
+      acquisitionKind,
+      ...(supplierId ? { supplierId } : {}),
+      ...(sellerCustomerId ? { sellerCustomerId } : {}),
+      ...(tradeInSourceSaleId ? { tradeInSourceSaleId } : {}),
+      purchaseDate: new Date(purchaseDate),
+      purchasePrice,
+      ...(listedPrice !== undefined ? { listedPrice: BigInt(listedPrice) } : {}),
+      createdBy: actor.userId,
+      acquisitionCommandId: commandId,
+      settingsVersionId: settings.currentVersionId,
+    },
+  })
+  if (existing) {
+    await tx.vehicle.update({
+      where: { id: vehicleId },
+      data: { activePurchaseId: cycleId, revision: { increment: 1 } },
+    })
+  }
+  if (settlement) {
+    await tx.leasePurchaseDetail.create({
+      data: {
+        purchaseRecordId: cycleId,
+        institutionType: settlement.institutionType,
+        companyId: company?.id,
+        institutionNameSnapshot:
+          company?.name ??
+          (settlement.institutionType !== "FINANCE_COMPANY"
+            ? settlement.institutionName
+            : ""),
+        reference: settlement.reference,
+        amount: BigInt(settlement.amount),
+        cashToSeller: BigInt(settlement.cashToSeller),
+      },
+    })
+  }
+  if (acquisitionKind === "SUPPLIER") {
+    for (const [category, component] of [
+      ["SELLER", settlement ? BigInt(settlement.cashToSeller) : purchasePrice],
+      ["SETTLEMENT", settlement ? BigInt(settlement.amount) : 0n],
+    ] as const) {
+      if (component > 0n) {
+        await tx.purchasePayment.create({
+          data: {
+            cycleId,
+            commandId,
+            lineKey: category.toLowerCase(),
+            amount: component,
+            direction: "OUT",
+            category,
+            occurredDate: new Date(purchaseDate),
+            method: paymentMethod!,
+            currency: settings.currency,
+            scale: settings.scale,
+          },
+        })
+      }
+    }
+  }
+  await tx.mileageReading.create({
+    data: {
+      vehicleId,
+      cycleId,
+      commandId,
+      reading: mileage.reading,
+      recordedDate: new Date(mileage.date),
+      remark: mileage.remark,
+      decreaseReason: mileage.decreaseReason,
+    },
+  })
+  await tx.cycleBasisVersion.create({
+    data: {
+      cycleId,
+      commandId,
+      version: 1,
+      purchase: purchasePrice,
+      total: purchasePrice,
+      components: {
+        purchase: purchasePrice.toString(),
+        repairs: [],
+        costs: [],
+      },
+      currency: settings.currency,
+      scale: settings.scale,
+      reason:
+        acquisitionKind === "TRADE_IN"
+          ? "Trade-in valuation basis"
+          : "Initial paid acquisition",
+    },
+  })
+  await tx.statusEvent.create({
+    data: {
+      cycleId,
+      commandId,
+      to: "PURCHASED",
+      action,
+      userId: actor.userId,
+      occurredAt: new Date(purchaseDate),
+    },
+  })
+  const row = (await load(tx, cycleId))!
+  if (!params.deferReadProjection) {
+    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+      "id",
+      "revision",
+    ])
+    requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
+      "id",
+      "identityRevision",
+    ])
+  }
+  await audit(tx, {
+    commandId,
+    userId: actor.userId,
+    ...(initiatedBy ? { initiatedBy } : {}),
+    ...(approverId ? { approverId } : {}),
+    entityType: "PurchaseRecord",
+    entityId: cycleId,
+    action,
+    before: null,
+    after: purchaseDTO(row),
+  })
+  await writeReadVersion(tx, {
+    commandId,
+    sequence,
+    entityType: "PurchaseRecord",
+    entityId: cycleId,
+    revision: 1,
+    payload: purchaseDTO(row),
+  })
+  await audit(tx, {
+    commandId,
+    userId: actor.userId,
+    ...(initiatedBy ? { initiatedBy } : {}),
+    ...(approverId ? { approverId } : {}),
+    entityType: "Vehicle",
+    entityId: vehicleId,
+    action,
+    before: priorLatestRow ? vehicleDTO(priorLatestRow) : null,
+    after: vehicleDTO(row),
+  })
+  await writeReadVersion(tx, {
+    commandId,
+    sequence,
+    entityType: "Vehicle",
+    entityId: vehicleId,
+    revision: nextVehicleRevision,
+    payload: vehicleDTO(row),
+  })
+  return {
+    cycleId,
+    vehicleId,
+    vehicleRevision: nextVehicleRevision,
+    row,
+  }
+}
+
 export async function recordPurchase(
   identity: Identity,
   raw: unknown
@@ -1334,13 +1874,15 @@ export async function recordPurchase(
         auth(row),
         createFields
       )
-      requireFields(
-        actor.ability,
-        "Vehicle",
-        "create",
-        vehicleAuth(row),
-        Object.keys(input.vehicle)
-      )
+      if (row.cycleNumber === 1) {
+        requireFields(
+          actor.ability,
+          "Vehicle",
+          "create",
+          vehicleAuth(row),
+          Object.keys(input.vehicle)
+        )
+      }
       await supplierReference()
       if (input.purchaseType === "LEASE_SETTLEMENT")
         await selectedCompany(tx, actor, input.settlement)
@@ -1376,50 +1918,21 @@ export async function recordPurchase(
       candidate,
       createFields
     )
-    requireFields(
-      actor.ability,
-      "Vehicle",
-      "create",
-      { ...candidate },
-      Object.keys(input.vehicle)
-    )
     const engine = normalizeVehicleIdentity(input.vehicle.engineNumber),
       chassis = normalizeVehicleIdentity(input.vehicle.chassisNumber)
-    // Identity lock names are sorted, parameterized, and acquired after auth.
     for (const key of [`engine:${engine}`, `chassis:${chassis}`].sort())
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`
-    const existing = await tx.vehicle.findUnique({
+    const preVehicle = await tx.vehicle.findUnique({
       where: {
         normalizedEngine_normalizedChassis: {
           normalizedEngine: engine,
           normalizedChassis: chassis,
         },
       },
+      select: { id: true },
     })
-    if (existing) {
-      requireFields(
-        actor.ability,
-        "Vehicle",
-        "read",
-        {
-          id: existing.id,
-          revision: existing.revision,
-          createdBy: existing.createdBy,
-        },
-        ["id", "revision"]
-      )
-      requireRef(envelope.expected, {
-        type: "Vehicle",
-        id: existing.id,
-        revision: existing.revision,
-      })
-      const writtenOff = await tx.purchaseRecord.findFirst({
-        where: { vehicleId: existing.id, status: "WRITTEN_OFF" },
-      })
-      if (writtenOff) fail("IDENTITY_WRITTEN_OFF")
-      // No closed-cycle fabrication or repurchase until real sales ship.
-      fail("IDENTITY_CONFLICT")
-    }
+    if (preVehicle)
+      await tx.$queryRaw`SELECT id FROM vamotors."Vehicle" WHERE id=${preVehicle.id}::uuid FOR UPDATE`
     const supplier = await supplierReference()
     const settlement =
       input.purchaseType === "LEASE_SETTLEMENT" ? input.settlement : null
@@ -1443,15 +1956,6 @@ export async function recordPurchase(
       (input.purchaseType === "BRAND_NEW" && supplier.category !== "COMPANY")
     )
       fail("INVALID_STATE")
-    const today = colomboToday()
-    if (
-      input.purchaseDate > today ||
-      input.mileage.date > today ||
-      input.mileage.date < input.purchaseDate
-    )
-      fail("INVALID_INPUT", 422)
-    // Cash does not consume a browser Settings dependency. Snapshot server policy
-    // under the shared business lock; future settings cannot reinterpret history.
     const settings = await currentSettings(tx)
     const purchasePrice = settlement
       ? sum([BigInt(settlement.amount), BigInt(settlement.cashToSeller)], C)
@@ -1463,7 +1967,6 @@ export async function recordPurchase(
     })
     const sequence = await nextBusinessSequence(tx),
       commandId = randomUUID(),
-      vehicleId = randomUUID(),
       cycleId = randomUUID()
     const result = { type: "PurchaseRecord" as const, id: cycleId, revision: 1 }
     await tx.commandReceipt.create({
@@ -1475,145 +1978,46 @@ export async function recordPurchase(
         businessSequence: sequence,
       },
     })
-    await tx.vehicle.create({
-      data: {
-        id: vehicleId,
-        ...input.vehicle,
-        normalizedEngine: engine,
-        normalizedChassis: chassis,
-        activePurchaseId: cycleId,
-        createdBy: actor.userId,
-      },
-    })
-    await tx.purchaseRecord.create({
-      data: {
-        id: cycleId,
-        vehicleId,
-        cycleNumber: 1,
-        purchaseType: input.purchaseType,
-        acquisitionKind: "SUPPLIER",
-        supplierId: supplier.id,
-        purchaseDate: new Date(input.purchaseDate),
-        purchasePrice,
-        ...(input.listedPrice !== undefined
-          ? { listedPrice: BigInt(input.listedPrice) }
-          : {}),
-        createdBy: actor.userId,
-        acquisitionCommandId: commandId,
-        settingsVersionId: settingsRow.currentVersionId,
-      },
-    })
-    if (settlement)
-      await tx.leasePurchaseDetail.create({
-        data: {
-          purchaseRecordId: cycleId,
-          institutionType: settlement.institutionType,
-          companyId: company?.id,
-          institutionNameSnapshot:
-            company?.name ??
-            (settlement.institutionType !== "FINANCE_COMPANY"
-              ? settlement.institutionName
-              : ""),
-          reference: settlement.reference,
-          amount: BigInt(settlement.amount),
-          cashToSeller: BigInt(settlement.cashToSeller),
-        },
-      })
-    for (const [category, component] of [
-      ["SELLER", settlement ? BigInt(settlement.cashToSeller) : purchasePrice],
-      ["SETTLEMENT", settlement ? BigInt(settlement.amount) : 0n],
-    ] as const)
-      if (component > 0n)
-        await tx.purchasePayment.create({
-          data: {
-            cycleId,
-            commandId,
-            lineKey: category.toLowerCase(),
-            amount: component,
-            direction: "OUT",
-            category,
-            occurredDate: new Date(input.purchaseDate),
-            method: input.paymentMethod,
-            currency: settings.currency,
-            scale: settings.scale,
-          },
-        })
-    await tx.mileageReading.create({
-      data: {
-        vehicleId,
-        cycleId,
-        commandId,
-        reading: input.mileage.reading,
-        recordedDate: new Date(input.mileage.date),
-        remark: input.mileage.remark,
-        decreaseReason: input.mileage.decreaseReason,
-      },
-    })
-    await tx.cycleBasisVersion.create({
-      data: {
-        cycleId,
-        commandId,
-        version: 1,
-        purchase: purchasePrice,
-        total: purchasePrice,
-        components: {
-          purchase: purchasePrice.toString(),
-          repairs: [],
-          costs: [],
-        },
+    const acquired = await acquireVehicleCycle(tx, actor, {
+      cycleId,
+      vehicle: input.vehicle,
+      expected: envelope.expected,
+      acquisitionKind: "SUPPLIER",
+      purchaseType: input.purchaseType,
+      supplierId: supplier.id,
+      sellerCustomerId: null,
+      tradeInSourceSaleId: null,
+      purchaseDate: input.purchaseDate,
+      purchasePrice,
+      listedPrice: input.listedPrice,
+      mileage: input.mileage,
+      paymentMethod: input.paymentMethod,
+      settlement: settlement ?? undefined,
+      company,
+      commandId,
+      sequence,
+      action: "recordPurchase",
+      settings: {
+        currentVersionId: settingsRow.currentVersionId,
         currency: settings.currency,
         scale: settings.scale,
-        reason: "Initial paid acquisition",
       },
+      skipIdentityLock: true,
     })
-    await tx.statusEvent.create({
-      data: {
-        cycleId,
-        commandId,
-        to: "PURCHASED",
-        action: "recordPurchase",
-        userId: actor.userId,
-        occurredAt: new Date(input.purchaseDate),
-      },
-    })
-    const row = (await load(tx, cycleId))!
-    requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
-      "id",
-      "revision",
-    ])
-    requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
-      "id",
-      "identityRevision",
-    ])
-    for (const [entityType, entityId, after] of [
-      ["PurchaseRecord", cycleId, purchaseDTO(row)],
-      ["Vehicle", vehicleId, vehicleDTO(row)],
-    ] as const) {
-      await audit(tx, {
-        commandId,
-        userId: actor.userId,
-        entityType,
-        entityId,
-        action: "recordPurchase",
-        before: null,
-        after,
-      })
-      await writeReadVersion(tx, {
-        commandId,
-        sequence,
-        entityType,
-        entityId,
-        revision: 1,
-        payload: after,
-      })
-    }
     return {
       ok: true,
       status: "APPLIED",
       commandId,
       replayed: false,
       result,
-      affected: [result, { type: "Vehicle", id: vehicleId, revision: 1 }],
+      affected: [
+        result,
+        {
+          type: "Vehicle",
+          id: acquired.vehicleId,
+          revision: acquired.vehicleRevision,
+        },
+      ],
       invalidate: ["inventory", "purchases", "parties", "reports", "dashboard"],
     }
   })
@@ -1948,7 +2352,7 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
     row.closedAt ||
     row.vehicle.activePurchaseId !== row.id ||
     !["PURCHASED", "IN_STOCK"].includes(row.status) ||
-    row.acquisitionKind !== "SUPPLIER" ||
+    !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
     !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType)
   )
     return []
@@ -2110,7 +2514,7 @@ export async function executeCycleEdit(
       !row.acquisitionCommandId ||
       row.closedAt ||
       row.vehicle.activePurchaseId !== row.id ||
-      row.acquisitionKind !== "SUPPLIER" ||
+      !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
       !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
       !["PURCHASED", "IN_STOCK"].includes(row.status)
     )
@@ -2318,8 +2722,36 @@ function moneyAuthority(
 ) {
   const { name, input } = intent
   requireRepairContributions(actor, row, name === "editPurchase")
-  if (currentWrittenOff(row)) {
+  if (currentWrittenOff(row) || currentSold(row)) {
     requireRepairFinancialSources(actor, row)
+    if (currentSold(row)) {
+      const completedSale = row.sales.find(
+        (s) => s.id === row.saleCompletion?.saleCaseId
+      )
+      if (!completedSale) fail("INVALID_STATE")
+      requireFields(
+        actor.ability,
+        "SaleCase",
+        "read",
+        {
+          id: completedSale.id,
+          customerId: completedSale.customerId,
+          createdBy: completedSale.createdBy,
+        },
+        ["id", "price", "payments.amount", "payments.direction"]
+      )
+      requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
+        "sales",
+        "financial.originalBasis",
+        "financial.salePrice",
+        "financial.originalProfit",
+        "financial.restatedProfit",
+      ])
+      requireFields(actor.ability, "Vehicle", "read", vehicleAuth(row), [
+        "financial.originalProfit",
+        "financial.restatedProfit",
+      ])
+    }
     requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
       "vehicleId",
       "status",
@@ -2522,7 +2954,7 @@ function moneyAuthority(
   }
 }
 function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
-  const closed = currentWrittenOff(row)
+  const closed = currentWrittenOff(row) || currentSold(row)
   if (
     !row.acquisitionCommandId ||
     (!closed &&
@@ -2889,11 +3321,19 @@ export async function executeCycleMoney(
       }
     }
     for (const ref of refs) requireRef(envelope.expected, ref)
-    const closed = currentWrittenOff(row)
+    const closed = currentWrittenOff(row) || currentSold(row)
     if (
       !row.acquisitionCommandId ||
-      row.acquisitionKind !== "SUPPLIER" ||
+      !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
       !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
+      (row.acquisitionKind === "TRADE_IN" &&
+        (intent.name === "payPurchase" ||
+          (intent.name === "editPurchase" &&
+            (Boolean(patch?.purchasePrice) ||
+              Boolean(patch?.purchaseType) ||
+              Boolean(patch?.seller) ||
+              patch?.settlement !== undefined ||
+              intent.input.cashCorrections.length > 0)))) ||
       (closed
         ? intent.name === "addCost" ||
           (patch &&
@@ -3257,7 +3697,10 @@ export async function executeCycleMoney(
         fail("MONEY_OVERFLOW", 422)
       if (paid < 0n || paid > maximum) fail("BALANCE_MISMATCH", 422)
     }
-    checkCap(after.payments, after.purchasePrice)
+    checkCap(
+      after.payments,
+      liabilities(after).SELLER + liabilities(after).SETTLEMENT
+    )
     for (const category of ["SELLER", "SETTLEMENT"] as const)
       checkCap(recipientPayments(after, category), liabilities(after)[category])
     // Payments retain the payee at their ORIGINAL command sequence. A current

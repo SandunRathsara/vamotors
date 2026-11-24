@@ -181,9 +181,14 @@ model CommandReceipt {
   repairPayments        RepairPayment[]
   approvalRequests      ApprovalRequest[]   @relation("approvalRequestCommand")
   approvalReviews       ApprovalRequest[]   @relation("approvalReviewCommand")
-  approvalApplications  ApprovalRequest[]   @relation("approvalAppliedCommand")
+  approvalApplications  ApprovalRequest[]      @relation("approvalAppliedCommand")
   disposals             Disposal[]
   disposalReceipts      DisposalReceipt[]
+  sales                 SaleCase[]
+  saleReceipts          SaleReceipt[]
+  saleCompletions       SaleCompletion[]
+  saleCorrections       SaleCorrection[]
+  tradeInIntakes        TradeInConsideration[]
 
   @@unique([environmentId, actorKey, commandName, idempotencyKey])
   @@schema("vamotors")
@@ -259,9 +264,11 @@ model Customer {
   active             Boolean          @default(true)
   revision           Int              @default(1)
   createdBy          String           @db.Uuid
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   purchases          PurchaseRecord[]
+  sales              SaleCase[]
+  tradeIns           TradeInConsideration[]
 
   @@index([phone])
   @@schema("vamotors")
@@ -510,8 +517,9 @@ model Vehicle {
   updatedAt         DateTime         @updatedAt
   activePurchaseId  String?          @unique @db.Uuid
   purchases         PurchaseRecord[] @relation("cycles")
-  activePurchase    PurchaseRecord?  @relation("activeCycle", fields: [activePurchaseId, id], references: [id, vehicleId], onDelete: Restrict)
-  mileage           MileageReading[]
+  activePurchase      PurchaseRecord?        @relation("activeCycle", fields: [activePurchaseId, id], references: [id, vehicleId], onDelete: Restrict)
+  mileage             MileageReading[]
+  tradeInAcquisitions TradeInConsideration[]
 
   @@unique([normalizedEngine, normalizedChassis])
   @@unique([activePurchaseId, id])
@@ -528,9 +536,11 @@ model PurchaseRecord {
   acquisitionKind      String
   supplierId           String?              @db.Uuid
   supplier             Supplier?            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-  sellerCustomerId     String?              @db.Uuid
-  seller               Customer?            @relation(fields: [sellerCustomerId], references: [id], onDelete: Restrict)
-  purchaseDate         DateTime             @db.Date
+  sellerCustomerId      String?                @db.Uuid
+  seller                Customer?              @relation(fields: [sellerCustomerId], references: [id], onDelete: Restrict)
+  tradeInSourceSaleId   String?                @unique @db.Uuid
+  tradeInSource         TradeInConsideration?  @relation("tradeInSource", fields: [tradeInSourceSaleId, sellerCustomerId], references: [saleCaseId, customerId], onDelete: Restrict)
+  purchaseDate          DateTime               @db.Date
   purchasePrice        BigInt
   notes                String?
   listedPrice          BigInt?
@@ -555,12 +565,19 @@ model PurchaseRecord {
   costPayments         CostPayment[]
   repairs              RepairRecord[]
   repairPayments       RepairPayment[]
-  approvalRequests     ApprovalRequest[]
-  disposal             Disposal?
-  settlement           LeasePurchaseDetail?
+  approvalRequests      ApprovalRequest[]
+  disposal              Disposal?
+  settlement            LeasePurchaseDetail?
+  sales                 SaleCase[]
+  saleReceipts          SaleReceipt[]
+  saleCompletion        SaleCompletion?
+  saleCorrections       SaleCorrection[]
+  tradeInConsiderations TradeInConsideration[] @relation("saleCycleTradeIns")
+  tradeInIntake         TradeInConsideration?  @relation("tradeInIntake")
 
   @@unique([id, vehicleId])
   @@unique([vehicleId, cycleNumber])
+  @@unique([tradeInSourceSaleId, sellerCustomerId])
   @@index([status, available, purchaseDate, id])
   @@schema("vamotors")
 }
@@ -652,9 +669,14 @@ model ApprovalRequest {
   requestCommand       CommandReceipt  @relation("approvalRequestCommand", fields: [requestCommandId], references: [id], onDelete: Restrict)
   reviewCommandId      String?         @unique @db.Uuid
   reviewCommand        CommandReceipt? @relation("approvalReviewCommand", fields: [reviewCommandId], references: [id], onDelete: Restrict)
-  appliedCommandId     String?         @unique @db.Uuid
-  appliedCommand       CommandReceipt? @relation("approvalAppliedCommand", fields: [appliedCommandId], references: [id], onDelete: Restrict)
+  appliedCommandId     String?          @unique @db.Uuid
+  appliedCommand       CommandReceipt?  @relation("approvalAppliedCommand", fields: [appliedCommandId], references: [id], onDelete: Restrict)
+  saleCaseId           String?          @db.Uuid
+  saleCase             SaleCase?        @relation("approvalSaleCase", fields: [saleCaseId, cycleId], references: [id, purchaseRecordId], onDelete: Restrict)
   disposal             Disposal?
+  discountSaleCase     SaleCase?        @relation("saleApproval")
+  saleCompletions      SaleCompletion[]
+  saleCorrections      SaleCorrection[]
 
   @@unique([id, cycleId])
   @@index([state, requestedAt, id])
@@ -708,6 +730,151 @@ model DisposalReceipt {
 
   @@unique([commandId, lineKey])
   @@index([cycleId, occurredDate, id])
+  @@schema("vamotors")
+}
+
+model SaleCase {
+  id               String                @id @default(uuid()) @db.Uuid
+  purchaseRecordId String                @db.Uuid
+  purchaseRecord   PurchaseRecord        @relation(fields: [purchaseRecordId], references: [id], onDelete: Restrict)
+  customerId       String                @db.Uuid
+  customer         Customer              @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  kind             String
+  agreedPrice      BigInt
+  listedSnapshot   BigInt?
+  reference        String?
+  notes            String?
+  state            String
+  revision         Int                   @default(1)
+  openedAt         DateTime
+  createdBy        String                @db.Uuid
+  commandId        String                @unique @db.Uuid
+  command          CommandReceipt        @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  approvalId       String?               @unique @db.Uuid
+  approval         ApprovalRequest?      @relation("saleApproval", fields: [approvalId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
+  receipts         SaleReceipt[]
+  completion       SaleCompletion?
+  corrections      SaleCorrection[]
+  tradeIn          TradeInConsideration?
+  editApprovals    ApprovalRequest[]     @relation("approvalSaleCase")
+
+  @@unique([id, purchaseRecordId])
+  @@unique([id, customerId])
+  @@unique([approvalId, purchaseRecordId])
+  @@index([purchaseRecordId, state, openedAt, id])
+  @@index([customerId, openedAt, id])
+  @@schema("vamotors")
+}
+
+model SaleReceipt {
+  id               String         @id @default(uuid()) @db.Uuid
+  saleCaseId       String         @db.Uuid
+  purchaseRecordId String         @db.Uuid
+  saleCase         SaleCase       @relation(fields: [saleCaseId, purchaseRecordId], references: [id, purchaseRecordId], onDelete: Restrict)
+  purchaseRecord   PurchaseRecord @relation(fields: [purchaseRecordId], references: [id], onDelete: Restrict)
+  amount           BigInt
+  direction        String
+  category         String
+  occurredDate     DateTime       @db.Date
+  method           String
+  currency         String
+  scale            Int
+  reference        String?
+  reversalOf       String?        @unique @db.Uuid
+  original         SaleReceipt?   @relation("saleReceiptReversal", fields: [reversalOf, saleCaseId, purchaseRecordId], references: [id, saleCaseId, purchaseRecordId], onDelete: Restrict)
+  reversal         SaleReceipt?   @relation("saleReceiptReversal")
+  reason           String?
+  createdBy        String         @db.Uuid
+  commandId        String         @db.Uuid
+  command          CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  lineKey          String
+  recordedAt       DateTime       @default(now())
+
+  @@unique([id, saleCaseId, purchaseRecordId])
+  @@unique([commandId, lineKey])
+  @@unique([reversalOf, saleCaseId, purchaseRecordId])
+  @@index([saleCaseId, occurredDate, id])
+  @@index([purchaseRecordId, occurredDate, id])
+  @@schema("vamotors")
+}
+
+model SaleCompletion {
+  id               String            @id @default(uuid()) @db.Uuid
+  saleCaseId       String            @unique @db.Uuid
+  purchaseRecordId String            @unique @db.Uuid
+  saleCase         SaleCase          @relation(fields: [saleCaseId, purchaseRecordId], references: [id, purchaseRecordId], onDelete: Restrict)
+  purchaseRecord   PurchaseRecord    @relation(fields: [purchaseRecordId], references: [id], onDelete: Restrict)
+  saleDate         DateTime          @db.Date
+  handoverMileage  Int
+  agreedPrice      BigInt
+  basisVersionId   String            @db.Uuid
+  basis            CycleBasisVersion @relation(fields: [basisVersionId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
+  originalProfit   BigInt
+  snapshot         Json
+  approvalId       String?           @unique @db.Uuid
+  approval         ApprovalRequest?  @relation(fields: [approvalId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
+  createdBy        String            @db.Uuid
+  commandId        String            @unique @db.Uuid
+  command          CommandReceipt    @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  recordedAt       DateTime          @default(now())
+  corrections      SaleCorrection[]
+  mileageReading   MileageReading?
+
+  @@unique([id, saleCaseId])
+  @@unique([id, purchaseRecordId])
+  @@unique([saleCaseId, purchaseRecordId])
+  @@schema("vamotors")
+}
+
+model SaleCorrection {
+  id                String             @id @default(uuid()) @db.Uuid
+  completionId      String             @db.Uuid
+  saleCaseId        String             @db.Uuid
+  purchaseRecordId  String             @db.Uuid
+  completion        SaleCompletion     @relation(fields: [completionId, saleCaseId], references: [id, saleCaseId], onDelete: Restrict)
+  saleCase          SaleCase           @relation(fields: [saleCaseId, purchaseRecordId], references: [id, purchaseRecordId], onDelete: Restrict)
+  purchaseRecord    PurchaseRecord     @relation(fields: [purchaseRecordId], references: [id], onDelete: Restrict)
+  version           Int
+  patch             Json
+  reason            String
+  approvalId        String             @unique @db.Uuid
+  approval          ApprovalRequest    @relation(fields: [approvalId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
+  correctedSnapshot Json
+  basisVersionId    String             @db.Uuid
+  basis             CycleBasisVersion  @relation("saleCorrectionBasis", fields: [basisVersionId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
+  priorVersionId    String?            @unique @db.Uuid
+  priorVersion      SaleCorrection?    @relation("saleCorrectionPrior", fields: [priorVersionId], references: [id], onDelete: Restrict)
+  nextVersion       SaleCorrection?    @relation("saleCorrectionPrior")
+  restatedProfit    BigInt
+  createdBy         String             @db.Uuid
+  commandId         String             @unique @db.Uuid
+  command           CommandReceipt     @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  recordedAt        DateTime           @default(now())
+
+  @@unique([completionId, version])
+  @@schema("vamotors")
+}
+
+model TradeInConsideration {
+  id                 String          @id @default(uuid()) @db.Uuid
+  saleCaseId         String          @unique @db.Uuid
+  purchaseRecordId   String          @db.Uuid
+  customerId         String          @db.Uuid
+  saleCase           SaleCase        @relation(fields: [saleCaseId, purchaseRecordId], references: [id, purchaseRecordId], onDelete: Restrict)
+  purchaseRecord     PurchaseRecord  @relation("saleCycleTradeIns", fields: [purchaseRecordId], references: [id], onDelete: Restrict)
+  customer           Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  description        String
+  value              BigInt
+  acquiredVehicleId  String?         @db.Uuid
+  acquiredVehicle    Vehicle?        @relation(fields: [acquiredVehicleId], references: [id], onDelete: Restrict)
+  acquiredPurchaseId String?         @unique @db.Uuid
+  acquiredPurchase   PurchaseRecord? @relation("tradeInIntake", fields: [acquiredPurchaseId], references: [id], onDelete: Restrict)
+  intakeCommandId    String?         @unique @db.Uuid
+  intakeCommand      CommandReceipt? @relation(fields: [intakeCommandId], references: [id], onDelete: Restrict)
+  acquiredByCycle    PurchaseRecord? @relation("tradeInSource")
+
+  @@unique([saleCaseId, customerId])
+  @@unique([saleCaseId, purchaseRecordId])
   @@schema("vamotors")
 }
 
@@ -830,23 +997,28 @@ model MileageReading {
   cycle          PurchaseRecord @relation(fields: [cycleId, vehicleId], references: [id, vehicleId], onDelete: Restrict)
   reading        Int
   recordedDate   DateTime       @db.Date
-  remark         String?
-  decreaseReason String?
-  commandId      String         @db.Uuid
-  command        CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
-  recordedAt     DateTime       @default(now())
+  remark                 String?
+  decreaseReason         String?
+  sourceSaleCompletionId String?         @unique @db.Uuid
+  sourceSaleCompletion   SaleCompletion? @relation(fields: [sourceSaleCompletionId, cycleId], references: [id, purchaseRecordId], onDelete: Restrict)
+  commandId              String          @db.Uuid
+  command                CommandReceipt  @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  recordedAt             DateTime        @default(now())
 
   @@unique([commandId, cycleId])
+  @@unique([sourceSaleCompletionId, cycleId])
   @@index([cycleId, recordedDate, id])
   @@schema("vamotors")
 }
 
 model CycleBasisVersion {
-  id           String             @id @default(uuid()) @db.Uuid
-  cycleId      String             @db.Uuid
-  cycle        PurchaseRecord     @relation(fields: [cycleId], references: [id], onDelete: Restrict)
-  disposals    Disposal[]
-  version      Int
+  id                   String             @id @default(uuid()) @db.Uuid
+  cycleId              String             @db.Uuid
+  cycle                PurchaseRecord     @relation(fields: [cycleId], references: [id], onDelete: Restrict)
+  disposals            Disposal[]
+  saleCompletions      SaleCompletion[]
+  saleCorrections      SaleCorrection[]   @relation("saleCorrectionBasis")
+  version              Int
   purchase     BigInt
   components   Json
   total        BigInt

@@ -122,6 +122,7 @@ describe("T06b staging trust boundaries", () => {
               "CashFacility",
               "DispatchBatch",
               "CommissionEntitlement",
+              "SaleCase",
             ].includes(name)
         )
         .map(([name, actions]) => [
@@ -162,7 +163,17 @@ describe("T06b staging trust boundaries", () => {
       Object.entries(old.PurchaseRecord).map(([action, fields]) => [
         action,
         action === "read" || action === "create"
-          ? fields.filter((f) => !f.startsWith("settlement."))
+          ? fields.filter(
+              (f) =>
+                !f.startsWith("settlement.") &&
+                ![
+                  "tradeInSourceSaleId",
+                  "financial.originalBasis",
+                  "financial.salePrice",
+                  "financial.originalProfit",
+                  "financial.restatedProfit",
+                ].includes(f)
+            )
           : action === "update"
             ? fields.filter(
                 (f) =>

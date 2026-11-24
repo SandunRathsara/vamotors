@@ -1,353 +1,572 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { format } from "date-fns"
-import { Download } from "lucide-react"
-
-import type { Sale } from "@/lib/mock-data/schemas"
-import { vehicleFixtures } from "@/lib/mock-data/vehicles"
-import { customerFixtures } from "@/lib/mock-data/customers"
-import { thirdPartiesFixtures } from "@/lib/mock-data/third-parties"
-import { useEntityDetail } from "@/hooks/use-entity-query"
-import { StatusBadge } from "@/components/shared/status-badge"
-import { CurrencyDisplay } from "@/components/shared/currency-display"
-import { SaleTimeline } from "./sale-timeline"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Badge } from "@/components/ui/badge"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import type {
+  Applied,
+  AuditDTO,
+  CustomerDTO,
+  Dependency,
+  Pending,
+  PurchaseCycleDTO,
+  SaleDTO,
+  Visible,
+} from "@/.planning/implementation/contracts/api"
+import { privateRequest, RequestError } from "@/lib/security-client"
+import { major, parseMajor } from "@/lib/money"
+import { approvalEnvelope, saleEnvelope } from "@/lib/server/validators"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
-// Build lookup maps
-const vehicleMap = new Map(vehicleFixtures.map((v) => [v.id, v]))
-const customerMap = new Map(customerFixtures.map((c) => [c.id, c]))
-const thirdPartyMap = new Map(thirdPartiesFixtures.map((t) => [t.id, t]))
+type VisibleSale = Visible<SaleDTO>
+type VisibleCycle = Visible<PurchaseCycleDTO>
+type VisibleCustomer = Visible<CustomerDTO>
 
-const SALE_TYPE_LABELS: Record<string, string> = {
-  Cash: "Cash",
-  Advance: "Advance",
-  LeaseFinance: "Lease / Finance",
-  TradeIn: "Trade-In",
-}
+export function SaleDetailView({ id }: { id: string }) {
+  const queries = useQueryClient()
+  const saleQuery = useQuery({
+    queryKey: ["sales", "detail", id],
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: VisibleSale }>(
+        `/api/v1/queries/sale?id=${encodeURIComponent(id)}`
+      ),
+  })
+  const sale = saleQuery.data?.data
 
-function InfoRow({ label, value }: { label: string; value?: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs font-normal text-muted-foreground">{label}</span>
-      <span className="text-sm font-normal">{value ?? "—"}</span>
-    </div>
-  )
-}
+  const cycleQuery = useQuery({
+    queryKey: ["purchases", "detail", sale?.cycleId],
+    enabled: !!sale?.cycleId,
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: VisibleCycle }>(
+        `/api/v1/queries/purchase?cycleId=${encodeURIComponent(sale!.cycleId!)}`
+      ),
+  })
+  const cycle = cycleQuery.data?.data
 
-function formatDate(dateStr?: string) {
-  if (!dateStr) return "—"
-  try {
-    return format(new Date(dateStr), "dd MMM yyyy")
-  } catch {
-    return dateStr
+  const customerQuery = useQuery({
+    queryKey: ["customers", "detail", sale?.customerId],
+    enabled: !!sale?.customerId,
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: VisibleCustomer }>(
+        `/api/v1/queries/customer?id=${encodeURIComponent(sale!.customerId!)}`
+      ),
+  })
+  const customer = customerQuery.data?.data
+
+  const auditQuery = useQuery({
+    queryKey: ["sales", "audit", id],
+    enabled: !!sale?.id,
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: { data: Visible<AuditDTO>[] } }>(
+        `/api/v1/queries/audit?type=SaleCase&id=${encodeURIComponent(id)}&page=1&pageSize=20`
+      ),
+  })
+
+  // Standalone intakeTradeIn form state
+  const [intakeOpen, setIntakeOpen] = useState(false)
+  const [intakeVehicle, setIntakeVehicle] = useState({
+    engineNumber: "",
+    chassisNumber: "",
+    make: "",
+    model: "",
+    year: String(new Date().getFullYear()),
+    colour: "",
+    fuelType: "PETROL",
+    transmission: "AUTOMATIC",
+    vin: "",
+    crNumber: "",
+    notes: "",
+  })
+  const [intakeReading, setIntakeReading] = useState("0")
+  const [intakeListed, setIntakeListed] = useState("")
+  const [intakeMsg, setIntakeMsg] = useState("")
+  const [intakePending, setIntakePending] = useState(false)
+  const [intakeBody, setIntakeBody] = useState<string | null>(null)
+
+  // Request SALE_EDIT form state
+  const [editOpen, setEditOpen] = useState(false)
+  const [editReason, setEditReason] = useState("")
+  const [editPrice, setEditPrice] = useState("")
+  const [editRef, setEditRef] = useState("")
+  const [editDate, setEditDate] = useState("")
+  const [editMileage, setEditMileage] = useState("")
+  const [editTradeDesc, setEditTradeDesc] = useState("")
+  const [editTradeVal, setEditTradeVal] = useState("")
+  const [editMsg, setEditMsg] = useState("")
+  const [editApprovalId, setEditApprovalId] = useState<string | null>(null)
+  const [editPending, setEditPending] = useState(false)
+  const [editBody, setEditBody] = useState<string | null>(null)
+
+  async function submitIntake(e: React.FormEvent) {
+    e.preventDefault()
+    if (!sale?.id || !sale.revision || !cycle?.id || !cycle.revision || intakePending)
+      return
+    setIntakePending(true)
+    setIntakeMsg("")
+    try {
+      let submitted = intakeBody
+      if (!submitted) {
+        const identity = await privateRequest<{
+          data: { id: string; revision: number } | null
+        }>(
+          `/api/v1/queries/vehicleIdentity?engineNumber=${encodeURIComponent(intakeVehicle.engineNumber)}&chassisNumber=${encodeURIComponent(intakeVehicle.chassisNumber)}`
+        )
+        const expected: Dependency[] = [
+          { type: "SaleCase", id: sale.id, revision: sale.revision },
+          { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
+          ...(identity.data
+            ? [{ type: "Vehicle" as const, id: identity.data.id, revision: identity.data.revision }]
+            : []),
+        ]
+        const env = saleEnvelope("intakeTradeIn").parse({
+          schemaVersion: 1,
+          idempotencyKey: crypto.randomUUID(),
+          expected,
+          input: {
+            saleId: sale.id,
+            vehicle: {
+              engineNumber: intakeVehicle.engineNumber,
+              chassisNumber: intakeVehicle.chassisNumber,
+              make: intakeVehicle.make,
+              model: intakeVehicle.model,
+              year: Number(intakeVehicle.year),
+              colour: intakeVehicle.colour,
+              fuelType: intakeVehicle.fuelType,
+              transmission: intakeVehicle.transmission,
+              ...(intakeVehicle.vin.trim() ? { vin: intakeVehicle.vin.trim() } : {}),
+              ...(intakeVehicle.crNumber.trim()
+                ? { crNumber: intakeVehicle.crNumber.trim() }
+                : {}),
+              ...(intakeVehicle.notes.trim()
+                ? { notes: intakeVehicle.notes.trim() }
+                : {}),
+            },
+            mileage: {
+              reading: Number(intakeReading),
+              date: sale.completion?.date ?? "",
+            },
+            ...(intakeListed.trim() ? { listedPrice: parseMajor(intakeListed) } : {}),
+          },
+        })
+        submitted = JSON.stringify(env)
+        setIntakeBody(submitted)
+      }
+      const res = await privateRequest<Applied>("/api/v1/commands/intakeTradeIn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: submitted,
+      })
+      setIntakeBody(null)
+      setIntakeMsg(`Trade-in intake completed (${res.commandId}).`)
+      setIntakeOpen(false)
+      for (const k of res.invalidate)
+        void queries.invalidateQueries({ queryKey: [k] })
+    } catch (err) {
+      const code =
+        err instanceof RequestError
+          ? err.code
+          : err instanceof Error
+            ? err.message
+            : "ERROR"
+      if (
+        err instanceof RequestError &&
+        err.status < 500 &&
+        code !== "IDEMPOTENCY_MISMATCH"
+      )
+        setIntakeBody(null)
+      setIntakeMsg(code)
+    } finally {
+      setIntakePending(false)
+    }
   }
-}
 
-interface SaleDetailViewProps {
-  id: string
-}
+  async function submitSaleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!sale?.id || !sale.revision || !cycle?.id || !cycle.revision || editPending)
+      return
+    setEditPending(true)
+    setEditMsg("")
+    setEditApprovalId(null)
+    try {
+      let submitted = editBody
+      if (!submitted) {
+      const expected: Dependency[] = [
+        { type: "SaleCase", id: sale.id, revision: sale.revision },
+        { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
+      ]
+      if (sale.tradeIn?.acquiredCycleId && editTradeVal.trim()) {
+        const acq = await privateRequest<{ data: VisibleCycle }>(
+          `/api/v1/queries/purchase?cycleId=${encodeURIComponent(sale.tradeIn.acquiredCycleId)}`
+        )
+        if (!acq.data.id || !acq.data.revision) throw Error("Acquired trade-in revision unavailable")
+        expected.push({ type: "PurchaseRecord", id: acq.data.id, revision: acq.data.revision })
+        if (acq.data.vehicleId && acq.data.identityRevision)
+          expected.push({
+            type: "Vehicle",
+            id: acq.data.vehicleId,
+            revision: acq.data.identityRevision,
+          })
+      }
+      const patch: Record<string, unknown> = {}
+      if (editPrice.trim()) patch.price = parseMajor(editPrice)
+      if (editRef.trim()) patch.reference = editRef.trim()
+      if (editDate.trim()) patch.saleDate = editDate.trim()
+      if (editMileage.trim()) patch.handoverMileage = Number(editMileage)
+      if (sale.kind === "TRADE_IN" && (editTradeDesc.trim() || editTradeVal.trim())) {
+        patch.tradeIn = {
+          description: editTradeDesc.trim() || sale.tradeIn?.description || "",
+          value: editTradeVal.trim() ? parseMajor(editTradeVal) : sale.tradeIn?.value,
+        }
+      }
+      if (!sale.price) throw Error("Current agreed price is unavailable.")
+      const oldPrice = BigInt(sale.price)
+      const oldTrade =
+        sale.kind === "TRADE_IN" && sale.tradeIn?.value
+          ? BigInt(sale.tradeIn.value)
+          : 0n
+      const newPrice = patch.price ? BigInt(patch.price as string) : oldPrice
+      const newTrade = patch.tradeIn
+        ? BigInt((patch.tradeIn as { value: string }).value)
+        : oldTrade
+      const cashCorrections: {
+        paymentId: string
+        reason: string
+        replacement?: {
+          amount: string
+          date: string
+          method: "CASH" | "BANK_TRANSFER"
+          reference?: string
+        }
+      }[] = []
+      if (newPrice - newTrade !== oldPrice - oldTrade) {
+        const receipts = sale.payments ?? []
+        const openReceipts = receipts.filter(
+          (p) =>
+            p.direction === "IN" &&
+            !p.reversalOf &&
+            !receipts.some((r) => r.reversalOf === p.id)
+        )
+        const amount = (p: (typeof receipts)[number]) => {
+          if (p.amount === undefined) throw Error("Receipt amount is unavailable.")
+          return BigInt(p.amount)
+        }
+        const currentNet = receipts.reduce(
+          (total, p) =>
+            total + (p.direction === "IN" ? amount(p) : -amount(p)),
+          0n
+        )
+        if (openReceipts.length !== 1 || currentNet !== oldPrice - oldTrade)
+          throw Error(
+            "This edit changes the receivable balance. Exactly one unreversed original receipt is required for the automatic cash correction."
+          )
+        const original = openReceipts[0]
+        if (
+          !original.id ||
+          !original.date ||
+          !original.method
+        )
+          throw Error("Original receipt facts are unavailable.")
+        cashCorrections.push({
+          paymentId: original.id,
+          reason: editReason,
+          replacement: {
+            amount: (newPrice - newTrade).toString(),
+            date: original.date,
+            method: original.method,
+            ...(original.reference ? { reference: original.reference } : {}),
+          },
+        })
+      }
+      const env = approvalEnvelope("requestApproval").parse({
+        schemaVersion: 1,
+        idempotencyKey: crypto.randomUUID(),
+        expected,
+        input: {
+          proposal: {
+            kind: "SALE_EDIT",
+            operation: "EDIT_COMPLETION",
+            input: {
+              saleId: sale.id,
+              reason: editReason,
+              patch,
+              cashCorrections,
+            },
+          },
+          reason: editReason,
+        },
+      })
+      submitted = JSON.stringify(env)
+      setEditBody(submitted)
+      }
+      const res = await privateRequest<Pending>("/api/v1/commands/requestApproval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: submitted,
+      })
+      setEditBody(null)
+      setEditApprovalId(res.approvalId)
+      setEditMsg(`Sale edit approval requested (${res.approvalId}).`)
+      void queries.invalidateQueries({ queryKey: ["approvals"] })
+    } catch (err) {
+      const code =
+        err instanceof RequestError
+          ? err.code
+          : err instanceof Error
+            ? err.message
+            : "ERROR"
+      if (
+        err instanceof RequestError &&
+        err.status < 500 &&
+        code !== "IDEMPOTENCY_MISMATCH"
+      )
+        setEditBody(null)
+      setEditMsg(code)
+    } finally {
+      setEditPending(false)
+    }
+  }
 
-export function SaleDetailView({ id }: SaleDetailViewProps) {
-  const { data: sale, isLoading, isError } = useEntityDetail<Sale>("sales", "/api/sales", id)
+  if (saleQuery.isPending) return <p role="status">Loading sale detail…</p>
+  if (saleQuery.isError || !sale)
+    return <p role="alert">Sale unavailable.</p>
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-4 rounded-full" />
-          <Skeleton className="h-4 w-32" />
+  const moneyStr = (v?: string) => (v === undefined ? "Unavailable" : major(BigInt(v)))
+
+  return (
+    <section className="mx-auto max-w-5xl space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Sale {sale.id}</h1>
+        <Link prefetch={false} className="underline" href="/sales">
+          Back to sales
+        </Link>
+      </div>
+
+      <dl className="grid gap-4 rounded-lg border p-4 sm:grid-cols-3">
+        <div>
+          <dt className="text-xs text-muted-foreground">Kind / State</dt>
+          <dd>{sale.kind ?? "Unavailable"} · {sale.state ?? "Unavailable"}</dd>
         </div>
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-          <div className="space-y-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-5 w-full" />
+        <div>
+          <dt className="text-xs text-muted-foreground">Agreed Price</dt>
+          <dd>{moneyStr(sale.price)}</dd>
+        </div>
+        {sale.reference && (
+          <div>
+            <dt className="text-xs text-muted-foreground">Third-party Reference</dt>
+            <dd className="break-words">{sale.reference}</dd>
+          </div>
+        )}
+        <div>
+          <dt className="text-xs text-muted-foreground">Revision</dt>
+          <dd>{sale.revision ?? "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Handover Date / Mileage</dt>
+          <dd>
+            {sale.completion?.date ?? "Unavailable"} ·{" "}
+            {sale.completion?.mileage !== undefined ? `${sale.completion.mileage} km` : "Unavailable"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Customer</dt>
+          <dd>
+            {sale.customerId ? (
+              <Link prefetch={false} className="underline" href={`/customers/${sale.customerId}`}>
+                {customer?.fullName ?? sale.customerId}
+              </Link>
+            ) : (
+              "Unavailable"
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Source Cycle</dt>
+          <dd>
+            {sale.cycleId ? (
+              <Link prefetch={false} className="underline" href={`/purchases/${sale.cycleId}`}>
+                Purchase cycle {sale.cycleId}
+              </Link>
+            ) : (
+              "Unavailable"
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      {cycle?.financial && (
+        <div className="rounded-lg border p-4 text-sm space-y-1">
+          <h2 className="font-semibold">Cycle Financial Summary</h2>
+          <p>
+            Original Basis: {moneyStr(cycle.financial.originalBasis)} · Current Basis:{" "}
+            {moneyStr(cycle.financial.basis)} · Original Profit:{" "}
+            {moneyStr(cycle.financial.originalProfit)} · Restated Profit:{" "}
+            {moneyStr(cycle.financial.restatedProfit)}
+          </p>
+        </div>
+      )}
+
+      {sale.tradeIn && (
+        <div className="rounded-lg border p-4 space-y-2 text-sm">
+          <h2 className="font-semibold">Trade-In Consideration</h2>
+          <p>
+            {sale.tradeIn.description ?? "Unavailable"} · Value: {moneyStr(sale.tradeIn.value)}
+          </p>
+          {sale.tradeIn.acquiredCycleId ? (
+            <Link
+              prefetch={false}
+              className="underline"
+              href={`/purchases/${sale.tradeIn.acquiredCycleId}`}
+            >
+              Acquired trade-in inventory cycle: {sale.tradeIn.acquiredCycleId}
+            </Link>
+          ) : (
+            sale.nextActions?.includes("intakeTradeIn") && (
+              <div>
+                <Button type="button" onClick={() => setIntakeOpen((v) => !v)}>
+                  {intakeOpen ? "Cancel Trade-In Intake" : "Intake Trade-In Vehicle"}
+                </Button>
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {intakeOpen && (
+        <form onSubmit={submitIntake} className="space-y-3 rounded-lg border p-4">
+          <h3 className="font-semibold">Intake Trade-In Vehicle</h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Input required placeholder="Engine number *" value={intakeVehicle.engineNumber} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, engineNumber: e.target.value })} />
+            <Input required placeholder="Chassis number *" value={intakeVehicle.chassisNumber} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, chassisNumber: e.target.value })} />
+            <Input required placeholder="Make *" value={intakeVehicle.make} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, make: e.target.value })} />
+            <Input required placeholder="Model *" value={intakeVehicle.model} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, model: e.target.value })} />
+            <Input required type="number" placeholder="Year *" value={intakeVehicle.year} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, year: e.target.value })} />
+            <Input required placeholder="Colour *" value={intakeVehicle.colour} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, colour: e.target.value })} />
+            <Input required type="number" min={0} placeholder="Odometer *" value={intakeReading} onChange={(e) => setIntakeReading(e.target.value)} />
+            <Input placeholder="Listed price (optional)" value={intakeListed} onChange={(e) => setIntakeListed(e.target.value)} />
+          </div>
+          {intakeMsg && <p role="status" className="text-sm">{intakeMsg}</p>}
+          <Button type="submit" disabled={intakePending}>
+            {intakePending ? "Acquiring…" : "Confirm Trade-In Intake"}
+          </Button>
+        </form>
+      )}
+
+      <div className="rounded-lg border p-4 space-y-2 text-sm">
+        <h2 className="font-semibold">Completion</h2>
+        {sale.completion ? (
+          <p>
+            Completed {sale.completion.date ?? "Unavailable"} · handover{" "}
+            {sale.completion.mileage ?? "Unavailable"} km · basis{" "}
+            {sale.completion.basisVersionId ?? "Unavailable"}
+          </p>
+        ) : (
+          <p>Completion unavailable</p>
+        )}
+        <h3 className="font-semibold">Timeline</h3>
+        {sale.timeline?.length ? (
+          <ol className="space-y-1">
+            {sale.timeline.map((event, index) => (
+              <li key={`${event.at}:${event.action}:${index}`}>
+                {event.at} · {event.action} · {event.actorName}
+              </li>
             ))}
-          </div>
-          <div className="space-y-3 rounded-lg border p-4">
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-          </div>
-        </div>
+          </ol>
+        ) : (
+          <p>Timeline unavailable</p>
+        )}
       </div>
-    )
-  }
 
-  if (isError || !sale) {
-    return (
-      <div className="space-y-3 rounded-lg border p-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Could not load this record. It may have been removed or the request failed.
-        </p>
-        <Button variant="outline" size="sm" onClick={() => window.history.back()}>
-          Go back
-        </Button>
+      <div className="rounded-lg border p-4 space-y-2 text-sm">
+        <h2 className="font-semibold">Receipts</h2>
+        {sale.payments === undefined ? (
+          <p>Receipts unavailable</p>
+        ) : sale.payments.length === 0 ? (
+          <p>No cash receipts recorded (even trade-in value).</p>
+        ) : (
+          <ul className="space-y-1">
+            {sale.payments.map((p) => (
+              <li key={p.id}>
+                {p.direction} {moneyStr(p.amount)} · {p.date} · {p.method}
+                {p.reference ? ` · ${p.reference}` : ""}
+                {p.reversalOf ? ` (Reverses ${p.reversalOf})` : ""}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-    )
-  }
 
-  const vehicle = vehicleMap.get(sale.vehicleId)
-  const customer = customerMap.get(sale.customerId)
-  const financeCompany = sale.financeCompanyId ? thirdPartyMap.get(sale.financeCompanyId) : undefined
-  const tradeInVehicle = sale.tradeInVehicleId ? vehicleMap.get(sale.tradeInVehicleId) : undefined
-
-  return (
-    <div className="space-y-6">
-      {/* Breadcrumb */}
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/sales">Sales</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Sale #{id}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      {/* Two-column layout */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        {/* Main content */}
-        <div className="space-y-6">
-          {/* Payment Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">Payment Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {sale.saleType === "Cash" && (
-                <div className="grid grid-cols-2 gap-4">
-                  <InfoRow label="Sale Price" value={<CurrencyDisplay amount={sale.salePrice} />} />
-                  <InfoRow label="Payment Method" value={sale.paymentMethod === "BankTransfer" ? "Bank Transfer" : "Cash"} />
-                </div>
-              )}
-
-              {sale.saleType === "Advance" && (
-                <>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                    <InfoRow label="Agreed Sale Price" value={<CurrencyDisplay amount={sale.salePrice} />} />
-                    <InfoRow
-                      label="Advance Amount"
-                      value={sale.advanceAmount != null ? <CurrencyDisplay amount={sale.advanceAmount} /> : "—"}
-                    />
-                    <InfoRow
-                      label="Advance %"
-                      value={sale.advancePercentage != null ? `${sale.advancePercentage}%` : "—"}
-                    />
-                    <InfoRow label="Expiry Date" value={formatDate(sale.advanceExpiryDate)} />
-                    <InfoRow label="Payment Method" value={sale.paymentMethod === "BankTransfer" ? "Bank Transfer" : "Cash"} />
-                  </div>
-                  <Separator />
-                  <div className="rounded-md bg-muted/50 p-4 space-y-1">
-                    <p className="text-xs font-normal text-muted-foreground uppercase tracking-wide">Next Steps</p>
-                    <p className="text-sm">
-                      {sale.status === "AdvancePlaced"
-                        ? "Await customer to complete the balance payment before the expiry date."
-                        : sale.status === "AdvanceExpired"
-                          ? "Advance period has expired. Contact the customer or re-list the vehicle."
-                          : "Advance closed."}
-                    </p>
-                  </div>
-                </>
-              )}
-
-              {sale.saleType === "LeaseFinance" && (
-                <>
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                    <InfoRow label="Sale Price" value={<CurrencyDisplay amount={sale.salePrice} />} />
-                    <InfoRow
-                      label="Down Payment"
-                      value={sale.downPayment != null ? <CurrencyDisplay amount={sale.downPayment} /> : "—"}
-                    />
-                    <InfoRow
-                      label="Finance Amount"
-                      value={sale.financeAmount != null ? <CurrencyDisplay amount={sale.financeAmount} /> : "—"}
-                    />
-                    <InfoRow label="Finance Company" value={financeCompany?.name ?? sale.financeCompanyId ?? "—"} />
-                    <InfoRow label="Ref. Number" value={sale.thirdPartyRefNumber ?? "—"} />
-                    <InfoRow
-                      label="DO Status"
-                      value={sale.doDocumentUrl ? "Received" : "Pending"}
-                    />
-                  </div>
-                  {sale.doDocumentUrl && (
-                    <InfoRow
-                      label="DO Document"
-                      value={
-                        <a
-                          href={sale.doDocumentUrl}
-                          className="text-sm text-primary hover:underline"
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View Document
-                        </a>
-                      }
-                    />
-                  )}
-                  <Separator />
-                  <Button variant="outline" size="sm" disabled className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Download Invoice
-                  </Button>
-                  <p className="text-xs text-muted-foreground">Invoice generation available in a future release.</p>
-                </>
-              )}
-
-              {sale.saleType === "TradeIn" && (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  <InfoRow label="Sale Price" value={<CurrencyDisplay amount={sale.salePrice} />} />
-                  <InfoRow
-                    label="Trade-In Value"
-                    value={sale.tradeInValue != null ? <CurrencyDisplay amount={sale.tradeInValue} /> : "—"}
-                  />
-                  <InfoRow
-                    label="Cash Balance"
-                    value={
-                      sale.tradeInValue != null
-                        ? <CurrencyDisplay amount={sale.salePrice - sale.tradeInValue} />
-                        : "—"
-                    }
-                  />
-                  {tradeInVehicle && (
-                    <InfoRow
-                      label="Traded Vehicle"
-                      value={
-                        <Link href={`/vehicles/${tradeInVehicle.id}`} className="text-primary hover:underline">
-                          {tradeInVehicle.make} {tradeInVehicle.model} {tradeInVehicle.year}
-                        </Link>
-                      }
-                    />
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Sale Timeline */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">Sale Timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SaleTimeline timeline={sale.timeline ?? []} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right sidebar: Quick Stats + Customer + Vehicle */}
-        <div className="space-y-4">
-          {/* Quick Stats */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-semibold">Quick Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <span className="text-xs font-normal text-muted-foreground">Sale Type</span>
+      {sale.nextActions?.includes("requestApproval") && (
+        <div className="space-y-3 rounded-lg border p-4">
+          <Button type="button" variant="outline" onClick={() => setEditOpen((v) => !v)}>
+            {editOpen ? "Close Sale Edit Request" : "Request Sale Edit Approval"}
+          </Button>
+          {editOpen && (
+            <form onSubmit={submitSaleEdit} className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Badge variant="outline" className="text-xs font-normal">
-                    {SALE_TYPE_LABELS[sale.saleType] ?? sale.saleType}
-                  </Badge>
+                  <Label htmlFor="edit-price">New Agreed Price (Major, optional)</Label>
+                  <Input id="edit-price" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <span className="text-xs font-normal text-muted-foreground">Sale Price</span>
-                <p className="text-sm font-normal">
-                  <CurrencyDisplay amount={sale.salePrice} />
-                </p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-xs font-normal text-muted-foreground">Status</span>
                 <div>
-                  <StatusBadge status={sale.status} />
+                  <Label htmlFor="edit-ref">New Reference (optional)</Label>
+                  <Input id="edit-ref" value={editRef} onChange={(e) => setEditRef(e.target.value)} />
                 </div>
-              </div>
-              <div className="space-y-1">
-                <span className="text-xs font-normal text-muted-foreground">Sale Date</span>
-                <p className="text-sm font-normal">{formatDate(sale.date)}</p>
-              </div>
-              {sale.profitLoss != null && (
-                <div className="space-y-1">
-                  <span className="text-xs font-normal text-muted-foreground">Profit / Loss</span>
-                  <p className={`text-sm font-normal ${sale.profitLoss >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                    <CurrencyDisplay amount={sale.profitLoss} />
-                  </p>
+                <div>
+                  <Label htmlFor="edit-date">New Sale Date (optional)</Label>
+                  <Input id="edit-date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
                 </div>
+                <div>
+                  <Label htmlFor="edit-mileage">New Handover Mileage (optional)</Label>
+                  <Input id="edit-mileage" type="number" min={0} value={editMileage} onChange={(e) => setEditMileage(e.target.value)} />
+                </div>
+                {sale.kind === "TRADE_IN" && (
+                  <>
+                    <div>
+                      <Label htmlFor="edit-trade-desc">Trade-In Description</Label>
+                      <Input id="edit-trade-desc" value={editTradeDesc} onChange={(e) => setEditTradeDesc(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-trade-val">Trade-In Value (Major)</Label>
+                      <Input id="edit-trade-val" value={editTradeVal} onChange={(e) => setEditTradeVal(e.target.value)} />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="edit-reason">Edit Approval Reason *</Label>
+                <Textarea id="edit-reason" required value={editReason} onChange={(e) => setEditReason(e.target.value)} />
+              </div>
+              {editMsg && <p role="status" className="text-sm">{editMsg}</p>}
+              {editApprovalId && (
+                <Link prefetch={false} className="underline text-sm" href={`/approvals/${editApprovalId}`}>
+                  Open sale edit approval request
+                </Link>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Customer Info */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-semibold">Customer</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {customer ? (
-                <>
-                  <div className="space-y-0.5">
-                    <Link
-                      href={`/customers/${customer.id}`}
-                      className="text-sm font-normal text-primary hover:underline"
-                    >
-                      {customer.fullName}
-                    </Link>
-                  </div>
-                  <InfoRow label="Phone" value={customer.phone} />
-                  <InfoRow label="NIC / Passport" value={customer.nicPassport} />
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Customer not found.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Vehicle Info */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-semibold">Vehicle</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {vehicle ? (
-                <>
-                  <div className="space-y-0.5">
-                    <Link
-                      href={`/vehicles/${vehicle.id}`}
-                      className="text-sm font-normal text-primary hover:underline"
-                    >
-                      {vehicle.make} {vehicle.model} {vehicle.year}
-                    </Link>
-                  </div>
-                  <InfoRow label="Colour" value={vehicle.colour} />
-                  <InfoRow label="Transmission" value={vehicle.transmission} />
-                  <InfoRow label="Mileage at Sale" value={sale.mileageAtSale ? `${sale.mileageAtSale.toLocaleString()} km` : "—"} />
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Vehicle not found.</p>
-              )}
-            </CardContent>
-          </Card>
+              <Button type="submit" disabled={editPending}>
+                {editPending ? "Requesting…" : "Submit Sale Edit Approval"}
+              </Button>
+            </form>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+
+      {auditQuery.data && (
+        <div className="space-y-2 rounded-lg border p-4 text-sm">
+          <h2 className="font-semibold">Sale Audit History</h2>
+          {auditQuery.data.data.data.map((entry, idx) => (
+            <p key={entry.id ?? idx}>
+              {entry.action} · {entry.at} {entry.reason ? `· ${entry.reason}` : ""}
+            </p>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }

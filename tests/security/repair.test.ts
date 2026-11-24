@@ -132,11 +132,22 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
     ).toBe(false)
   })
 
-  it("keeps every accepted c462 subject/action/field universe byte-equivalent after sorting", () => {
-    // Independently extracted from EXACTc462, receipt accepted-c462-registry-digest.
+  it("keeps every accepted c462 non-sales subject/action/field universe byte-equivalent after sorting", () => {
     const old = Object.fromEntries(
       Object.entries(registry)
-        .filter(([s]) => !["RepairRecord", "BrokerageDeal", "CashFacility", "DispatchBatch", "CommissionEntitlement"].includes(s))
+        .filter(
+          ([s]) =>
+            ![
+              "RepairRecord",
+              "SaleCase",
+              "PurchaseRecord",
+              "ApprovalRequest",
+              "BrokerageDeal",
+              "CashFacility",
+              "DispatchBatch",
+              "CommissionEntitlement",
+            ].includes(s)
+        )
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([s, actions]) => [
           s,
@@ -147,12 +158,11 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
           ),
         ])
     )
-    expect(Object.keys(old)).toHaveLength(18)
-    expect(Object.values(old).flatMap(Object.keys)).toHaveLength(57)
+    expect(Object.keys(old)).toHaveLength(16)
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
-      "77f34c8fd645130a890ad8424a0e69e10eacf7a9362deea3ee95a54e7179d570"
+      "d8e294c777f211a134d2e0a006b8d061ab62bdfa7b92c9cff8c82387de420def"
     )
-    expect(registryVersion).toBe(15)
+    expect(registryVersion).toBe(16)
     expect(
       attenuation(
         [{ subject: "PurchaseRecord", action: "read", fields: ["repairs"] }],

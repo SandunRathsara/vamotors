@@ -3,6 +3,7 @@ import { authenticate } from "@/lib/server/actor"
 import { repairPagePurchase } from "@/lib/server/repair-detail"
 import { brokeragePageDetail } from "@/lib/server/brokerage"
 import { authenticatedApprovalDetail } from "@/lib/server/approvals"
+import { authenticatedSaleDetail } from "@/lib/server/sales"
 import { CommandError, publicError } from "@/lib/server/errors"
 
 // Defense in depth for framework-generated 404/405/redirect/RSC responses too.
@@ -39,12 +40,14 @@ export async function proxy(request: NextRequest) {
     }
   }
   const approval = request.nextUrl.pathname.match(/^\/approvals\/([^/]+)\/?$/)
-  if (approval && ["GET", "HEAD"].includes(request.method)) {
+  const sale = request.nextUrl.pathname.match(/^\/sales\/([^/]+)\/?$/)
+  if ((approval || sale) && ["GET", "HEAD"].includes(request.method)) {
     // Next may stream its RSC shell before notFound() can change HTTP status.
     // This one exact-route preflight enforces404 before headers; the page still
     // repeats the same current-authority lookup, never trusting this as a grant.
     try {
-      await authenticatedApprovalDetail(request.headers, approval[1])
+      if (approval) await authenticatedApprovalDetail(request.headers, approval[1])
+      else if (sale) await authenticatedSaleDetail(request.headers, sale[1])
     } catch (error) {
       if (
         error instanceof CommandError &&

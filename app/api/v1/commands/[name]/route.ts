@@ -1,7 +1,13 @@
 import { authenticate } from "@/lib/server/actor"
 import { executeAdmin } from "@/lib/server/admin"
 import { executeRepair } from "@/lib/server/repairs"
-import { repairInputs, type RepairCommand } from "@/lib/server/validators"
+import { executeSale } from "@/lib/server/sales"
+import {
+  repairInputs,
+  saleInputs,
+  type RepairCommand,
+  type SaleCommand,
+} from "@/lib/server/validators"
 import { commandInputs, type CommandName } from "@/lib/server/validators"
 import {
   endpoint,
@@ -70,6 +76,7 @@ export async function POST(
       !Object.hasOwn(cycleMoneyInputs, name) &&
       !Object.hasOwn(cycleEditInputs, name) &&
       !Object.hasOwn(repairInputs, name) &&
+      !Object.hasOwn(saleInputs, name) &&
       !customer &&
       !party &&
       !rates &&
@@ -104,8 +111,10 @@ export async function POST(
             name as RepairCommand | "reversePayment",
             raw
           )
-        : Object.hasOwn(approvalInputs, name)
-          ? await executeApproval(identity, name as ApprovalCommand, raw)
+        : Object.hasOwn(saleInputs, name)
+          ? await executeSale(identity, name as SaleCommand, raw)
+          : Object.hasOwn(approvalInputs, name)
+            ? await executeApproval(identity, name as ApprovalCommand, raw)
           : Object.hasOwn(notificationInputs, name)
             ? await executeNotification(
                 identity,
@@ -169,6 +178,8 @@ export async function POST(
       name === "recordPurchase" ||
       name === "addCost" ||
       name === "sendRepair" ||
+      name === "completeImmediate" ||
+      name === "intakeTradeIn" ||
       name === "createCustomer" ||
       name === "createDirectoryParty" ||
       name === "createFinanceCompany" ||

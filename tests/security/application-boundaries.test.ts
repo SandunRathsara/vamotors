@@ -15,6 +15,7 @@ import {
   importStagingPages,
   approvalPages,
   brokeragePages,
+  salesPages,
 } from "./route-inventory"
 
 function files(root: string): string[] {
@@ -79,6 +80,8 @@ describe("global entry-point inventory", () => {
         ...persistedRepairPages,
         ...approvalPages,
         ...brokeragePages,
+        ...salesPages,
+        "/dashboard",
         "/users",
         "/customers",
         "/customers/[id]",

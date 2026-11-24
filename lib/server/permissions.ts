@@ -92,6 +92,41 @@ export const settlementFields = [
   "amount",
   "cashToSeller",
 ] as const
+const salePaymentFields = sourcePaymentFields.filter(
+  (f) => !["owner.type", "owner.id", "commandId", "reason"].includes(f)
+)
+const immediateSaleWriteFields = [
+  "cycleId",
+  "customerId",
+  "kind",
+  "price",
+  "date",
+  "mileage",
+  "method",
+  "reference",
+  "reason",
+  "tradeIn",
+  "tradeIn.description",
+  "tradeIn.value",
+  "tradeIn.intake",
+  "tradeIn.intake.vehicle",
+  "tradeIn.intake.mileage",
+  "tradeIn.intake.listedPrice",
+] as const
+const saleEditWriteFields = [
+  "saleId",
+  "reason",
+  "patch.customerId",
+  "patch.price",
+  "patch.reference",
+  "patch.saleDate",
+  "patch.handoverMileage",
+  "patch.notes",
+  "patch.tradeIn",
+  "patch.tradeIn.description",
+  "patch.tradeIn.value",
+  "cashCorrections",
+] as const
 
 // Deliberately closed initial capability registry. Downstream subjects stay
 // ungrantable until their authoritative DTO/command mappings are implemented.
@@ -224,6 +259,7 @@ export const registry = {
       "purchaseType",
       "acquisitionKind",
       "seller",
+      "tradeInSourceSaleId",
       "purchaseDate",
       "purchasePrice",
       "listedPrice",
@@ -279,6 +315,10 @@ export const registry = {
       "financial.repairs",
       "financial.additionalCosts",
       "financial.basis",
+      "financial.originalBasis",
+      "financial.salePrice",
+      "financial.originalProfit",
+      "financial.restatedProfit",
       "financial.cashIn",
       "financial.cashOut",
       "financial.net",
@@ -537,6 +577,7 @@ export const registry = {
       "id",
       "revision",
       "proposal.kind",
+      "proposal.operation",
       "proposal.input.cycleId",
       "proposal.input.date",
       "proposal.input.reason",
@@ -546,6 +587,13 @@ export const registry = {
       "proposal.input.receipt.date",
       "proposal.input.receipt.method",
       "proposal.input.receipt.reference",
+      "proposal.command",
+      "proposal.command.name",
+      "proposal.command.input",
+      ...immediateSaleWriteFields.map((f) => `proposal.command.input.${f}`),
+      ...saleEditWriteFields
+        .filter((f) => f !== "reason")
+        .map((f) => `proposal.input.${f}`),
       "expected",
       "payloadHash",
       "reason",
@@ -560,6 +608,7 @@ export const registry = {
     create: [
       "proposal",
       "proposal.kind",
+      "proposal.operation",
       "proposal.input.cycleId",
       "proposal.input.date",
       "proposal.input.reason",
@@ -569,9 +618,46 @@ export const registry = {
       "proposal.input.receipt.date",
       "proposal.input.receipt.method",
       "proposal.input.receipt.reference",
+      "proposal.command",
+      "proposal.command.name",
+      "proposal.command.input",
+      ...immediateSaleWriteFields.map((f) => `proposal.command.input.${f}`),
+      ...saleEditWriteFields
+        .filter((f) => f !== "reason")
+        .map((f) => `proposal.input.${f}`),
       "reason",
     ],
     approve: ["approvalId", "decision", "note"],
+  },
+  SaleCase: {
+    read: [
+      "id",
+      "cycleId",
+      "customerId",
+      "revision",
+      "kind",
+      "state",
+      "price",
+      "reference",
+      "tradeIn",
+      "tradeIn.description",
+      "tradeIn.value",
+      "tradeIn.acquiredCycleId",
+      "completion",
+      "completion.id",
+      "completion.date",
+      "completion.mileage",
+      "completion.basisVersionId",
+      "payments",
+      ...salePaymentFields.map((p) => `payments.${p}`),
+      "timeline",
+      "nextActions",
+      "invoices",
+      "provenance",
+    ],
+    create: [...immediateSaleWriteFields],
+    update: [...saleEditWriteFields, "vehicle", "mileage", "listedPrice"],
+    pay: ["amount", "date", "method", "reference"],
   },
   Disposal: {
     read: [
@@ -861,12 +947,13 @@ export const registry = {
     ],
   },
 } as const
-// Preserve every accepted v14 population; brokerage subjects are new here.
-export const registryVersion = 15
+// Registry v16 combines the sales and brokerage capability sets.
+export const registryVersion = 16
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   ApprovalRequest: ["createdBy"],
   Disposal: ["createdBy"],
+  SaleCase: ["createdBy", "customerId"],
   User: [],
   Role: [],
   Vehicle: ["createdBy", "status"],
@@ -1162,13 +1249,12 @@ export function readScope(
         Object.entries(g.conditions ?? {}).map(([k, v]) => [
           (type === "RateSheet" || type === "Quote") && k === "financeCompanyId"
             ? "companyId"
-            : (type === "BrokerageDeal" ||
-                  type === "CommissionEntitlement") &&
+            : (type === "BrokerageDeal" || type === "CommissionEntitlement") &&
                 k === "financeCompanyId"
               ? "companyId"
               : type === "ApprovalRequest" && k === "createdBy"
-              ? "requestedBy"
-              : k,
+                ? "requestedBy"
+                : k,
           v === "$actor.id" ? userId : v,
         ])
       )
@@ -1278,6 +1364,7 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
         conditions: conditionKeys[type as EnabledSubject].map((key) => ({
           key: key as
             | "createdBy"
+            | "customerId"
             | "status"
             | "recipientUserId"
             | "financeCompanyId",
@@ -1285,7 +1372,7 @@ export function permissionRegistryDTO(): PermissionRegistryDTO {
           valueType:
             key === "status"
               ? ("STATUS" as const)
-              : key === "financeCompanyId"
+              : key === "financeCompanyId" || key === "customerId"
                 ? ("UUID" as const)
                 : ("ACTOR_ID" as const),
           ...(key === "status" ? { allowedValues: [...states] } : {}),

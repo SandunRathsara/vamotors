@@ -230,9 +230,9 @@ describe("brokerage validators", () => {
   })
 })
 
-describe("permission registry v15", () => {
+describe("permission registry v16", () => {
   it("publishes brokerage subjects and the administrator ceiling", () => {
-    expect(registryVersion).toBe(15)
+    expect(registryVersion).toBe(16)
     expect(Object.keys(registry)).toEqual(
       expect.arrayContaining([
         "BrokerageDeal",

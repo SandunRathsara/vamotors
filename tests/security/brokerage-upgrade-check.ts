@@ -1,4 +1,4 @@
-/** Genuine upgrade: 93843d42 (18 migrations, registry v14) -> T12 (19, v15). */
+/** Genuine upgrade: 93843d42 (18 migrations, registry v14) -> integrated sales and brokerage (21, v16). */
 import assert from "node:assert/strict"
 import { execFileSync, execSync } from "node:child_process"
 import { randomBytes, randomUUID } from "node:crypto"
@@ -215,12 +215,12 @@ try {
     )
   })
 
-  await group("T12 upgrade applies migration 19 and preserves every v14 permission", async () => {
+  await group("integration applies both features and preserves seeded v14 permissions", async () => {
     script(source, "migrate-disposable", [envFile])
     const migrations = await db.query(
       'SELECT migration_name FROM vamotors._prisma_migrations ORDER BY migration_name'
     )
-    assert.equal(migrations.rows.length, 19)
+    assert.equal(migrations.rows.length, 21)
     assert.ok(
       migrations.rows.some((row) =>
         String(row.migration_name).includes("lease_brokerage")
@@ -237,18 +237,30 @@ try {
       )
     }
     const added = after.filter((row) => !oldHashes.has(row.rulehash))
-    assert.ok(added.length > 0)
-    for (const permission of added)
-      assert.match(
-        permission.rule,
-        /"(BrokerageDeal|CashFacility|DispatchBatch|CommissionEntitlement)"/
-      )
+    const addedGrants = added.map(({ rule }) => JSON.parse(rule))
+    const addedActions = Object.groupBy(addedGrants, (grant) => grant.subject)
+    assert.deepEqual(
+      Object.fromEntries(
+        Object.entries(addedActions).map(([subject, grants]) => [
+          subject,
+          grants?.map((grant) => grant.action).sort(),
+        ])
+      ),
+      {
+        SaleCase: ["create", "pay", "read", "update"],
+        BrokerageDeal: ["create", "dispatch", "read", "update"],
+        CashFacility: ["create", "pay", "read", "update"],
+        DispatchBatch: ["create", "dispatch", "read"],
+        CommissionEntitlement: ["create", "read"],
+      }
+    )
+    assert.ok(addedGrants.every(({ fields }) => JSON.stringify(fields) === '["*"]'))
     script(source, "revalidate-permissions", [envFile])
     const roles = await roleState()
     const adminBefore = beforeRoles.find((row) => row.systemKey === "ADMINISTRATOR")!
     const adminAfter = roles.find((row) => row.systemKey === "ADMINISTRATOR")!
     assert.equal(adminAfter.grants, adminBefore.grants + added.length)
-    assert.equal(adminAfter.revision, adminBefore.revision + 1)
+    assert.equal(adminAfter.revision, adminBefore.revision + 2)
     for (const role of roles.filter((row) => row.systemKey !== "ADMINISTRATOR")) {
       const old = beforeRoles.find(
         (row) =>
@@ -262,7 +274,7 @@ try {
       `SELECT count(*)::int AS n FROM vamotors."RolePermission" rp JOIN vamotors."Permission" p ON p.id=rp."permissionId" JOIN vamotors."Role" r ON r.id=rp."roleId" WHERE r."systemKey" IS DISTINCT FROM 'ADMINISTRATOR' AND p.rule->>'subject' IN ('BrokerageDeal','CashFacility','DispatchBatch','CommissionEntitlement')`
     )
     assert.equal(newSubjectGrants.rows[0].n, 0)
-    assert.equal(registryVersion, 15)
+    assert.equal(registryVersion, 16)
   })
 
   await group("repeat migration is a no-op", async () => {

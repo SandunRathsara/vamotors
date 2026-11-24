@@ -4,7 +4,8 @@ SELECT vamotors.lock_admin_guard();
 
 -- ── Read model / registry ────────────────────────────────────────────────────
 ALTER TABLE vamotors."EntityReadVersion" DROP CONSTRAINT "EntityReadVersion_entityType_check";
-ALTER TABLE vamotors."EntityReadVersion" ADD CONSTRAINT "EntityReadVersion_entityType_check" CHECK("entityType" IN ('Vehicle','PurchaseRecord','Customer','Supplier','RepairVendor','FinanceCompany','Settings','RateSheet','Quote','VehicleCost','ImportBatch','Document','RepairRecord','ApprovalRequest','BrokerageDeal','CashFacility','DispatchBatch','CommissionEntitlement'));
+-- The integration migration validates the union, including any existing sale history.
+ALTER TABLE vamotors."EntityReadVersion" ADD CONSTRAINT "EntityReadVersion_entityType_check" CHECK("entityType" IN ('Vehicle','PurchaseRecord','Customer','Supplier','RepairVendor','FinanceCompany','Settings','RateSheet','Quote','VehicleCost','ImportBatch','Document','RepairRecord','ApprovalRequest','BrokerageDeal','CashFacility','DispatchBatch','CommissionEntitlement')) NOT VALID;
 
 -- ── Brokerage deal root ──────────────────────────────────────────────────────
 CREATE TABLE vamotors."BrokerageDeal" (
