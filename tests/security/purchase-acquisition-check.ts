@@ -436,7 +436,7 @@ try {
     }
   )
   await group(
-    "strict validation, eligibility, references and disabled unsupported commands leave no effects",
+    "strict validation, eligibility, references and malformed commands leave no effects",
     async () => {
       const before = await snapshot()
       const input = purchase("invalid")
@@ -505,7 +505,7 @@ try {
           a.request,
           name,
           envelope({ cycleId: cash.id }),
-          name === "intakeTradeIn" ? 404 : 422
+          422
         )
       assert.equal(await snapshot(), before)
     }

@@ -144,8 +144,7 @@ export function PartyDirectory() {
         )}
       </nav>
       <p className="text-sm text-muted-foreground">
-        Finance writes require readable persisted Settings references. Purchase,
-        repair and finance histories remain pending their respective workflows.
+        Open an entry to see its linked purchases, repairs or finance records.
       </p>
       {(form || ability.can("create", type)) && (
         <Button

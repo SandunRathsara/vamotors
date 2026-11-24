@@ -19,6 +19,11 @@ import { major, parseMajor } from "@/lib/money"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  mileageDecreased,
+  MileageDecreaseReason,
+  useVehicleMileage,
+} from "./mileage-fields"
 
 type Cycle = Visible<PurchaseCycleDTO>
 const labels: Record<CycleEditCommand, string> = {
@@ -41,7 +46,13 @@ const fieldLabels: Record<string, string> = {
 }
 
 /** Outside the read-result subtree: a failed refetch cannot replace an intent. */
-export function CycleEdits({ cycle }: { cycle: Cycle }) {
+export function CycleEdits({
+  cycle,
+  disabled,
+}: {
+  cycle: Cycle
+  disabled?: boolean
+}) {
   const queries = useQueryClient(),
     { actor } = useActor(),
     ability = abilityFor(actor.presentationGrants, actor.user.id),
@@ -54,6 +65,18 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
     [stale, setStale] = useState(false),
     [latest, setLatest] = useState<Cycle | null>(null),
     [message, setMessage] = useState("")
+  const mileageHistory = useVehicleMileage(
+    name === "addMileage" && snapshot.cycleNumber !== 1
+      ? snapshot.vehicleId
+      : undefined
+  )
+  const decreased = mileageDecreased(
+    mileageHistory.data?.data.cycles ?? [snapshot],
+    draft.reading ?? "",
+    draft.date ?? ""
+  )
+  const awaitingRevision =
+    !body && (disabled || (mileageHistory.isFetching && !mileageHistory.data))
   const actions = (cycle.nextActions ?? []).filter((n): n is CycleEditCommand =>
     Object.hasOwn(labels, n)
   )
@@ -94,7 +117,7 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (!name || pending || stale) return
+    if (!name || pending || stale || awaitingRevision) return
     setPending(true)
     try {
       let submitted = body
@@ -152,8 +175,8 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
                     reading: draft.reading?.trim() ? Number(draft.reading) : -1,
                     date: draft.date ?? "",
                     ...(draft.remark?.trim() ? { remark: draft.remark } : {}),
-                    ...(draft.decreaseReason?.trim()
-                      ? { decreaseReason: draft.decreaseReason }
+                    ...(decreased
+                      ? { decreaseReason: draft.decreaseReason ?? "" }
                       : {}),
                   },
                 }
@@ -224,12 +247,7 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
           required={required}
           disabled={disabled}
           maxLength={
-            key === "reason" ||
-            key === "notes" ||
-            key === "remark" ||
-            key === "decreaseReason"
-              ? 2000
-              : 200
+            key === "reason" || key === "notes" || key === "remark" ? 2000 : 200
           }
           value={draft[key] ?? ""}
           onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
@@ -254,7 +272,7 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
       {!name && (
         <div className="flex flex-wrap gap-3">
           {actions.map((n) => (
-            <Button key={n} onClick={() => begin(n)}>
+            <Button key={n} disabled={disabled} onClick={() => begin(n)}>
               {labels[n]}
             </Button>
           ))}
@@ -283,11 +301,13 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
                 {field("reading", "Actual mileage reading", "number")}
                 {field("date", "Actual mileage date", "date")}
                 {field("remark", "Mileage remark", "text", false)}
-                {field(
-                  "decreaseReason",
-                  "Reason for a mileage decrease",
-                  "text",
-                  false
+                {decreased && (
+                  <MileageDecreaseReason
+                    value={draft.decreaseReason ?? ""}
+                    onChange={(decreaseReason) =>
+                      setDraft({ ...draft, decreaseReason })
+                    }
+                  />
                 )}
               </>
             )}
@@ -397,7 +417,10 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
             </div>
           )}
           <div className="flex flex-wrap gap-3">
-            <Button type="submit" disabled={pending || stale}>
+            <Button
+              type="submit"
+              disabled={pending || stale || awaitingRevision}
+            >
               {pending
                 ? "Committing cycle edit…"
                 : body

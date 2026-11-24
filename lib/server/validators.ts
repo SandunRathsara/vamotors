@@ -500,6 +500,7 @@ const resolutionInput = z.object({
 const handover = z.object({
   date: dateOnly,
   mileage: z.number().int().min(0).max(99999999),
+  reason: text.optional(),
 })
 export const commitmentInputs = {
   placeReservation: commitmentOpening.extend({ receipt: cashInput }).strict(),
@@ -511,7 +512,7 @@ export const commitmentInputs = {
     termMonths: z.number().int().min(1).max(120),
   }).strict(),
   convertReservation: handover.extend({
-    reservationId: id, balance: cashInput.nullable(), reason: text.optional(),
+    reservationId: id, balance: cashInput.nullable(),
   }).strict(),
   cancelRetained: resolutionInput.extend({ reservationId: id }).strict(),
   recordDO: z.object({ saleCaseId: id, attachmentId: id, issueDate: dateOnly }).strict(),

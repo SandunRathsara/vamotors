@@ -87,14 +87,7 @@ async function activate(target: Locator) {
   await target.press("Enter")
 }
 async function date(target: Locator) {
-  await target.focus()
-  for (let i = 0; i < 3; i++) await target.press("ArrowLeft")
-  await target.pressSequentially("2026")
-  await target.press("ArrowRight")
-  await target.pressSequentially("10")
-  await target.press("ArrowRight")
-  await target.pressSequentially("01")
-  await target.press("Tab")
+  await target.fill("2026-10-01")
   await expect(target).toHaveValue("2026-10-01")
 }
 const revision = (p: Page) => p.getByText(/^Selected revision:/)

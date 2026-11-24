@@ -16,6 +16,10 @@ import type {
 } from "@/.planning/implementation/contracts/api"
 import { major, parseMajor } from "@/lib/money"
 import { privateRequest, RequestError } from "@/lib/security-client"
+import {
+  mileageDecreased,
+  MileageDecreaseReason,
+} from "@/components/purchases/mileage-fields"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -73,6 +77,11 @@ export function CommitmentActions({
   const queryClient = useQueryClient()
   const currency = useCurrencyLabel()
   const [active, setActive] = useState<Action>()
+  const [handoverDraft, setHandoverDraft] = useState({
+    date: "",
+    reading: "",
+    reason: "",
+  })
   const [company, setCompany] = useState<CompanyOption>()
   const [saleReference, setSaleReference] = useState<string>()
   const [hold, setHold] = useState(false)
@@ -111,6 +120,12 @@ export function CommitmentActions({
     (!reserved ||
       (reservation?.id && reservation.revision && reservation.amount))
   const refDate = colomboToday()
+  const isHandover =
+    active === "convertReservation" || active === "confirmDOAndHandover"
+  const decreased =
+    cycle &&
+    isHandover &&
+    mileageDecreased([cycle], handoverDraft.reading, handoverDraft.date)
 
   async function upload(file: File, saleRef: Dependency) {
     const bytes = new Uint8Array(await file.arrayBuffer())
@@ -194,6 +209,7 @@ export function CommitmentActions({
         const handover = {
           date: text("date"),
           mileage: Number(text("mileage")),
+          ...(text("reason") ? { reason: text("reason") } : {}),
         }
         const disposition = hold
           ? { kind: "HOLD", reason: text("holdReason") }
@@ -411,6 +427,13 @@ export function CommitmentActions({
                 variant={active === action ? "default" : "outline"}
                 disabled={pending}
                 onClick={() => {
+                  if (active !== action)
+                    setHandoverDraft({
+                      date: refDate,
+                      reading:
+                        cycle?.mileage?.at(-1)?.reading?.toString() ?? "",
+                      reason: "",
+                    })
                   setActive(action)
                   setProblem("")
                 }}
@@ -503,22 +526,43 @@ export function CommitmentActions({
                     required
                     max={refDate}
                     defaultValue={refDate}
+                    onChange={(e) =>
+                      setHandoverDraft({
+                        ...handoverDraft,
+                        date: e.target.value,
+                      })
+                    }
                   />
                 </Label>
               )}
-              {["convertReservation", "confirmDOAndHandover"].includes(
-                active
-              ) && (
-                <Label className="grid gap-2">
-                  Handover mileage (km)
-                  <Input
-                    type="number"
-                    name="mileage"
-                    min={0}
-                    required
-                    defaultValue={cycle?.mileage?.at(-1)?.reading}
-                  />
-                </Label>
+              {isHandover && (
+                <>
+                  <Label className="grid gap-2">
+                    Handover mileage (km)
+                    <Input
+                      type="number"
+                      name="mileage"
+                      min={0}
+                      required
+                      value={handoverDraft.reading}
+                      onChange={(e) =>
+                        setHandoverDraft({
+                          ...handoverDraft,
+                          reading: e.target.value,
+                        })
+                      }
+                    />
+                  </Label>
+                  {decreased && (
+                    <MileageDecreaseReason
+                      name="reason"
+                      value={handoverDraft.reason}
+                      onChange={(reason) =>
+                        setHandoverDraft({ ...handoverDraft, reason })
+                      }
+                    />
+                  )}
+                </>
               )}
               {([
                 "startFinance",

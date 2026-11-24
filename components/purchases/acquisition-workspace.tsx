@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CycleCosts } from "./cycle-costs"
 import { CycleEdits } from "./cycle-edits"
+import { MileageDecreaseReason, useAcquisitionMileage } from "./mileage-fields"
 import {
   RepairCommands,
   RepairHistory,
@@ -92,6 +93,12 @@ export function AcquisitionForm({
         `/api/v1/queries/parties?type=SUPPLIER&active=true&pageSize=20&page=${supplierPage}&q=${encodeURIComponent(search)}`
       ),
   })
+  const mileage = useAcquisitionMileage(
+    draft.engineNumber,
+    draft.chassisNumber,
+    draft.mileage,
+    draft.mileageDate
+  )
   const locked = pending || !!body || inlinePending
   const update = (key: string, value: string) =>
     setDraft({ ...draft, [key]: value })
@@ -101,7 +108,7 @@ export function AcquisitionForm({
   }
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (pending || stale || inlinePending) return
+    if (pending || stale || inlinePending || (!body && mileage.checking)) return
     let submitted = body
     setPending(true)
     try {
@@ -139,6 +146,9 @@ export function AcquisitionForm({
             date: draft.mileageDate,
             ...(draft.mileageRemark?.trim()
               ? { remark: draft.mileageRemark }
+              : {}),
+            ...(mileage.decreased
+              ? { decreaseReason: draft.mileageDecreaseReason ?? "" }
               : {}),
           },
         })
@@ -241,7 +251,9 @@ export function AcquisitionForm({
       <p>
         Cash, brand-new and lease settlement acquisitions record actual positive
         payments on the purchase date. Stock remains Purchased and unavailable
-        until explicit physical receipt. Repurchase and trade-in remain pending.
+        until physical receipt. To repurchase a sold vehicle, enter the same
+        physical details to start a new stock cycle. Record trade-ins from the
+        sale workflow.
       </p>
       <fieldset disabled={locked} className="space-y-3">
         <Label htmlFor="supplier-search">Search active suppliers by name</Label>
@@ -461,6 +473,12 @@ export function AcquisitionForm({
                 />
               </div>
             ))}
+          {mileage.decreased && (
+            <MileageDecreaseReason
+              value={draft.mileageDecreaseReason ?? ""}
+              onChange={(value) => update("mileageDecreaseReason", value)}
+            />
+          )}
           {draft.purchaseType === "LEASE_SETTLEMENT" && (
             <SettlementFields
               draft={draft}
@@ -483,9 +501,9 @@ export function AcquisitionForm({
         {stale && (
           <section className="space-y-3 rounded-md border p-4">
             <p>
-              Review the current supplier, then explicitly start a new intent
-              with your retained draft. An existing vehicle cannot be acquired
-              again in this slice.
+              Review the current supplier and vehicle details before starting a
+              new intent with this draft. To repurchase, use the same physical
+              details as the sold vehicle and a date on or after the prior sale.
             </p>
             <Button
               type="button"
@@ -538,6 +556,7 @@ export function AcquisitionForm({
             pending ||
             stale ||
             inlinePending ||
+            (!body && mileage.checking) ||
             !ability.can("create", "PurchaseRecord")
           }
           className="min-h-11"
@@ -801,7 +820,13 @@ export function AcquisitionWorkspace({
   )
 }
 
-function StockControls({ cycle }: { cycle: Cycle }) {
+function StockControls({
+  cycle,
+  onPendingChange,
+}: {
+  cycle: Cycle
+  onPendingChange: (pending: boolean) => void
+}) {
   const queries = useQueryClient()
   const [name, setName] = useState<StockCommand | null>(null)
   const [snapshot, setSnapshot] = useState(cycle)
@@ -830,6 +855,7 @@ function StockControls({ cycle }: { cycle: Cycle }) {
     event.preventDefault()
     if (!name || pending || stale) return
     setPending(true)
+    onPendingChange(true)
     try {
       let submitted = body
       if (!submitted) {
@@ -872,13 +898,16 @@ function StockControls({ cycle }: { cycle: Cycle }) {
         headers: { "Content-Type": "application/json" },
         body: submitted,
       })
+      await Promise.all(
+        result.invalidate.map((key) =>
+          queries.invalidateQueries({ queryKey: [key] })
+        )
+      )
       setBody(null)
       setName(null)
       setMessage(
         "Stock change committed. No payment, mileage or cost was recorded."
       )
-      for (const key of result.invalidate)
-        await queries.invalidateQueries({ queryKey: [key] })
     } catch (cause) {
       const code =
         cause instanceof RequestError
@@ -898,6 +927,7 @@ function StockControls({ cycle }: { cycle: Cycle }) {
         `${code}. Draft retained. Retry sends the original unchanged envelope; conflicts require explicit reload and reconfirmation.`
       )
     } finally {
+      onPendingChange(false)
       setPending(false)
     }
   }
@@ -1282,6 +1312,7 @@ export function AcquisitionDetail({
   vehicle?: boolean
 }) {
   const router = useRouter()
+  const [stockPending, setStockPending] = useState(false)
   const name = vehicle ? "vehicle" : "purchase"
   const query = useQuery({
     queryKey: [vehicle ? "inventory" : "purchases", "detail", id],
@@ -1300,6 +1331,7 @@ export function AcquisitionDetail({
       {/* Keep the pending intent outside the query-result subtree. A transient
           observer/read reset must not unmount its immutable request envelope. */}
       <StockControls
+        onPendingChange={setStockPending}
         cycle={
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }
@@ -1310,6 +1342,7 @@ export function AcquisitionDetail({
         }
       />
       <CycleEdits
+        disabled={stockPending || query.isFetching || query.isError}
         cycle={
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }

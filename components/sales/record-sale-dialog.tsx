@@ -21,6 +21,11 @@ import {
   saleEnvelope,
   approvalEnvelope,
 } from "@/lib/server/validators"
+import {
+  MileageDecreaseReason,
+  mileageDecreased,
+  useAcquisitionMileage,
+} from "@/components/purchases/mileage-fields"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -102,6 +107,13 @@ export function RecordSaleDialog({
     decreaseReason: "",
   })
   const [intakeListed, setIntakeListed] = useState("")
+  const tradeInMileage = useAcquisitionMileage(
+    intakeVehicle.engineNumber,
+    intakeVehicle.chassisNumber,
+    intakeMileage.reading,
+    intakeMileage.date || date,
+    open && kind === "TRADE_IN" && includeIntake
+  )
 
   // Inline customer creation state (preserves all sale inputs!)
   const [inlineCustomerOpen, setInlineCustomerOpen] = useState(false)
@@ -153,6 +165,10 @@ export function RecordSaleDialog({
     : (stockQuery.data?.data.data ?? []).filter((c) => c.available !== false)
   const selectedCycle =
     fixedCycle ?? availableCycles.find((c) => c.id === cycleId)
+  const handoverDecreased =
+    immediate &&
+    selectedCycle &&
+    mileageDecreased([selectedCycle], mileage, date)
   const customers = (customersQuery.data?.data.data ?? []).filter(
     (c) => c.active !== false
   )
@@ -301,7 +317,7 @@ export function RecordSaleDialog({
             ...(intakeMileage.remark.trim()
               ? { remark: intakeMileage.remark.trim() }
               : {}),
-            ...(intakeMileage.decreaseReason.trim()
+            ...(tradeInMileage.decreased
               ? { decreaseReason: intakeMileage.decreaseReason.trim() }
               : {}),
           },
@@ -340,7 +356,7 @@ export function RecordSaleDialog({
 
   async function submitSale(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (pending || stale) return
+    if (pending || stale || (!body && tradeInMileage.checking)) return
     const form = new FormData(e.currentTarget)
     setPending(true)
     setStatusMsg("")
@@ -394,7 +410,7 @@ export function RecordSaleDialog({
 
   async function submitDiscountApproval(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (pending || stale) return
+    if (pending || stale || (!discountBody && tradeInMileage.checking)) return
     const form = new FormData(e.currentTarget)
     setPending(true)
     setStatusMsg("")
@@ -772,6 +788,14 @@ export function RecordSaleDialog({
                       })
                     }
                   />
+                  {tradeInMileage.decreased && (
+                    <MileageDecreaseReason
+                      value={intakeMileage.decreaseReason}
+                      onChange={(decreaseReason) =>
+                        setIntakeMileage({ ...intakeMileage, decreaseReason })
+                      }
+                    />
+                  )}
                   <Input
                     placeholder="Listed price (optional)"
                     value={intakeListed}
@@ -791,9 +815,14 @@ export function RecordSaleDialog({
           )}
 
           <div>
-            <Label htmlFor="sale-reason">Sale Notes / Reason (optional)</Label>
+            <Label htmlFor="sale-reason">
+              {handoverDecreased
+                ? "Reason for a mileage decrease *"
+                : "Sale Notes / Reason (optional)"}
+            </Label>
             <Textarea
               id="sale-reason"
+              required={handoverDecreased}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
@@ -851,7 +880,15 @@ export function RecordSaleDialog({
                 Reload latest revisions
               </Button>
             )}
-            <Button type="submit" disabled={pending || stale}>
+            <Button
+              type="submit"
+              disabled={
+                pending ||
+                stale ||
+                (!(discountMode ? discountBody : body) &&
+                  tradeInMileage.checking)
+              }
+            >
               {pending
                 ? "Submitting…"
                 : discountMode

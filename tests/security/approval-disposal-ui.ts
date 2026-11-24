@@ -486,7 +486,11 @@ try {
             exact: true,
           })
         ).toBeVisible()
-        await expect(page.getByText("85.00", { exact: true })).toBeVisible()
+        await expect(
+          page
+            .getByRole("region", { name: "Current disposal evidence" })
+            .getByText("85.00", { exact: true })
+        ).toHaveCount(2)
         await view(page, "vehicle-terminal-1920")
       }
     )
