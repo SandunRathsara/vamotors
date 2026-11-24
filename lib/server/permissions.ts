@@ -587,6 +587,11 @@ export const registry = {
       "proposal.input.receipt.date",
       "proposal.input.receipt.method",
       "proposal.input.receipt.reference",
+      "proposal.input.refund",
+      "proposal.input.reservationId",
+      "proposal.input.saleCaseId",
+      "proposal.input.disposition",
+      "proposal.input.retainedAmount",
       "proposal.command",
       "proposal.command.name",
       "proposal.command.input",
@@ -618,6 +623,11 @@ export const registry = {
       "proposal.input.receipt.date",
       "proposal.input.receipt.method",
       "proposal.input.receipt.reference",
+      "proposal.input.refund",
+      "proposal.input.reservationId",
+      "proposal.input.saleCaseId",
+      "proposal.input.disposition",
+      "proposal.input.retainedAmount",
       "proposal.command",
       "proposal.command.name",
       "proposal.command.input",
@@ -629,6 +639,13 @@ export const registry = {
     ],
     approve: ["approvalId", "decision", "note"],
   },
+  Reservation: {
+    read: ["id", "revision", "amount", "listedBasis", "percentDisplay", "validThrough", "expiresAt", "effectiveStatus", "expiryFlagPending", "retainedAmount"],
+  },
+  ReservationExpiryJob: {
+    run: ["through", "cursor", "limit"],
+    read: ["id", "status", "through", "finishedAt"],
+  },
   SaleCase: {
     read: [
       "id",
@@ -639,6 +656,11 @@ export const registry = {
       "state",
       "price",
       "reference",
+      "reservation",
+      "reservation.id", "reservation.revision", "reservation.amount", "reservation.listedBasis", "reservation.percentDisplay",
+      "reservation.validThrough", "reservation.expiresAt", "reservation.effectiveStatus", "reservation.expiryFlagPending", "reservation.retainedAmount",
+      "finance",
+      "finance.companyId", "finance.companyName", "finance.down", "finance.principal", "finance.termMonths", "finance.doAttachmentId", "finance.issueDate", "finance.lenderOutstanding",
       "tradeIn",
       "tradeIn.description",
       "tradeIn.value",
@@ -650,13 +672,14 @@ export const registry = {
       "completion.basisVersionId",
       "payments",
       ...salePaymentFields.map((p) => `payments.${p}`),
+      "payments.refundOf",
       "timeline",
       "nextActions",
       "invoices",
       "provenance",
     ],
-    create: [...immediateSaleWriteFields],
-    update: [...saleEditWriteFields, "vehicle", "mileage", "listedPrice"],
+    create: [...immediateSaleWriteFields, "placeReservation", "startFinance"],
+    update: [...saleEditWriteFields, "vehicle", "mileage", "listedPrice", "startFinance", "convertReservation", "cancelRetained", "recordDO", "confirmDOAndHandover", "recordLenderReceipt", "refund"],
     pay: ["amount", "date", "method", "reference"],
   },
   Disposal: {
@@ -928,6 +951,7 @@ export const registry = {
       "companyId",
       "sourceType",
       "brokerageDealId",
+      "saleCaseId",
       "expectedAmount",
       "policySnapshot",
       "eligibleAt",
@@ -948,12 +972,14 @@ export const registry = {
   },
 } as const
 // Registry v16 combines the sales and brokerage capability sets.
-export const registryVersion = 16
+export const registryVersion = 17
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   ApprovalRequest: ["createdBy"],
   Disposal: ["createdBy"],
   SaleCase: ["createdBy", "customerId"],
+  Reservation: [],
+  ReservationExpiryJob: [],
   User: [],
   Role: [],
   Vehicle: ["createdBy", "status"],

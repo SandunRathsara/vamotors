@@ -1268,6 +1268,11 @@ export function visiblePurchase(actor: Actor, row: Row) {
       row.available &&
       !row.repairs.some((r) => !r.returnedDate)
     ) {
+      const candidate = subject("SaleCase", { createdBy: actor.userId })
+      for (const action of ["placeReservation", "startFinance"])
+        if ((action !== "placeReservation" || (row.listedPrice ?? 0n) > 0n)
+          && [action, "cycleId", "customerId", "price"].every((field) => actor.ability.can("create", candidate, field)))
+          (result.nextActions as string[]).push(action)
       if (
         ["cycleId", "customerId", "kind", "price", "date", "mileage", "method"].every(
           (f) =>
@@ -2351,7 +2356,7 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
     !row.acquisitionCommandId ||
     row.closedAt ||
     row.vehicle.activePurchaseId !== row.id ||
-    !["PURCHASED", "IN_STOCK"].includes(row.status) ||
+    !["PURCHASED", "IN_STOCK", "ADVANCE_PLACED", "ADVANCE_EXPIRED"].includes(row.status) ||
     !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
     !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType)
   )
@@ -2371,7 +2376,8 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
       },
     },
   ]
-  return candidates.flatMap((intent) => {
+  const reserved = row.status === "ADVANCE_PLACED" || row.status === "ADVANCE_EXPIRED"
+  return candidates.filter((candidate) => !reserved || candidate.name === "setListedPrice").flatMap((intent) => {
     try {
       cycleEditAuthority(actor, row, intent)
       if (
@@ -2516,7 +2522,8 @@ export async function executeCycleEdit(
       row.vehicle.activePurchaseId !== row.id ||
       !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
       !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
-      !["PURCHASED", "IN_STOCK"].includes(row.status)
+      (!["PURCHASED", "IN_STOCK"].includes(row.status) &&
+        !(intent.name === "setListedPrice" && ["ADVANCE_PLACED", "ADVANCE_EXPIRED"].includes(row.status)))
     )
       fail("INVALID_STATE")
     if (

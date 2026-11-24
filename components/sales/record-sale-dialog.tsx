@@ -15,6 +15,7 @@ import { privateRequest, RequestError } from "@/lib/security-client"
 import { parseMajor, major } from "@/lib/money"
 import {
   customerEnvelope,
+  commitmentEnvelope,
   saleEnvelope,
   approvalEnvelope,
 } from "@/lib/server/validators"
@@ -22,6 +23,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+
+import { currentSettingsRef, FinanceCompanyField, FinancePaymentFields, type CompanyOption } from "./commitment-fields"
 
 type VisibleCycle = Visible<PurchaseCycleDTO>
 type VisibleCustomer = Visible<CustomerDTO>
@@ -48,7 +51,14 @@ export function RecordSaleDialog({
   const [cycleId, setCycleId] = useState(fixedCycle?.id ?? "")
   const [customerSearch, setCustomerSearch] = useState("")
   const [buyer, setBuyer] = useState<VisibleCustomer>()
-  const [kind, setKind] = useState<"CASH" | "TRADE_IN">("CASH")
+  const [kind, setKind] = useState(fixedCycle && !fixedCycle.nextActions?.includes("completeImmediate")
+    ? fixedCycle.nextActions?.includes("placeReservation") ? "ADVANCE" : "LEASE"
+    : "CASH")
+  const [company, setCompany] = useState<CompanyOption>()
+  const immediate = kind === "CASH" || kind === "TRADE_IN"
+  const command = kind === "ADVANCE" ? "placeReservation" : kind === "LEASE" ? "startFinance" : "completeImmediate"
+  const actionLabel = kind === "ADVANCE" ? "Place advance" : kind === "LEASE" ? "Start lease sale" : "Complete Immediate Sale"
+  const can = (action: string) => !fixedCycle || fixedCycle.nextActions?.includes(action as never)
   const [price, setPrice] = useState("")
   const [date, setDate] = useState("")
   const [mileage, setMileage] = useState("")
@@ -202,7 +212,7 @@ export function RecordSaleDialog({
     }
   }
 
-  async function buildSaleEnvelope() {
+  async function buildSaleEnvelope(form?: FormData) {
     if (!selectedCycle?.id || !selectedCycle.revision)
       throw Error("Select an available IN_STOCK purchase cycle")
     if (!selectedCustomer?.id || !selectedCustomer.revision || selectedCustomer.active === false)
@@ -220,6 +230,24 @@ export function RecordSaleDialog({
         revision: selectedCustomer.revision,
       },
     ]
+    if (!immediate) {
+      expected.push(await currentSettingsRef())
+      const base = { cycleId: selectedCycle.id, customerId: selectedCustomer.id, price: priceMinor,
+        reference: reference.trim() || undefined, reason: reason.trim() || undefined }
+      const payment = { date, method, reference: reference.trim() || undefined }
+      const input = kind === "ADVANCE"
+        ? { ...base, receipt: { ...payment, amount: parseMajor(String(form?.get("advance") ?? "")) } }
+        : (() => {
+          if (!company) throw Error("Select a finance company")
+          expected.push({ type: "FinanceCompany", id: company.id, revision: company.revision })
+          const down = parseMajor(String(form?.get("downPayment") ?? ""))
+          return { ...base, downPayment: { ...payment, amount: down }, companyId: company.id,
+            termMonths: Number(form?.get("termMonths")), financeAmount: (BigInt(priceMinor) - BigInt(down)).toString() }
+        })()
+      return commitmentEnvelope(command === "placeReservation" ? command : "startFinance").parse({
+        schemaVersion: 1, idempotencyKey: crypto.randomUUID(), expected, input,
+      })
+    }
     let tradeInPayload: Record<string, unknown> | undefined
     if (kind === "TRADE_IN") {
       const valMinor = parseMajor(tradeValue)
@@ -298,9 +326,10 @@ export function RecordSaleDialog({
     return parsed.data
   }
 
-  async function submitSale(e: React.FormEvent) {
+  async function submitSale(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (pending || stale) return
+    const form = new FormData(e.currentTarget)
     setPending(true)
     setStatusMsg("")
     setSaleLink(null)
@@ -308,12 +337,12 @@ export function RecordSaleDialog({
     try {
       let submitted = body
       if (!submitted) {
-        const env = await buildSaleEnvelope()
+        const env = await buildSaleEnvelope(form)
         submitted = JSON.stringify(env)
         setBody(submitted)
       }
       const res = await privateRequest<Applied>(
-        "/api/v1/commands/completeImmediate",
+        `/api/v1/commands/${command}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -322,7 +351,7 @@ export function RecordSaleDialog({
       )
       setBody(null)
       setSaleLink(`/sales/${res.result.id}`)
-      setStatusMsg(`Immediate sale completed (${res.commandId}).`)
+      setStatusMsg(immediate ? `Immediate sale completed (${res.commandId}).` : kind === "ADVANCE" ? "Advance placed. Open the sale for conversion and cancellation options." : "Down payment recorded. Open the sale to upload the delivery order.")
       for (const k of res.invalidate)
         void queries.invalidateQueries({ queryKey: [k] })
       onCompleted?.(res)
@@ -351,15 +380,16 @@ export function RecordSaleDialog({
     }
   }
 
-  async function submitDiscountApproval(e: React.FormEvent) {
+  async function submitDiscountApproval(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (pending || stale) return
+    const form = new FormData(e.currentTarget)
     setPending(true)
     setStatusMsg("")
     try {
       let submitted = discountBody
       if (!submitted) {
-        const base = await buildSaleEnvelope()
+        const base = await buildSaleEnvelope(form)
         const env = approvalEnvelope("requestApproval").parse({
           schemaVersion: 1,
           idempotencyKey: crypto.randomUUID(),
@@ -367,7 +397,7 @@ export function RecordSaleDialog({
           input: {
             proposal: {
               kind: "DISCOUNT",
-              command: { name: "completeImmediate", input: base.input },
+              command: { name: command, input: base.input },
             },
             reason: discountReason,
           },
@@ -557,12 +587,15 @@ export function RecordSaleDialog({
                 className="h-11 w-full rounded-md border bg-background px-3"
                 value={kind}
                 onChange={(e) => {
-                  setKind(e.target.value as "CASH" | "TRADE_IN")
+                  setKind(e.target.value)
+                  setBody(null)
                   setDiscountMode(false)
                 }}
               >
-                <option value="CASH">CASH</option>
-                <option value="TRADE_IN">TRADE_IN</option>
+                {can("completeImmediate") && <option value="CASH">CASH</option>}
+                {can("completeImmediate") && <option value="TRADE_IN">TRADE_IN</option>}
+                {can("placeReservation") && <option value="ADVANCE">Advance reservation</option>}
+                {can("startFinance") && <option value="LEASE">Inventory lease</option>}
               </select>
             </div>
             <div>
@@ -579,7 +612,7 @@ export function RecordSaleDialog({
               />
             </div>
             <div>
-              <Label htmlFor="sale-date">Sale / Handover Date</Label>
+              <Label htmlFor="sale-date">{immediate ? "Sale / Handover Date" : "Payment date"}</Label>
               <Input
                 id="sale-date"
                 type="date"
@@ -588,7 +621,7 @@ export function RecordSaleDialog({
                 onChange={(e) => setDate(e.target.value)}
               />
             </div>
-            <div>
+            {immediate && <div>
               <Label htmlFor="sale-mileage">Handover Mileage (km)</Label>
               <Input
                 id="sale-mileage"
@@ -598,7 +631,7 @@ export function RecordSaleDialog({
                 value={mileage}
                 onChange={(e) => setMileage(e.target.value)}
               />
-            </div>
+            </div>}
             <div>
               <Label htmlFor="sale-method">Receipt Method</Label>
               <select
@@ -623,6 +656,11 @@ export function RecordSaleDialog({
             </div>
           </div>
 
+          {kind === "ADVANCE" && <Label className="grid gap-2">Advance amount (LKR)<Input name="advance" inputMode="decimal" required /></Label>}
+          {kind === "LEASE" && <div className="grid gap-3 sm:grid-cols-3">
+            <FinanceCompanyField value={company?.id ?? ""} onChange={setCompany} />
+            <FinancePaymentFields />
+          </div>}
           {kind === "TRADE_IN" && (
             <div className="space-y-3 rounded-md border p-3">
               <h3 className="font-medium">Trade-In Consideration</h3>
@@ -731,7 +769,7 @@ export function RecordSaleDialog({
             </div>
           )}
 
-          {netPreview && (
+          {immediate && netPreview && (
             <p className="text-sm text-muted-foreground">
               Net cash receipt due: <strong>{netPreview}</strong>
               {selectedCycle?.listedPrice !== undefined &&
@@ -775,7 +813,7 @@ export function RecordSaleDialog({
           )}
           {saleLink && (
             <Link prefetch={false} className="inline-block underline" href={saleLink}>
-              Open completed sale detail
+              {immediate ? "Open completed sale detail" : "Open sale and next steps"}
             </Link>
           )}
           {approvalLink && (
@@ -805,7 +843,7 @@ export function RecordSaleDialog({
                 ? "Submitting…"
                 : discountMode
                   ? "Request Discount Approval"
-                  : "Complete Immediate Sale"}
+                  : actionLabel}
             </Button>
           </div>
         </form>

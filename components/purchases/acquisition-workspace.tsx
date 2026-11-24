@@ -1230,7 +1230,7 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
       )}
       {cycle.sales && cycle.sales.length > 0 && (
         <div className="space-y-1">
-          <h3 className="font-semibold">Completed Sales</h3>
+          <h3 className="font-semibold">Sales and reservations</h3>
           {cycle.sales.map((s) => (
             <p key={s.saleCaseId}>
               <Link
@@ -1294,7 +1294,7 @@ export function AcquisitionDetail({
         }
       />
       {((vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row)
-        ?.nextActions?.includes("completeImmediate")) && (
+        ?.nextActions?.some((action) => ["completeImmediate", "placeReservation", "startFinance"].includes(action))) && (
         <RecordSaleDialog
           fixedCycle={
             vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row

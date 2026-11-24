@@ -296,6 +296,7 @@ model Settings {
 }
 
 model FinanceCompany {
+  inventoryLeases     InventoryLease[]
   id                  String                 @id @default(uuid()) @db.Uuid
   name                String
   active              Boolean                @default(true)
@@ -607,7 +608,7 @@ model StatusEvent {
   action     String
   commandId  String         @db.Uuid
   command    CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
-  userId     String         @db.Uuid
+  userId     String?         @db.Uuid
   occurredAt DateTime
   recordedAt DateTime       @default(now())
 
@@ -752,6 +753,11 @@ model SaleCase {
   command          CommandReceipt        @relation(fields: [commandId], references: [id], onDelete: Restrict)
   approvalId       String?               @unique @db.Uuid
   approval         ApprovalRequest?      @relation("saleApproval", fields: [approvalId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
+  reservation      Reservation?
+  inventoryLease   InventoryLease?
+  uploads          UploadIntent[]
+  attachments      Attachment[]
+  entitlement      CommissionEntitlement?
   receipts         SaleReceipt[]
   completion       SaleCompletion?
   corrections      SaleCorrection[]
@@ -763,6 +769,67 @@ model SaleCase {
   @@unique([approvalId, purchaseRecordId])
   @@index([purchaseRecordId, state, openedAt, id])
   @@index([customerId, openedAt, id])
+  @@schema("vamotors")
+}
+
+model Reservation {
+  id               String    @id @default(uuid()) @db.Uuid
+  saleCaseId       String    @unique @db.Uuid
+  saleCase         SaleCase  @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
+  amount           BigInt
+  placedDate       DateTime  @db.Date
+  listedBasis      BigInt
+  policySnapshot   Json
+  validThrough     DateTime  @db.Date
+  expiresAt        DateTime
+  warningAt        DateTime
+  warnedAt         DateTime?
+  expiredAt        DateTime?
+  state            String
+  revision         Int       @default(1)
+  retainedAmount   BigInt?
+  resolvedAt       DateTime?
+  resolutionReason String?
+  disposition      String?
+
+  @@index([state, expiresAt, id])
+  @@schema("vamotors")
+}
+
+model InventoryLease {
+  saleCaseId     String         @id @db.Uuid
+  saleCase       SaleCase       @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
+  companyId      String         @db.Uuid
+  company        FinanceCompany @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  companyName    String
+  policySnapshot Json
+  down           BigInt
+  principal      BigInt
+  termMonths     Int
+  openedDate     DateTime       @db.Date
+  doAttachmentId String?        @unique @db.Uuid
+  deliveryOrder  Attachment?    @relation(fields: [doAttachmentId], references: [id], onDelete: Restrict)
+  issueDate      DateTime?      @db.Date
+
+  @@index([companyId])
+  @@schema("vamotors")
+}
+
+model JobRun {
+  id         String    @id @default(uuid()) @db.Uuid
+  actorKey   String
+  runKey     String    @db.Uuid
+  inputHash  String
+  through    DateTime
+  cursor     String?
+  nextCursor String?
+  status     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  outcome    Json?
+
+  @@unique([actorKey, runKey])
+  @@index([status, finishedAt])
   @@schema("vamotors")
 }
 
@@ -783,6 +850,9 @@ model SaleReceipt {
   reversalOf       String?        @unique @db.Uuid
   original         SaleReceipt?   @relation("saleReceiptReversal", fields: [reversalOf, saleCaseId, purchaseRecordId], references: [id, saleCaseId, purchaseRecordId], onDelete: Restrict)
   reversal         SaleReceipt?   @relation("saleReceiptReversal")
+  refundOf String? @unique @db.Uuid
+  originalDeposit SaleReceipt? @relation("SaleReceiptRefund", fields: [refundOf, saleCaseId, purchaseRecordId], references: [id, saleCaseId, purchaseRecordId], onDelete: Restrict)
+  refund SaleReceipt? @relation("SaleReceiptRefund")
   reason           String?
   createdBy        String         @db.Uuid
   commandId        String         @db.Uuid
@@ -793,6 +863,7 @@ model SaleReceipt {
   @@unique([id, saleCaseId, purchaseRecordId])
   @@unique([commandId, lineKey])
   @@unique([reversalOf, saleCaseId, purchaseRecordId])
+  @@unique([refundOf, saleCaseId, purchaseRecordId])
   @@index([saleCaseId, occurredDate, id])
   @@index([purchaseRecordId, occurredDate, id])
   @@schema("vamotors")
@@ -1058,6 +1129,8 @@ model ImportBatch {
 }
 
 model UploadIntent {
+  saleCaseId             String?         @db.Uuid
+  saleCase               SaleCase?       @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
   id                     String          @id @default(uuid()) @db.Uuid
   targetType             String          @default("IMPORT_BATCH")
   batchId                String?         @db.Uuid
@@ -1118,6 +1191,9 @@ model UploadAttempt {
 }
 
 model Attachment {
+  saleCaseId       String?         @db.Uuid
+  saleCase         SaleCase?       @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
+  deliveryOrderFor InventoryLease?
   id             String        @id @default(uuid()) @db.Uuid
   targetType     String        @default("IMPORT_BATCH")
   batchId        String?       @db.Uuid
@@ -1493,6 +1569,7 @@ model CommissionEntitlement {
   brokerageDealId String?        @unique @db.Uuid
   brokerageDeal   BrokerageDeal? @relation(fields: [brokerageDealId], references: [id], onDelete: Restrict)
   saleCaseId      String?        @unique @db.Uuid
+  saleCase        SaleCase?      @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
   expectedAmount  BigInt
   policySnapshot  Json
   eligibleAt      DateTime

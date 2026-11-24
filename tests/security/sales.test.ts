@@ -21,7 +21,7 @@ const uuid3 = "00000000-0000-4000-8000-000000000003"
 
 describe("T09 immediate sales, trade-in, discount/sale-edit permissions & validators", () => {
   it("registers v15 permissions with SaleCase and keeps strict subject/condition boundaries", () => {
-    expect(registryVersion).toBe(16)
+    expect(registryVersion).toBe(17)
     expect(registry.SaleCase.read).toContain("price")
     expect(registry.SaleCase.read).toContain("tradeIn.acquiredCycleId")
     expect(registry.PurchaseRecord.read).toContain("tradeInSourceSaleId")

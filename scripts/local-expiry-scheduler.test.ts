@@ -294,7 +294,7 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
     const seenKeys = new Set<string>()
     for (const [idx, call] of srv.calls.entries()) {
       expect(call.method).toBe("POST")
-      expect(call.url).toBe("/api/v1/commands/runExpiry")
+      expect(call.url).toBe("/api/v1/jobs/reservation-expiry")
       expect(call.headers.authorization).toBe(`Bearer ${secret}`)
       expect(call.headers.origin).toBe(srv.baseUrl)
       expect(call.headers["x-scheduler-mode"]).toBe("SCHEDULED")
@@ -489,6 +489,7 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       secretFile,
       "--endpoint",
       "/api/v1/jobs/reservation-expiry",
+      "--payload-format", "job",
       "--catch-up",
       "--through",
       fixedThrough,

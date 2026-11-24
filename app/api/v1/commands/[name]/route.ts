@@ -1,6 +1,9 @@
 import { authenticate } from "@/lib/server/actor"
 import { executeAdmin } from "@/lib/server/admin"
 import { executeRepair } from "@/lib/server/repairs"
+import { executeExpiry } from "@/lib/server/reservation-expiry"
+import { executeCommitment } from "@/lib/server/reservation-sales"
+import { commitmentInputs, type CommitmentCommand } from "@/lib/server/validators"
 import { executeSale } from "@/lib/server/sales"
 import {
   repairInputs,
@@ -62,6 +65,9 @@ export async function POST(
     const identity = await authenticate(request.headers)
     sameOrigin(request)
     const { name } = await context.params
+    if (name === "runExpiry") return noStoreJSON(await executeExpiry(identity, await boundedJSON(request)))
+    if (Object.hasOwn(commitmentInputs, name))
+      return noStoreJSON(await executeCommitment(identity, name as CommitmentCommand, await boundedJSON(request)))
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
     const rates = Object.hasOwn(rateCommands, name)

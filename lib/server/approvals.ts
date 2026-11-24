@@ -1,3 +1,4 @@
+import { prepareRefund, applyRefund, refundAuthority, prepareCommitmentDiscount, commitmentDiscountAuthority } from "./reservation-sales"
 import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { subject } from "@casl/ability"
@@ -159,6 +160,10 @@ async function domainAuthority(
   }
   readableRefs(actor, row)
   if (proposal.kind === "DISCOUNT") {
+    if (proposal.command.name !== "completeImmediate") {
+      await commitmentDiscountAuthority(tx, actor, row, proposal.command, a.requestedBy)
+      return
+    }
     requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
       "listedPrice",
       "purchasePrice",
@@ -211,6 +216,12 @@ async function domainAuthority(
           ...(command.tradeIn.intake.listedPrice !== undefined ? ["listedPrice"] : []),
         ]
       )
+    return
+  }
+  if (proposal.kind === "REFUND") {
+    const sale = a.saleCaseId && await loadSale(tx, a.saleCaseId)
+    if (!sale) fail("NOT_FOUND", 404)
+    refundAuthority(actor, sale, proposal.input)
     return
   }
   const sale = await loadSale(tx, proposal.input.saleId)
@@ -462,7 +473,7 @@ export function visibleApproval(
     }
   } else {
     const saleCheckId =
-      proposal.kind === "SALE_EDIT" ? proposal.input.saleId : undefined
+      proposal.kind === "SALE_EDIT" ? proposal.input.saleId : a.saleCaseId ?? undefined
     const saleTarget = row.sales.find((s) => s.id === saleCheckId)
     const saleCond = {
       createdBy: saleTarget?.createdBy ?? a.requestedBy,
@@ -470,6 +481,12 @@ export function visibleApproval(
         proposal.kind === "DISCOUNT"
           ? proposal.command.input.customerId
           : saleTarget?.customerId,
+    }
+    if (proposal.kind === "REFUND" && !["id", "payments.amount", "payments.date", "payments.direction"].every(
+      (field) => actor.ability.can("read", subject("SaleCase", saleCond), field))) {
+      delete value.proposal
+      value.redactedFields.push("proposal")
+      full = false
     }
     if (
       !actor.ability.can("read", subject("SaleCase", saleCond), "price")
@@ -864,6 +881,14 @@ async function resolveLiveRefs(
         select: { revision: true },
       })
       if (c) out.push({ type: "Customer", id: ref.id, revision: c.revision })
+    } else if (ref.type === "Settings" || ref.type === "FinanceCompany") {
+      const record = ref.type === "Settings"
+        ? await tx.settings.findUnique({ where: { id: ref.id } })
+        : await tx.financeCompany.findUnique({ where: { id: ref.id } })
+      if (record) out.push({ ...ref, revision: record.revision })
+    } else if (ref.type === "Reservation") {
+      const record = await tx.reservation.findUnique({ where: { id: ref.id }, select: { revision: true } })
+      if (record) out.push({ ...ref, revision: record.revision })
     } else if (ref.type === "SaleCase") {
       const s = await tx.saleCase.findUnique({
         where: { id: ref.id },
@@ -977,16 +1002,26 @@ export async function executeApproval(
           { createdBy: actor.userId },
           ["proposal", "proposal.kind", "reason", "proposal.command", "proposal.command.name", "proposal.command.input"]
         )
-        const prep = await prepareDiscountApproval(
-          tx,
-          actor,
-          input.proposal.command.input,
-          envelope.expected
-        )
-        if (envelope.expected.length !== prep.expectedDeps.length)
-          fail("INVALID_INPUT", 422)
-        row = prep.cycle
-        expected = prep.expectedDeps
+        if (input.proposal.command.name === "completeImmediate") {
+          const prep = await prepareDiscountApproval(tx, actor, input.proposal.command.input, envelope.expected)
+          row = prep.cycle
+          expected = prep.expectedDeps
+          snapshot = prep.snapshot
+        } else {
+          const prep = await prepareCommitmentDiscount(tx, actor, input.proposal.command, envelope.expected)
+          row = prep.row
+          expected = prep.required
+          snapshot = prep.snapshot
+        }
+        if (envelope.expected.length !== expected.length) fail("INVALID_INPUT", 422)
+      } else if (input.proposal.kind === "REFUND") {
+        requireFields(actor.ability, "ApprovalRequest", "create", { createdBy: actor.userId },
+          ["proposal", "proposal.kind", "reason", ...Object.keys(input.proposal.input).map((key) => `proposal.input.${key}`)])
+        const prep = await prepareRefund(tx, actor, input.proposal.input, envelope.expected)
+        if (envelope.expected.length !== prep.required.length) fail("INVALID_INPUT", 422)
+        row = prep.sale.purchaseRecord
+        saleCaseId = prep.sale.id
+        expected = prep.required
         snapshot = prep.snapshot
       } else {
         requireFields(
@@ -1104,7 +1139,7 @@ export async function executeApproval(
     if (!plan) fail("NOT_FOUND", 404)
     const planSaved = saved(plan)
     // Lock proposal targets in A2 order before reading/updating ApprovalRequest.
-    if (planSaved.proposal.kind === "DISCOUNT") {
+    if (planSaved.proposal.kind === "DISCOUNT" && planSaved.proposal.command.name === "completeImmediate") {
       const ci = planSaved.proposal.command.input
       if (ci.kind === "TRADE_IN" && ci.tradeIn.intake) {
         const engine = ci.tradeIn.intake.vehicle.engineNumber
@@ -1173,17 +1208,22 @@ export async function executeApproval(
     )
       throw new CommandError("APPROVAL_STALE", 409, false, current)
 
+    const refund = savedValue.proposal.kind === "REFUND"
+      ? await prepareRefund(tx, actor, savedValue.proposal.input, savedValue.expected)
+      : null
+    if (refund && canonical(refund.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
     if (savedValue.proposal.kind === "WRITE_OFF") {
       eligible(row)
       validInput(row, savedValue.proposal.input)
     } else if (savedValue.proposal.kind === "DISCOUNT") {
-      await prepareDiscountApproval(
-        tx,
-        actor,
-        savedValue.proposal.command.input,
-        savedValue.expected
-      )
-    } else {
+      const proposal = savedValue.proposal
+      if (proposal.command.name === "completeImmediate") {
+        await prepareDiscountApproval(tx, actor, proposal.command.input, savedValue.expected)
+      } else {
+        const prepared = await prepareCommitmentDiscount(tx, actor, proposal.command, savedValue.expected)
+        if (canonical(prepared.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
+      }
+    } else if (savedValue.proposal.kind === "SALE_EDIT") {
       await prepareSaleEditApproval(
         tx,
         actor,
@@ -1307,8 +1347,18 @@ export async function executeApproval(
         })
         domainAffected = refs(after)
       } else if (savedValue.proposal.kind === "DISCOUNT") {
+        const proposal = savedValue.proposal
+        if (proposal.command.name !== "completeImmediate") {
+          const done = await prepareCommitmentDiscount(tx, actor, proposal.command, savedValue.expected, {
+            approvalId: a.id,
+            context: { commandId, sequence, userId: actor.userId, action: name,
+              initiatedBy: a.requestedBy, approverId: actor.userId, reason: a.reason },
+          })
+          const cycle = (await loadPurchase(tx, done.row.id))!
+          domainAffected = [...refs(cycle), { type: "SaleCase", id: done.saleId, revision: 1 }]
+        } else {
         const done = await completeImmediateInTx(tx, actor, {
-          input: savedValue.proposal.command.input,
+          input: proposal.command.input,
           expected: savedValue.expected,
           commandId,
           sequence,
@@ -1318,7 +1368,14 @@ export async function executeApproval(
           approverId: actor.userId,
         })
         domainAffected = done.affected ?? []
-      } else {
+        }
+      } else if (savedValue.proposal.kind === "REFUND" && refund) {
+        const resolved = await applyRefund(tx, {
+          commandId, sequence, userId: actor.userId, action: name,
+          initiatedBy: a.requestedBy, approverId: actor.userId, reason: savedValue.proposal.input.reason,
+        }, refund.sale, savedValue.proposal.input)
+        domainAffected = [...refs(resolved.purchaseRecord), { type: "SaleCase", id: resolved.id, revision: resolved.revision }]
+      } else if (savedValue.proposal.kind === "SALE_EDIT") {
         const edited = await applySaleEditApproval(tx, actor, {
           saleId: savedValue.proposal.input.saleId,
           input: savedValue.proposal.input,

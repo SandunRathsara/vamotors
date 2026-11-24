@@ -52,7 +52,7 @@ export async function audit(
   tx: Tx,
   input: {
     commandId: string
-    userId: string
+    userId: string | null
     entityType: EnabledSubject | "SaleCompletion"
     entityId: string
     action: string
@@ -69,7 +69,8 @@ export async function audit(
       userId: input.userId,
       entityType: input.entityType,
       entityId: input.entityId,
-      actorKind: "USER",
+      actorKind: input.userId ? "USER" : "SYSTEM",
+      systemScope: input.userId ? null : "RESERVATION_EXPIRY",
       action: input.action,
       reason: input.reason,
       initiatedBy: input.initiatedBy,
@@ -135,6 +136,7 @@ export async function writeReadVersion(
       | "CommissionEntitlement"
       | "SaleCase"
       | "SaleCompletion"
+      | "Reservation"
     entityId: string
     revision: number
     payload: Record<string, unknown>

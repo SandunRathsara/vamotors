@@ -148,7 +148,7 @@ interface LoadedSecret {
   knownSecrets: string[]
 }
 
-export const DEFAULT_ENDPOINT_PATH = "/api/v1/commands/runExpiry"
+export const DEFAULT_ENDPOINT_PATH = "/api/v1/jobs/reservation-expiry"
 export const DEFAULT_INTERVAL_MS = 60_000
 export const DEFAULT_REQUEST_TIMEOUT_MS = 15_000
 export const DEFAULT_BATCH_LIMIT = 100
@@ -573,7 +573,7 @@ function validateOptions(options: ExpirySchedulerOptions) {
   }
   const payloadFormat: ExpiryPayloadFormat =
     options.payloadFormat ??
-    (endpointPath.includes("/api/v1/commands/") ? "envelope" : "job")
+    (endpointPath === DEFAULT_ENDPOINT_PATH || endpointPath.includes("/api/v1/commands/") ? "envelope" : "job")
 
   return {
     origin: url.origin,
@@ -1215,13 +1215,14 @@ export function formatCliHelp(): string {
     "  --secret-file <path>      Owner-only (0600) env/token file path",
     "",
     "Options:",
-    "  --endpoint <path>         Endpoint path (default: /api/v1/commands/runExpiry)",
+    "  --endpoint <path>         Endpoint path (default: /api/v1/jobs/reservation-expiry)",
     "  --payload-format <fmt>    envelope | job (default derived from endpoint)",
     "  --secret-key <name>       Env key inside secret file (default: SCHEDULER_SECRET)",
     "  --interval-ms <ms>        Timer interval in ms (default: 60000)",
     "  --timeout-ms <ms>         Per-request AbortController timeout (default: 15000)",
     "  --limit <1..100>          Batch size per page (default: 100)",
     "  --max-ticks <n>           Stop after n executed ticks",
+    "  --defer-first-tick        Wait for the first timer interval instead of sweeping on startup",
     "  --once                    Run a single scheduled sweep and exit",
     "  --catch-up                Run an immediate CATCH_UP sweep (exits unless --max-ticks > 1 or --loop)",
     "  --loop                    Keep running SCHEDULED ticks after --catch-up",
@@ -1262,6 +1263,7 @@ export function parseExpirySchedulerCliArgs(argv: readonly string[]): {
   let limit: number | undefined
   let maxTicks: number | undefined
   let once = false
+  let runOnStart = true
   let catchUp = false
   let loopAfterCatchUp = false
   let through: string | undefined
@@ -1315,6 +1317,9 @@ export function parseExpirySchedulerCliArgs(argv: readonly string[]): {
       case "--max-ticks":
         maxTicks = Number(takeValue(argv, i, arg))
         i += 1
+        break
+      case "--defer-first-tick":
+        runOnStart = false
         break
       case "--once":
         once = true
@@ -1370,6 +1375,7 @@ export function parseExpirySchedulerCliArgs(argv: readonly string[]): {
       requestTimeoutMs,
       limit,
       maxTicks,
+      runOnStart,
       once: effectiveOnce,
       catchUp,
       through,

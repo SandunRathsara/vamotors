@@ -33,6 +33,7 @@ export const persistedRateAPIs = {
   "/api/lease-rate-sheets": "GET",
 } as const
 export const persistedRatePages = ["/lease-comparison", "/lease-rate-sheets"]
+export const schedulerAPI = "/api/v1/jobs/reservation-expiry"
 export const privateAttachmentAPIs = {
   "/api/v1/uploads/[uploadId]": "PUT",
   "/api/v1/attachments/[attachmentId]": "GET",

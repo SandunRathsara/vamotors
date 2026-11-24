@@ -122,7 +122,9 @@ describe("T06b staging trust boundaries", () => {
               "CashFacility",
               "DispatchBatch",
               "CommissionEntitlement",
-              "SaleCase",
+              "Reservation",
+            "ReservationExpiryJob",
+            "SaleCase",
             ].includes(name)
         )
         .map(([name, actions]) => [

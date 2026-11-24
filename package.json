@@ -22,6 +22,7 @@
     "local:stop": "node --import tsx scripts/local-postgres.ts stop",
     "local:dev": "node --import tsx scripts/local-postgres.ts dev",
     "local:test": "node --import tsx scripts/local-postgres.ts test",
+    "local:expiry": "node --import tsx scripts/local-postgres.ts expiry",
     "local:test:http": "node --import tsx scripts/local-postgres.ts http",
     "test:security": "vitest run tests/security",
     "test:security:db": "node --conditions=react-server --import tsx scripts/security-db-check.ts"

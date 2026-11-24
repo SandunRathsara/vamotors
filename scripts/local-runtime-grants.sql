@@ -114,3 +114,10 @@ GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."ApprovalRequest"
 GRANT SELECT, INSERT ON vamotors."SaleCase", vamotors."SaleReceipt", vamotors."SaleCompletion", vamotors."SaleCorrection", vamotors."TradeInConsideration" TO vamotors_runtime;
 GRANT UPDATE ("customerId", "agreedPrice", reference, notes, revision) ON vamotors."SaleCase" TO vamotors_runtime;
 GRANT UPDATE ("customerId", description, value, "acquiredVehicleId", "acquiredPurchaseId", "intakeCommandId") ON vamotors."TradeInConsideration" TO vamotors_runtime;
+-- T10: reservation, inventory lease and persistence for expiry runs.
+GRANT SELECT, INSERT ON vamotors."Reservation", vamotors."InventoryLease", vamotors."JobRun" TO vamotors_runtime;
+GRANT UPDATE ("warnedAt","expiredAt",state,revision,"retainedAmount","resolvedAt","resolutionReason",disposition) ON vamotors."Reservation" TO vamotors_runtime;
+GRANT UPDATE ("doAttachmentId","issueDate") ON vamotors."InventoryLease" TO vamotors_runtime;
+GRANT UPDATE (status,"startedAt","finishedAt","nextCursor",outcome) ON vamotors."JobRun" TO vamotors_runtime;
+GRANT UPDATE (state,kind) ON vamotors."SaleCase" TO vamotors_runtime;
+GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."Attachment", vamotors."UploadIntent" TO vamotors_runtime;

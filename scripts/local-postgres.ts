@@ -215,7 +215,7 @@ async function main() {
     console.log("Project PostgreSQL stopped; persistent data retained.")
     return
   }
-  if (!["setup", "start", "test", "http", "dev"].includes(action))
+  if (!["setup", "start", "test", "http", "dev", "expiry"].includes(action))
     throw new Error("UNKNOWN_LOCAL_ACTION")
   if (status.status !== 0)
     run(ctl, ["-D", cluster, "-l", file("postgres.log"), "-w", "start"])
@@ -226,7 +226,9 @@ async function main() {
     new URL(runtime.DATABASE_URL!).port !== state.PORT
   )
     throw new Error("PROJECT_CLUSTER_MISMATCH")
+  const expirySecretFile = file("expiry-scheduler.key")
   if (action === "setup") {
+    if (!existsSync(expirySecretFile)) await writeFile(expirySecretFile, token() + "\n", { mode: 0o600, flag: "wx" })
     const migration = await privateEnvironment(migrationFile)
     const admin = await privateEnvironment(adminFile)
     authorizedMigration(migration)
@@ -357,6 +359,17 @@ async function main() {
       env,
       true
     )
+  if (action === "expiry") {
+    const result = spawnSync(process.execPath, [
+      "--import", "tsx", "scripts/local-expiry-scheduler.ts",
+      "--base-url", process.env.EXPIRY_BASE_URL ?? runtime.APP_ORIGIN!,
+      "--secret-file", expirySecretFile,
+      "--state-file", file("expiry-scheduler-health.json"),
+      ...process.argv.slice(3),
+    ], { cwd, env, stdio: "inherit" })
+    if (result.error || (result.status !== 0 && result.signal !== "SIGINT" && result.signal !== "SIGTERM"))
+      throw new Error("LOCAL_STEP_FAILED: expiry scheduler")
+  }
   if (action === "dev")
     run(
       process.execPath,
@@ -368,7 +381,7 @@ async function main() {
         "--port",
         "8000",
       ],
-      { ...env, ...runtime },
+      { ...env, ...runtime, EXPIRY_SECRET_FILE: expirySecretFile },
       true
     )
 }
