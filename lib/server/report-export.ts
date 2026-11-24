@@ -33,6 +33,7 @@ export interface BuildReportCsvInput<K extends ReportKind = ReportKind> {
   filters?: Partial<Omit<ReportFilter, "page" | "pageSize">>
   redactedFields?: readonly string[]
   currency?: string
+  includeTotals?: boolean
 }
 
 export interface BuildReportCsvResult {
@@ -157,6 +158,18 @@ export const REPORT_COLUMNS: Readonly<
       label: "Transmission",
       format: "text",
       permissionFields: ["identity.transmission"],
+    },
+    {
+      key: "purchaseDate",
+      label: "Purchase Date",
+      format: "date",
+      permissionFields: ["purchaseDate"],
+    },
+    {
+      key: "daysHeld",
+      label: "Days Held",
+      format: "number",
+      permissionFields: ["purchaseDate"],
     },
     {
       key: "status",
@@ -713,6 +726,21 @@ export const REPORT_COLUMNS: Readonly<
       totalKey: "netLoss",
       signed: true,
     },
+    {
+      key: "restatedBasis",
+      label: "Restated Cost Basis",
+      format: "money",
+      permissionFields: ["basis", "financial.basis", "cost"],
+      totalKey: "restatedBasis",
+    },
+    {
+      key: "restatedLoss",
+      label: "Restated Net Loss",
+      format: "money",
+      signed: true,
+      permissionFields: ["basis", "proceeds", "financial.basis", "cost"],
+      totalKey: "restatedLoss",
+    },
   ],
 }
 
@@ -768,7 +796,7 @@ function valueAtPath(row: unknown, path: string): unknown {
   }, row)
 }
 
-function extractCellValue(
+export function reportCellValue(
   kind: ReportKind,
   row: unknown,
   columnKey: string
@@ -1025,7 +1053,7 @@ function resolveReportTotals<K extends ReportKind>(
 
     const rowValues: bigint[] = []
     for (const row of rows) {
-      const raw = extractCellValue(kind, row, col.key)
+      const raw = reportCellValue(kind, row, col.key)
       if (typeof raw === "string" && raw.length > 0) {
         rowValues.push(minor(raw, B, Boolean(col.signed)))
       }
@@ -1114,6 +1142,7 @@ export function buildReportCsv<K extends ReportKind>({
   totals,
   filters,
   redactedFields = [],
+  includeTotals = true,
 }: BuildReportCsvInput<K>): BuildReportCsvResult {
   assertReportKind(kind)
   const visibleColumns = getReportColumns(kind, redactedFields)
@@ -1124,16 +1153,16 @@ export function buildReportCsv<K extends ReportKind>({
 
     for (const row of rows) {
       const cells = visibleColumns.map((col) => {
-        const raw = extractCellValue(kind, row, col.key)
+        const raw = reportCellValue(kind, row, col.key)
         return formatCsvCell(raw, col.format, Boolean(col.signed))
       })
       lines.push(cells.join(","))
     }
 
-    const resolved = resolveReportTotals(kind, rows, visibleColumns, totals)
-    const totalsLine = buildTotalsCsvLine(kind, visibleColumns, resolved)
-    if (totalsLine !== null) {
-      lines.push(totalsLine)
+    if (includeTotals) {
+      const resolved = resolveReportTotals(kind, rows, visibleColumns, totals)
+      const totalsLine = buildTotalsCsvLine(kind, visibleColumns, resolved)
+      if (totalsLine !== null) lines.push(totalsLine)
     }
   }
 

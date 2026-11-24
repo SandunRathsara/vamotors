@@ -17,6 +17,8 @@ import { runtimeConfig } from "../../lib/server/config"
 import pg from "pg"
 import {
   legacyAPIs,
+  reportingAPIs,
+  reportingPages,
   unavailablePages,
   persistedRateAPIs,
   persistedRatePages,
@@ -729,6 +731,11 @@ async function main() {
             assert.equal(response.status(), 401)
             checkCache(response.headers())
           }
+        for (const route of reportingAPIs) {
+          const response = await anonymous.request.get(route)
+          assert.equal(response.status(), 401)
+          checkCache(response.headers())
+        }
         for (const name of queryNames)
           assert.equal(
             (await anonymous.request.get(`/api/v1/queries/${name}`)).status(),
@@ -749,6 +756,7 @@ async function main() {
           "/",
           "/users",
           ...unavailablePages,
+          ...reportingPages,
           ...persistedRatePages,
         ]) {
           for (const rsc of [false, true]) {

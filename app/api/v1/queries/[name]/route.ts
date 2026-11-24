@@ -8,6 +8,7 @@ import {
 } from "@/lib/server/http"
 import { rateRead } from "@/lib/server/rates"
 import { dispatchRead } from "@/lib/server/dispatch"
+import { reportEndpoint, dashboardEndpoint } from "@/lib/server/report-http"
 import { fail } from "@/lib/server/errors"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -15,9 +16,11 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ name: string }> }
 ) {
+  const { name } = await context.params
+  if (name === "report") return reportEndpoint(request)
+  if (name === "dashboard") return dashboardEndpoint(request)
   return endpoint(async () => {
     const identity = await authenticate(request.headers)
-    const { name } = await context.params
     return noStoreJSON({
       ok: true,
       data: await securityQuery(
@@ -39,7 +42,12 @@ export async function POST(
     const identity = await authenticate(request.headers)
     sameOrigin(request)
     const { name } = await context.params
-    if (name !== "compare" && name !== "loanMaxima" && name !== "dispatchPreview") fail("NOT_FOUND", 404)
+    if (
+      name !== "compare" &&
+      name !== "loanMaxima" &&
+      name !== "dispatchPreview"
+    )
+      fail("NOT_FOUND", 404)
     const body = await boundedJSON(request)
     return noStoreJSON({
       ok: true,

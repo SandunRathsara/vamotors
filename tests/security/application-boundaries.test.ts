@@ -6,6 +6,8 @@ import { administratorGrants } from "@/lib/server/permissions"
 import { safeReturnPath } from "@/lib/security-client"
 import {
   legacyAPIs,
+  reportingAPIs,
+  reportingPages,
   unavailablePages,
   persistedRepairPages,
   methods,
@@ -36,6 +38,7 @@ describe("global entry-point inventory", () => {
     expect(actual).toEqual(
       [
         ...legacyAPIs,
+        ...reportingAPIs,
         ...Object.keys(persistedRateAPIs),
         ...Object.keys(privateAttachmentAPIs),
         invoiceDownload,
@@ -50,6 +53,12 @@ describe("global entry-point inventory", () => {
       for (const method of methods)
         expect(text).toContain(`unavailable as ${method}`)
       expect(text).not.toMatch(/mock-data|from ["']\.\/prototype["'](?!\s*$)/m)
+    }
+    for (const route of reportingAPIs) {
+      const text = readFileSync(`app${route}/route.ts`, "utf8")
+      expect(text).toContain("export async function GET")
+      expect(text).toContain("@/lib/server/report-http")
+      expect(text).not.toMatch(/mock-data|prototype/)
     }
     for (const [route, method] of Object.entries(persistedRateAPIs)) {
       const text = readFileSync(`app${route}/route.ts`, "utf8")
@@ -81,6 +90,7 @@ describe("global entry-point inventory", () => {
     expect(actual).toEqual(
       [
         ...unavailablePages,
+        ...reportingPages,
         ...persistedRatePages,
         ...importStagingPages,
         ...persistedRepairPages,

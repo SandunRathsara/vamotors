@@ -7,6 +7,7 @@ import type {
 } from "../../.planning/implementation/contracts/api"
 import { fail } from "./errors"
 import { states } from "../state"
+import { reportKinds } from "../report-kinds"
 
 export const sourcePaymentFields = [
   "id",
@@ -693,6 +694,7 @@ export const registry = {
       "receipt.reference",
     ],
   },
+  Report: { read: reportKinds, export: reportKinds },
   Notification: {
     read: ["id", "revision", "kind", "target", "createdAt", "readAt"],
     update: ["readAt"],
@@ -947,8 +949,8 @@ export const registry = {
     ],
   },
 } as const
-// Registry v16 combines the sales and brokerage capability sets.
-export const registryVersion = 16
+// Registry v17 enables per-report read and export capabilities.
+export const registryVersion = 17
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   ApprovalRequest: ["createdBy"],
@@ -965,6 +967,7 @@ const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   RepairVendor: ["createdBy"],
   FinanceCompany: ["createdBy"],
   Settings: [],
+  Report: [],
   Notification: ["recipientUserId"],
   AuditLog: [],
   RateSheet: ["createdBy", "financeCompanyId"],

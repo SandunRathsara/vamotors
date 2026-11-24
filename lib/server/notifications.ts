@@ -16,6 +16,8 @@ import { inputDigest } from "./idempotency"
 import { project, readScope, requireFields } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { z } from "zod"
+import { subject } from "@casl/ability"
+import type { EnabledSubject } from "./permissions"
 import { audit } from "./audit"
 
 const labels = {
@@ -35,34 +37,153 @@ function own(actor: Authority, row: Notification, action: "read" | "update") {
     action === "read" ? ["id", "revision", "readAt"] : ["readAt"]
   )
 }
-function dto(actor: Authority, row: Notification) {
+const targetRoutes = {
+  ApprovalRequest: "/approvals",
+  PurchaseRecord: "/purchases",
+  Vehicle: "/vehicles",
+  RepairRecord: "/repairs",
+  SaleCase: "/sales",
+  Customer: "/customers",
+} as const
+
+type Target = keyof typeof targetRoutes
+const canRead = (
+  actor: Authority,
+  type: EnabledSubject,
+  row: object,
+  fields = ["id"]
+) =>
+  fields.every((field) => actor.ability.can("read", subject(type, row), field))
+
+async function visibleTargets(tx: Tx, actor: Authority, rows: Notification[]) {
+  const keys = new Set<string>()
+  const ids = (kind: Target) => [
+    ...new Set(
+      rows
+        .filter(
+          (row) =>
+            row.targetType === kind &&
+            canRead(actor, "Notification", row, ["target"])
+        )
+        .map((row) => row.targetId)
+    ),
+  ]
+  const inIds = (kind: Target) => ({ in: ids(kind) })
+  const [approvals, purchases, vehicles, repairs, sales, customers] =
+    await Promise.all([
+      tx.approvalRequest.findMany({
+        where: { id: inIds("ApprovalRequest") },
+        select: {
+          id: true,
+          requestedBy: true,
+          cycle: {
+            select: {
+              createdBy: true,
+              status: true,
+              vehicle: { select: { createdBy: true } },
+            },
+          },
+        },
+      }),
+      tx.purchaseRecord.findMany({
+        where: { id: inIds("PurchaseRecord") },
+        select: { id: true, createdBy: true },
+      }),
+      tx.vehicle.findMany({
+        where: { id: inIds("Vehicle") },
+        select: {
+          id: true,
+          createdBy: true,
+          purchases: {
+            where: readScope(actor.grants, actor.userId, "PurchaseRecord"),
+            orderBy: { cycleNumber: "desc" },
+            take: 1,
+            select: { status: true, createdBy: true },
+          },
+        },
+      }),
+      tx.repairRecord.findMany({
+        where: { id: inIds("RepairRecord") },
+        select: {
+          id: true,
+          createdBy: true,
+          cycle: { select: { createdBy: true } },
+        },
+      }),
+      tx.saleCase.findMany({
+        where: { id: inIds("SaleCase") },
+        select: { id: true, createdBy: true, customerId: true },
+      }),
+      tx.customer.findMany({
+        where: { id: inIds("Customer") },
+        select: { id: true, createdBy: true },
+      }),
+    ])
+  for (const row of approvals)
+    if (
+      canRead(actor, "ApprovalRequest", { createdBy: row.requestedBy }) &&
+      canRead(actor, "PurchaseRecord", row.cycle, [
+        "id",
+        "revision",
+        "vehicleId",
+        "identityRevision",
+      ]) &&
+      canRead(
+        actor,
+        "Vehicle",
+        { ...row.cycle.vehicle, status: row.cycle.status },
+        ["id", "identityRevision"]
+      )
+    )
+      keys.add(`ApprovalRequest:${row.id}`)
+  for (const row of purchases)
+    if (canRead(actor, "PurchaseRecord", row))
+      keys.add(`PurchaseRecord:${row.id}`)
+  for (const row of vehicles)
+    if (
+      row.purchases[0] &&
+      canRead(actor, "PurchaseRecord", row.purchases[0]) &&
+      canRead(actor, "Vehicle", { ...row, status: row.purchases[0].status })
+    )
+      keys.add(`Vehicle:${row.id}`)
+  for (const row of repairs)
+    if (
+      canRead(actor, "RepairRecord", row) &&
+      canRead(actor, "PurchaseRecord", row.cycle, ["id", "repairs"])
+    )
+      keys.add(`RepairRecord:${row.id}`)
+  for (const row of sales)
+    if (canRead(actor, "SaleCase", row)) keys.add(`SaleCase:${row.id}`)
+  for (const row of customers)
+    if (canRead(actor, "Customer", row)) keys.add(`Customer:${row.id}`)
+  return keys
+}
+
+function dto(actor: Authority, row: Notification, targets: Set<string>) {
   own(actor, row, "read")
+  const route = targetRoutes[row.targetType as Target]
   const href =
-    row.targetType === "ApprovalRequest"
-      ? `/approvals/${row.targetId}`
-      : row.targetType === "PurchaseRecord"
-        ? `/purchases/${row.targetId}`
-        : row.targetType === "Vehicle"
-          ? `/vehicles/${row.targetId}`
-          : row.targetType === "RepairRecord"
-            ? `/repairs/${row.targetId}`
-            : row.targetType === "SaleCase"
-              ? `/sales/${row.targetId}`
-              : ""
+    route && targets.has(`${row.targetType}:${row.targetId}`)
+      ? `${route}/${row.targetId}`
+      : undefined
   const label = labels[row.kind as keyof typeof labels]
-  if (!label || !href) fail("INTERNAL_ERROR", 500)
+  if (!label) fail("INTERNAL_ERROR", 500)
   const projected = project(actor.ability, "Notification", {
     id: row.id,
     revision: row.revision,
     kind: row.kind,
-    target: { type: row.targetType, id: row.targetId, href },
+    ...(href
+      ? { target: { type: row.targetType, id: row.targetId, href } }
+      : {}),
     createdAt: row.createdAt.toISOString(),
     readAt: row.readAt?.toISOString() ?? null,
     recipientUserId: row.recipientUserId,
   })
   if (projected.kind) {
     projected.title = label
-    projected.body = "Open the record to view its current authorized details."
+    projected.body = projected.target
+      ? "Open the record to view its current details."
+      : "The linked record is unavailable."
   }
   projected.redactedFields = projected.redactedFields.filter(
     (f) => f !== "recipientUserId"
@@ -126,9 +247,10 @@ export async function notificationQuery(
   ])
   // Counting unread is itself a readAt inference; require covering field access.
   readScope(actor.grants, actor.userId, "Notification", ["readAt"])
+  const targets = await visibleTargets(tx, actor, rows)
   return {
     ok: true,
-    data: rows.map((r) => dto(actor, r)),
+    data: rows.map((r) => dto(actor, r, targets)),
     total,
     unreadCount,
     page: input.page,
