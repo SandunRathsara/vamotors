@@ -1,7 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import type { PurchaseCycleDTO, Visible } from "@/.planning/implementation/contracts/api"
+import type {
+  PurchaseCycleDTO,
+  Visible,
+} from "@/.planning/implementation/contracts/api"
 import { major } from "@/lib/money"
 
 export type VisibleCycle = Visible<PurchaseCycleDTO>
@@ -19,13 +22,14 @@ export function SaleKindLabel(kind?: string) {
 }
 
 export function SaleSummaryRow({ cycle }: { cycle: VisibleCycle }) {
-  const sale = cycle.sales?.find((s) => s.state === "COMPLETED") ?? cycle.sales?.[0]
+  const sale =
+    cycle.sales?.find((s) => s.state === "COMPLETED") ?? cycle.sales?.[0]
   return (
     <tr className="border-b">
       <td className="px-3 py-3 text-sm">
         {cycle.identity
           ? `${cycle.identity.make ?? ""} ${cycle.identity.model ?? ""} (${cycle.identity.year ?? ""})`
-          : cycle.vehicleId ?? "Unavailable"}
+          : (cycle.vehicleId ?? "Unavailable")}
         {cycle.identity?.engineNumber && (
           <div className="text-xs text-muted-foreground">
             {cycle.identity.engineNumber} / {cycle.identity.chassisNumber}
@@ -33,14 +37,20 @@ export function SaleSummaryRow({ cycle }: { cycle: VisibleCycle }) {
         )}
       </td>
       <td className="px-3 py-3 text-sm">{SaleKindLabel(sale?.kind)}</td>
-      <td className="px-3 py-3 text-sm tabular-nums">{sale?.date ?? "Unavailable"}</td>
+      <td className="px-3 py-3 text-sm tabular-nums">
+        {sale?.date ?? "Unavailable"}
+      </td>
       <td className="px-3 py-3 text-right text-sm tabular-nums">
         {formatMoney(cycle.financial?.salePrice)}
       </td>
       <td className="px-3 py-3 text-right text-sm tabular-nums">
-        {formatMoney(cycle.financial?.restatedProfit ?? cycle.financial?.originalProfit)}
+        {formatMoney(
+          cycle.financial?.restatedProfit ?? cycle.financial?.originalProfit
+        )}
       </td>
-      <td className="px-3 py-3 text-sm">{sale?.state ?? cycle.status ?? "Unavailable"}</td>
+      <td className="px-3 py-3 text-sm">
+        {sale?.state ?? cycle.status ?? "Unavailable"}
+      </td>
       <td className="px-3 py-3 text-sm">
         {sale?.saleCaseId ? (
           <Link

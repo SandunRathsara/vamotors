@@ -400,29 +400,50 @@ export async function importQuery(
       include: { targetVersion: true, file: { include: { attachment: true } } },
       orderBy: [{ sourceType: "asc" }, { rowNumber: "asc" }],
     })
-    const reservationIds = records.filter((entry) => entry.targetVersion.entityType === "Reservation")
+    const reservationIds = records
+      .filter((entry) => entry.targetVersion.entityType === "Reservation")
       .map((entry) => entry.targetVersion.entityId)
     const reservations = await tx.reservation.findMany({
-      where: { id: { in: reservationIds } }, select: { id: true, saleCaseId: true },
+      where: { id: { in: reservationIds } },
+      select: { id: true, saleCaseId: true },
     })
     visible.importedRecords = records.flatMap((entry) => {
-      const attachment = subject("Document", documentSubject(entry.file.attachment))
-      if (!actor.ability.can("read", record, "uploads.attachmentId") ||
-          !actor.ability.can("read", attachment, "attachmentId")) return []
+      const attachment = subject(
+        "Document",
+        documentSubject(entry.file.attachment)
+      )
+      if (
+        !actor.ability.can("read", record, "uploads.attachmentId") ||
+        !actor.ability.can("read", attachment, "attachmentId")
+      )
+        return []
       const { entityType: type, entityId: id } = entry.targetVersion
       const paths: Record<string, string> = {
-        Customer: `/customers/${id}`, PurchaseRecord: `/purchases/${id}`,
-        SaleCase: `/sales/${id}`, RepairRecord: `/repairs/${id}`,
+        Customer: `/customers/${id}`,
+        PurchaseRecord: `/purchases/${id}`,
+        SaleCase: `/sales/${id}`,
+        RepairRecord: `/repairs/${id}`,
         Supplier: `/third-parties/${id}?type=SUPPLIER`,
         RepairVendor: `/third-parties/${id}?type=REPAIR_VENDOR`,
         FinanceCompany: `/third-parties/${id}?type=FINANCE_COMPANY`,
         BrokerageDeal: `/lease-deals/${id}`,
         Remittance: `/lease-reconciliation`,
-        ...(type === "Reservation" ? {
-          Reservation: `/sales/${reservations.find((row) => row.id === id)!.saleCaseId}`,
-        } : {}),
+        ...(type === "Reservation"
+          ? {
+              Reservation: `/sales/${reservations.find((row) => row.id === id)!.saleCaseId}`,
+            }
+          : {}),
       }
-      return paths[type] ? [{ type, row: entry.rowNumber, sourceKey: entry.sourceKey, href: paths[type] }] : []
+      return paths[type]
+        ? [
+            {
+              type,
+              row: entry.rowNumber,
+              sourceKey: entry.sourceKey,
+              href: paths[type],
+            },
+          ]
+        : []
     })
   }
   visible.redactedFields = [...new Set(visible.redactedFields)]

@@ -410,6 +410,7 @@ PREBASE17/v13 but **no F native lifecycle campaign ran**. It is not final18/v14,
 an accepted17 parent, a genuine upgrade, or evidence for accepted WRITE_OFF.
 
 Later PREBASE results beyond the first D record below:
+
 - E actual client/schema identity,17 installed migration checksums and registry13
   passed (`20261030T233314387635Z-prebase-e-resolved-installed-client-identity.json`).
   A prior hardcoded generated-client path failed; pnpm's resolved path was then

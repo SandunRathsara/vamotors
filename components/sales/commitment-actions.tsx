@@ -266,17 +266,30 @@ export function CommitmentActions({
             break
           case "cancelFinanceError": {
             const receiptReversals = (sale.payments ?? [])
-              .filter((receipt) => receipt.id && receipt.category === "DOWN_PAYMENT" &&
-                receipt.direction === "IN" && !receipt.reversalOf &&
-                !sale.payments?.some((other) => other.reversalOf === receipt.id))
+              .filter(
+                (receipt) =>
+                  receipt.id &&
+                  receipt.category === "DOWN_PAYMENT" &&
+                  receipt.direction === "IN" &&
+                  !receipt.reversalOf &&
+                  !sale.payments?.some(
+                    (other) => other.reversalOf === receipt.id
+                  )
+              )
               .map((receipt) => receipt.id)
-            if (!receiptReversals.length) throw Error("Down payment receipt is unavailable")
+            if (!receiptReversals.length)
+              throw Error("Down payment receipt is unavailable")
             input = {
               reason,
               proposal: {
                 kind: "SALE_EDIT",
                 operation: "CANCEL_FINANCE_ERROR",
-                input: { saleCaseId: sale.id, reason, receiptReversals, disposition },
+                input: {
+                  saleCaseId: sale.id,
+                  reason,
+                  receiptReversals,
+                  disposition,
+                },
               },
             }
             break
@@ -327,7 +340,10 @@ export function CommitmentActions({
         body = envelope(input, expected)
         retry.current = { action, body }
       }
-      const response = await send<Applied | Pending>(action === "cancelFinanceError" ? "requestApproval" : action, body)
+      const response = await send<Applied | Pending>(
+        action === "cancelFinanceError" ? "requestApproval" : action,
+        body
+      )
       if (response.status === "PENDING_APPROVAL") {
         setApproval(response.approvalId)
         void queryClient.invalidateQueries({ queryKey: ["approvals"] })
@@ -469,7 +485,10 @@ export function CommitmentActions({
                     <Input
                       name="reason"
                       maxLength={2000}
-                      required={!!saleReference?.trim() && saleReference.trim() !== sale.reference}
+                      required={
+                        !!saleReference?.trim() &&
+                        saleReference.trim() !== sale.reference
+                      }
                     />
                   </Label>
                   <p className="self-end pb-2">
@@ -591,9 +610,18 @@ export function CommitmentActions({
                 <p>Balance to collect {money(remaining.toString())}</p>
               )}
               {active === "cancelFinanceError" && (
-                <p className="sm:col-span-2">Use this when the finance opening and recorded down payment were entered in error. Approval reverses the receipt on its original date and preserves the delivery order history. For money returned to the customer, request a refund.</p>
+                <p className="sm:col-span-2">
+                  Use this when the finance opening and recorded down payment
+                  were entered in error. Approval reverses the receipt on its
+                  original date and preserves the delivery order history. For
+                  money returned to the customer, request a refund.
+                </p>
               )}
-              {["cancelRetained", "requestApproval", "cancelFinanceError"].includes(active) && (
+              {[
+                "cancelRetained",
+                "requestApproval",
+                "cancelFinanceError",
+              ].includes(active) && (
                 <>
                   <Label className="grid gap-2">
                     Reason

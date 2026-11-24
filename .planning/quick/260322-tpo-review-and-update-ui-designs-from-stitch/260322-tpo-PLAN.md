@@ -105,6 +105,7 @@ Stitch source files in /tmp/stitch-designs/:
 
 **Existing sidebar nav structure (from design/dashboard.html lines 75-106):**
 The current sidebar has these sections and links:
+
 - Main: Dashboard, Vehicles, Purchases, Sales, Repairs
 - Management: Customers, Third Parties, Reports, Approvals (with badge)
 - Finance: Reconciliation, Cash Flow
@@ -116,6 +117,7 @@ The Stitch sidebar uses Material Symbols icons and generic `href="#"` links. It 
 Dashboard, Inventory, Sales, Customers, Third Parties, Finance, Reports, Lease Brokerage, Admin, Utilities.
 
 **Key differences to reconcile:**
+
 - Stitch uses `href="#"` everywhere — must be replaced with actual page hrefs
 - Stitch sidebar is more condensed (fewer explicit links) — adopt existing page-level granularity
 - Stitch uses Material Symbols font icons — keep these (they look better)
@@ -186,6 +188,7 @@ third-party-detail-garage.html, third-party-detail-finance.html
     Process each file in this order:
     - First build the sidebar nav HTML snippet as a template string (reusable across all 12 files)
     - For each mapping: read Stitch source, find the aside element, replace it with the canonical sidebar (setting the correct active link), find the header nav links and update hrefs, update the title tag, write to design/ target
+
   </action>
   <verify>
     <automated>
@@ -236,12 +239,13 @@ third-party-detail-garage.html, third-party-detail-finance.html
 </verification>
 
 <success_criteria>
+
 - 12 design files updated with Stitch tonal layering design system
 - Sidebar navigation consistent and fully functional across all 12 files
 - Zero broken navigation links
 - Non-Stitch design files untouched
 - User confirms visual quality matches Stitch design intent
-</success_criteria>
+  </success_criteria>
 
 <output>
 After completion, create `.planning/quick/260322-tpo-review-and-update-ui-designs-from-stitch/260322-tpo-SUMMARY.md`

@@ -335,10 +335,11 @@ export async function executeRepair(
   raw: unknown,
   existingTx?: Tx
 ): Promise<Applied> {
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   const overflow = (v: unknown, key = "") => {
     if (
       ["amount", "invoiceAmount"].includes(key) &&
@@ -666,7 +667,12 @@ export async function executeRepair(
       })
       after = (await loadPurchase(tx, row.id))!
       updated = after.repairs.find((r) => r.id === id)!
-      await returnedNotifications(tx, { commandId, userId: actor.userId }, after, updated)
+      await returnedNotifications(
+        tx,
+        { commandId, userId: actor.userId },
+        after,
+        updated
+      )
     }
     if (intent.name === "sendRepair" || intent.name === "returnRepair")
       await tx.statusEvent.create({

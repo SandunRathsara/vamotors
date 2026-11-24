@@ -239,9 +239,7 @@ if (mode === "prepare") {
   try {
     const after = await snapshotState(f)
     assert.equal(after.migrations.length, saved.before.migrations.length + 3)
-    assert.ok(
-      after.migrations.includes("202611230001_immediate_sales_tradein")
-    )
+    assert.ok(after.migrations.includes("202611230001_immediate_sales_tradein"))
 
     // Custom v14 non-admin role keeps its v14 ceilings. V15 freezes the old
     // wildcards into explicit v14 field universes, so no v15 leaf is silently

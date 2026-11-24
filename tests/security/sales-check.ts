@@ -3,7 +3,12 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import { chromium, request, type APIRequestContext, type Page } from "@playwright/test"
+import {
+  chromium,
+  request,
+  type APIRequestContext,
+  type Page,
+} from "@playwright/test"
 import type {
   Applied,
   ApprovalDTO,
@@ -212,7 +217,12 @@ try {
     purchasePrice: "20000",
     listedPrice: "25000",
   }
-  const p2 = await cmd("recordPurchase", p2Input, [ref(supplier.result, "Supplier")], 201)
+  const p2 = await cmd(
+    "recordPurchase",
+    p2Input,
+    [ref(supplier.result, "Supplier")],
+    201
+  )
   let c2 = await currentCycle(admin, p2.result.id)
   await cmd(
     "receiveStock",
@@ -231,7 +241,12 @@ try {
     purchasePrice: "30000",
     listedPrice: "35000",
   }
-  const p3 = await cmd("recordPurchase", p3Input, [ref(supplier.result, "Supplier")], 201)
+  const p3 = await cmd(
+    "recordPurchase",
+    p3Input,
+    [ref(supplier.result, "Supplier")],
+    201
+  )
   let c3 = await currentCycle(admin, p3.result.id)
   await cmd(
     "receiveStock",
@@ -250,7 +265,12 @@ try {
     purchasePrice: "20000",
     listedPrice: "40000",
   }
-  const p4 = await cmd("recordPurchase", p4Input, [ref(supplier.result, "Supplier")], 201)
+  const p4 = await cmd(
+    "recordPurchase",
+    p4Input,
+    [ref(supplier.result, "Supplier")],
+    201
+  )
   let c4 = await currentCycle(admin, p4.result.id)
   await cmd(
     "receiveStock",
@@ -399,7 +419,11 @@ try {
       assert.equal(c1.financial?.restatedProfit, "5000")
       assert.equal(c1.sales.length, 1)
 
-      const v1 = await f.query<VehicleDTO>(admin, "vehicle", `?id=${c1.vehicleId}`)
+      const v1 = await f.query<VehicleDTO>(
+        admin,
+        "vehicle",
+        `?id=${c1.vehicleId}`
+      )
       assert.equal(v1.status, "SOLD")
       assert.equal(v1.available, false)
       assert.ok(v1.mileage.some((m) => m.reading === 1250))
@@ -465,20 +489,28 @@ try {
           const resp = await page.goto(`${f.origin}${path}`, {
             waitUntil: "networkidle",
           })
-          assert.equal(resp?.status(), 200, `${path} returned ${resp?.status()}`)
+          assert.equal(
+            resp?.status(),
+            200,
+            `${path} returned ${resp?.status()}`
+          )
           await page.getByText(text).first().waitFor({ timeout: 10000 })
         }
         await page.goto(`${f.origin}/reports/audit`)
         await page.getByLabel("Record type").selectOption("SaleCase")
         await page.getByLabel("Record ID").fill(sale1Id)
-        await page.getByLabel("Action", { exact: true }).fill("completeImmediate")
+        await page
+          .getByLabel("Action", { exact: true })
+          .fill("completeImmediate")
         await page.getByRole("button", { name: "View history" }).click()
         await page.getByText("1 audit entry", { exact: true }).waitFor()
         await page.getByLabel("Through date (UTC)").fill("2000-01-01")
         await page.getByRole("button", { name: "View history" }).click()
         await page.getByText("0 audit entries", { exact: true }).waitFor()
         const staff = await f.login("STAFF")
-        const denied = await staff.get(`/api/reports/audit?type=SaleCase&id=${sale1Id}`)
+        const denied = await staff.get(
+          `/api/reports/audit?type=SaleCase&id=${sale1Id}`
+        )
         assert.ok([403, 404].includes(denied.status()))
         await staff.dispose()
       } finally {
@@ -679,7 +711,8 @@ try {
       assert.equal(s2.state, "COMPLETED")
       assert.equal(s2.price, "23500")
       assert.equal(
-        s2.timeline.find((event) => event.action === "DISCOUNT_APPROVED_SALE")?.actorName,
+        s2.timeline.find((event) => event.action === "DISCOUNT_APPROVED_SALE")
+          ?.actorName,
         "Synthetic Administrator B"
       )
       c2 = await currentCycle(admin, c2.id)
@@ -720,7 +753,10 @@ try {
           waitUntil: "networkidle",
         })
         assert.equal(resp?.status(), 200)
-        await page.getByText("Approved discount").first().waitFor({ timeout: 10000 })
+        await page
+          .getByText("Approved discount")
+          .first()
+          .waitFor({ timeout: 10000 })
       } finally {
         await page.close()
       }
@@ -814,7 +850,11 @@ try {
           },
           [
             ref(c3),
-            { type: "Vehicle", id: c3.vehicleId, revision: c3.identityRevision },
+            {
+              type: "Vehicle",
+              id: c3.vehicleId,
+              revision: c3.identityRevision,
+            },
           ]
         ),
         409,
@@ -904,7 +944,9 @@ try {
         `?name=completeImmediate&idempotencyKey=${evenSaleKey}`
       )
       assert.equal(evenReplay.commandId, evenSale.commandId)
-      assert.ok(evenReplay.affected.every((effect) => effect.id !== acquiredEffect.id))
+      assert.ok(
+        evenReplay.affected.every((effect) => effect.id !== acquiredEffect.id)
+      )
 
       await statusBody(
         admin,
@@ -1160,8 +1202,16 @@ try {
 
       s4 = await currentSale(admin, sale4Id)
       const correctedCustomer = await currentCustomer(admin, s4.customerId)
-      assert.equal(correctedCustomer.links.find((link) => link.type === "SALE" && link.id === s4.id)?.date, "2026-10-06")
-      const historyContext = await browser.newContext({ baseURL: f.origin, storageState: await admin.storageState() })
+      assert.equal(
+        correctedCustomer.links.find(
+          (link) => link.type === "SALE" && link.id === s4.id
+        )?.date,
+        "2026-10-06"
+      )
+      const historyContext = await browser.newContext({
+        baseURL: f.origin,
+        storageState: await admin.storageState(),
+      })
       try {
         const historyPage = await historyContext.newPage()
         await historyPage.goto(`/customers/${s4.customerId}`)
@@ -1193,11 +1243,7 @@ try {
       assert.equal(acqCycle.financial?.basis, "17500")
 
       // Sell acquired trade-in cycle -> then try SALE_EDIT mutating tradeIn.value -> 409 OBLIGATION_OPEN
-      await cmd(
-        "releaseStock",
-        { cycleId: acqCycle.id },
-        [ref(acqCycle)]
-      )
+      await cmd("releaseStock", { cycleId: acqCycle.id }, [ref(acqCycle)])
       acqCycle = await currentCycle(admin, tradeInCycleId)
       const custADtoNow = await currentCustomer(admin, custADto.id)
       await cmd(
@@ -1330,7 +1376,11 @@ try {
           },
           [
             ref(supplier.result, "Supplier"),
-            { type: "Vehicle", id: c1.vehicleId, revision: c1.identityRevision },
+            {
+              type: "Vehicle",
+              id: c1.vehicleId,
+              revision: c1.identityRevision,
+            },
           ]
         ),
         409,
@@ -1351,7 +1401,11 @@ try {
           },
           [
             ref(supplier.result, "Supplier"),
-            { type: "Vehicle", id: c1.vehicleId, revision: c1.identityRevision },
+            {
+              type: "Vehicle",
+              id: c1.vehicleId,
+              revision: c1.identityRevision,
+            },
           ]
         ),
         422,
@@ -1359,7 +1413,11 @@ try {
       )
 
       // Valid repurchase of c1 (SOLD on 2026-10-05, mileage 1250) -> cycleNumber = 2
-      const v1Before = await f.query<VehicleDTO>(admin, "vehicle", `?id=${c1.vehicleId}`)
+      const v1Before = await f.query<VehicleDTO>(
+        admin,
+        "vehicle",
+        `?id=${c1.vehicleId}`
+      )
       const repurchase = await cmd(
         "recordPurchase",
         {
@@ -1375,7 +1433,11 @@ try {
         },
         [
           ref(supplier.result, "Supplier"),
-          { type: "Vehicle", id: v1Before.id, revision: v1Before.identityRevision },
+          {
+            type: "Vehicle",
+            id: v1Before.id,
+            revision: v1Before.identityRevision,
+          },
         ],
         201
       )
@@ -1386,7 +1448,11 @@ try {
 
       // Acquired trade-in cycle had 1 repair (cycle 1); repurchase shows 0 repairs on cycle 2 while Vehicle DB has 1
       const tiSold = await currentCycle(admin, tradeInCycleId)
-      const vTi = await f.query<VehicleDTO>(admin, "vehicle", `?id=${tiSold.vehicleId}`)
+      const vTi = await f.query<VehicleDTO>(
+        admin,
+        "vehicle",
+        `?id=${tiSold.vehicleId}`
+      )
       assert.equal(tiSold.repairs.length, 1)
       const tiRepurchase = await cmd(
         "recordPurchase",
@@ -1459,19 +1525,31 @@ try {
         },
         [
           ref(cWo),
-          { type: "Vehicle", id: cWo.vehicleId, revision: cWo.identityRevision },
+          {
+            type: "Vehicle",
+            id: cWo.vehicleId,
+            revision: cWo.identityRevision,
+          },
         ],
         202
       )) as unknown as Pending
       const woApv = await currentApproval(second, woProp.approvalId)
       await cmd(
         "reviewApproval",
-        { approvalId: woApv.id, decision: "APPROVE", note: "Verified total loss" },
+        {
+          approvalId: woApv.id,
+          decision: "APPROVE",
+          note: "Verified total loss",
+        },
         reviewDeps(woApv),
         200,
         second
       )
-      const vWo = await f.query<VehicleDTO>(admin, "vehicle", `?id=${cWo.vehicleId}`)
+      const vWo = await f.query<VehicleDTO>(
+        admin,
+        "vehicle",
+        `?id=${cWo.vehicleId}`
+      )
       const woBase = purchaseInput(supplier.result.id, suffix, "wo")
       await statusBody(
         admin,
@@ -1544,7 +1622,10 @@ try {
             [ref(cRace), ref(custCur, "Customer")]
           ),
         })
-      const [r1, r2] = await Promise.all([makeRaceReq(admin), makeRaceReq(second)])
+      const [r1, r2] = await Promise.all([
+        makeRaceReq(admin),
+        makeRaceReq(second),
+      ])
       const statuses = [r1.status(), r2.status()].sort((a, b) => a - b)
       assert.deepEqual(statuses, [201, 409])
       const sold = await currentCycle(admin, cRace.id)
@@ -1560,14 +1641,26 @@ try {
             {
               subject: "SaleCase",
               action: "read",
-              fields: ["id", "cycleId", "customerId", "kind", "state", "completion.id", "completion.date"],
+              fields: [
+                "id",
+                "cycleId",
+                "customerId",
+                "kind",
+                "state",
+                "completion.id",
+                "completion.date",
+              ],
             },
             {
               subject: "Customer",
               action: "read",
               fields: ["id", "fullName", "callingName", "links"],
             },
-            { subject: "AuditLog", action: "read", fields: ["id", "at", "fields"] },
+            {
+              subject: "AuditLog",
+              action: "read",
+              fields: ["id", "at", "fields"],
+            },
           ],
           reason: "Least privilege sales viewer",
         },
@@ -1599,10 +1692,16 @@ try {
         assert.ok(sView.redactedFields?.includes("price"))
         const completionAudit = await f.query<{
           data: { actor?: unknown; fields: { path: string }[] }[]
-        }>(limitedClient, "audit", `?type=SaleCompletion&id=${sView.completion?.id}`)
+        }>(
+          limitedClient,
+          "audit",
+          `?type=SaleCompletion&id=${sView.completion?.id}`
+        )
         assert.equal(completionAudit.data.length, 1)
         assert.equal(completionAudit.data[0].actor, undefined)
-        assert.ok(completionAudit.data[0].fields.some(({ path }) => path === "date"))
+        assert.ok(
+          completionAudit.data[0].fields.some(({ path }) => path === "date")
+        )
         assert.ok(
           completionAudit.data[0].fields.every(
             ({ path }) => !["agreedPrice", "originalProfit"].includes(path)
@@ -1613,7 +1712,11 @@ try {
         const sLink = custView.links.find((l) => l.id === sale1Id)
         assert.ok(sLink)
         assert.equal(sLink.amount, undefined)
-        assert.ok((custView as CustomerDTO & { redactedFields?: string[] }).redactedFields?.includes("links.amount"))
+        assert.ok(
+          (
+            custView as CustomerDTO & { redactedFields?: string[] }
+          ).redactedFields?.includes("links.amount")
+        )
       } finally {
         await limitedClient.dispose()
       }
@@ -1654,7 +1757,11 @@ try {
                 "financial.net",
               ],
             },
-            { subject: "Supplier", action: "read", fields: ["id", "name", "active"] },
+            {
+              subject: "Supplier",
+              action: "read",
+              fields: ["id", "name", "active"],
+            },
           ],
           reason: "Purchase-only viewer without SaleCase authority",
         },
@@ -1969,7 +2076,11 @@ try {
         },
         [
           ref(cycle),
-          { type: "Vehicle", id: cycle.vehicleId, revision: cycle.identityRevision },
+          {
+            type: "Vehicle",
+            id: cycle.vehicleId,
+            revision: cycle.identityRevision,
+          },
         ],
         202
       )) as unknown as Pending
@@ -2045,10 +2156,14 @@ try {
           .getByRole("button", { name: "Complete Immediate Sale" })
           .click()
         await page.locator("#sale-cycle").selectOption(cycle.id)
-        await page.getByLabel("Search customers").fill(`NIC-A-${suffix}`, { timeout: 5000 })
-        await page.locator(`#sale-customer option[value="${custADto.id}"]`).waitFor({
-          state: "attached",
-        })
+        await page
+          .getByLabel("Search customers")
+          .fill(`NIC-A-${suffix}`, { timeout: 5000 })
+        await page
+          .locator(`#sale-customer option[value="${custADto.id}"]`)
+          .waitFor({
+            state: "attached",
+          })
         await page.getByLabel("Search customers").fill(`NIC-UI-${suffix}`)
         await page.getByText("No matching active customers.").waitFor()
         await page.getByRole("button", { name: "New customer inline" }).click()
@@ -2059,7 +2174,9 @@ try {
         await page.getByPlaceholder("Phone *").fill("0774444444")
         await page.getByPlaceholder("Address *").fill("10 UI Road")
         // Calling name intentionally blank: invalid customer retains the whole sale draft.
-        await page.getByRole("button", { name: "Save Customer & Select" }).click()
+        await page
+          .getByRole("button", { name: "Save Customer & Select" })
+          .click()
         await page
           .getByText(/Valid customer details/)
           .waitFor({ timeout: 10000 })
@@ -2068,12 +2185,13 @@ try {
           `UI Buyer ${suffix}`
         )
         await page.getByPlaceholder("Calling name *").fill("UI")
-        await page.getByRole("button", { name: "Save Customer & Select" }).click()
+        await page
+          .getByRole("button", { name: "Save Customer & Select" })
+          .click()
         await page.waitForFunction(
           () =>
-            (
-              document.querySelector("#sale-customer") as HTMLSelectElement
-            ).value !== "",
+            (document.querySelector("#sale-customer") as HTMLSelectElement)
+              .value !== "",
           undefined,
           { timeout: 10000 }
         )
@@ -2174,15 +2292,21 @@ try {
         await page.locator("#sale-mileage").fill("600")
         await page.locator("form button[type=submit]").click()
         await page
-          .getByText("Manager approval is required before recording the sale and payment.")
+          .getByText(
+            "Manager approval is required before recording the sale and payment."
+          )
           .waitFor({ timeout: 15000 })
         await page.locator("#discount-reason").fill("UI discount approval")
-        await page.getByRole("button", { name: "Request Discount Approval" }).click()
+        await page
+          .getByRole("button", { name: "Request Discount Approval" })
+          .click()
         const link = page.getByRole("link", {
           name: "Open pending approval request",
         })
         await link.waitFor({ timeout: 15000 })
-        await page.getByText("Pending manager approval.", { exact: true }).waitFor()
+        await page
+          .getByText("Pending manager approval.", { exact: true })
+          .waitFor()
         approvalHref = (await link.getAttribute("href")) ?? ""
         assert.match(approvalHref, /^\/approvals\/[0-9a-f-]{36}$/)
       } finally {
@@ -2202,7 +2326,9 @@ try {
           .getByRole("heading", { name: "Saved discount approval request" })
           .waitFor()
         await page.getByRole("button", { name: "Commit review" }).click()
-        await page.getByText(/Review committed once/).waitFor({ timeout: 15000 })
+        await page
+          .getByText(/Review committed once/)
+          .waitFor({ timeout: 15000 })
       } finally {
         await manager.close()
       }

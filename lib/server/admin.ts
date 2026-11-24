@@ -263,13 +263,20 @@ export async function executeAdmin(
     }[] = []
     const addMemberships = async (userId: string, roleIds: string[]) => {
       const memberships = await tx.userRole.createManyAndReturn({
-        data: roleIds.map((roleId) => ({ userId, roleId, assignedBy: actor.userId })),
+        data: roleIds.map((roleId) => ({
+          userId,
+          roleId,
+          assignedBy: actor.userId,
+        })),
       })
       for (const membership of memberships)
         joinChanges.push({
           type: "UserRole",
           before: null,
-          after: { ...membership, assignedAt: membership.assignedAt.toISOString() },
+          after: {
+            ...membership,
+            assignedAt: membership.assignedAt.toISOString(),
+          },
         })
     }
 
@@ -359,17 +366,30 @@ export async function executeAdmin(
       reason = input.reason
       expectRevision(envelope.expected, "User", row.id, row.authzRevision)
       if (membershipChanged) {
-        const removed = row.roles.filter((link) => !input.roleIds.includes(link.roleId))
+        const removed = row.roles.filter(
+          (link) => !input.roleIds.includes(link.roleId)
+        )
         await tx.userRole.deleteMany({
-          where: { userId: row.id, roleId: { in: removed.map((link) => link.roleId) } },
+          where: {
+            userId: row.id,
+            roleId: { in: removed.map((link) => link.roleId) },
+          },
         })
         for (const { userId, roleId, assignedBy, assignedAt } of removed)
           joinChanges.push({
             type: "UserRole",
-            before: { userId, roleId, assignedBy, assignedAt: assignedAt.toISOString() },
+            before: {
+              userId,
+              roleId,
+              assignedBy,
+              assignedAt: assignedAt.toISOString(),
+            },
             after: null,
           })
-        await addMemberships(row.id, input.roleIds.filter((roleId) => !oldIds.includes(roleId)))
+        await addMemberships(
+          row.id,
+          input.roleIds.filter((roleId) => !oldIds.includes(roleId))
+        )
       }
       await tx.user.update({
         where: { id: row.id },
@@ -441,18 +461,32 @@ export async function executeAdmin(
           })
           if (retained.has(permission.id)) continue
           retained.add(permission.id)
-          if (existing.some((link) => link.permissionId === permission.id)) continue
+          if (existing.some((link) => link.permissionId === permission.id))
+            continue
           const link = await tx.rolePermission.create({
             data: { roleId: entityId, permissionId: permission.id },
           })
-          joinChanges.push({ type: "RolePermission", before: null, after: link })
+          joinChanges.push({
+            type: "RolePermission",
+            before: null,
+            after: link,
+          })
         }
-        const removed = existing.filter((link) => !retained.has(link.permissionId))
+        const removed = existing.filter(
+          (link) => !retained.has(link.permissionId)
+        )
         await tx.rolePermission.deleteMany({
-          where: { roleId: entityId, permissionId: { in: removed.map((link) => link.permissionId) } },
+          where: {
+            roleId: entityId,
+            permissionId: { in: removed.map((link) => link.permissionId) },
+          },
         })
         for (const { roleId, permissionId } of removed)
-          joinChanges.push({ type: "RolePermission", before: { roleId, permissionId }, after: null })
+          joinChanges.push({
+            type: "RolePermission",
+            before: { roleId, permissionId },
+            after: null,
+          })
       }
       after = roleDTO(
         (await tx.role.findUnique({

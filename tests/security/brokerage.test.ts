@@ -16,7 +16,9 @@ import {
   expanded,
 } from "../../lib/server/permissions"
 
-const item = (overrides: Partial<Parameters<typeof checklistHashFor>[0][number]> = {}) => ({
+const item = (
+  overrides: Partial<Parameters<typeof checklistHashFor>[0][number]> = {}
+) => ({
   uniqueKey: "CUSTOMER_ID:",
   kind: "CUSTOMER_ID",
   label: null,
@@ -32,11 +34,17 @@ const item = (overrides: Partial<Parameters<typeof checklistHashFor>[0][number]>
 describe("brokerage checklist hash", () => {
   it("is deterministic regardless of row and attachment order", () => {
     const first = checklistHashFor(
-      [item(), item({ uniqueKey: "EXTRA_KEY:", kind: "EXTRA_KEY", attachments: [] })],
+      [
+        item(),
+        item({ uniqueKey: "EXTRA_KEY:", kind: "EXTRA_KEY", attachments: [] }),
+      ],
       1
     )
     const second = checklistHashFor(
-      [item({ uniqueKey: "EXTRA_KEY:", kind: "EXTRA_KEY", attachments: [] }), item()],
+      [
+        item({ uniqueKey: "EXTRA_KEY:", kind: "EXTRA_KEY", attachments: [] }),
+        item(),
+      ],
       1
     )
     expect(first).toMatch(/^[a-f0-9]{64}$/)
@@ -44,13 +52,15 @@ describe("brokerage checklist hash", () => {
   })
 
   it("binds the quote selection version and evidence changes", () => {
-    expect(checklistHashFor([item()], 2)).not.toBe(checklistHashFor([item()], 1))
-    expect(
-      checklistHashFor([item({ quantity: 4 })], 1)
-    ).not.toBe(checklistHashFor([item({ quantity: 5 })], 1))
-    expect(
-      checklistHashFor([item({ attachments: ["a"] })], 1)
-    ).not.toBe(checklistHashFor([item({ attachments: ["a", "b"] })], 1))
+    expect(checklistHashFor([item()], 2)).not.toBe(
+      checklistHashFor([item()], 1)
+    )
+    expect(checklistHashFor([item({ quantity: 4 })], 1)).not.toBe(
+      checklistHashFor([item({ quantity: 5 })], 1)
+    )
+    expect(checklistHashFor([item({ attachments: ["a"] })], 1)).not.toBe(
+      checklistHashFor([item({ attachments: ["a", "b"] })], 1)
+    )
   })
 })
 
@@ -197,7 +207,9 @@ describe("brokerage validators", () => {
     expect(
       facilityTerms.safeParse({
         gross: "100000",
-        deductions: [{ label: "X", amount: "1000", recipient: "R", handling: "WITHHELD" }],
+        deductions: [
+          { label: "X", amount: "1000", recipient: "R", handling: "WITHHELD" },
+        ],
         fee: "0",
         feeMode: "WITHHELD",
         separatelyRecoverableCharges: "1000",
@@ -251,7 +263,8 @@ describe("permission registry v16", () => {
       expect(subjects.has(subject)).toBe(true)
     }
     const dispatch = administratorGrants.find(
-      (grant) => grant.subject === "BrokerageDeal" && grant.action === "dispatch"
+      (grant) =>
+        grant.subject === "BrokerageDeal" && grant.action === "dispatch"
     )!
     expect(expanded(dispatch)).toContain("sourceIds")
   })

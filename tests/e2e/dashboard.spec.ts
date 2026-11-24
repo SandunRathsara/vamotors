@@ -157,11 +157,15 @@ test("permission-aware navigation and purchase to invoice, reports and reconcili
       await expect(dialog).toBeVisible()
       await page.keyboard.press("Shift+Tab")
       await expect
-        .poll(() => dialog.evaluate((element) => element.contains(document.activeElement)))
+        .poll(() =>
+          dialog.evaluate((element) => element.contains(document.activeElement))
+        )
         .toBe(true)
       await page.keyboard.press("Tab")
       await expect
-        .poll(() => dialog.evaluate((element) => element.contains(document.activeElement)))
+        .poll(() =>
+          dialog.evaluate((element) => element.contains(document.activeElement))
+        )
         .toBe(true)
       await page.keyboard.press("Escape")
       await expect(toggle).toBeFocused()
@@ -171,7 +175,10 @@ test("permission-aware navigation and purchase to invoice, reports and reconcili
     await expect(page).toHaveURL(/\/purchases$/)
     const search = page.getByLabel("Search make, model, engine or chassis")
     await search.fill(tag)
-    await activate(page, page.getByRole("button", { name: "Search", exact: true }))
+    await activate(
+      page,
+      page.getByRole("button", { name: "Search", exact: true })
+    )
     await expect(page).toHaveURL(new RegExp(`q=${tag}`))
     await activate(page, page.getByRole("link", { name: "View purchase" }))
     await expect(page).toHaveURL(new RegExp(`/purchases/${cycle.id}$`))
@@ -191,10 +198,15 @@ test("permission-aware navigation and purchase to invoice, reports and reconcili
     await activate(page, saleButton)
     const salePath = /\/sales\/[a-f0-9-]+$/
     await page.waitForURL(salePath, { timeout: 15_000 }).catch(async () => {
-      await activate(page, page.getByRole("link", { name: "Open completed sale detail" }))
+      await activate(
+        page,
+        page.getByRole("link", { name: "Open completed sale detail" })
+      )
       await expect(page).toHaveURL(salePath)
     })
-    await expect(page.getByRole("heading", { level: 1, name: /^Sale / })).toBeFocused()
+    await expect(
+      page.getByRole("heading", { level: 1, name: /^Sale / })
+    ).toBeFocused()
     await activate(page, page.getByRole("button", { name: "Generate invoice" }))
     const [invoice] = await Promise.all([
       page.waitForEvent("download", { timeout: 30_000 }),

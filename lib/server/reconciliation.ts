@@ -155,8 +155,14 @@ const isReversed = (row: Remittance, paymentId: string) =>
   row.payments.some((p) => p.reversalOf === paymentId)
 /** Carried excess is reusable bank credit. Its original allocation and decision stay in history. */
 type AllocationLedger = {
-  allocations: Pick<Remittance["allocations"][number], "amount" | "reversalOf">[]
-  discrepancies: Pick<Remittance["discrepancies"][number], "allocationId" | "expectedMinusAllocated" | "resolution">[]
+  allocations: Pick<
+    Remittance["allocations"][number],
+    "amount" | "reversalOf"
+  >[]
+  discrepancies: Pick<
+    Remittance["discrepancies"][number],
+    "allocationId" | "expectedMinusAllocated" | "resolution"
+  >[]
 }
 function carriedCredit(row: AllocationLedger) {
   const reversed = new Set(row.allocations.map((line) => line.reversalOf))
@@ -879,7 +885,9 @@ async function publish(
     },
     {
       revision: updatedCompany.revision,
-      reconciliationWatermark: nullableDate(updatedCompany.reconciliationWatermark),
+      reconciliationWatermark: nullableDate(
+        updatedCompany.reconciliationWatermark
+      ),
     },
     reason
   )
@@ -1583,10 +1591,22 @@ export async function executeReconciliation(
         })
       }
     )
-    if (existingTx && (result.type === "Remittance" || result.type === "ReconciliationRun")) {
+    if (
+      existingTx &&
+      (result.type === "Remittance" || result.type === "ReconciliationRun")
+    ) {
       await writeReadVersion(tx, {
-        commandId, sequence: sequence!, entityType: result.type, entityId: result.id,
-        revision: result.revision, payload: { id: result.id, ...(result.type === "Remittance" ? { revision: result.revision } : {}) },
+        commandId,
+        sequence: sequence!,
+        entityType: result.type,
+        entityId: result.id,
+        revision: result.revision,
+        payload: {
+          id: result.id,
+          ...(result.type === "Remittance"
+            ? { revision: result.revision }
+            : {}),
+        },
       })
     }
     return {
@@ -1608,7 +1628,11 @@ const transferIdentity = (payment: CashTransfer) => ({
   reference: payment.reference,
 })
 
-export async function checkIndependentLenderReceipt(tx: Tx, companyId: string, payment: CashTransfer) {
+export async function checkIndependentLenderReceipt(
+  tx: Tx,
+  companyId: string,
+  payment: CashTransfer
+) {
   if (!payment.reference) return
   const remittance = await tx.remittancePayment.findFirst({
     where: {
@@ -1625,7 +1649,10 @@ export async function checkIndependentLenderReceipt(tx: Tx, companyId: string, p
 export async function refreshLenderEntitlement(
   tx: Tx,
   saleCaseId: string,
-  context: Pick<Parameters<typeof audit>[1], "commandId" | "userId" | "action" | "reason" | "initiatedBy" | "approverId">
+  context: Pick<
+    Parameters<typeof audit>[1],
+    "commandId" | "userId" | "action" | "reason" | "initiatedBy" | "approverId"
+  >
 ) {
   const row = await tx.commissionEntitlement.findUnique({
     where: { saleCaseId },

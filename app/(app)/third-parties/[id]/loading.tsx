@@ -8,7 +8,7 @@ export default function ThirdPartyDetailLoading() {
         <Skeleton className="h-4 w-4 rounded-full" />
         <Skeleton className="h-4 w-40" />
       </div>
-      <div className="rounded-lg border p-6 space-y-4">
+      <div className="space-y-4 rounded-lg border p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <Skeleton className="h-6 w-48" />
@@ -28,7 +28,7 @@ export default function ThirdPartyDetailLoading() {
           ))}
         </div>
       </div>
-      <div className="rounded-lg border p-6 space-y-3">
+      <div className="space-y-3 rounded-lg border p-6">
         <Skeleton className="h-6 w-40" />
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-10 w-full" />

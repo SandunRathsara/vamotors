@@ -3,7 +3,12 @@ import { constants } from "node:fs"
 import { open, statfs } from "node:fs/promises"
 import { isAbsolute, join } from "node:path"
 import { randomUUID } from "node:crypto"
-import type { ImportBatch, BrokerageDeal, SaleCase, Remittance } from "@prisma/client"
+import type {
+  ImportBatch,
+  BrokerageDeal,
+  SaleCase,
+  Remittance,
+} from "@prisma/client"
 import type {
   Applied,
   Dependency,
@@ -215,7 +220,12 @@ const targetRef = (target: UploadTarget): Dependency =>
   target.type === "IMPORT_BATCH"
     ? { type: "ImportBatch", id: target.row.id, revision: target.row.revision }
     : {
-        type: target.type === "SALE_CASE" ? "SaleCase" : target.type === "REMITTANCE" ? "Remittance" : "BrokerageDeal",
+        type:
+          target.type === "SALE_CASE"
+            ? "SaleCase"
+            : target.type === "REMITTANCE"
+              ? "Remittance"
+              : "BrokerageDeal",
         id: target.row.id,
         revision: target.row.revision,
       }
@@ -245,15 +255,22 @@ export async function loadTarget(
   if (type === "IMPORT_BATCH")
     return { type, row: await loadBatch(tx, actor, id, write) }
   if (type === "SALE_CASE") {
-    if (write) await tx.$queryRaw`SELECT id FROM vamotors."SaleCase" WHERE id=${id}::uuid FOR UPDATE`
+    if (write)
+      await tx.$queryRaw`SELECT id FROM vamotors."SaleCase" WHERE id=${id}::uuid FOR UPDATE`
     const row = await tx.saleCase.findUnique({ where: { id } })
     if (!row || row.kind !== "LEASE") fail("NOT_FOUND", 404)
-    requireFields(actor.ability, "SaleCase", "read", row, ["id", "revision", "finance.doAttachmentId"])
-    if (write) requireFields(actor.ability, "SaleCase", "update", row, ["recordDO"])
+    requireFields(actor.ability, "SaleCase", "read", row, [
+      "id",
+      "revision",
+      "finance.doAttachmentId",
+    ])
+    if (write)
+      requireFields(actor.ability, "SaleCase", "update", row, ["recordDO"])
     return { type, row }
   }
   if (type === "REMITTANCE") {
-    if (write) await tx.$queryRaw`SELECT id FROM vamotors."Remittance" WHERE id=${id}::uuid FOR UPDATE`
+    if (write)
+      await tx.$queryRaw`SELECT id FROM vamotors."Remittance" WHERE id=${id}::uuid FOR UPDATE`
     const row = await tx.remittance.findUnique({ where: { id } })
     if (!row) fail("NOT_FOUND", 404)
     authorizeRemittanceDocument(actor, row, write)
@@ -313,7 +330,10 @@ async function loadIntent(tx: Tx, actor: Actor, uploadId: string) {
     tx,
     actor,
     source.targetType as UploadTarget["type"],
-    (source.batchId ?? source.brokerageDealId ?? source.saleCaseId ?? source.remittanceId)!,
+    (source.batchId ??
+      source.brokerageDealId ??
+      source.saleCaseId ??
+      source.remittanceId)!,
     true
   )
   await tx.$queryRaw`SELECT id FROM vamotors."UploadIntent" WHERE id=${uploadId}::uuid FOR UPDATE`
@@ -328,7 +348,9 @@ async function loadIntent(tx: Tx, actor: Actor, uploadId: string) {
       : upload.targetType === "SALE_CASE"
         ? upload.purpose !== "DO"
         : upload.targetType === "REMITTANCE"
-          ? !["RECONCILIATION_NOTICE", "REMITTANCE_RECEIPT"].includes(upload.purpose)
+          ? !["RECONCILIATION_NOTICE", "REMITTANCE_RECEIPT"].includes(
+              upload.purpose
+            )
           : ![
               "INSPECTION",
               "PARTICIPANT_DOCUMENT",
@@ -447,11 +469,14 @@ export async function initUpload(
   const digest = inputDigest(envelope, config.BETTER_AUTH_SECRET)
   return transaction(async (tx) => {
     const actor = await lockImportActor(tx, identity),
-      target = await loadTarget(tx, actor, input.target.type, input.target.id, true)
-    if (
-      target.type === "BROKERAGE_DEAL" &&
-      target.row.path !== "APPLICATION"
-    )
+      target = await loadTarget(
+        tx,
+        actor,
+        input.target.type,
+        input.target.id,
+        true
+      )
+    if (target.type === "BROKERAGE_DEAL" && target.row.path !== "APPLICATION")
       fail("PATH_MISMATCH")
     requireFields(
       actor.ability,
@@ -480,8 +505,11 @@ export async function initUpload(
         existing.targetType !== target.type ||
         (target.type === "IMPORT_BATCH"
           ? existing.batchId !== target.row.id
-          : target.type === "SALE_CASE" ? existing.saleCaseId !== target.row.id
-          : target.type === "REMITTANCE" ? existing.remittanceId !== target.row.id : existing.brokerageDealId !== target.row.id)
+          : target.type === "SALE_CASE"
+            ? existing.saleCaseId !== target.row.id
+            : target.type === "REMITTANCE"
+              ? existing.remittanceId !== target.row.id
+              : existing.brokerageDealId !== target.row.id)
       )
         fail("IDEMPOTENCY_MISMATCH")
       authorizeDocument(actor, existing, "put")
@@ -497,7 +525,8 @@ export async function initUpload(
       (target.type === "REMITTANCE" && target.row.state !== "STAGED")
     )
       fail("INVALID_STATE")
-    if (target.type === "SALE_CASE" && target.row.state !== "FINANCE_PENDING") fail("INVALID_STATE")
+    if (target.type === "SALE_CASE" && target.row.state !== "FINANCE_PENDING")
+      fail("INVALID_STATE")
     const now = new Date(),
       commandId = randomUUID()
     const upload = await tx.uploadIntent.create({
@@ -507,11 +536,10 @@ export async function initUpload(
         remittanceId: target.type === "REMITTANCE" ? target.row.id : null,
         saleCaseId: target.type === "SALE_CASE" ? target.row.id : null,
         batchId: target.type === "IMPORT_BATCH" ? target.row.id : null,
-        brokerageDealId: target.type === "BROKERAGE_DEAL" ? target.row.id : null,
+        brokerageDealId:
+          target.type === "BROKERAGE_DEAL" ? target.row.id : null,
         photoCategory:
-          target.type === "BROKERAGE_DEAL"
-            ? (input.category ?? null)
-            : null,
+          target.type === "BROKERAGE_DEAL" ? (input.category ?? null) : null,
         environmentId: config.ENVIRONMENT_ID,
         createdBy: actor.userId,
         createdAt: now,
@@ -722,7 +750,10 @@ export async function completeUpload(
               id: upload.id,
               revision: upload.currentAttempt!.uploadRevision,
             },
-            { ...targetRef(target), revision: upload.currentAttempt!.targetRevision },
+            {
+              ...targetRef(target),
+              revision: upload.currentAttempt!.targetRevision,
+            },
           ]
         : [uploadRef(upload), targetRef(target)]
     )
@@ -884,31 +915,35 @@ export async function completeUpload(
       include: intentInclude,
     })
     const owner =
-      target.type === "SALE_CASE" || target.type === "REMITTANCE" ? target.row : target.type === "IMPORT_BATCH"
-        ? await tx.importBatch.update({
-            where: { id: target.row.id },
-            data: { revision: bump(target.row.revision) },
-          })
-        : await tx.brokerageDeal.update({
-            where: { id: target.row.id },
-            data: { revision: bump(target.row.revision) },
-          })
+      target.type === "SALE_CASE" || target.type === "REMITTANCE"
+        ? target.row
+        : target.type === "IMPORT_BATCH"
+          ? await tx.importBatch.update({
+              where: { id: target.row.id },
+              data: { revision: bump(target.row.revision) },
+            })
+          : await tx.brokerageDeal.update({
+              where: { id: target.row.id },
+              data: { revision: bump(target.row.revision) },
+            })
     const ownerChange =
-      target.type === "SALE_CASE" || target.type === "REMITTANCE" ? null : target.type === "IMPORT_BATCH"
-        ? {
-            entityType: "ImportBatch" as const,
-            entityId: target.row.id,
-            revision: owner.revision,
-            before: batchDTO(target.row),
-            after: batchDTO(owner as ImportBatch),
-          }
-        : {
-            entityType: "BrokerageDeal" as const,
-            entityId: target.row.id,
-            revision: owner.revision,
-            before: dealReadPayload(target.row),
-            after: dealReadPayload(owner as BrokerageDeal),
-          }
+      target.type === "SALE_CASE" || target.type === "REMITTANCE"
+        ? null
+        : target.type === "IMPORT_BATCH"
+          ? {
+              entityType: "ImportBatch" as const,
+              entityId: target.row.id,
+              revision: owner.revision,
+              before: batchDTO(target.row),
+              after: batchDTO(owner as ImportBatch),
+            }
+          : {
+              entityType: "BrokerageDeal" as const,
+              entityId: target.row.id,
+              revision: owner.revision,
+              before: dealReadPayload(target.row),
+              after: dealReadPayload(owner as BrokerageDeal),
+            }
     const result = { type: "Document", id: attachmentId, revision: 1 }
     await tx.commandReceipt.create({
       data: {
@@ -987,7 +1022,10 @@ export async function completeUpload(
       commandId,
       replayed: false,
       result,
-      affected: [uploadRef(final), { ...targetRef(target), revision: owner.revision }],
+      affected: [
+        uploadRef(final),
+        { ...targetRef(target), revision: owner.revision },
+      ],
       invalidate: ["documents"],
     }
   })
@@ -1006,7 +1044,9 @@ export async function authorizedAttachment(
     await loadTarget(tx, actor, "REMITTANCE", row.remittanceId, false)
   } else if (row.targetType === "BROKERAGE_DEAL") {
     const deal = row.brokerageDealId
-      ? await tx.brokerageDeal.findUnique({ where: { id: row.brokerageDealId } })
+      ? await tx.brokerageDeal.findUnique({
+          where: { id: row.brokerageDealId },
+        })
       : null
     if (!deal) fail("NOT_FOUND", 404)
     requireFields(actor.ability, "BrokerageDeal", "read", dealSubject(deal), [

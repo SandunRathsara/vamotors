@@ -75,7 +75,11 @@ export const methods = [
   "DELETE",
 ] as const
 export const queryNames = [
-  "reconciliationCompanies", "reconciliation", "reconciliationEntitlement", "remittances", "remittance",
+  "reconciliationCompanies",
+  "reconciliation",
+  "reconciliationEntitlement",
+  "remittances",
+  "remittance",
   "importBatches",
   "importBatchFiles",
   "download",

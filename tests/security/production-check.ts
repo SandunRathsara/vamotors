@@ -1363,7 +1363,8 @@ async function main() {
           quote: `?id=${guessedID}`,
           vehicle: `?id=${guessedID}`,
           purchase: `?cycleId=${guessedID}`,
-          vehicleIdentity: "?engineNumber=UNKNOWN-T05A&chassisNumber=UNKNOWN-T05A",
+          vehicleIdentity:
+            "?engineNumber=UNKNOWN-T05A&chassisNumber=UNKNOWN-T05A",
           parties: "?type=SUPPLIER",
           party: `?type=SUPPLIER&id=${guessedID}`,
         }

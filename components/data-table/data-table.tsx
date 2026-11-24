@@ -1,7 +1,7 @@
-import { flexRender, type Table as TanstackTable } from "@tanstack/react-table";
-import type * as React from "react";
+import { flexRender, type Table as TanstackTable } from "@tanstack/react-table"
+import type * as React from "react"
 
-import { DataTablePagination } from "@/components/data-table/data-table-pagination";
+import { DataTablePagination } from "@/components/data-table/data-table-pagination"
 import {
   Table,
   TableBody,
@@ -9,14 +9,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { getColumnPinningStyle } from "@/lib/data-table";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/table"
+import { getColumnPinningStyle } from "@/lib/data-table"
+import { cn } from "@/lib/utils"
 
 interface DataTableProps<TData> extends React.ComponentProps<"div"> {
-  table: TanstackTable<TData>;
-  actionBar?: React.ReactNode;
-  onRowClick?: (row: TData) => void;
+  table: TanstackTable<TData>
+  actionBar?: React.ReactNode
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData>({
@@ -50,7 +50,7 @@ export function DataTable<TData>({
                       ? null
                       : flexRender(
                           header.column.columnDef.header,
-                          header.getContext(),
+                          header.getContext()
                         )}
                   </TableHead>
                 ))}
@@ -63,12 +63,21 @@ export function DataTable<TData>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  onClick={onRowClick ? (e) => {
-                    // Don't trigger row click when clicking interactive elements inside the row
-                    const target = e.target as HTMLElement
-                    if (target.closest('button, a, input, select, textarea, [role="menuitem"], [role="option"]')) return
-                    onRowClick(row.original)
-                  } : undefined}
+                  onClick={
+                    onRowClick
+                      ? (e) => {
+                          // Don't trigger row click when clicking interactive elements inside the row
+                          const target = e.target as HTMLElement
+                          if (
+                            target.closest(
+                              'button, a, input, select, textarea, [role="menuitem"], [role="option"]'
+                            )
+                          )
+                            return
+                          onRowClick(row.original)
+                        }
+                      : undefined
+                  }
                   className={onRowClick ? "cursor-pointer" : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -80,7 +89,7 @@ export function DataTable<TData>({
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext(),
+                        cell.getContext()
                       )}
                     </TableCell>
                   ))}
@@ -106,5 +115,5 @@ export function DataTable<TData>({
           actionBar}
       </div>
     </div>
-  );
+  )
 }

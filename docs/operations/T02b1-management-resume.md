@@ -18,18 +18,18 @@ The privately delivered management key was consumed inside commands only. No key
 connection URL, response body, subprocess error or delivery-file contents were
 printed or stored in this checkout. The delivery file was not changed/deleted.
 
-| Read-only observation | Result |
-| --- | --- |
-| Organization | `org-fancy-mode-53675625`, plan `free` |
-| Project | `crimson-cherry-69611458`, actual name **VA Motors**, `aws-us-east-2` |
-| Identity mapping | Existing private dev DIRECT_URL hostname exactly matches the project's existing endpoint; this establishes identity despite historical name `vamotors-dev` |
-| Existing branch | `br-autumn-rain-b56rxlj9`, `production`, default, ready |
-| Existing endpoint | `ep-mute-lab-b5d4mno7`, read/write, initially idle |
-| Owner subscription / branch allowance | `free_v3`; API `branches_limit=10`; inventory had 1 branch, so 9 unused slots |
-| Existing compute settings | 0.25–2 CU; `suspend_timeout_seconds=0` means plan default, not disabled scale-to-zero |
-| Current project usage fields | `compute_time_seconds=813`, `active_time_seconds=3220`; informational, not billing-grade remaining-budget proof |
-| Consumption period returned | 2026-10-25T14:50:04Z through 2026-11-01T00:00:00Z |
-| Storage | API branch cap 1,073,741,824 bytes; existing branch logical size 39,436,288 bytes |
+| Read-only observation                 | Result                                                                                                                                                     |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Organization                          | `org-fancy-mode-53675625`, plan `free`                                                                                                                     |
+| Project                               | `crimson-cherry-69611458`, actual name **VA Motors**, `aws-us-east-2`                                                                                      |
+| Identity mapping                      | Existing private dev DIRECT_URL hostname exactly matches the project's existing endpoint; this establishes identity despite historical name `vamotors-dev` |
+| Existing branch                       | `br-autumn-rain-b56rxlj9`, `production`, default, ready                                                                                                    |
+| Existing endpoint                     | `ep-mute-lab-b5d4mno7`, read/write, initially idle                                                                                                         |
+| Owner subscription / branch allowance | `free_v3`; API `branches_limit=10`; inventory had 1 branch, so 9 unused slots                                                                              |
+| Existing compute settings             | 0.25–2 CU; `suspend_timeout_seconds=0` means plan default, not disabled scale-to-zero                                                                      |
+| Current project usage fields          | `compute_time_seconds=813`, `active_time_seconds=3220`; informational, not billing-grade remaining-budget proof                                            |
+| Consumption period returned           | 2026-10-25T14:50:04Z through 2026-11-01T00:00:00Z                                                                                                          |
+| Storage                               | API branch cap 1,073,741,824 bytes; existing branch logical size 39,436,288 bytes                                                                          |
 
 Current primary docs confirm Free includes 10 branches/project, 100 CU-hours per
 project/month, up to 2 CU, automatic five-minute scale-to-zero, 1 GB storage/project
@@ -128,7 +128,7 @@ and private files; foundation alone creates its matching singleton.
    - `~/.config/vamotors/t03-disposable-runtime.env`: pooled DATABASE_URL only,
      APP_ENV=disposable-test, ENVIRONMENT_ID, explicit local
      APP_ORIGIN=BETTER_AUTH_URL=`http://localhost:3000`, random independent
-     >=32-byte BETTER_AUTH_SECRET. No DIRECT_URL/bootstrap material.
+     > =32-byte BETTER_AUTH_SECRET. No DIRECT_URL/bootstrap material.
    - `~/.config/vamotors/t03-disposable-migration.env`: direct DIRECT_URL,
      same APP_ENV/ENVIRONMENT_ID, T03_DISPOSABLE_AUTHORIZATION matching UUID,
      T03_DISPOSABLE_HOST and T03_DISPOSABLE_DATABASE matching actual new target.
@@ -141,22 +141,22 @@ and private files; foundation alone creates its matching singleton.
    table/column/function identities. Infrastructure then applies ONLY this
    reviewed PR5 proposal; no blanket/future-table grants:
 
-| Object in `vamotors` | Runtime grant after migration-ready confirmation |
-| --- | --- |
-| `user` | SELECT, INSERT; UPDATE(name,active,authzRevision,updatedAt); no DELETE |
-| `session` | SELECT, INSERT, UPDATE, DELETE |
-| `account` | SELECT, INSERT only |
-| `verification` | None |
-| `Environment` | SELECT(singleton,id,name,allowBusinessWrites,disposableTest,bootstrappedAt) only |
-| `AdminGuard` | None; EXECUTE `vamotors.lock_admin_guard()` only, reviewed fixed-search-path definer |
-| `Role` | SELECT, INSERT; UPDATE(name,active,revision) only |
-| `Permission` | SELECT, INSERT only |
-| `UserRole`, `RolePermission` | SELECT, INSERT, DELETE only |
-| `CommandReceipt`, `AuditEntry`, `EntityReadVersion`, `StatusEvent` | SELECT, INSERT only |
-| `BusinessSequence` | SELECT; UPDATE(value) only |
-| `Notification` | SELECT, INSERT; UPDATE(readAt,revision) only |
-| `Customer`, `Supplier`, `SupplierContact`, `Vehicle`, `PurchaseRecord` | None |
-| `_prisma_migrations`, other schemas, future tables | None |
+| Object in `vamotors`                                                   | Runtime grant after migration-ready confirmation                                     |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `user`                                                                 | SELECT, INSERT; UPDATE(name,active,authzRevision,updatedAt); no DELETE               |
+| `session`                                                              | SELECT, INSERT, UPDATE, DELETE                                                       |
+| `account`                                                              | SELECT, INSERT only                                                                  |
+| `verification`                                                         | None                                                                                 |
+| `Environment`                                                          | SELECT(singleton,id,name,allowBusinessWrites,disposableTest,bootstrappedAt) only     |
+| `AdminGuard`                                                           | None; EXECUTE `vamotors.lock_admin_guard()` only, reviewed fixed-search-path definer |
+| `Role`                                                                 | SELECT, INSERT; UPDATE(name,active,revision) only                                    |
+| `Permission`                                                           | SELECT, INSERT only                                                                  |
+| `UserRole`, `RolePermission`                                           | SELECT, INSERT, DELETE only                                                          |
+| `CommandReceipt`, `AuditEntry`, `EntityReadVersion`, `StatusEvent`     | SELECT, INSERT only                                                                  |
+| `BusinessSequence`                                                     | SELECT; UPDATE(value) only                                                           |
+| `Notification`                                                         | SELECT, INSERT; UPDATE(readAt,revision) only                                         |
+| `Customer`, `Supplier`, `SupplierContact`, `Vehicle`, `PurchaseRecord` | None                                                                                 |
+| `_prisma_migrations`, other schemas, future tables                     | None                                                                                 |
 
 6. Foundation then initializes the singleton and runs guarded bootstrap and real
    adapter/security tests in the T03a order. Initialization/bootstrap/table writes

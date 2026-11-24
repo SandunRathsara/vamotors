@@ -442,11 +442,7 @@ export function vehicleDTO(row: Row): VehicleDTO {
   const cycle = purchaseDTO(row)
   const vehicleFinancial = cycle.financial
     ? (() => {
-        const {
-          originalBasis: _ob,
-          salePrice: _sp,
-          ...rest
-        } = cycle.financial
+        const { originalBasis: _ob, salePrice: _sp, ...rest } = cycle.financial
         void _ob
         void _sp
         return rest
@@ -1275,17 +1271,28 @@ export function visiblePurchase(actor: Actor, row: Row) {
     ) {
       const candidate = subject("SaleCase", { createdBy: actor.userId })
       for (const action of ["placeReservation", "startFinance"])
-        if ((action !== "placeReservation" || (row.listedPrice ?? 0n) > 0n)
-          && [action, "cycleId", "customerId", "price"].every((field) => actor.ability.can("create", candidate, field)))
+        if (
+          (action !== "placeReservation" || (row.listedPrice ?? 0n) > 0n) &&
+          [action, "cycleId", "customerId", "price"].every((field) =>
+            actor.ability.can("create", candidate, field)
+          )
+        )
           (result.nextActions as string[]).push(action)
       if (
-        ["cycleId", "customerId", "kind", "price", "date", "mileage", "method"].every(
-          (f) =>
-            actor.ability.can(
-              "create",
-              subject("SaleCase", { createdBy: actor.userId }),
-              f
-            )
+        [
+          "cycleId",
+          "customerId",
+          "kind",
+          "price",
+          "date",
+          "mileage",
+          "method",
+        ].every((f) =>
+          actor.ability.can(
+            "create",
+            subject("SaleCase", { createdBy: actor.userId }),
+            f
+          )
         )
       )
         (result.nextActions as string[]).push("completeImmediate")
@@ -1465,7 +1472,11 @@ export async function acquireVehicleCycle(
     company?: { id: string; name: string } | null
     commandId: string
     sequence: bigint
-    action: "recordPurchase" | "completeImmediate" | "intakeTradeIn" | "reviewApproval"
+    action:
+      | "recordPurchase"
+      | "completeImmediate"
+      | "intakeTradeIn"
+      | "reviewApproval"
     initiatedBy?: string
     approverId?: string
     settings: {
@@ -1616,7 +1627,9 @@ export async function acquireVehicleCycle(
     const before = mileageHistory
       .filter((h) => date(h.recordedDate) <= mileage.date)
       .at(-1)
-    const after = mileageHistory.find((h) => date(h.recordedDate) > mileage.date)
+    const after = mileageHistory.find(
+      (h) => date(h.recordedDate) > mileage.date
+    )
     if (
       (before && mileage.reading < before.reading && !mileage.decreaseReason) ||
       (after && after.reading < mileage.reading && !mileage.decreaseReason)
@@ -1662,7 +1675,9 @@ export async function acquireVehicleCycle(
       ...(tradeInSourceSaleId ? { tradeInSourceSaleId } : {}),
       purchaseDate: new Date(purchaseDate),
       purchasePrice,
-      ...(listedPrice !== undefined ? { listedPrice: BigInt(listedPrice) } : {}),
+      ...(listedPrice !== undefined
+        ? { listedPrice: BigInt(listedPrice) }
+        : {}),
       createdBy: actor.userId,
       acquisitionCommandId: commandId,
       settingsVersionId: settings.currentVersionId,
@@ -1821,10 +1836,11 @@ export async function recordPurchase(
   historicalPaymentSchedule?: boolean
 ): Promise<Applied> {
   if (historicalPaymentSchedule && !existingTx) fail("INVALID_INPUT", 422)
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   checkMoneyInput(raw)
   const parsed = purchaseEnvelope.safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -2065,10 +2081,11 @@ export async function executeStock(
   raw: unknown,
   existingTx?: Tx
 ): Promise<Applied> {
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   const parsed = stockEnvelope(name).safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const envelope = parsed.data,
@@ -2372,7 +2389,9 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
     !row.acquisitionCommandId ||
     row.closedAt ||
     row.vehicle.activePurchaseId !== row.id ||
-    !["PURCHASED", "IN_STOCK", "ADVANCE_PLACED", "ADVANCE_EXPIRED"].includes(row.status) ||
+    !["PURCHASED", "IN_STOCK", "ADVANCE_PLACED", "ADVANCE_EXPIRED"].includes(
+      row.status
+    ) ||
     !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
     !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType)
   )
@@ -2382,7 +2401,10 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
       name: "addMileage",
       input: { cycleId: row.id, mileage: { reading: 0, date: "" } },
     },
-    { name: "setListedPrice", input: { cycleId: row.id, amount: "0", reason: "" } },
+    {
+      name: "setListedPrice",
+      input: { cycleId: row.id, amount: "0", reason: "" },
+    },
     {
       name: "editVehicle",
       input: {
@@ -2392,26 +2414,29 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
       },
     },
   ]
-  const reserved = row.status === "ADVANCE_PLACED" || row.status === "ADVANCE_EXPIRED"
-  return candidates.filter((candidate) => !reserved || candidate.name === "setListedPrice").flatMap((intent) => {
-    try {
-      cycleEditAuthority(actor, row, intent)
-      if (
-        intent.name === "editVehicle" &&
-        !physicalFields.some((f) =>
-          actor.ability.can(
-            "update",
-            subject("Vehicle", vehicleAuth(row)),
-            `values.${f}`
+  const reserved =
+    row.status === "ADVANCE_PLACED" || row.status === "ADVANCE_EXPIRED"
+  return candidates
+    .filter((candidate) => !reserved || candidate.name === "setListedPrice")
+    .flatMap((intent) => {
+      try {
+        cycleEditAuthority(actor, row, intent)
+        if (
+          intent.name === "editVehicle" &&
+          !physicalFields.some((f) =>
+            actor.ability.can(
+              "update",
+              subject("Vehicle", vehicleAuth(row)),
+              `values.${f}`
+            )
           )
         )
-      )
+          return []
+        return [intent.name]
+      } catch {
         return []
-      return [intent.name]
-    } catch {
-      return []
-    }
-  })
+      }
+    })
 }
 
 /** Three existing open-cycle commands; no synthetic lifecycle/proposal records. */
@@ -2421,10 +2446,11 @@ export async function executeCycleEdit(
   raw: unknown,
   existingTx?: Tx
 ): Promise<Applied> {
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   const amount = (raw as { input?: { amount?: unknown } } | null)?.input?.amount
   if (typeof amount === "string" && /^[1-9][0-9]{14,}$/.test(amount))
     fail("MONEY_OVERFLOW", 422)
@@ -2540,7 +2566,10 @@ export async function executeCycleEdit(
       !["SUPPLIER", "TRADE_IN"].includes(row.acquisitionKind) ||
       !["CASH", "BRAND_NEW", "LEASE_SETTLEMENT"].includes(row.purchaseType) ||
       (!["PURCHASED", "IN_STOCK"].includes(row.status) &&
-        !(intent.name === "setListedPrice" && ["ADVANCE_PLACED", "ADVANCE_EXPIRED"].includes(row.status)))
+        !(
+          intent.name === "setListedPrice" &&
+          ["ADVANCE_PLACED", "ADVANCE_EXPIRED"].includes(row.status)
+        ))
     )
       fail("INVALID_STATE")
     if (
@@ -3137,10 +3166,11 @@ export async function executeCycleMoney(
   raw: unknown,
   existingTx?: Tx
 ): Promise<Applied> {
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   // Preserve the established overflow discriminator rather than accepting an
   // unsafe number or quietly reducing a monetary value in validation.
   checkMoneyInput(raw)
@@ -3874,18 +3904,34 @@ export async function executeCycleMoney(
 }
 
 async function cycleHistory(tx: Tx, actor: Actor, rows: Row[]) {
-  const readable = rows.filter((row) =>
-    actor.ability.can("read", subject("PurchaseRecord", auth(row)), "id") &&
-    actor.ability.can("read", subject("PurchaseRecord", auth(row)), "status") &&
-    actor.ability.can("read", subject("Vehicle", vehicleAuth(row)), "status")
+  const readable = rows.filter(
+    (row) =>
+      actor.ability.can("read", subject("PurchaseRecord", auth(row)), "id") &&
+      actor.ability.can(
+        "read",
+        subject("PurchaseRecord", auth(row)),
+        "status"
+      ) &&
+      actor.ability.can("read", subject("Vehicle", vehicleAuth(row)), "status")
   )
   const ids = readable.map((row) => row.id)
   if (!ids.length) return new Map()
   const [events, delivered] = await Promise.all([
     tx.statusEvent.findMany({
       where: { cycleId: { in: ids } },
-      orderBy: [{ recordedAt: "asc" }, { command: { businessSequence: "asc" } }, { id: "asc" }],
-      select: { id: true, cycleId: true, from: true, to: true, action: true, occurredAt: true },
+      orderBy: [
+        { recordedAt: "asc" },
+        { command: { businessSequence: "asc" } },
+        { id: "asc" },
+      ],
+      select: {
+        id: true,
+        cycleId: true,
+        from: true,
+        to: true,
+        action: true,
+        occurredAt: true,
+      },
     }),
     tx.importSourceRow.findMany({
       where: {
@@ -3897,21 +3943,42 @@ async function cycleHistory(tx: Tx, actor: Actor, rows: Row[]) {
       select: { targetVersion: { select: { entityId: true } } },
     }),
   ])
-  const historicalCycles = new Set(delivered.map((row) => row.targetVersion.entityId))
-  return new Map(readable.map((row) => {
-    const completion = row.saleCompletion
-    const historicalDelivered = row.status === "SOLD" && historicalCycles.has(row.id) &&
-      !!row.closedAt && !!completion &&
-      row.basisVersions.some((basis) => basis.id === completion.basisVersionId) &&
-      row.mileage.some((reading) => reading.sourceSaleCompletionId === completion.id)
-    return [row.id, {
-      statusHistory: events.filter((event) => event.cycleId === row.id).map((event) => ({
-        id: event.id, from: event.from, to: event.to, action: event.action,
-        at: event.occurredAt.toISOString(),
-      })),
-      ...(historicalDelivered ? { historicalStatus: "DELIVERED" as const } : {}),
-    }]
-  }))
+  const historicalCycles = new Set(
+    delivered.map((row) => row.targetVersion.entityId)
+  )
+  return new Map(
+    readable.map((row) => {
+      const completion = row.saleCompletion
+      const historicalDelivered =
+        row.status === "SOLD" &&
+        historicalCycles.has(row.id) &&
+        !!row.closedAt &&
+        !!completion &&
+        row.basisVersions.some(
+          (basis) => basis.id === completion.basisVersionId
+        ) &&
+        row.mileage.some(
+          (reading) => reading.sourceSaleCompletionId === completion.id
+        )
+      return [
+        row.id,
+        {
+          statusHistory: events
+            .filter((event) => event.cycleId === row.id)
+            .map((event) => ({
+              id: event.id,
+              from: event.from,
+              to: event.to,
+              action: event.action,
+              at: event.occurredAt.toISOString(),
+            })),
+          ...(historicalDelivered
+            ? { historicalStatus: "DELIVERED" as const }
+            : {}),
+        },
+      ]
+    })
+  )
 }
 
 export async function purchaseQuery(
@@ -3933,7 +4000,8 @@ export async function purchaseQuery(
   }
   if (name === "audit") {
     const parsed = listParams
-      .extend({ ...auditFilterInputs,
+      .extend({
+        ...auditFilterInputs,
         type: z.enum([
           "Vehicle",
           "PurchaseRecord",
@@ -4412,7 +4480,10 @@ export async function purchaseQuery(
     if (!selected) fail("NOT_FOUND", 404)
     const visible = visibleVehicle(actor, selected)
     const history = await cycleHistory(tx, actor, cycles)
-    const visibleCycles = cycles.map((c) => ({ ...visiblePurchase(actor, c), ...history.get(c.id) }))
+    const visibleCycles = cycles.map((c) => ({
+      ...visiblePurchase(actor, c),
+      ...history.get(c.id),
+    }))
     const repairsVisible = visibleCycles.every((c) => Array.isArray(c.repairs))
     return {
       ...visible,

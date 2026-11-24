@@ -16,7 +16,11 @@ export const auditFilterInputs = {
 
 export function auditScope(
   actor: Authority,
-  { from, through, action }: { from?: string; through?: string; action?: string }
+  {
+    from,
+    through,
+    action,
+  }: { from?: string; through?: string; action?: string }
 ): Prisma.AuditEntryWhereInput {
   if (from && through && from > through) fail("INVALID_INPUT", 422)
   const until = through ? new Date(through) : undefined
@@ -127,10 +131,14 @@ export async function audit(
             ? ["id", "revision", "version", "saleRevision", "number", "state"]
             : input.entityType === "ExportJob"
               ? ["revision", "state", "renderedRows"]
-              : input.entityType === "UserRole" || input.entityType === "RolePermission"
+              : input.entityType === "UserRole" ||
+                  input.entityType === "RolePermission"
                 ? joinAuditFields[input.entityType]
                 : input.entityType === "FinanceCompany"
-                  ? [...fieldsFor("FinanceCompany", "read"), "reconciliationWatermark"]
+                  ? [
+                      ...fieldsFor("FinanceCompany", "read"),
+                      "reconciliationWatermark",
+                    ]
                   : fieldsFor(input.entityType, "read"),
         input.before,
         input.after

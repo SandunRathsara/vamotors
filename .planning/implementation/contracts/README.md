@@ -10,23 +10,23 @@ Pending additive candidate: [import staging/file discovery](import-file-discover
 
 Fresh promotion checks: PASS contracts19; strict standalone compile of `api.ts`, `api-check.ts`, `roundtrip-check.ts` and both proposal TS files; CommonJS execution of existing5 + reviewed3 specimens; 315 local Markdown targets (path existence, not anchors). Use the five-file compile/emission commands preserved in proposal §Contract-only checks; existing installed TypeScript, no install. `api-check.ts` now asserts exact equality between reviewed and promoted query/detail/contribution/link types. These checks are specification only, not DB/HTTP/browser proof.
 
-| File | Contract / consumers |
-| --- | --- |
-| [entities.md](entities.md) | Complete relational proposal, keys/checks/indexes, source-owned cash, migration order; T03–T16 |
-| [money-state.md](money-state.md) | Numeric/JSON/rounding bounds, dates, ten-state action map, compatibility; T03/T05/T08–T15 |
-| [access-transactions.md](access-transactions.md) | Actor/current grants, record/field permissions, audit, notifications, idempotency, races, four approvals; T03 and all lanes |
-| [api.ts](api.ts) | Concrete wire DTO types, discriminated commands/queries/results/errors; T04–T16 adapters |
-| [workflows.md](workflows.md) | Command preconditions/effects/errors, rates/brokerage/facility/reconciliation, reports/import; T04–T16 |
-| [files-runtime.md](files-runtime.md) | Private file/PDF lifecycle, T02 secret/role/bootstrap/preview interface, scheduler; T02/T03/T06/T10/T14 |
-| [coverage.md](coverage.md) | All 134 individual IDs → relevant seams; no acceptance claims |
-| [reference.mjs](reference.mjs) | Dependency-free executable reference for exact money, dates, lifecycle and overdue semantics; not installed in runtime |
-| [check.mjs](check.mjs) | Runnable assertions and exhaustive catalog/DTO/index coverage check |
-| [api-check.ts](api-check.ts) | Compile-time review regressions: formerly missing dependency types, admin/actor reads, cycle edit roundtrip, graph import/maxima/requote/export interfaces |
-| [roundtrip-check.ts](roundtrip-check.ts) | Executable typed read-to-command specimens, including current import staging/file discovery without receipt/error lookup |
-| [import-file-discovery.proposal.md](import-file-discovery.proposal.md) | Pending additive read candidate, compatibility/scope and contract-only validation evidence |
-| [party-detail-settings.md](party-detail-settings.md) | Accepted bounded party detail and persisted Settings/finance prerequisites; no new write/policy protocol |
-| [party-detail-settings.proposal-check.ts](party-detail-settings.proposal-check.ts) | Preserved three reviewed typed specimens; api-check.ts binds their query/DTO/link types exactly to promoted api.ts |
-| [review-handoff.md](review-handoff.md) | Integration-owner update proposal, defaults, review scenarios, exact T03 prerequisites and validation scope |
+| File                                                                               | Contract / consumers                                                                                                                                       |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [entities.md](entities.md)                                                         | Complete relational proposal, keys/checks/indexes, source-owned cash, migration order; T03–T16                                                             |
+| [money-state.md](money-state.md)                                                   | Numeric/JSON/rounding bounds, dates, ten-state action map, compatibility; T03/T05/T08–T15                                                                  |
+| [access-transactions.md](access-transactions.md)                                   | Actor/current grants, record/field permissions, audit, notifications, idempotency, races, four approvals; T03 and all lanes                                |
+| [api.ts](api.ts)                                                                   | Concrete wire DTO types, discriminated commands/queries/results/errors; T04–T16 adapters                                                                   |
+| [workflows.md](workflows.md)                                                       | Command preconditions/effects/errors, rates/brokerage/facility/reconciliation, reports/import; T04–T16                                                     |
+| [files-runtime.md](files-runtime.md)                                               | Private file/PDF lifecycle, T02 secret/role/bootstrap/preview interface, scheduler; T02/T03/T06/T10/T14                                                    |
+| [coverage.md](coverage.md)                                                         | All 134 individual IDs → relevant seams; no acceptance claims                                                                                              |
+| [reference.mjs](reference.mjs)                                                     | Dependency-free executable reference for exact money, dates, lifecycle and overdue semantics; not installed in runtime                                     |
+| [check.mjs](check.mjs)                                                             | Runnable assertions and exhaustive catalog/DTO/index coverage check                                                                                        |
+| [api-check.ts](api-check.ts)                                                       | Compile-time review regressions: formerly missing dependency types, admin/actor reads, cycle edit roundtrip, graph import/maxima/requote/export interfaces |
+| [roundtrip-check.ts](roundtrip-check.ts)                                           | Executable typed read-to-command specimens, including current import staging/file discovery without receipt/error lookup                                   |
+| [import-file-discovery.proposal.md](import-file-discovery.proposal.md)             | Pending additive read candidate, compatibility/scope and contract-only validation evidence                                                                 |
+| [party-detail-settings.md](party-detail-settings.md)                               | Accepted bounded party detail and persisted Settings/finance prerequisites; no new write/policy protocol                                                   |
+| [party-detail-settings.proposal-check.ts](party-detail-settings.proposal-check.ts) | Preserved three reviewed typed specimens; api-check.ts binds their query/DTO/link types exactly to promoted api.ts                                         |
+| [review-handoff.md](review-handoff.md)                                             | Integration-owner update proposal, defaults, review scenarios, exact T03 prerequisites and validation scope                                                |
 
 ## Authority and boundaries
 

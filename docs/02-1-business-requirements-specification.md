@@ -1,16 +1,17 @@
 # Business Requirements Specification
+
 # Vehicle Sale Management System (VSMS)
 
 ---
 
-| Field | Details |
-|---|---|
-| Document Title | Business Requirements Specification — Vehicle Sale Management System |
-| Version | 1.1 |
-| Date | 2026-03-07 |
-| Status | Pending Client Sign-Off |
-| Prepared By | Development Team |
-| Prepared For | VA Motors |
+| Field            | Details                                                                                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Document Title   | Business Requirements Specification — Vehicle Sale Management System                                                                                                 |
+| Version          | 1.1                                                                                                                                                                  |
+| Date             | 2026-03-07                                                                                                                                                           |
+| Status           | Pending Client Sign-Off                                                                                                                                              |
+| Prepared By      | Development Team                                                                                                                                                     |
+| Prepared For     | VA Motors                                                                                                                                                            |
 | Document Purpose | To formally document the agreed business requirements for the Vehicle Sale Management System and obtain client authorisation to proceed with design and development. |
 
 ---
@@ -96,6 +97,7 @@ The following items are explicitly excluded from the initial delivery and will n
 ## 3. Business Requirements
 
 Requirements are categorised by priority:
+
 - **Must Have** — Core to the system; delivery is not acceptable without these.
 - **Should Have** — Important; significant business impact if excluded.
 - **Nice to Have** — Beneficial but acceptable to defer if required.
@@ -562,13 +564,13 @@ Business rules define the specific logic and constraints the system must enforce
 
 The validity period of an advance reservation is determined by the advance amount as a percentage of the vehicle's listed price at the time the advance is placed:
 
-| Advance as % of Listed Price | Validity Period |
-|---|---|
-| Greater than 0% up to and including 5% | 1 week from the advance date |
-| Greater than 5% up to and including 10% | 2 weeks from the advance date |
-| Greater than 10% up to and including 15% | 3 weeks from the advance date |
-| Greater than 15% up to and including 20% | 1 month from the advance date |
-| Greater than 20% | 1 month from the advance date (maximum; does not extend further) |
+| Advance as % of Listed Price             | Validity Period                                                  |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| Greater than 0% up to and including 5%   | 1 week from the advance date                                     |
+| Greater than 5% up to and including 10%  | 2 weeks from the advance date                                    |
+| Greater than 10% up to and including 15% | 3 weeks from the advance date                                    |
+| Greater than 15% up to and including 20% | 1 month from the advance date                                    |
+| Greater than 20%                         | 1 month from the advance date (maximum; does not extend further) |
 
 The expiry date is calculated automatically by the system when the advance is recorded.
 
@@ -589,12 +591,12 @@ Vehicles in the following statuses must be automatically marked as unavailable f
 
 The following actions require approval from a user with manager-level authority before they are processed:
 
-| Action | Trigger Condition |
-|---|---|
-| Discount on a sale | Sale price entered is below the vehicle's listed price |
-| Vehicle write-off | A write-off request is submitted for any vehicle |
-| Advance refund | A cancelled advance reservation is to be refunded to the customer |
-| Sale record edit | Any edit is initiated on a completed sale record |
+| Action             | Trigger Condition                                                 |
+| ------------------ | ----------------------------------------------------------------- |
+| Discount on a sale | Sale price entered is below the vehicle's listed price            |
+| Vehicle write-off  | A write-off request is submitted for any vehicle                  |
+| Advance refund     | A cancelled advance reservation is to be refunded to the customer |
+| Sale record edit   | Any edit is initiated on a completed sale record                  |
 
 The action is suspended pending approval. The original record is not modified until approval is granted.
 
@@ -644,17 +646,17 @@ For lease settlement purchases, the total purchase cost recorded is the sum of t
 
 Vehicle statuses follow defined transitions. The following transitions are valid:
 
-| From Status | Valid Next Status(es) |
-|---|---|
-| Purchased | In Stock |
-| In Stock | In Repair, Advance Placed, Finance Pending, Sold, Written Off |
-| In Repair | In Stock |
-| Advance Placed | Sold, Advance Expired |
-| Advance Expired | In Stock (on cancellation), Sold (on conversion) |
-| Finance Pending | Delivery Order Received |
-| Delivery Order Received | Sold |
-| Sold | (Terminal — no further transitions) |
-| Written Off | (Terminal — no further transitions) |
+| From Status             | Valid Next Status(es)                                         |
+| ----------------------- | ------------------------------------------------------------- |
+| Purchased               | In Stock                                                      |
+| In Stock                | In Repair, Advance Placed, Finance Pending, Sold, Written Off |
+| In Repair               | In Stock                                                      |
+| Advance Placed          | Sold, Advance Expired                                         |
+| Advance Expired         | In Stock (on cancellation), Sold (on conversion)              |
+| Finance Pending         | Delivery Order Received                                       |
+| Delivery Order Received | Sold                                                          |
+| Sold                    | (Terminal — no further transitions)                           |
+| Written Off             | (Terminal — no further transitions)                           |
 
 Manual status changes that do not follow these transitions are not permitted.
 
@@ -798,24 +800,24 @@ The system is expected to be available during the client's normal business hours
 
 The following assumptions have been made in preparing this specification. If any of these assumptions are incorrect, the relevant requirements may need to be revised.
 
-| # | Assumption | Impact if Incorrect |
-|---|---|---|
-| A-001 | The dealership operates as a single business entity with a single set of users and records. There is no requirement to support multiple branches or companies within the same system instance. | Multi-branch support would require significant changes to data architecture and user management. |
-| A-002 | All monetary values in the system are in a single currency, configured once at setup. | Multi-currency support would require redesign of all financial calculations and display. |
-| A-003 | The system will be hosted on a server or cloud infrastructure managed by or on behalf of the client. Hosting arrangements are outside the scope of this specification. | The development team assumes suitable hosting is arranged by the client or separately specified. |
-| A-004 | The historical data to be imported is available in a format that can be structured into spreadsheets (CSV or Excel). If data exists only in paper format, the client is responsible for manual data entry into the import templates. | If data is not structurable, the import process timeline and effort will be affected. |
-| A-005 | User training will be provided to staff by the client's own management or through a separate training engagement. | If formal training is required from the development team, this should be scoped separately. |
-| A-006 | Internet connectivity is available at the point of use. The system does not need to operate fully offline. | Offline operation would require significant additional development. |
-| A-007 | The listed price of a vehicle is always the reference point for advance percentage calculations, at the price set at the time the advance is placed. | If a different reference price is required, the advance validity calculation logic will need to be revised. |
+| #     | Assumption                                                                                                                                                                                                                           | Impact if Incorrect                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| A-001 | The dealership operates as a single business entity with a single set of users and records. There is no requirement to support multiple branches or companies within the same system instance.                                       | Multi-branch support would require significant changes to data architecture and user management.            |
+| A-002 | All monetary values in the system are in a single currency, configured once at setup.                                                                                                                                                | Multi-currency support would require redesign of all financial calculations and display.                    |
+| A-003 | The system will be hosted on a server or cloud infrastructure managed by or on behalf of the client. Hosting arrangements are outside the scope of this specification.                                                               | The development team assumes suitable hosting is arranged by the client or separately specified.            |
+| A-004 | The historical data to be imported is available in a format that can be structured into spreadsheets (CSV or Excel). If data exists only in paper format, the client is responsible for manual data entry into the import templates. | If data is not structurable, the import process timeline and effort will be affected.                       |
+| A-005 | User training will be provided to staff by the client's own management or through a separate training engagement.                                                                                                                    | If formal training is required from the development team, this should be scoped separately.                 |
+| A-006 | Internet connectivity is available at the point of use. The system does not need to operate fully offline.                                                                                                                           | Offline operation would require significant additional development.                                         |
+| A-007 | The listed price of a vehicle is always the reference point for advance percentage calculations, at the price set at the time the advance is placed.                                                                                 | If a different reference price is required, the advance validity calculation logic will need to be revised. |
 
 ### 8.2 Constraints
 
-| # | Constraint | Description |
-|---|---|---|
+| #     | Constraint                                | Description                                                                                                                                                                             |
+| ----- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | C-001 | No external system integrations at launch | The system will not connect to or exchange data with any third-party systems (banks, finance institutions, government registries, accounting software) at the time of initial delivery. |
-| C-002 | No regulatory or tax compliance features | The system is not required to produce tax-compliant documents or perform regulatory reporting at launch. |
-| C-003 | Notifications are in-app only | No external notification delivery channels (SMS, email, push notifications) are to be built at launch. |
-| C-004 | No native mobile applications | The system will not include iOS or Android native applications. Mobile access is provided through the responsive web application and PWA installation. |
+| C-002 | No regulatory or tax compliance features  | The system is not required to produce tax-compliant documents or perform regulatory reporting at launch.                                                                                |
+| C-003 | Notifications are in-app only             | No external notification delivery channels (SMS, email, push notifications) are to be built at launch.                                                                                  |
+| C-004 | No native mobile applications             | The system will not include iOS or Android native applications. Mobile access is provided through the responsive web application and PWA installation.                                  |
 
 ---
 
@@ -856,23 +858,23 @@ By signing below, I confirm that:
 
 ---
 
-**Client Organisation:** _______________________________________________
+**Client Organisation:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 &nbsp;
 
-**Authorised Signatory Name:** _______________________________________________
+**Authorised Signatory Name:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 &nbsp;
 
-**Designation / Title:** _______________________________________________
+**Designation / Title:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 &nbsp;
 
-**Date:** _______________________________________________
+**Date:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 &nbsp;
 
-**Signature:** _______________________________________________
+**Signature:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 ---
 
@@ -882,22 +884,22 @@ By signing below, I confirm that:
 
 &nbsp;
 
-**Name:** _______________________________________________
+**Name:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 &nbsp;
 
-**Designation:** _______________________________________________
+**Designation:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 &nbsp;
 
-**Date:** _______________________________________________
+**Date:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 &nbsp;
 
-**Signature:** _______________________________________________
+**Signature:** \***\*\*\*\*\***\*\*\***\*\*\*\*\***\_\_\_\***\*\*\*\*\***\*\*\***\*\*\*\*\***
 
 ---
 
-*End of Document*
+_End of Document_
 
-*Document Version 1.1 — Vehicle Sale Management System Business Requirements Specification — 2026-03-07*
+_Document Version 1.1 — Vehicle Sale Management System Business Requirements Specification — 2026-03-07_

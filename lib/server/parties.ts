@@ -169,10 +169,11 @@ export async function executeParty(
       (raw as { input?: { type?: string } })?.input?.type === "FINANCE_COMPANY")
   )
     return executeFinance(identity, name, raw, existingTx)
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   const parsed = partyEnvelope(name).safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const envelope = parsed.data
@@ -466,10 +467,11 @@ async function executeFinance(
   raw: unknown,
   existingTx?: Tx
 ): Promise<Applied> {
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   const parsed = partyEnvelope(name).safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const envelope = parsed.data

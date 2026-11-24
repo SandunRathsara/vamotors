@@ -26,7 +26,10 @@ export function formatCurrency(amountInCents: number): string {
  * e.g. "Rs. 3,500,000.00" -> 350000000
  */
 export function parseCurrencyInput(input: string): number {
-  const cleaned = input.replace(/Rs\.?\s*/g, "").replace(/,/g, "").trim()
+  const cleaned = input
+    .replace(/Rs\.?\s*/g, "")
+    .replace(/,/g, "")
+    .trim()
   const parsed = parseFloat(cleaned)
   if (isNaN(parsed)) return 0
   return Math.round(parsed * 100)

@@ -64,22 +64,30 @@ process deadlines. `$CORE` denotes the installed
 
 ```js
 // node -e '<this source>' "$CORE/lib/zipBundle.js" "$ARCHIVE" "$DEST"
-let done = false;
-process.on('beforeExit', () => {
+let done = false
+process.on("beforeExit", () => {
   if (!done) {
-    console.error('FAIL extraction promise unresolved at beforeExit');
-    process.exitCode = 1;
+    console.error("FAIL extraction promise unresolved at beforeExit")
+    process.exitCode = 1
   }
-});
-require(process.argv[1]).extract(process.argv[2], { dir: process.argv[3] })
-  .then(() => { done = true; console.log('PASS extraction complete'); })
-  .catch(e => { done = true; console.error(e.message); process.exitCode = 1; });
+})
+require(process.argv[1])
+  .extract(process.argv[2], { dir: process.argv[3] })
+  .then(() => {
+    done = true
+    console.log("PASS extraction complete")
+  })
+  .catch((e) => {
+    done = true
+    console.error(e.message)
+    process.exitCode = 1
+  })
 ```
 
-| Runtime | Exact-archive differential result |
-|---|---|
+| Runtime      | Exact-archive differential result                                |
+| ------------ | ---------------------------------------------------------------- |
 | Node 24.16.0 | exit 1, unresolved extraction promise, 0.08s, 83 partial entries |
-| Node 22.22.3 | exit 0, extraction complete, 1.96s, 662 entries |
+| Node 22.22.3 | exit 0, extraction complete, 1.96s, 662 entries                  |
 
 A separate 1 MiB synthetic ZIP extracted successfully with both runtimes. This
 isolates runtime-sensitive extraction of the real archive, not all ZIP handling;
@@ -120,32 +128,82 @@ Run from `$PW_ROOT` using ordinary **Node 24.16.0**, `DEBUG=pw:browser`, via
 timeout. Exit **0 in 9.13s**, 16:22:11–16:22:20 UTC:
 
 ```js
-const assert = require('node:assert/strict');
-const { chromium } = require('./node_modules/@playwright/test');
-(async () => {
-  console.log('node=' + process.version + ' playwright=' + require('./node_modules/@playwright/test/package.json').version);
-  for (const channel of [undefined, 'chromium']) {
-    const browser = await chromium.launch({ timeout: 10000, ...(channel ? { channel } : {}) });
+const assert = require("node:assert/strict")
+const { chromium } = require("./node_modules/@playwright/test")
+;(async () => {
+  console.log(
+    "node=" +
+      process.version +
+      " playwright=" +
+      require("./node_modules/@playwright/test/package.json").version
+  )
+  for (const channel of [undefined, "chromium"]) {
+    const browser = await chromium.launch({
+      timeout: 10000,
+      ...(channel ? { channel } : {}),
+    })
     try {
-      console.log('mode=' + (channel || 'default-headless-shell') + ' browser=' + browser.version());
+      console.log(
+        "mode=" +
+          (channel || "default-headless-shell") +
+          " browser=" +
+          browser.version()
+      )
       for (const width of [360, 1920]) {
-        const context = await browser.newContext({ viewport: { width, height: 800 }, deviceScaleFactor: 1 });
+        const context = await browser.newContext({
+          viewport: { width, height: 800 },
+          deviceScaleFactor: 1,
+        })
         try {
-          const page = await context.newPage();
-          await page.goto('data:text/html,' + encodeURIComponent(`<!doctype html><meta name="viewport" content="width=device-width"><style>body{margin:0}#probe{width:100%;height:80px;background:rgb(0,128,0)}@media(max-width:600px){#probe{height:120px}}</style><div id="probe">synthetic readiness</div><script>document.querySelector('#probe').textContent='JS rendered '+(6*7)</script>`), { timeout: 10000 });
-          const rendered = await page.locator('#probe').evaluate(el => ({ text: el.textContent, width: el.getBoundingClientRect().width, height: el.getBoundingClientRect().height, color: getComputedStyle(el).backgroundColor, viewport: innerWidth }));
-          assert.deepEqual(rendered, { text: 'JS rendered 42', width, height: width === 360 ? 120 : 80, color: 'rgb(0, 128, 0)', viewport: width });
-          const png = await page.screenshot({ timeout: 10000 });
-          assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-          assert.equal(png.readUInt32BE(16), width);
-          assert.equal(png.readUInt32BE(20), 800);
-          assert.ok(png.length > 1000);
-          console.log(JSON.stringify({ result: 'PASS', ...rendered, screenshot: `${width}x800 PNG`, bytes: png.length }));
-        } finally { await context.close(); }
+          const page = await context.newPage()
+          await page.goto(
+            "data:text/html," +
+              encodeURIComponent(
+                `<!doctype html><meta name="viewport" content="width=device-width"><style>body{margin:0}#probe{width:100%;height:80px;background:rgb(0,128,0)}@media(max-width:600px){#probe{height:120px}}</style><div id="probe">synthetic readiness</div><script>document.querySelector('#probe').textContent='JS rendered '+(6*7)</script>`
+              ),
+            { timeout: 10000 }
+          )
+          const rendered = await page.locator("#probe").evaluate((el) => ({
+            text: el.textContent,
+            width: el.getBoundingClientRect().width,
+            height: el.getBoundingClientRect().height,
+            color: getComputedStyle(el).backgroundColor,
+            viewport: innerWidth,
+          }))
+          assert.deepEqual(rendered, {
+            text: "JS rendered 42",
+            width,
+            height: width === 360 ? 120 : 80,
+            color: "rgb(0, 128, 0)",
+            viewport: width,
+          })
+          const png = await page.screenshot({ timeout: 10000 })
+          assert.equal(png.subarray(0, 8).toString("hex"), "89504e470d0a1a0a")
+          assert.equal(png.readUInt32BE(16), width)
+          assert.equal(png.readUInt32BE(20), 800)
+          assert.ok(png.length > 1000)
+          console.log(
+            JSON.stringify({
+              result: "PASS",
+              ...rendered,
+              screenshot: `${width}x800 PNG`,
+              bytes: png.length,
+            })
+          )
+        } finally {
+          await context.close()
+        }
       }
-    } finally { await browser.close(); assert.equal(browser.isConnected(), false); console.log('closed cleanly'); }
+    } finally {
+      await browser.close()
+      assert.equal(browser.isConnected(), false)
+      console.log("closed cleanly")
+    }
   }
-})().catch(e => { console.error(e); process.exitCode = 1; });
+})().catch((e) => {
+  console.error(e)
+  process.exitCode = 1
+})
 ```
 
 All four assertions passed: text `JS rendered 42`, computed green background,

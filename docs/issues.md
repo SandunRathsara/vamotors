@@ -9,6 +9,7 @@ Every table created in this application must perform a default action on click o
 0. Table Name -> Action
 
 **List**
+
 1. Vehicles Table - View the vehicle
 2. Purchases Table - View the Purchase
 3. Sales Table - View the Sale

@@ -6,9 +6,9 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "@/components/layout/providers"
 import { Toaster } from "@/components/ui/sonner"
 import { PwaRegistration } from "@/components/pwa-registration"
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'})
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
 export const metadata: Metadata = {
   title: "VSMS — VA Motors",
@@ -23,13 +23,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", inter.variable)}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn("font-sans", inter.variable)}
+    >
       <body className={inter.variable}>
         <PwaRegistration />
         <ThemeProvider>
-          <Providers>
-            {children}
-          </Providers>
+          <Providers>{children}</Providers>
           <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>

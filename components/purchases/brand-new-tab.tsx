@@ -124,14 +124,24 @@ export function BrandNewTab() {
       {/* Vehicle Details — no VIN or CR Number per VPRC-03 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Vehicle Details</CardTitle>
+          <CardTitle className="text-xl font-semibold">
+            Vehicle Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <form.Field name="make">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Make</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Toyota" className="text-sm" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Make
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. Toyota"
+                  className="text-sm"
+                />
               </div>
             )}
           </form.Field>
@@ -139,8 +149,16 @@ export function BrandNewTab() {
           <form.Field name="model">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Model</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Aqua" className="text-sm" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Model
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. Aqua"
+                  className="text-sm"
+                />
               </div>
             )}
           </form.Field>
@@ -148,10 +166,23 @@ export function BrandNewTab() {
           <form.Field name="year">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Year</Label>
-                <Select value={field.state.value} onValueChange={field.handleChange}>
-                  <SelectTrigger id={field.name} className="text-sm"><SelectValue placeholder="Select year" /></SelectTrigger>
-                  <SelectContent>{YEARS.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Year
+                </Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={field.handleChange}
+                >
+                  <SelectTrigger id={field.name} className="text-sm">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             )}
@@ -160,8 +191,16 @@ export function BrandNewTab() {
           <form.Field name="colour">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Colour</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. White" className="text-sm" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Colour
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. White"
+                  className="text-sm"
+                />
               </div>
             )}
           </form.Field>
@@ -169,8 +208,15 @@ export function BrandNewTab() {
           <form.Field name="engineNumber">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Engine Number</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="text-sm" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Engine Number
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  className="text-sm"
+                />
               </div>
             )}
           </form.Field>
@@ -178,8 +224,15 @@ export function BrandNewTab() {
           <form.Field name="chassisNumber">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Chassis Number</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="text-sm" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Chassis Number
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  className="text-sm"
+                />
               </div>
             )}
           </form.Field>
@@ -187,9 +240,16 @@ export function BrandNewTab() {
           <form.Field name="fuelType">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Fuel Type</Label>
-                <Select value={field.state.value} onValueChange={field.handleChange}>
-                  <SelectTrigger id={field.name} className="text-sm"><SelectValue placeholder="Select fuel type" /></SelectTrigger>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Fuel Type
+                </Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={field.handleChange}
+                >
+                  <SelectTrigger id={field.name} className="text-sm">
+                    <SelectValue placeholder="Select fuel type" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Petrol">Petrol</SelectItem>
                     <SelectItem value="Diesel">Diesel</SelectItem>
@@ -204,9 +264,16 @@ export function BrandNewTab() {
           <form.Field name="transmission">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Transmission</Label>
-                <Select value={field.state.value} onValueChange={field.handleChange}>
-                  <SelectTrigger id={field.name} className="text-sm"><SelectValue placeholder="Select transmission" /></SelectTrigger>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Transmission
+                </Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={field.handleChange}
+                >
+                  <SelectTrigger id={field.name} className="text-sm">
+                    <SelectValue placeholder="Select transmission" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Manual">Manual</SelectItem>
                     <SelectItem value="Automatic">Automatic</SelectItem>
@@ -226,9 +293,17 @@ export function BrandNewTab() {
         <CardContent>
           <form.Field name="companySupplier">
             {(field) => (
-              <div className="space-y-1 max-w-sm">
-                <Label htmlFor={field.name} className="text-xs font-normal">Company Supplier</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Toyota Lanka (Pvt) Ltd" className="text-sm" />
+              <div className="max-w-sm space-y-1">
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Company Supplier
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. Toyota Lanka (Pvt) Ltd"
+                  className="text-sm"
+                />
               </div>
             )}
           </form.Field>
@@ -238,7 +313,9 @@ export function BrandNewTab() {
       {/* Purchase Details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Purchase Details</CardTitle>
+          <CardTitle className="text-xl font-semibold">
+            Purchase Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <form.Field name="purchaseDate">
@@ -247,13 +324,31 @@ export function BrandNewTab() {
                 <Label className="text-xs font-normal">Purchase Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-sm font-normal" type="button">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-sm font-normal"
+                      type="button"
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.state.value ? format(new Date(field.state.value), "dd MMM yyyy") : "Pick a date"}
+                      {field.state.value
+                        ? format(new Date(field.state.value), "dd MMM yyyy")
+                        : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={field.state.value ? new Date(field.state.value) : undefined} onSelect={(date) => field.handleChange(date ? format(date, "yyyy-MM-dd") : "")} />
+                    <Calendar
+                      mode="single"
+                      selected={
+                        field.state.value
+                          ? new Date(field.state.value)
+                          : undefined
+                      }
+                      onSelect={(date) =>
+                        field.handleChange(
+                          date ? format(date, "yyyy-MM-dd") : ""
+                        )
+                      }
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -263,8 +358,18 @@ export function BrandNewTab() {
           <form.Field name="purchasePrice">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Purchase Price (LKR)</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. 2950000" className="text-sm" type="text" inputMode="numeric" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Purchase Price (LKR)
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. 2950000"
+                  className="text-sm"
+                  type="text"
+                  inputMode="numeric"
+                />
               </div>
             )}
           </form.Field>
@@ -272,8 +377,17 @@ export function BrandNewTab() {
           <form.Field name="mileageAtPurchase">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Mileage at Purchase (km)</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. 0" className="text-sm" type="number" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Mileage at Purchase (km)
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. 0"
+                  className="text-sm"
+                  type="number"
+                />
               </div>
             )}
           </form.Field>
@@ -281,8 +395,18 @@ export function BrandNewTab() {
           <form.Field name="listedPrice">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Listed Price (LKR)</Label>
-                <Input id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. 3450000" className="text-sm" type="text" inputMode="numeric" />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Listed Price (LKR)
+                </Label>
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. 3450000"
+                  className="text-sm"
+                  type="text"
+                  inputMode="numeric"
+                />
               </div>
             )}
           </form.Field>
@@ -294,35 +418,72 @@ export function BrandNewTab() {
         {(field) => (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-semibold">Additional Costs</CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={() => field.pushValue({ description: "", amount: "", date: "" })}>
+              <CardTitle className="text-xl font-semibold">
+                Additional Costs
+              </CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  field.pushValue({ description: "", amount: "", date: "" })
+                }
+              >
                 <Plus className="mr-1 h-4 w-4" />
                 Add Cost
               </Button>
             </CardHeader>
             <CardContent className="space-y-3">
               {field.state.value.length === 0 && (
-                <p className="text-sm text-muted-foreground">No additional costs added.</p>
+                <p className="text-sm text-muted-foreground">
+                  No additional costs added.
+                </p>
               )}
               {field.state.value.map((_, i) => (
                 <div key={i} className="flex items-end gap-2">
                   <form.Field name={`additionalCosts[${i}].description`}>
                     {(subField) => (
                       <div className="flex-1 space-y-1">
-                        <Label className="text-xs font-normal">Description</Label>
-                        <Input value={subField.state.value} onChange={(e) => subField.handleChange(e.target.value)} placeholder="e.g. Registration fee" className="text-sm" />
+                        <Label className="text-xs font-normal">
+                          Description
+                        </Label>
+                        <Input
+                          value={subField.state.value}
+                          onChange={(e) =>
+                            subField.handleChange(e.target.value)
+                          }
+                          placeholder="e.g. Registration fee"
+                          className="text-sm"
+                        />
                       </div>
                     )}
                   </form.Field>
                   <form.Field name={`additionalCosts[${i}].amount`}>
                     {(subField) => (
                       <div className="w-32 space-y-1">
-                        <Label className="text-xs font-normal">Amount (LKR)</Label>
-                        <Input value={subField.state.value} onChange={(e) => subField.handleChange(e.target.value)} placeholder="e.g. 5000" className="text-sm" type="text" inputMode="numeric" />
+                        <Label className="text-xs font-normal">
+                          Amount (LKR)
+                        </Label>
+                        <Input
+                          value={subField.state.value}
+                          onChange={(e) =>
+                            subField.handleChange(e.target.value)
+                          }
+                          placeholder="e.g. 5000"
+                          className="text-sm"
+                          type="text"
+                          inputMode="numeric"
+                        />
                       </div>
                     )}
                   </form.Field>
-                  <Button type="button" variant="ghost" size="icon" className="mb-0.5 text-destructive hover:text-destructive" onClick={() => field.removeValue(i)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mb-0.5 text-destructive hover:text-destructive"
+                    onClick={() => field.removeValue(i)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -341,8 +502,17 @@ export function BrandNewTab() {
           <form.Field name="internalNotes">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Internal Notes</Label>
-                <Textarea id={field.name} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="Any internal notes about this purchase..." className="text-sm" rows={3} />
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Internal Notes
+                </Label>
+                <Textarea
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="Any internal notes about this purchase..."
+                  className="text-sm"
+                  rows={3}
+                />
               </div>
             )}
           </form.Field>

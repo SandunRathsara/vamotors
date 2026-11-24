@@ -15,6 +15,7 @@ next_action: Awaiting human verification
 ## Symptoms
 
 expected: Clicking a table row should trigger a default action specific to that table:
+
 1. Vehicles Table - View the vehicle (navigate to vehicle detail)
 2. Purchases Table - View the Purchase
 3. Sales Table - View the Sale
@@ -50,17 +51,17 @@ started: Found during manual testing.
 - timestamp: 2026-04-13T00:05:00Z
   checked: All 10 table components and their columns
   found: |
-    1. Vehicles - uses DataTableShell; Detail page exists at /vehicles/[id]; row.original.id available
-    2. Purchases - uses DataTableShell; NO separate /purchases/[id] page; links to /vehicles/[id] (purchases are vehicle records)
-    3. Sales - uses DataTableShell; Detail page at /sales/[id]; row.original.id available
-    4. Repairs - uses DataTableShell; NO /repairs/[id] page; links to /vehicles/[vehicleId] (repair belongs to vehicle)
-    5. Customers - uses DataTableShell; Detail page at /customers/[id]; customer table says "No Action" per requirements
-    6. Third Parties - uses DataTableShell; Detail page at /third-parties/[id]; row.original.id available
-    7. Approvals - uses DataTableShell; needs modal (ApprovalActionDialog) - onAction callback already handled via columns
-    8. Reconciliation - uses DataTableShell; needs sheet (ReconciliationTable manages its own state via handleReconcile)
-    9. Lease Deals - uses DataTableShell; Detail page at /lease-deals/[id]; row.original.id available
-    10. Dispatch - uses raw <Table> NOT DataTableShell; already has "Mark Dispatched" button per row
-  implication: Each table needs different handling; Dispatch table is a special case
+  1. Vehicles - uses DataTableShell; Detail page exists at /vehicles/[id]; row.original.id available
+  2. Purchases - uses DataTableShell; NO separate /purchases/[id] page; links to /vehicles/[id] (purchases are vehicle records)
+  3. Sales - uses DataTableShell; Detail page at /sales/[id]; row.original.id available
+  4. Repairs - uses DataTableShell; NO /repairs/[id] page; links to /vehicles/[vehicleId] (repair belongs to vehicle)
+  5. Customers - uses DataTableShell; Detail page at /customers/[id]; customer table says "No Action" per requirements
+  6. Third Parties - uses DataTableShell; Detail page at /third-parties/[id]; row.original.id available
+  7. Approvals - uses DataTableShell; needs modal (ApprovalActionDialog) - onAction callback already handled via columns
+  8. Reconciliation - uses DataTableShell; needs sheet (ReconciliationTable manages its own state via handleReconcile)
+  9. Lease Deals - uses DataTableShell; Detail page at /lease-deals/[id]; row.original.id available
+  10. Dispatch - uses raw <Table> NOT DataTableShell; already has "Mark Dispatched" button per row
+      implication: Each table needs different handling; Dispatch table is a special case
 
 - timestamp: 2026-04-13T00:05:00Z
   checked: Purchases and Repairs routing
@@ -87,31 +88,33 @@ started: Found during manual testing.
 root_cause: DataTable and DataTableShell had no onRowClick prop or onClick handler on TableRow elements. Each table consumer also had no mechanism to trigger row-level actions.
 
 fix: |
-  1. Added onRowClick?: (row: TData) => void to DataTableProps in data-table.tsx
-  2. Wired TableRow onClick in data-table.tsx — skips clicks on buttons/links/inputs via closest() guard; adds cursor-pointer class when handler present
-  3. Added onRowClick to DataTableShellProps and passed it through to DataTable
-  4. Wired each of 9 applicable tables:
-     - VehiclesTable: router.push('/vehicles/{id}')
-     - PurchasesTable: router.push('/vehicles/{id}') — purchases are vehicle records, no /purchases/[id] route
-     - SalesTable: router.push('/sales/{id}')
-     - RepairsTable: router.push('/vehicles/{vehicleId}') — no /repairs/[id] route
-     - ThirdPartiesTable: router.push('/third-parties/{id}')
-     - ApprovalsTable: onAction({approval, action:'approve'}) for Pending rows; 'view' (no-op) for others
-     - ReconciliationTable: handleReconcile(item) for non-Reconciled rows; no-op for Reconciled
-     - LeaseDealsTable: router.push('/lease-deals/{id}')
-     - DispatchTables (pending rows): TableRow onClick opens Mark Dispatched sheet — same guard for buttons
-  5. CustomersTable: no onRowClick added per requirements ("No Action")
+
+1. Added onRowClick?: (row: TData) => void to DataTableProps in data-table.tsx
+2. Wired TableRow onClick in data-table.tsx — skips clicks on buttons/links/inputs via closest() guard; adds cursor-pointer class when handler present
+3. Added onRowClick to DataTableShellProps and passed it through to DataTable
+4. Wired each of 9 applicable tables:
+   - VehiclesTable: router.push('/vehicles/{id}')
+   - PurchasesTable: router.push('/vehicles/{id}') — purchases are vehicle records, no /purchases/[id] route
+   - SalesTable: router.push('/sales/{id}')
+   - RepairsTable: router.push('/vehicles/{vehicleId}') — no /repairs/[id] route
+   - ThirdPartiesTable: router.push('/third-parties/{id}')
+   - ApprovalsTable: onAction({approval, action:'approve'}) for Pending rows; 'view' (no-op) for others
+   - ReconciliationTable: handleReconcile(item) for non-Reconciled rows; no-op for Reconciled
+   - LeaseDealsTable: router.push('/lease-deals/{id}')
+   - DispatchTables (pending rows): TableRow onClick opens Mark Dispatched sheet — same guard for buttons
+5. CustomersTable: no onRowClick added per requirements ("No Action")
 
 verification: tsc --noEmit passes with zero errors; user confirmed all applicable tables trigger correct row click actions in production workflow
 files_changed:
-  - components/data-table/data-table.tsx
-  - components/shared/data-table-shell.tsx
-  - components/vehicles/vehicles-table.tsx
-  - components/purchases/purchases-table.tsx
-  - components/sales/sales-table.tsx
-  - components/repairs/repairs-table.tsx
-  - components/third-parties/third-parties-table.tsx
-  - components/approvals/approvals-table.tsx
-  - components/lease/reconciliation-table.tsx
-  - components/lease/lease-deals-table.tsx
-  - components/lease/dispatch-tables.tsx
+
+- components/data-table/data-table.tsx
+- components/shared/data-table-shell.tsx
+- components/vehicles/vehicles-table.tsx
+- components/purchases/purchases-table.tsx
+- components/sales/sales-table.tsx
+- components/repairs/repairs-table.tsx
+- components/third-parties/third-parties-table.tsx
+- components/approvals/approvals-table.tsx
+- components/lease/reconciliation-table.tsx
+- components/lease/lease-deals-table.tsx
+- components/lease/dispatch-tables.tsx

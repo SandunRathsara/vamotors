@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { subject } from "@casl/ability"
-import {
-  saleEnvelope,
-  approvalEnvelope,
-} from "@/lib/server/validators"
+import { saleEnvelope, approvalEnvelope } from "@/lib/server/validators"
 import {
   abilityFor,
   attenuation,
@@ -72,8 +69,12 @@ describe("T09 immediate sales, trade-in, discount/sale-edit permissions & valida
       ],
       uuid1
     )
-    expect(scoped.can("read", subject("SaleCase", { customerId: uuid2 }), "price")).toBe(true)
-    expect(scoped.can("read", subject("SaleCase", { customerId: uuid3 }), "price")).toBe(false)
+    expect(
+      scoped.can("read", subject("SaleCase", { customerId: uuid2 }), "price")
+    ).toBe(true)
+    expect(
+      scoped.can("read", subject("SaleCase", { customerId: uuid3 }), "price")
+    ).toBe(false)
   })
 
   it("validates completeImmediate CASH and TRADE_IN envelopes strictly", () => {
@@ -95,7 +96,9 @@ describe("T09 immediate sales, trade-in, discount/sale-edit permissions & valida
         reference: "REF-101",
       },
     }
-    expect(saleEnvelope("completeImmediate").safeParse(cashEnv).success).toBe(true)
+    expect(saleEnvelope("completeImmediate").safeParse(cashEnv).success).toBe(
+      true
+    )
 
     // Zero price or unknown keys rejected
     expect(
@@ -137,7 +140,9 @@ describe("T09 immediate sales, trade-in, discount/sale-edit permissions & valida
         },
       },
     }
-    expect(saleEnvelope("completeImmediate").safeParse(tradeEnv).success).toBe(true)
+    expect(saleEnvelope("completeImmediate").safeParse(tradeEnv).success).toBe(
+      true
+    )
   })
 
   it("validates DISCOUNT and SALE_EDIT approval envelopes strictly", () => {
@@ -167,7 +172,9 @@ describe("T09 immediate sales, trade-in, discount/sale-edit permissions & valida
         reason: "Fleet buyer negotiated discount",
       },
     }
-    expect(approvalEnvelope("requestApproval").safeParse(discountReq).success).toBe(true)
+    expect(
+      approvalEnvelope("requestApproval").safeParse(discountReq).success
+    ).toBe(true)
 
     const editReq = {
       schemaVersion: 1,
@@ -200,7 +207,9 @@ describe("T09 immediate sales, trade-in, discount/sale-edit permissions & valida
         reason: "Manager review required",
       },
     }
-    expect(approvalEnvelope("requestApproval").safeParse(editReq).success).toBe(true)
+    expect(approvalEnvelope("requestApproval").safeParse(editReq).success).toBe(
+      true
+    )
 
     // Empty SALE_EDIT patch & empty cashCorrections rejected
     expect(

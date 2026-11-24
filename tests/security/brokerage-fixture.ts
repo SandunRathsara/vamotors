@@ -57,7 +57,9 @@ export async function fixture(
     "127.0.0.1:0:5432",
     "postgres:18.7-trixie",
   ])
-  const port = docker(["port", `${name}`, "5432/tcp"]).split(":").at(-1)!
+  const port = docker(["port", `${name}`, "5432/tcp"])
+    .split(":")
+    .at(-1)!
   {
     let ready = 0
     for (let attempt = 0; attempt < 120 && ready < 2; attempt++) {
@@ -171,14 +173,28 @@ export async function fixture(
   const script = (name: string, args: string[], cwd = source) =>
     execFileSync(
       process.execPath,
-      ["--conditions=react-server", "--import", "tsx", `scripts/${name}.ts`, ...args],
+      [
+        "--conditions=react-server",
+        "--import",
+        "tsx",
+        `scripts/${name}.ts`,
+        ...args,
+      ],
       { cwd, env: { ...process.env, ...runtime }, encoding: "utf8" }
     )
   try {
     const initial = baseSource ?? source
     script("migrate-disposable", [file("migration.env")], initial)
-    script("initialize-test-environment", [file("migration.env"), file("accounts.env")], initial)
-    script("bootstrap-security", [file("migration.env"), file("accounts.env")], initial)
+    script(
+      "initialize-test-environment",
+      [file("migration.env"), file("accounts.env")],
+      initial
+    )
+    script(
+      "bootstrap-security",
+      [file("migration.env"), file("accounts.env")],
+      initial
+    )
     if (baseSource) {
       script("revalidate-permissions", [file("migration.env")], baseSource)
       script("migrate-disposable", [file("migration.env")])
@@ -186,7 +202,11 @@ export async function fixture(
     script("revalidate-permissions", [file("migration.env")])
     execFileSync(
       "docker",
-      ["cp", join(source, "scripts/local-runtime-grants.sql"), `${name}:/tmp/grants.sql`],
+      [
+        "cp",
+        join(source, "scripts/local-runtime-grants.sql"),
+        `${name}:/tmp/grants.sql`,
+      ],
       { stdio: "ignore" }
     )
     execFileSync(
@@ -264,7 +284,9 @@ export async function fixture(
       await closed
       clearTimeout(timer)
       await Promise.all(
-        logs.map((stream) => (stream.writableFinished ? undefined : once(stream, "finish")))
+        logs.map((stream) =>
+          stream.writableFinished ? undefined : once(stream, "finish")
+        )
       )
     }
     app = undefined
@@ -278,10 +300,20 @@ export async function fixture(
     assert.equal(response.status(), 200)
     return client
   }
-  async function query<T>(client: APIRequestContext, name: string, params = "") {
+  async function query<T>(
+    client: APIRequestContext,
+    name: string,
+    params = ""
+  ) {
     const response = await client.get(`/api/v1/queries/${name}${params}`)
     const value = await response.json()
-    transcript.push({ kind: "query", name, params, status: response.status(), value })
+    transcript.push({
+      kind: "query",
+      name,
+      params,
+      status: response.status(),
+      value,
+    })
     assert.equal(response.status(), 200, `${name}: ${JSON.stringify(value)}`)
     assert.match(response.headers()["cache-control"], /no-store/)
     return value.data as T
@@ -298,7 +330,13 @@ export async function fixture(
       headers: { Origin: origin },
     })
     const value = await response.json()
-    transcript.push({ kind: "command", name, body, status: response.status(), value })
+    transcript.push({
+      kind: "command",
+      name,
+      body,
+      status: response.status(),
+      value,
+    })
     assert.equal(response.status(), status, `${name}: ${JSON.stringify(value)}`)
     assert.match(response.headers()["cache-control"], /no-store/)
     if (errorCode) assert.equal(value.error?.code, errorCode)
@@ -333,7 +371,8 @@ export async function fixture(
         },
         [
           {
-            type: input.type === "BROKERAGE_DEAL" ? "BrokerageDeal" : "ImportBatch",
+            type:
+              input.type === "BROKERAGE_DEAL" ? "BrokerageDeal" : "ImportBatch",
             id: input.id,
             revision: input.revision,
           },
@@ -349,21 +388,22 @@ export async function fixture(
     assert.equal(put.status(), 204)
     const done = await client.post("/api/v1/commands/completeUpload", {
       headers: { Origin: origin },
-      data: envelope(
-        { uploadId: ready.uploadId },
-        [
-          { type: "UploadIntent", id: ready.uploadId, revision: ready.revision },
-          {
-            type: input.type === "BROKERAGE_DEAL" ? "BrokerageDeal" : "ImportBatch",
-            id: input.id,
-            revision: input.revision,
-          },
-        ]
-      ),
+      data: envelope({ uploadId: ready.uploadId }, [
+        { type: "UploadIntent", id: ready.uploadId, revision: ready.revision },
+        {
+          type:
+            input.type === "BROKERAGE_DEAL" ? "BrokerageDeal" : "ImportBatch",
+          id: input.id,
+          revision: input.revision,
+        },
+      ]),
     })
     const attached = await done.json()
     assert.equal(done.status(), 200, JSON.stringify(attached))
-    return { uploadId: ready.uploadId as string, attachmentId: attached.result.id as string }
+    return {
+      uploadId: ready.uploadId as string,
+      attachmentId: attached.result.id as string,
+    }
   }
   try {
     await start()
@@ -418,9 +458,7 @@ function freeOrigin() {
     server.listen(0, "127.0.0.1", () => {
       const address = server.address()
       if (!address || typeof address === "string") return reject(Error("PORT"))
-      server.close(() =>
-        resolve(`http://127.0.0.1:${address.port}`)
-      )
+      server.close(() => resolve(`http://127.0.0.1:${address.port}`))
     })
   })
 }

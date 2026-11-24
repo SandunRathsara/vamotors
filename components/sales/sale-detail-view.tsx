@@ -154,7 +154,13 @@ export function SaleDetailView({ id }: { id: string }) {
           { type: "SaleCase", id: sale.id, revision: sale.revision },
           { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
           ...(identity.data
-            ? [{ type: "Vehicle" as const, id: identity.data.id, revision: identity.data.revision }]
+            ? [
+                {
+                  type: "Vehicle" as const,
+                  id: identity.data.id,
+                  revision: identity.data.revision,
+                },
+              ]
             : []),
         ]
         const env = saleEnvelope("intakeTradeIn").parse({
@@ -172,7 +178,9 @@ export function SaleDetailView({ id }: { id: string }) {
               colour: intakeVehicle.colour,
               fuelType: intakeVehicle.fuelType,
               transmission: intakeVehicle.transmission,
-              ...(intakeVehicle.vin.trim() ? { vin: intakeVehicle.vin.trim() } : {}),
+              ...(intakeVehicle.vin.trim()
+                ? { vin: intakeVehicle.vin.trim() }
+                : {}),
               ...(intakeVehicle.crNumber.trim()
                 ? { crNumber: intakeVehicle.crNumber.trim() }
                 : {}),
@@ -187,17 +195,22 @@ export function SaleDetailView({ id }: { id: string }) {
                 ? { decreaseReason: intakeDecreaseReason }
                 : {}),
             },
-            ...(intakeListed.trim() ? { listedPrice: parseMajor(intakeListed) } : {}),
+            ...(intakeListed.trim()
+              ? { listedPrice: parseMajor(intakeListed) }
+              : {}),
           },
         })
         submitted = JSON.stringify(env)
         setIntakeBody(submitted)
       }
-      const res = await privateRequest<Applied>("/api/v1/commands/intakeTradeIn", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: submitted,
-      })
+      const res = await privateRequest<Applied>(
+        "/api/v1/commands/intakeTradeIn",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: submitted,
+        }
+      )
       setIntakeBody(null)
       setIntakeMsg(`Trade-in intake completed (${res.commandId}).`)
       setIntakeOpen(false)
@@ -224,7 +237,13 @@ export function SaleDetailView({ id }: { id: string }) {
 
   async function submitSaleEdit(e: React.FormEvent) {
     e.preventDefault()
-    if (!sale?.id || !sale.revision || !cycle?.id || !cycle.revision || editPending)
+    if (
+      !sale?.id ||
+      !sale.revision ||
+      !cycle?.id ||
+      !cycle.revision ||
+      editPending
+    )
       return
     setEditPending(true)
     setEditMsg("")
@@ -232,116 +251,170 @@ export function SaleDetailView({ id }: { id: string }) {
     try {
       let submitted = editBody
       if (!submitted) {
-      const expected: Dependency[] = [
-        { type: "SaleCase", id: sale.id, revision: sale.revision },
-        { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
-      ]
-      if (sale.tradeIn?.acquiredCycleId && editTradeVal.trim()) {
-        const acq = await privateRequest<{ data: VisibleCycle }>(
-          `/api/v1/queries/purchase?cycleId=${encodeURIComponent(sale.tradeIn.acquiredCycleId)}`
-        )
-        if (!acq.data.id || !acq.data.revision) throw Error("Acquired trade-in revision unavailable")
-        expected.push({ type: "PurchaseRecord", id: acq.data.id, revision: acq.data.revision })
-        if (acq.data.vehicleId && acq.data.identityRevision)
+        const expected: Dependency[] = [
+          { type: "SaleCase", id: sale.id, revision: sale.revision },
+          { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
+        ]
+        if (sale.tradeIn?.acquiredCycleId && editTradeVal.trim()) {
+          const acq = await privateRequest<{ data: VisibleCycle }>(
+            `/api/v1/queries/purchase?cycleId=${encodeURIComponent(sale.tradeIn.acquiredCycleId)}`
+          )
+          if (!acq.data.id || !acq.data.revision)
+            throw Error("Acquired trade-in revision unavailable")
           expected.push({
-            type: "Vehicle",
-            id: acq.data.vehicleId,
-            revision: acq.data.identityRevision,
+            type: "PurchaseRecord",
+            id: acq.data.id,
+            revision: acq.data.revision,
           })
-      }
-      const patch: Record<string, unknown> = {}
-      if (editPrice.trim()) patch.price = parseMajor(editPrice)
-      if (editRef.trim()) patch.reference = editRef.trim()
-      if (editDate.trim()) patch.saleDate = editDate.trim()
-      if (editMileage.trim()) patch.handoverMileage = Number(editMileage)
-      if (sale.kind === "TRADE_IN" && (editTradeDesc.trim() || editTradeVal.trim())) {
-        patch.tradeIn = {
-          description: editTradeDesc.trim() || sale.tradeIn?.description || "",
-          value: editTradeVal.trim() ? parseMajor(editTradeVal) : sale.tradeIn?.value,
+          if (acq.data.vehicleId && acq.data.identityRevision)
+            expected.push({
+              type: "Vehicle",
+              id: acq.data.vehicleId,
+              revision: acq.data.identityRevision,
+            })
         }
-      }
-      if (!sale.price) throw Error("Current agreed price is unavailable.")
-      const oldPrice = BigInt(sale.price)
-      const oldTrade =
-        sale.kind === "TRADE_IN" && sale.tradeIn?.value
-          ? BigInt(sale.tradeIn.value)
-          : 0n
-      const newPrice = patch.price ? BigInt(patch.price as string) : oldPrice
-      const newTrade = patch.tradeIn
-        ? BigInt((patch.tradeIn as { value: string }).value)
-        : oldTrade
-      const cashCorrections: {
-        paymentId: string
-        reason: string
-        replacement?: {
-          amount: string
-          date: string
-          method: "CASH" | "BANK_TRANSFER"
-          reference?: string
-        }
-      }[] = []
-      if (newPrice - newTrade !== oldPrice - oldTrade) {
-        const receipts = sale.payments ?? []
-        const category = sale.kind === "LEASE" ? "DOWN_PAYMENT" : sale.kind === "ADVANCE" ? "BALANCE" : "SALE"
-        const openReceipts = receipts.filter(
-          (p) =>
-            p.category === category &&
-            p.direction === "IN" &&
-            !p.reversalOf &&
-            !receipts.some((r) => r.reversalOf === p.id)
-        )
-        const original = openReceipts[0]
-        if (openReceipts.length !== 1 || !original?.id || !original.amount || !original.date || !original.method)
-          throw Error("A single unreversed receipt is required for this amount correction.")
-        const amount = BigInt(original.amount) + (newPrice - newTrade) - (oldPrice - oldTrade)
-        if (amount < 0n || (sale.finance && amount === 0n))
-          throw Error("The corrected price must cover the existing advance credit and lender terms.")
-        if (sale.finance) {
-          const { companyId, principal, termMonths, doAttachmentId, issueDate } = sale.finance
-          if (!companyId || !principal || !termMonths || !doAttachmentId || !issueDate)
-            throw Error("The original finance terms are unavailable.")
-          patch.finance = {
-            companyId, financeAmount: principal, downPayment: amount.toString(), termMonths,
-            doAttachmentId, doIssueDate: issueDate,
+        const patch: Record<string, unknown> = {}
+        if (editPrice.trim()) patch.price = parseMajor(editPrice)
+        if (editRef.trim()) patch.reference = editRef.trim()
+        if (editDate.trim()) patch.saleDate = editDate.trim()
+        if (editMileage.trim()) patch.handoverMileage = Number(editMileage)
+        if (
+          sale.kind === "TRADE_IN" &&
+          (editTradeDesc.trim() || editTradeVal.trim())
+        ) {
+          patch.tradeIn = {
+            description:
+              editTradeDesc.trim() || sale.tradeIn?.description || "",
+            value: editTradeVal.trim()
+              ? parseMajor(editTradeVal)
+              : sale.tradeIn?.value,
           }
         }
-        cashCorrections.push({
-          paymentId: original.id,
-          reason: editReason,
-          ...(amount ? { replacement: {
-            amount: amount.toString(),
-            date: original.date,
-            method: original.method,
-            ...(original.reference ? { reference: original.reference } : {}),
-          } } : {}),
-        })
-      }
-      const env = approvalEnvelope("requestApproval").parse({
-        schemaVersion: 1,
-        idempotencyKey: crypto.randomUUID(),
-        expected,
-        input: {
-          proposal: {
-            kind: "SALE_EDIT",
-            operation: "EDIT_COMPLETION",
-            input: {
-              saleId: sale.id,
-              reason: editReason,
-              patch,
-              cashCorrections,
+        if (!sale.price) throw Error("Current agreed price is unavailable.")
+        const oldPrice = BigInt(sale.price)
+        const oldTrade =
+          sale.kind === "TRADE_IN" && sale.tradeIn?.value
+            ? BigInt(sale.tradeIn.value)
+            : 0n
+        const newPrice = patch.price ? BigInt(patch.price as string) : oldPrice
+        const newTrade = patch.tradeIn
+          ? BigInt((patch.tradeIn as { value: string }).value)
+          : oldTrade
+        const cashCorrections: {
+          paymentId: string
+          reason: string
+          replacement?: {
+            amount: string
+            date: string
+            method: "CASH" | "BANK_TRANSFER"
+            reference?: string
+          }
+        }[] = []
+        if (newPrice - newTrade !== oldPrice - oldTrade) {
+          const receipts = sale.payments ?? []
+          const category =
+            sale.kind === "LEASE"
+              ? "DOWN_PAYMENT"
+              : sale.kind === "ADVANCE"
+                ? "BALANCE"
+                : "SALE"
+          const openReceipts = receipts.filter(
+            (p) =>
+              p.category === category &&
+              p.direction === "IN" &&
+              !p.reversalOf &&
+              !receipts.some((r) => r.reversalOf === p.id)
+          )
+          const original = openReceipts[0]
+          if (
+            openReceipts.length !== 1 ||
+            !original?.id ||
+            !original.amount ||
+            !original.date ||
+            !original.method
+          )
+            throw Error(
+              "A single unreversed receipt is required for this amount correction."
+            )
+          const amount =
+            BigInt(original.amount) +
+            (newPrice - newTrade) -
+            (oldPrice - oldTrade)
+          if (amount < 0n || (sale.finance && amount === 0n))
+            throw Error(
+              "The corrected price must cover the existing advance credit and lender terms."
+            )
+          if (sale.finance) {
+            const {
+              companyId,
+              principal,
+              termMonths,
+              doAttachmentId,
+              issueDate,
+            } = sale.finance
+            if (
+              !companyId ||
+              !principal ||
+              !termMonths ||
+              !doAttachmentId ||
+              !issueDate
+            )
+              throw Error("The original finance terms are unavailable.")
+            patch.finance = {
+              companyId,
+              financeAmount: principal,
+              downPayment: amount.toString(),
+              termMonths,
+              doAttachmentId,
+              doIssueDate: issueDate,
+            }
+          }
+          cashCorrections.push({
+            paymentId: original.id,
+            reason: editReason,
+            ...(amount
+              ? {
+                  replacement: {
+                    amount: amount.toString(),
+                    date: original.date,
+                    method: original.method,
+                    ...(original.reference
+                      ? { reference: original.reference }
+                      : {}),
+                  },
+                }
+              : {}),
+          })
+        }
+        const env = approvalEnvelope("requestApproval").parse({
+          schemaVersion: 1,
+          idempotencyKey: crypto.randomUUID(),
+          expected,
+          input: {
+            proposal: {
+              kind: "SALE_EDIT",
+              operation: "EDIT_COMPLETION",
+              input: {
+                saleId: sale.id,
+                reason: editReason,
+                patch,
+                cashCorrections,
+              },
             },
+            reason: editReason,
           },
-          reason: editReason,
-        },
-      })
-      submitted = JSON.stringify(env)
-      setEditBody(submitted)
+        })
+        submitted = JSON.stringify(env)
+        setEditBody(submitted)
       }
-      const res = await privateRequest<Pending>("/api/v1/commands/requestApproval", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: submitted,
-      })
+      const res = await privateRequest<Pending>(
+        "/api/v1/commands/requestApproval",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: submitted,
+        }
+      )
       setEditBody(null)
       setEditApprovalId(res.approvalId)
       setEditMsg(`Sale edit approval requested (${res.approvalId}).`)
@@ -366,15 +439,19 @@ export function SaleDetailView({ id }: { id: string }) {
   }
 
   if (saleQuery.isPending) return <p role="status">Loading sale detail…</p>
-  if (saleQuery.isError || !sale)
-    return <p role="alert">Sale unavailable.</p>
+  if (saleQuery.isError || !sale) return <p role="alert">Sale unavailable.</p>
 
-  const moneyStr = (v?: string) => (v === undefined ? "Unavailable" : major(BigInt(v)))
+  const moneyStr = (v?: string) =>
+    v === undefined ? "Unavailable" : major(BigInt(v))
 
   return (
     <section className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 ref={heading} tabIndex={-1} className="min-w-0 break-words text-2xl font-semibold">
+        <h1
+          ref={heading}
+          tabIndex={-1}
+          className="min-w-0 text-2xl font-semibold break-words"
+        >
           Sale {sale.id}
         </h1>
         <ImportedBadge provenance={sale.provenance} />
@@ -386,7 +463,9 @@ export function SaleDetailView({ id }: { id: string }) {
       <dl className="grid gap-4 rounded-lg border p-4 sm:grid-cols-3">
         <div>
           <dt className="text-xs text-muted-foreground">Kind / State</dt>
-          <dd>{sale.kind ?? "Unavailable"} · {sale.state ?? "Unavailable"}</dd>
+          <dd>
+            {sale.kind ?? "Unavailable"} · {sale.state ?? "Unavailable"}
+          </dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Agreed Price</dt>
@@ -394,7 +473,9 @@ export function SaleDetailView({ id }: { id: string }) {
         </div>
         {sale.reference && (
           <div>
-            <dt className="text-xs text-muted-foreground">Third-party Reference</dt>
+            <dt className="text-xs text-muted-foreground">
+              Third-party Reference
+            </dt>
             <dd className="break-words">{sale.reference}</dd>
           </div>
         )}
@@ -403,17 +484,25 @@ export function SaleDetailView({ id }: { id: string }) {
           <dd>{sale.revision ?? "Unavailable"}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Handover Date / Mileage</dt>
+          <dt className="text-xs text-muted-foreground">
+            Handover Date / Mileage
+          </dt>
           <dd>
             {sale.completion?.date ?? "Unavailable"} ·{" "}
-            {sale.completion?.mileage !== undefined ? `${sale.completion.mileage} km` : "Unavailable"}
+            {sale.completion?.mileage !== undefined
+              ? `${sale.completion.mileage} km`
+              : "Unavailable"}
           </dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Customer</dt>
           <dd>
             {sale.customerId ? (
-              <Link prefetch={false} className="underline" href={`/customers/${sale.customerId}`}>
+              <Link
+                prefetch={false}
+                className="underline"
+                href={`/customers/${sale.customerId}`}
+              >
                 {customer?.fullName ?? sale.customerId}
               </Link>
             ) : (
@@ -425,7 +514,11 @@ export function SaleDetailView({ id }: { id: string }) {
           <dt className="text-xs text-muted-foreground">Source Cycle</dt>
           <dd>
             {sale.cycleId ? (
-              <Link prefetch={false} className="underline" href={`/purchases/${sale.cycleId}`}>
+              <Link
+                prefetch={false}
+                className="underline"
+                href={`/purchases/${sale.cycleId}`}
+              >
                 Purchase cycle {sale.cycleId}
               </Link>
             ) : (
@@ -438,11 +531,11 @@ export function SaleDetailView({ id }: { id: string }) {
       <CommitmentActions sale={sale} cycle={cycle} customer={customer} />
 
       {cycle?.financial && (
-        <div className="rounded-lg border p-4 text-sm space-y-1">
+        <div className="space-y-1 rounded-lg border p-4 text-sm">
           <h2 className="font-semibold">Cycle Financial Summary</h2>
           <p>
-            Original Basis: {moneyStr(cycle.financial.originalBasis)} · Current Basis:{" "}
-            {moneyStr(cycle.financial.basis)} · Original Profit:{" "}
+            Original Basis: {moneyStr(cycle.financial.originalBasis)} · Current
+            Basis: {moneyStr(cycle.financial.basis)} · Original Profit:{" "}
             {moneyStr(cycle.financial.originalProfit)} · Restated Profit:{" "}
             {moneyStr(cycle.financial.restatedProfit)}
           </p>
@@ -450,10 +543,11 @@ export function SaleDetailView({ id }: { id: string }) {
       )}
 
       {sale.tradeIn && (
-        <div className="rounded-lg border p-4 space-y-2 text-sm">
+        <div className="space-y-2 rounded-lg border p-4 text-sm">
           <h2 className="font-semibold">Trade-In Consideration</h2>
           <p>
-            {sale.tradeIn.description ?? "Unavailable"} · Value: {moneyStr(sale.tradeIn.value)}
+            {sale.tradeIn.description ?? "Unavailable"} · Value:{" "}
+            {moneyStr(sale.tradeIn.value)}
           </p>
           {sale.tradeIn.acquiredCycleId ? (
             <Link
@@ -467,7 +561,9 @@ export function SaleDetailView({ id }: { id: string }) {
             sale.nextActions?.includes("intakeTradeIn") && (
               <div>
                 <Button type="button" onClick={() => setIntakeOpen((v) => !v)}>
-                  {intakeOpen ? "Cancel Trade-In Intake" : "Intake Trade-In Vehicle"}
+                  {intakeOpen
+                    ? "Cancel Trade-In Intake"
+                    : "Intake Trade-In Vehicle"}
                 </Button>
               </div>
             )
@@ -476,7 +572,10 @@ export function SaleDetailView({ id }: { id: string }) {
       )}
 
       {intakeOpen && (
-        <form onSubmit={submitIntake} className="space-y-3 rounded-lg border p-4">
+        <form
+          onSubmit={submitIntake}
+          className="space-y-3 rounded-lg border p-4"
+        >
           <h3 className="font-semibold">Intake Trade-In Vehicle</h3>
           <div className="grid gap-3 sm:grid-cols-3">
             <Input
@@ -569,7 +668,7 @@ export function SaleDetailView({ id }: { id: string }) {
         </form>
       )}
 
-      <div className="rounded-lg border p-4 space-y-2 text-sm">
+      <div className="space-y-2 rounded-lg border p-4 text-sm">
         <h2 className="font-semibold">Completion</h2>
         {sale.completion ? (
           <p>
@@ -594,7 +693,7 @@ export function SaleDetailView({ id }: { id: string }) {
         )}
       </div>
 
-      <div className="rounded-lg border p-4 space-y-2 text-sm">
+      <div className="space-y-2 rounded-lg border p-4 text-sm">
         <h2 className="font-semibold">Receipts</h2>
         {sale.payments === undefined ? (
           <p>Receipts unavailable</p>
@@ -615,68 +714,129 @@ export function SaleDetailView({ id }: { id: string }) {
 
       <SaleInvoices sale={sale} cycleRevision={cycle?.revision} />
 
-      {sale.state === "COMPLETED" && sale.nextActions?.includes("requestApproval") && (
-        <div className="space-y-3 rounded-lg border p-4">
-          <Button type="button" variant="outline" onClick={() => setEditOpen((v) => !v)}>
-            {editOpen ? "Close Sale Edit Request" : "Request Sale Edit Approval"}
-          </Button>
-          {editOpen && (
-            <form onSubmit={submitSaleEdit} className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="edit-price">New Agreed Price (Major, optional)</Label>
-                  <Input id="edit-price" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
-                  {sale.finance && <p className="text-sm text-muted-foreground">A price correction adjusts the customer down payment. The original lender principal is preserved.</p>}
+      {sale.state === "COMPLETED" &&
+        sale.nextActions?.includes("requestApproval") && (
+          <div className="space-y-3 rounded-lg border p-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEditOpen((v) => !v)}
+            >
+              {editOpen
+                ? "Close Sale Edit Request"
+                : "Request Sale Edit Approval"}
+            </Button>
+            {editOpen && (
+              <form onSubmit={submitSaleEdit} className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label htmlFor="edit-price">
+                      New Agreed Price (Major, optional)
+                    </Label>
+                    <Input
+                      id="edit-price"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                    />
+                    {sale.finance && (
+                      <p className="text-sm text-muted-foreground">
+                        A price correction adjusts the customer down payment.
+                        The original lender principal is preserved.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-ref">New Reference (optional)</Label>
+                    <Input
+                      id="edit-ref"
+                      value={editRef}
+                      onChange={(e) => setEditRef(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-date">New Sale Date (optional)</Label>
+                    <Input
+                      id="edit-date"
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-mileage">
+                      New Handover Mileage (optional)
+                    </Label>
+                    <Input
+                      id="edit-mileage"
+                      type="number"
+                      min={0}
+                      value={editMileage}
+                      onChange={(e) => setEditMileage(e.target.value)}
+                    />
+                  </div>
+                  {sale.kind === "TRADE_IN" && (
+                    <>
+                      <div>
+                        <Label htmlFor="edit-trade-desc">
+                          Trade-In Description
+                        </Label>
+                        <Input
+                          id="edit-trade-desc"
+                          value={editTradeDesc}
+                          onChange={(e) => setEditTradeDesc(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-trade-val">
+                          Trade-In Value (Major)
+                        </Label>
+                        <Input
+                          id="edit-trade-val"
+                          value={editTradeVal}
+                          onChange={(e) => setEditTradeVal(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="edit-ref">New Reference (optional)</Label>
-                  <Input id="edit-ref" value={editRef} onChange={(e) => setEditRef(e.target.value)} />
+                  <Label htmlFor="edit-reason">Edit Approval Reason *</Label>
+                  <Textarea
+                    id="edit-reason"
+                    required
+                    value={editReason}
+                    onChange={(e) => setEditReason(e.target.value)}
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="edit-date">New Sale Date (optional)</Label>
-                  <Input id="edit-date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="edit-mileage">New Handover Mileage (optional)</Label>
-                  <Input id="edit-mileage" type="number" min={0} value={editMileage} onChange={(e) => setEditMileage(e.target.value)} />
-                </div>
-                {sale.kind === "TRADE_IN" && (
-                  <>
-                    <div>
-                      <Label htmlFor="edit-trade-desc">Trade-In Description</Label>
-                      <Input id="edit-trade-desc" value={editTradeDesc} onChange={(e) => setEditTradeDesc(e.target.value)} />
-                    </div>
-                    <div>
-                      <Label htmlFor="edit-trade-val">Trade-In Value (Major)</Label>
-                      <Input id="edit-trade-val" value={editTradeVal} onChange={(e) => setEditTradeVal(e.target.value)} />
-                    </div>
-                  </>
+                {editMsg && (
+                  <p role="status" className="text-sm">
+                    {editMsg}
+                  </p>
                 )}
-              </div>
-              <div>
-                <Label htmlFor="edit-reason">Edit Approval Reason *</Label>
-                <Textarea id="edit-reason" required value={editReason} onChange={(e) => setEditReason(e.target.value)} />
-              </div>
-              {editMsg && <p role="status" className="text-sm">{editMsg}</p>}
-              {editApprovalId && (
-                <Link prefetch={false} className="underline text-sm" href={`/approvals/${editApprovalId}`}>
-                  Open sale edit approval request
-                </Link>
-              )}
-              <Button type="submit" disabled={editPending}>
-                {editPending ? "Requesting…" : "Submit Sale Edit Approval"}
-              </Button>
-            </form>
-          )}
-        </div>
-      )}
+                {editApprovalId && (
+                  <Link
+                    prefetch={false}
+                    className="text-sm underline"
+                    href={`/approvals/${editApprovalId}`}
+                  >
+                    Open sale edit approval request
+                  </Link>
+                )}
+                <Button type="submit" disabled={editPending}>
+                  {editPending ? "Requesting…" : "Submit Sale Edit Approval"}
+                </Button>
+              </form>
+            )}
+          </div>
+        )}
 
       {auditQuery.data && (
         <div className="space-y-2 rounded-lg border p-4 text-sm">
           <h2 className="font-semibold">Sale Audit History</h2>
           {auditQuery.data.data.data.map((entry, idx) => (
             <p key={entry.id ?? idx}>
-              {entry.action} · {entry.at} {entry.reason ? `· ${entry.reason}` : ""}
+              {entry.action} · {entry.at}{" "}
+              {entry.reason ? `· ${entry.reason}` : ""}
             </p>
           ))}
         </div>

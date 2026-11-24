@@ -64,18 +64,18 @@
 
 ### Component Responsibilities
 
-| Component | Responsibility | Implementation |
-|-----------|----------------|----------------|
-| React UI (RSC + Client) | Page layout, data display, form rendering | Server Components for data fetching; Client Components for interactivity |
-| TanStack Query | Server state cache, background refetch, optimistic updates | `useQuery` / `useMutation` wrapping fetch calls to `/api/*` |
-| TanStack Table | Sortable/filterable/paginated data grids | Headless; rows sourced from TanStack Query |
-| TanStack Form + Zod | Form state, validation, submission | Schema validated on client and re-validated on server |
-| Route Handlers (`/api`) | HTTP API surface, auth gate, CASL check, response shaping | Thin orchestration; no business logic inline |
-| Domain Services (`lib/`) | Business logic, state-machine transitions, financial calculations | Pure functions + Prisma calls; testable in isolation |
-| CASL Factory | Build `AppAbility` from user's DB permissions at request time | `createAbilityForUser(userId)` called once per request |
-| Audit Service | Write `AuditLog` entry for every mutation | Invoked by services after successful writes, never skipped |
-| PDF Service | Generate invoice PDF as Buffer using `@react-pdf/renderer` | Called inside API route; returns Buffer streamed to client |
-| Prisma Client | Database access, schema enforcement | Neon serverless driver; singleton via module-level instance |
+| Component                | Responsibility                                                    | Implementation                                                           |
+| ------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| React UI (RSC + Client)  | Page layout, data display, form rendering                         | Server Components for data fetching; Client Components for interactivity |
+| TanStack Query           | Server state cache, background refetch, optimistic updates        | `useQuery` / `useMutation` wrapping fetch calls to `/api/*`              |
+| TanStack Table           | Sortable/filterable/paginated data grids                          | Headless; rows sourced from TanStack Query                               |
+| TanStack Form + Zod      | Form state, validation, submission                                | Schema validated on client and re-validated on server                    |
+| Route Handlers (`/api`)  | HTTP API surface, auth gate, CASL check, response shaping         | Thin orchestration; no business logic inline                             |
+| Domain Services (`lib/`) | Business logic, state-machine transitions, financial calculations | Pure functions + Prisma calls; testable in isolation                     |
+| CASL Factory             | Build `AppAbility` from user's DB permissions at request time     | `createAbilityForUser(userId)` called once per request                   |
+| Audit Service            | Write `AuditLog` entry for every mutation                         | Invoked by services after successful writes, never skipped               |
+| PDF Service              | Generate invoice PDF as Buffer using `@react-pdf/renderer`        | Called inside API route; returns Buffer streamed to client               |
+| Prisma Client            | Database access, schema enforcement                               | Neon serverless driver; singleton via module-level instance              |
 
 ---
 
@@ -222,32 +222,41 @@ src/
 **Trade-offs:** Adds a few lines of boilerplate per handler but makes the security contract explicit and consistent. Avoids forgetting an auth check.
 
 **Example:**
+
 ```typescript
 // app/api/vehicles/[id]/status/route.ts
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   // 1. Authenticate
-  const session = await auth.api.getSession({ headers: req.headers });
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth.api.getSession({ headers: req.headers })
+  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   // 2. Authorize
-  const ability = await createAbilityForUser(session.user.id);
-  if (ability.cannot('update', 'Vehicle')) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  const ability = await createAbilityForUser(session.user.id)
+  if (ability.cannot("update", "Vehicle")) {
+    return Response.json({ error: "Forbidden" }, { status: 403 })
   }
 
   // 3. Validate
-  const body = await req.json();
-  const result = vehicleStatusSchema.safeParse(body);
-  if (!result.success) return Response.json({ error: result.error }, { status: 400 });
+  const body = await req.json()
+  const result = vehicleStatusSchema.safeParse(body)
+  if (!result.success)
+    return Response.json({ error: result.error }, { status: 400 })
 
   // 4. Service (contains state-machine guard + DB write)
-  const updated = await vehiclesService.transitionStatus(params.id, result.data, session.user.id);
+  const updated = await vehiclesService.transitionStatus(
+    params.id,
+    result.data,
+    session.user.id
+  )
 
   // 5. Audit (written inside service, but called explicitly to keep it visible)
   // audit.service is called inside vehiclesService.transitionStatus
 
   // 6. Respond
-  return Response.json(updated);
+  return Response.json(updated)
 }
 ```
 
@@ -260,24 +269,31 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 **Trade-offs:** One extra DB query (permissions join) per request. Acceptable for a small team single-tenant app with Neon's 0.5ms serverless connection overhead. If permission reads become a bottleneck (unlikely), add a short-lived in-memory cache keyed on `userId`.
 
 **Example:**
+
 ```typescript
 // lib/casl/ability.ts
-import { AbilityBuilder, createMongoAbility } from '@casl/ability';
+import { AbilityBuilder, createMongoAbility } from "@casl/ability"
 
-export async function createAbilityForUser(userId: string): Promise<AppAbility> {
+export async function createAbilityForUser(
+  userId: string
+): Promise<AppAbility> {
   const userPermissions = await prisma.permission.findMany({
     where: {
-      roles: { some: { role: { users: { some: { userId } } } } }
-    }
-  });
+      roles: { some: { role: { users: { some: { userId } } } } },
+    },
+  })
 
-  const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
+  const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility)
 
   for (const perm of userPermissions) {
-    can(perm.action as Action, perm.subject as Subject, perm.conditions ?? undefined);
+    can(
+      perm.action as Action,
+      perm.subject as Subject,
+      perm.conditions ?? undefined
+    )
   }
 
-  return build();
+  return build()
 }
 ```
 
@@ -292,27 +308,29 @@ The same `AppAbility` type is used on the client via React Context — populated
 **Trade-offs:** Centralizing transitions in one file means state changes can be audited by reading a single map. No distributed `if/switch` blocks across services.
 
 **Example:**
+
 ```typescript
 // lib/utils/status-machine.ts
-const VALID_TRANSITIONS: Record<VehiclePrimaryStatus, VehiclePrimaryStatus[]> = {
-  PURCHASED:       ['IN_STOCK'],
-  IN_STOCK:        ['IN_REPAIR', 'ADVANCE_PLACED', 'FINANCE_PENDING', 'WRITTEN_OFF'],
-  IN_REPAIR:       ['IN_STOCK'],
-  ADVANCE_PLACED:  ['ADVANCE_EXPIRED', 'SOLD'],
-  ADVANCE_EXPIRED: ['IN_STOCK', 'SOLD', 'WRITTEN_OFF'],
-  FINANCE_PENDING: ['DO_RECEIVED'],
-  DO_RECEIVED:     ['SOLD'],
-  DELIVERED:       ['SOLD'],
-  SOLD:            [],
-  WRITTEN_OFF:     [],
-};
+const VALID_TRANSITIONS: Record<VehiclePrimaryStatus, VehiclePrimaryStatus[]> =
+  {
+    PURCHASED: ["IN_STOCK"],
+    IN_STOCK: ["IN_REPAIR", "ADVANCE_PLACED", "FINANCE_PENDING", "WRITTEN_OFF"],
+    IN_REPAIR: ["IN_STOCK"],
+    ADVANCE_PLACED: ["ADVANCE_EXPIRED", "SOLD"],
+    ADVANCE_EXPIRED: ["IN_STOCK", "SOLD", "WRITTEN_OFF"],
+    FINANCE_PENDING: ["DO_RECEIVED"],
+    DO_RECEIVED: ["SOLD"],
+    DELIVERED: ["SOLD"],
+    SOLD: [],
+    WRITTEN_OFF: [],
+  }
 
 export function assertValidTransition(
   from: VehiclePrimaryStatus,
   to: VehiclePrimaryStatus
 ): void {
   if (!VALID_TRANSITIONS[from].includes(to)) {
-    throw new Error(`Invalid transition: ${from} → ${to}`);
+    throw new Error(`Invalid transition: ${from} → ${to}`)
   }
 }
 ```
@@ -326,25 +344,30 @@ export function assertValidTransition(
 **Trade-offs:** Two-step process (get URL, then upload). Eliminates any risk of hitting Vercel's 4.5MB request body limit and keeps serverless function payload tiny.
 
 **Example:**
+
 ```typescript
 // app/api/uploads/presign/route.ts
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 
 export async function POST(req: Request) {
-  const session = await auth.api.getSession({ headers: req.headers });
-  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth.api.getSession({ headers: req.headers })
+  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { filename, contentType } = await req.json();
-  const key = `uploads/${session.user.id}/${Date.now()}-${filename}`;
+  const { filename, contentType } = await req.json()
+  const key = `uploads/${session.user.id}/${Date.now()}-${filename}`
 
   const url = await getSignedUrl(
     r2Client,
-    new PutObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key, ContentType: contentType }),
+    new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET,
+      Key: key,
+      ContentType: contentType,
+    }),
     { expiresIn: 300 } // 5 minutes
-  );
+  )
 
-  return Response.json({ url, key });
+  return Response.json({ url, key })
 }
 ```
 
@@ -504,15 +527,15 @@ ApprovalRequest (polymorphic via entityType: String + entityId: UUID)
 
 ### Key Schema Decisions
 
-| Decision | Rationale |
-|----------|-----------|
+| Decision                                    | Rationale                                                                                            |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Polymorphic `AuditLog` (entityType: String) | Avoids schema changes when new entities are added; append-only table benefits from no FK constraints |
-| Polymorphic `Notification.linkedEntity` | Same reasoning; notification targets can expand without migration |
-| `VehiclePrimaryStatus` as Prisma enum | Static 10-value set; won't change mid-deployment; native PostgreSQL enum enforces DB-level integrity |
-| All money as `Int` (smallest currency unit) | Eliminates floating-point accumulation errors; display layer formats |
-| `AuditLog.changedFields` as `Json` | `{ fieldName: { from, to } }` — flexible, no separate change-field table needed |
-| `ApprovalRequest.payload` as `Json` | Proposed change data varies by `requestType` — polymorphic JSON cleaner than 20 optional columns |
-| `Permission.conditions` as `Json` | CASL condition objects are arbitrary JSON; schema cannot be normalized |
+| Polymorphic `Notification.linkedEntity`     | Same reasoning; notification targets can expand without migration                                    |
+| `VehiclePrimaryStatus` as Prisma enum       | Static 10-value set; won't change mid-deployment; native PostgreSQL enum enforces DB-level integrity |
+| All money as `Int` (smallest currency unit) | Eliminates floating-point accumulation errors; display layer formats                                 |
+| `AuditLog.changedFields` as `Json`          | `{ fieldName: { from, to } }` — flexible, no separate change-field table needed                      |
+| `ApprovalRequest.payload` as `Json`         | Proposed change data varies by `requestType` — polymorphic JSON cleaner than 20 optional columns     |
+| `Permission.conditions` as `Json`           | CASL condition objects are arbitrary JSON; schema cannot be normalized                               |
 
 ---
 
@@ -520,12 +543,12 @@ ApprovalRequest (polymorphic via entityType: String + entityId: UUID)
 
 This is a single-tenant, single-dealership system on free-tier hosting. Scaling concerns are minimal but worth documenting for future-proofing.
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Current (1 dealership, ~5 users) | Monolith is optimal — zero overhead, zero cost |
-| 10x data (500K records) | Add DB indexes on `vehicleId`, `status`, `createdAt` on all transaction tables. Neon still handles it on free tier. |
-| Multi-branch (future) | Add `branchId` FK to Vehicle, SaleRecord, User. CASL conditions can scope reads by branch. |
-| Performance bottleneck | RSC data fetching already reduces round-trips. TanStack Query client cache reduces redundant API calls. PDF generation is the only CPU-heavy operation — if it times out, move to a dedicated `/api/pdf` function with `maxDuration: 30` (requires Vercel Pro). |
+| Scale                            | Architecture Adjustments                                                                                                                                                                                                                                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Current (1 dealership, ~5 users) | Monolith is optimal — zero overhead, zero cost                                                                                                                                                                                                                  |
+| 10x data (500K records)          | Add DB indexes on `vehicleId`, `status`, `createdAt` on all transaction tables. Neon still handles it on free tier.                                                                                                                                             |
+| Multi-branch (future)            | Add `branchId` FK to Vehicle, SaleRecord, User. CASL conditions can scope reads by branch.                                                                                                                                                                      |
+| Performance bottleneck           | RSC data fetching already reduces round-trips. TanStack Query client cache reduces redundant API calls. PDF generation is the only CPU-heavy operation — if it times out, move to a dedicated `/api/pdf` function with `maxDuration: 30` (requires Vercel Pro). |
 
 ### Scaling Priorities
 
@@ -590,22 +613,22 @@ This is a single-tenant, single-dealership system on free-tier hosting. Scaling 
 
 ### External Services
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Neon PostgreSQL | Prisma + `@neondatabase/serverless` (HTTP) | Instantiate client once as module singleton; avoid creating new PrismaClient per request |
-| Cloudflare R2 | `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` | Use `S3Client` pointed at R2's S3-compatible endpoint. Zero egress fee — R2 serves objects directly to browser |
-| Better Auth | Drop-in handler at `/api/auth/[...better-auth]/route.ts` | Session validated server-side via `auth.api.getSession()` in every protected route |
+| Service         | Integration Pattern                                      | Notes                                                                                                          |
+| --------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Neon PostgreSQL | Prisma + `@neondatabase/serverless` (HTTP)               | Instantiate client once as module singleton; avoid creating new PrismaClient per request                       |
+| Cloudflare R2   | `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`   | Use `S3Client` pointed at R2's S3-compatible endpoint. Zero egress fee — R2 serves objects directly to browser |
+| Better Auth     | Drop-in handler at `/api/auth/[...better-auth]/route.ts` | Session validated server-side via `auth.api.getSession()` in every protected route                             |
 
 ### Internal Boundaries
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Route Handler → Service | Direct function call (same process) | No HTTP round-trip; services are not independently deployable |
-| RSC page → Service | Direct function call (RSC can import `lib/services` directly) | No fetch needed for initial data load; hydrate TanStack Query |
-| Client → API | `fetch()` via TanStack Query hooks | All mutations and client-triggered reads go through HTTP |
-| Service → Audit | Prisma extension intercept OR explicit `auditService.log()` for status changes | Must not be bypassed |
-| CASL (server) → CASL (client) | `/api/auth/permissions` response serializes CASL rules as JSON | Client ability is read-only; only server ability gates access |
-| Cron job → Advance expiry | Vercel Cron → `GET /api/cron/advance-expiry` with `CRON_SECRET` header | Daily job; idempotent; sets expired advances and triggers notifications |
+| Boundary                      | Communication                                                                  | Notes                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Route Handler → Service       | Direct function call (same process)                                            | No HTTP round-trip; services are not independently deployable           |
+| RSC page → Service            | Direct function call (RSC can import `lib/services` directly)                  | No fetch needed for initial data load; hydrate TanStack Query           |
+| Client → API                  | `fetch()` via TanStack Query hooks                                             | All mutations and client-triggered reads go through HTTP                |
+| Service → Audit               | Prisma extension intercept OR explicit `auditService.log()` for status changes | Must not be bypassed                                                    |
+| CASL (server) → CASL (client) | `/api/auth/permissions` response serializes CASL rules as JSON                 | Client ability is read-only; only server ability gates access           |
+| Cron job → Advance expiry     | Vercel Cron → `GET /api/cron/advance-expiry` with `CRON_SECRET` header         | Daily job; idempotent; sets expired advances and triggers notifications |
 
 ---
 
@@ -647,5 +670,5 @@ Based on component dependencies, the build sequence should follow this order:
 
 ---
 
-*Architecture research for: Vehicle dealership management system (VSMS)*
-*Researched: 2026-03-21*
+_Architecture research for: Vehicle dealership management system (VSMS)_
+_Researched: 2026-03-21_

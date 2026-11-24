@@ -1,5 +1,8 @@
 import "server-only"
-import { checkIndependentLenderReceipt, refreshLenderEntitlement } from "./reconciliation"
+import {
+  checkIndependentLenderReceipt,
+  refreshLenderEntitlement,
+} from "./reconciliation"
 import { randomUUID } from "node:crypto"
 import type { VehicleStatus } from "@prisma/client"
 import type { z } from "zod"
@@ -25,7 +28,11 @@ import {
 import { requireFields } from "./permissions"
 import { fail } from "./errors"
 import { currentSettings } from "./settings"
-import { calculateAdvanceValidity, addCalendarDays, localMidnightToUtc } from "./domain-math"
+import {
+  calculateAdvanceValidity,
+  addCalendarDays,
+  localMidnightToUtc,
+} from "./domain-math"
 import { C, commission } from "../money"
 import {
   colomboToday,
@@ -93,12 +100,13 @@ const reservationRef = (
 ): Dependency => ({ type: "Reservation", id: row.id, revision: row.revision })
 const openReservation = (sale: SaleRow) =>
   sale.reservation && ["RESERVED", "EXPIRED"].includes(sale.state)
-function effectiveExpiry(row: NonNullable<SaleRow["reservation"]>, at = new Date()) {
+function effectiveExpiry(
+  row: NonNullable<SaleRow["reservation"]>,
+  at = new Date()
+) {
   return (
     row.expiredAt ??
-    (row.state === "ACTIVE" && row.expiresAt <= at
-      ? row.expiresAt
-      : undefined)
+    (row.state === "ACTIVE" && row.expiresAt <= at ? row.expiresAt : undefined)
   )
 }
 
@@ -434,16 +442,33 @@ async function complete(
     where: { id: sale.id },
     data: { state: "COMPLETED", revision: { increment: 1 } },
   })
-  const closedAt = historical ? new Date(historical.closedAt ?? input.date) : undefined
-  if (closedAt && (closedAt > new Date() || closedAt < new Date(`${input.date}T00:00:00+05:30`)))
+  const closedAt = historical
+    ? new Date(historical.closedAt ?? input.date)
+    : undefined
+  if (
+    closedAt &&
+    (closedAt > new Date() ||
+      closedAt < new Date(`${input.date}T00:00:00+05:30`))
+  )
     fail("INVALID_INPUT", 422)
-  await transitionCommitment(tx, context, row, "SOLD", date, undefined, closedAt)
+  await transitionCommitment(
+    tx,
+    context,
+    row,
+    "SOLD",
+    date,
+    undefined,
+    closedAt
+  )
   if (sale.reservation)
     await tx.reservation.update({
       where: { id: sale.reservation.id },
       data: {
         state: "CONVERTED",
-        expiredAt: effectiveExpiry(sale.reservation, historical ? date : undefined),
+        expiredAt: effectiveExpiry(
+          sale.reservation,
+          historical ? date : undefined
+        ),
         revision: { increment: 1 },
         resolvedAt: historical ? date : new Date(),
         resolutionReason: input.reason,
@@ -528,7 +553,14 @@ async function complete(
   }
   const completed = await loadSale(tx, sale.id)
   if (!completed) fail("INTERNAL_ERROR", 500)
-  await queueInvoice(tx, completed, await currentSettings(tx), userId, context.commandId, context.sequence)
+  await queueInvoice(
+    tx,
+    completed,
+    await currentSettings(tx),
+    userId,
+    context.commandId,
+    context.sequence
+  )
 }
 
 function requireHandoverBasis(row: Cycle) {
@@ -540,7 +572,9 @@ async function resolveCancellation(
   tx: Tx,
   context: Context,
   sale: SaleRow,
-  input: Pick<Refund, "reason" | "disposition" | "retainedAmount"> & { refund?: CashInput },
+  input: Pick<Refund, "reason" | "disposition" | "retainedAmount"> & {
+    refund?: CashInput
+  },
   resolvedAt = new Date()
 ) {
   const refund = input.refund
@@ -660,29 +694,52 @@ export async function applyRefund(
 export function financeErrorAuthority(actor: Actor, sale: SaleRow) {
   authorizeSale(actor, sale, "cancelFinanceError")
   requireFields(actor.ability, "SaleCase", "read", saleAuth(sale), [
-    "payments.id", "payments.amount", "payments.direction", "payments.date",
-    "payments.method", "payments.category", "payments.reversalOf",
+    "payments.id",
+    "payments.amount",
+    "payments.direction",
+    "payments.date",
+    "payments.method",
+    "payments.category",
+    "payments.reversalOf",
   ])
 }
 
 export async function prepareFinanceError(
-  tx: Tx, actor: Actor, input: CancelFinanceError, expected: Dependency[], lock = true
+  tx: Tx,
+  actor: Actor,
+  input: CancelFinanceError,
+  expected: Dependency[],
+  lock = true
 ) {
   const target = await findSaleTarget(tx, input)
   if (lock) await lockCommitment(tx, target.purchaseRecordId, target.id)
   const sale = (await loadSale(tx, target.id))!
   financeErrorAuthority(actor, sale)
-  if (!sale.inventoryLease || !["FINANCE_PENDING", "DO_RECEIVED"].includes(sale.state) ||
-      sale.completion || await tx.commissionEntitlement.findUnique({ where: { saleCaseId: sale.id } }))
+  if (
+    !sale.inventoryLease ||
+    !["FINANCE_PENDING", "DO_RECEIVED"].includes(sale.state) ||
+    sale.completion ||
+    (await tx.commissionEntitlement.findUnique({
+      where: { saleCaseId: sale.id },
+    }))
+  )
     fail("INVALID_STATE")
   // A converted advance was real customer credit. Resolve it through the refund path.
-  if (sale.reservation || sale.receipts.some((r) => r.category !== "DOWN_PAYMENT"))
+  if (
+    sale.reservation ||
+    sale.receipts.some((r) => r.category !== "DOWN_PAYMENT")
+  )
     fail("OBLIGATION_OPEN")
   const reversed = new Set(sale.receipts.map((r) => r.reversalOf))
-  const receipts = sale.receipts.filter((r) => r.direction === "IN" && !reversed.has(r.id))
-  if (!receipts.length || input.receiptReversals.length !== receipts.length ||
-      new Set(input.receiptReversals).size !== receipts.length ||
-      receipts.some((r) => !input.receiptReversals.includes(r.id)))
+  const receipts = sale.receipts.filter(
+    (r) => r.direction === "IN" && !reversed.has(r.id)
+  )
+  if (
+    !receipts.length ||
+    input.receiptReversals.length !== receipts.length ||
+    new Set(input.receiptReversals).size !== receipts.length ||
+    receipts.some((r) => !input.receiptReversals.includes(r.id))
+  )
     fail("BALANCE_MISMATCH", 422)
   const deps = [caseRef(sale), cycleRef(sale.purchaseRecord)]
   for (const ref of deps) requireRef(expected, ref)
@@ -702,7 +759,10 @@ export async function prepareFinanceError(
 }
 
 export async function applyFinanceError(
-  tx: Tx, context: Context, sale: SaleRow, input: CancelFinanceError
+  tx: Tx,
+  context: Context,
+  sale: SaleRow,
+  input: CancelFinanceError
 ) {
   for (const id of input.receiptReversals) {
     const original = sale.receipts.find((r) => r.id === id)!
@@ -726,7 +786,10 @@ export async function applyFinanceError(
       },
     })
   }
-  await resolveCancellation(tx, context, sale, { ...input, retainedAmount: "0" })
+  await resolveCancellation(tx, context, sale, {
+    ...input,
+    retainedAmount: "0",
+  })
   return publishCommitment(tx, context, sale.purchaseRecord, sale.id, sale)
 }
 
@@ -886,7 +949,11 @@ async function openCommitment(
           kind: "receipt" in input ? "ADVANCE" : "LEASE",
           state: "receipt" in input ? "RESERVED" : "FINANCE_PENDING",
           reference: input.reference,
-          openedAt: historical ? new Date(("receipt" in input ? input.receipt : input.downPayment).date) : new Date(),
+          openedAt: historical
+            ? new Date(
+                ("receipt" in input ? input.receipt : input.downPayment).date
+              )
+            : new Date(),
           createdBy: initiatedBy,
           commandId: context.commandId,
           approvalId,
@@ -909,8 +976,12 @@ async function openCommitment(
     checkDate(input.receipt.date, row)
     authorizePayment(actor, payee, input.receipt)
     const amount = BigInt(input.receipt.amount)
-    if (!row.listedPrice || amount > price ||
-      (historical?.advance && BigInt(historical.advance.listedBasis) !== row.listedPrice))
+    if (
+      !row.listedPrice ||
+      amount > price ||
+      (historical?.advance &&
+        BigInt(historical.advance.listedBasis) !== row.listedPrice)
+    )
       fail("INVALID_INPUT", 422)
     const { percentHundredths, expiresAt, warningAt, validThrough, ...tier } =
       calculateAdvanceValidity({
@@ -918,8 +989,11 @@ async function openCommitment(
         listedPrice: row.listedPrice,
         agreedPrice: price,
         placedDate: input.receipt.date,
-        timezone: historical?.advance?.policySnapshot.timezone ?? settings.timezone,
-        leadDays: historical?.advance?.policySnapshot.leadDays ?? settings.warningLeadDays,
+        timezone:
+          historical?.advance?.policySnapshot.timezone ?? settings.timezone,
+        leadDays:
+          historical?.advance?.policySnapshot.leadDays ??
+          settings.warningLeadDays,
         tiers: historical?.advance?.policySnapshot.tiers ?? settings.tiers,
       })
     if (dryRun) return { row, required, snapshot }
@@ -935,10 +1009,17 @@ async function openCommitment(
           percentHundredths: percentHundredths.toString(),
           version: settings.policyVersion,
         },
-        validThrough: new Date(historical?.advance?.validThrough ?? validThrough),
-        expiresAt: historical?.advance ? new Date(historical.advance.expiresAt) : expiresAt,
+        validThrough: new Date(
+          historical?.advance?.validThrough ?? validThrough
+        ),
+        expiresAt: historical?.advance
+          ? new Date(historical.advance.expiresAt)
+          : expiresAt,
         warningAt: historical?.advance
-          ? localMidnightToUtc(addCalendarDays(historical.advance.validThrough, -tier.leadDays), tier.timezone)
+          ? localMidnightToUtc(
+              addCalendarDays(historical.advance.validThrough, -tier.leadDays),
+              tier.timezone
+            )
           : warningAt,
         state: "ACTIVE",
       },
@@ -996,7 +1077,10 @@ async function openCommitment(
         where: { id: sale.reservation!.id },
         data: {
           state: "CONVERTING",
-          expiredAt: effectiveExpiry(sale.reservation!, historical ? new Date(input.downPayment.date) : undefined),
+          expiredAt: effectiveExpiry(
+            sale.reservation!,
+            historical ? new Date(input.downPayment.date) : undefined
+          ),
           revision: { increment: 1 },
         },
       })
@@ -1103,9 +1187,12 @@ export async function executeCommitment<N extends CommitmentCommand>(
   historical?: HistoricalCommitment
 ): Promise<Applied> {
   if (historical && !existingTx) fail("INVALID_INPUT", 422)
-  const envelopeSchema = name === "recordDO" && historical?.missingDeliveryOrder
-    ? commitmentEnvelope("recordDO").extend({ input: commitmentInputs.recordDO.omit({ attachmentId: true }) })
-    : commitmentEnvelope(name)
+  const envelopeSchema =
+    name === "recordDO" && historical?.missingDeliveryOrder
+      ? commitmentEnvelope("recordDO").extend({
+          input: commitmentInputs.recordDO.omit({ attachmentId: true }),
+        })
+      : commitmentEnvelope(name)
   const parsed = envelopeSchema.safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const envelope = parsed.data
@@ -1232,16 +1319,32 @@ export async function executeCommitment<N extends CommitmentCommand>(
             ? new Date(historical.resolutionDate)
             : undefined
           if (historical?.resolutionDate)
-            checkDate(historical.resolutionDate, row, sale.reservation!.placedDate)
+            checkDate(
+              historical.resolutionDate,
+              row,
+              sale.reservation!.placedDate
+            )
           if (historical?.refund) {
-            const refund = refundInput.parse({ ...cancellation, refund: historical.refund })
+            const refund = refundInput.parse({
+              ...cancellation,
+              refund: historical.refund,
+            })
             await prepareRefund(tx, actor, refund, expected)
-          } else if (BigInt(cancellation.retainedAmount) !== sale.reservation!.amount) {
+          } else if (
+            BigInt(cancellation.retainedAmount) !== sale.reservation!.amount
+          ) {
             fail("BALANCE_MISMATCH", 422)
           }
-          await resolveCancellation(tx, context, sale, {
-            ...cancellation, refund: historical?.refund,
-          }, resolvedAt)
+          await resolveCancellation(
+            tx,
+            context,
+            sale,
+            {
+              ...cancellation,
+              refund: historical?.refund,
+            },
+            resolvedAt
+          )
           break
         }
         case "recordDO": {
@@ -1251,8 +1354,15 @@ export async function executeCommitment<N extends CommitmentCommand>(
           checkDate(delivery.issueDate, row, sale.inventoryLease.openedDate)
           let attachmentId: string | undefined
           if (!historical?.missingDeliveryOrder) {
-            const attachment = await authorizedAttachment(tx, actor, delivery.attachmentId)
-            if (attachment.saleCaseId !== sale.id || attachment.purpose !== "DO")
+            const attachment = await authorizedAttachment(
+              tx,
+              actor,
+              delivery.attachmentId
+            )
+            if (
+              attachment.saleCaseId !== sale.id ||
+              attachment.purpose !== "DO"
+            )
               fail("NOT_FOUND", 404)
             const upload = await tx.uploadIntent.findUniqueOrThrow({
               where: { id: attachment.uploadIntentId },
@@ -1313,7 +1423,11 @@ export async function executeCommitment<N extends CommitmentCommand>(
           )
             fail("BALANCE_MISMATCH", 422)
           authorizePayment(actor, sale, payment)
-          await checkIndependentLenderReceipt(tx, sale.inventoryLease.companyId, payment)
+          await checkIndependentLenderReceipt(
+            tx,
+            sale.inventoryLease.companyId,
+            payment
+          )
           await recordPayment(tx, context, sale.id, row.id, payment, "LENDER")
           await refreshLenderEntitlement(tx, sale.id, context)
           await tx.saleCase.update({
@@ -1327,15 +1441,25 @@ export async function executeCommitment<N extends CommitmentCommand>(
     const reversedReceipts = historical?.reversedReceipts ?? []
     if (reversedReceipts.length) {
       const categories = new Map<CommitmentCommand, string>([
-        ["placeReservation", "ADVANCE"], ["startFinance", "DOWN_PAYMENT"],
-        ["convertReservation", "BALANCE"], ["confirmDOAndHandover", "LENDER"],
+        ["placeReservation", "ADVANCE"],
+        ["startFinance", "DOWN_PAYMENT"],
+        ["convertReservation", "BALANCE"],
+        ["confirmDOAndHandover", "LENDER"],
       ])
-      const current = await tx.saleCase.findUniqueOrThrow({ where: { id: saleId } })
+      const current = await tx.saleCase.findUniqueOrThrow({
+        where: { id: saleId },
+      })
       for (const entry of reversedReceipts) {
         if (entry.category !== categories.get(name)) fail("INVALID_INPUT", 422)
         checkDate(entry.date, row)
       }
-      await recordHistoricalSaleReversals(tx, actor, current, context.commandId, reversedReceipts)
+      await recordHistoricalSaleReversals(
+        tx,
+        actor,
+        current,
+        context.commandId,
+        reversedReceipts
+      )
     }
     const after = await publishCommitment(tx, context, row, saleId, sale)
     return {
@@ -1355,7 +1479,9 @@ export async function executeCommitment<N extends CommitmentCommand>(
         "purchases",
         "customers",
         "notifications",
-        ...(name === "recordLenderReceipt" ? (["finance", "reports"] as const) : []),
+        ...(name === "recordLenderReceipt"
+          ? (["finance", "reports"] as const)
+          : []),
       ],
     }
   }, existingTx)

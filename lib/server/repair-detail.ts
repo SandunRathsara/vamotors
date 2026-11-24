@@ -42,7 +42,12 @@ export async function repairPagePurchase(identity: Identity, repairId: string) {
       return {
         ...visiblePurchase(actor, row),
         id: row.id,
-        repairImport: await importProvenance(tx, actor, "RepairRecord", repairId),
+        repairImport: await importProvenance(
+          tx,
+          actor,
+          "RepairRecord",
+          repairId
+        ),
       }
     },
     { isolationLevel: "RepeatableRead", timeout: 5000 }

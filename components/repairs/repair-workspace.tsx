@@ -864,7 +864,10 @@ export function RepairDetail({
 }
 
 export function RepairsList() {
-  const [pageParam, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
+  const [pageParam, setPage] = useQueryState(
+    "page",
+    parseAsInteger.withDefault(1)
+  )
   const page = Math.max(1, pageParam)
   const query = useQuery({
     queryKey: ["purchases", "repairs-list", page],

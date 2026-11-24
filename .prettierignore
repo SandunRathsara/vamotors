@@ -5,3 +5,15 @@ node_modules/
 coverage/
 pnpm-lock.yaml
 .pnpm-store/
+
+# Generated files and lockfiles
+next-env.d.ts
+bun.lock
+playwright-report/
+test-results/
+
+# Evidence and byte-sealed records
+.planning/implementation/evidence/
+.planning/implementation/HANDOFF.md
+.planning/implementation/requirements-matrix.md
+docs/operations/T07a-T08a-WIP.md

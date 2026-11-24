@@ -19,7 +19,9 @@ export async function proxy(request: NextRequest) {
       response = publicError(error, crypto.randomUUID())
     }
   }
-  const brokerage = request.nextUrl.pathname.match(/^\/lease-deals\/([^/]+)\/?$/)
+  const brokerage = request.nextUrl.pathname.match(
+    /^\/lease-deals\/([^/]+)\/?$/
+  )
   if (brokerage && ["GET", "HEAD"].includes(request.method)) {
     try {
       await brokeragePageDetail(request.headers, brokerage[1])
@@ -46,7 +48,8 @@ export async function proxy(request: NextRequest) {
     // This one exact-route preflight enforces404 before headers; the page still
     // repeats the same current-authority lookup, never trusting this as a grant.
     try {
-      if (approval) await authenticatedApprovalDetail(request.headers, approval[1])
+      if (approval)
+        await authenticatedApprovalDetail(request.headers, approval[1])
       else if (sale) await authenticatedSaleDetail(request.headers, sale[1])
     } catch (error) {
       if (

@@ -232,7 +232,12 @@ try {
       "recordLenderReceipt",
       {
         saleCaseId: opened.id,
-        payment: { amount: "5000", date: priorDate, method: "BANK_TRANSFER", reference: directReference },
+        payment: {
+          amount: "5000",
+          date: priorDate,
+          method: "BANK_TRANSFER",
+          reference: directReference,
+        },
       },
       await sourceRefs()
     )
@@ -372,31 +377,45 @@ try {
       "report",
       `?kind=CASH_FLOW&from=${ids.olderDate}&through=${ids.olderDate}&pageSize=100`
     )
-    assert.equal(directCash.data.filter((row) =>
-      "sourceId" in row && row.sourceId === saleId &&
-      "category" in row && row.category === "LENDER" && row.amount === "5000"
-    ).length, 1)
+    assert.equal(
+      directCash.data.filter(
+        (row) =>
+          "sourceId" in row &&
+          row.sourceId === saleId &&
+          "category" in row &&
+          row.category === "LENDER" &&
+          row.amount === "5000"
+      ).length,
+      1
+    )
     if (mode === "upgrade")
       console.log(
         "PASS migrated preexisting entitlements and lender receipts exactly once"
       )
-    const directDraft = (await cmd(
-      "stageRemittance",
-      { companyId, reference: ids.directReference },
-      [(await live()).company],
-      201
-    )).result
-    await cmd("recordRemittance", {
-      companyId,
-      draftId: directDraft.id,
-      payment: {
-        amount: "5000",
-        date: ids.olderDate,
-        method: "BANK_TRANSFER",
-        reference: ids.directReference,
+    const directDraft = (
+      await cmd(
+        "stageRemittance",
+        { companyId, reference: ids.directReference },
+        [(await live()).company],
+        201
+      )
+    ).result
+    await cmd(
+      "recordRemittance",
+      {
+        companyId,
+        draftId: directDraft.id,
+        payment: {
+          amount: "5000",
+          date: ids.olderDate,
+          method: "BANK_TRANSFER",
+          reference: ids.directReference,
+        },
+        lines: [],
       },
-      lines: [],
-    }, [(await live()).company, ref(directDraft, "Remittance")], 409)
+      [(await live()).company, ref(directDraft, "Remittance")],
+      409
+    )
     const staff = await f.login("STAFF")
     assert.equal(
       (await staff.get("/api/v1/queries/reconciliationCompanies")).status(),
@@ -550,25 +569,40 @@ try {
     assert.equal(firstReceipt.unallocated, "0")
     assert.equal((await remittance(firstReceipt.id)).allocations.length, 2)
     const leaseForInvoice = await sale(saleId)
-    const cycleForInvoice = await get<{ id: string; revision: number }>("purchase", `?cycleId=${leaseForInvoice.cycleId}`)
-    const pendingInvoice = leaseForInvoice.invoices.find((row) => row.saleRevision === leaseForInvoice.revision && row.state !== "READY")
+    const cycleForInvoice = await get<{ id: string; revision: number }>(
+      "purchase",
+      `?cycleId=${leaseForInvoice.cycleId}`
+    )
+    const pendingInvoice = leaseForInvoice.invoices.find(
+      (row) =>
+        row.saleRevision === leaseForInvoice.revision && row.state !== "READY"
+    )
     const issued = await admin.post("/api/v1/commands/issueInvoice", {
       headers: { Origin: f.origin },
-      data: envelope({ saleId, saleRevision: leaseForInvoice.revision, regenerate: false }, [
-        ref(leaseForInvoice, "SaleCase"),
-        ref(cycleForInvoice),
-        ...(pendingInvoice ? [ref(pendingInvoice, "InvoiceVersion")] : []),
-      ]),
+      data: envelope(
+        { saleId, saleRevision: leaseForInvoice.revision, regenerate: false },
+        [
+          ref(leaseForInvoice, "SaleCase"),
+          ref(cycleForInvoice),
+          ...(pendingInvoice ? [ref(pendingInvoice, "InvoiceVersion")] : []),
+        ]
+      ),
     })
     assert.equal(issued.status(), 200, await issued.text())
-    const invoice = (await sale(saleId)).invoices.find((row) => row.state === "READY")!
-    const invoiceResponse = await admin.get(`/api/v1/sales/${saleId}/invoices/${invoice.version}`)
+    const invoice = (await sale(saleId)).invoices.find(
+      (row) => row.state === "READY"
+    )!
+    const invoiceResponse = await admin.get(
+      `/api/v1/sales/${saleId}/invoices/${invoice.version}`
+    )
     assert.equal(invoiceResponse.status(), 200)
-    const invoiceText = execFileSync("pdftotext", ["-layout", "-", "-"], { input: await invoiceResponse.body(), encoding: "utf8" })
+    const invoiceText = execFileSync("pdftotext", ["-layout", "-", "-"], {
+      input: await invoiceResponse.body(),
+      encoding: "utf8",
+    })
     assert.match(invoiceText, /Lender Remittance Allocation/)
     assert.ok(invoiceText.includes(firstReceipt.reference))
     console.log("PASS lease invoice itemizes the mixed remittance receipt")
-
 
     const bankRef = `T13 final ${suffix}`
     const staged = (
@@ -693,18 +727,28 @@ try {
     assert.equal(saved.brokerage.discrepancy, "-100")
     assert.equal(saved.brokerage.state, "RESOLVED")
     assert.equal((await sale(saleId)).finance?.lenderOutstanding, "0")
-    const auditView = await get<{ data: { fields: { path: string; before: unknown; after: unknown }[] }[] }>(
-      "audit", `?type=FinanceCompany&id=${companyId}&action=reconcile`
+    const auditView = await get<{
+      data: { fields: { path: string; before: unknown; after: unknown }[] }[]
+    }>("audit", `?type=FinanceCompany&id=${companyId}&action=reconcile`)
+    assert.ok(
+      auditView.data.some((entry) =>
+        entry.fields.some(
+          (field) =>
+            field.path === "reconciliationWatermark" &&
+            field.before === null &&
+            field.after === ids.olderDate
+        )
+      )
     )
-    assert.ok(auditView.data.some((entry) =>
-      entry.fields.some((field) => field.path === "reconciliationWatermark" &&
-        field.before === null && field.after === ids.olderDate)))
     for (const [type, id] of [
       ["ReconciliationRun", winner.result.id],
       ["CommissionEntitlement", pending.vehicle.entitlementId],
       ["Remittance", last.id],
     ]) {
-      const result = await get<{ total: number }>("audit", `?type=${type}&id=${id}`)
+      const result = await get<{ total: number }>(
+        "audit",
+        `?type=${type}&id=${id}`
+      )
       assert.ok(result.total > 0, type)
     }
     assert.equal((await live()).watermarkDate, ids.olderDate)
@@ -941,38 +985,65 @@ try {
     assert.equal((await remittance(draft.id)).payments.length, 1)
     const settled = items(await live()).vehicle
     const completedLease = await sale(saleId)
-    const lenderReceipt = completedLease.payments!.find((payment) => payment.category === "LENDER")!
-    const cycle = await get<{ id: string; revision: number }>("purchase", `?cycleId=${completedLease.cycleId}`)
-    const requested = await cmd("requestApproval", {
-      proposal: {
-        kind: "SALE_EDIT",
-        operation: "EDIT_COMPLETION",
-        input: {
-          saleId,
-          patch: {},
-          reason: "Correct independent lender entry",
-          cashCorrections: [{ paymentId: lenderReceipt.id, reason: "Entered in error" }],
+    const lenderReceipt = completedLease.payments!.find(
+      (payment) => payment.category === "LENDER"
+    )!
+    const cycle = await get<{ id: string; revision: number }>(
+      "purchase",
+      `?cycleId=${completedLease.cycleId}`
+    )
+    const requested = (await cmd(
+      "requestApproval",
+      {
+        proposal: {
+          kind: "SALE_EDIT",
+          operation: "EDIT_COMPLETION",
+          input: {
+            saleId,
+            patch: {},
+            reason: "Correct independent lender entry",
+            cashCorrections: [
+              { paymentId: lenderReceipt.id, reason: "Entered in error" },
+            ],
+          },
         },
+        reason: "Correct independent lender entry",
       },
-      reason: "Correct independent lender entry",
-    }, [ref(completedLease, "SaleCase"), ref(cycle)], 202) as unknown as Pending
+      [ref(completedLease, "SaleCase"), ref(cycle)],
+      202
+    )) as unknown as Pending
     const reviewer = await f.login("SECOND")
-    const approvals = await f.query<{ data: ApprovalDTO[] }>(reviewer, "approvals", "?pageSize=100")
-    const approval = approvals.data.find((row) => row.id === requested.approvalId)!
-    await f.command(reviewer, "reviewApproval", envelope({
-      approvalId: approval.id,
-      decision: "APPROVE",
-    }, [ref(approval, "ApprovalRequest"), ...approval.expected]))
+    const approvals = await f.query<{ data: ApprovalDTO[] }>(
+      reviewer,
+      "approvals",
+      "?pageSize=100"
+    )
+    const approval = approvals.data.find(
+      (row) => row.id === requested.approvalId
+    )!
+    await f.command(
+      reviewer,
+      "reviewApproval",
+      envelope(
+        {
+          approvalId: approval.id,
+          decision: "APPROVE",
+        },
+        [ref(approval, "ApprovalRequest"), ...approval.expected]
+      )
+    )
     const correctedBalance = items(await live()).vehicle
     assert.equal(correctedBalance.revision, settled.revision + 1)
     assert.equal(correctedBalance.directReceipts, "0")
     assert.equal(correctedBalance.outstanding, "5000")
     const restoredCash = await f.db.query(
-      'SELECT sum(CASE direction WHEN \'IN\' THEN amount ELSE -amount END)::text AS amount FROM vamotors."CashMovement" WHERE "sourceId"=$1 AND category=\'LENDER\'',
+      "SELECT sum(CASE direction WHEN 'IN' THEN amount ELSE -amount END)::text AS amount FROM vamotors.\"CashMovement\" WHERE \"sourceId\"=$1 AND category='LENDER'",
       [saleId]
     )
     assert.equal(restoredCash.rows[0].amount, "0")
-    console.log("PASS approved lender correction reopens reconciliation and nets the original direct cash")
+    console.log(
+      "PASS approved lender correction reopens reconciliation and nets the original direct cash"
+    )
     console.log(
       "PASS per-deal policy, explicit dispute and reuse of carried credit without duplicate cash"
     )

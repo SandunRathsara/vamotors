@@ -52,7 +52,9 @@ docker([
   "127.0.0.1:0:5432",
   "postgres:18.7-trixie",
 ])
-const port = docker(["port", `${name}`, "5432/tcp"]).split(":").at(-1)!
+const port = docker(["port", `${name}`, "5432/tcp"])
+  .split(":")
+  .at(-1)!
 {
   let ready = 0
   for (let attempt = 0; attempt < 120 && ready < 2; attempt++) {
@@ -138,7 +140,13 @@ await writeEnv(accountFile, accounts)
 function script(cwd: string, scriptName: string, args: string[]) {
   return execFileSync(
     process.execPath,
-    ["--conditions=react-server", "--import", "tsx", `scripts/${scriptName}.ts`, ...args],
+    [
+      "--conditions=react-server",
+      "--import",
+      "tsx",
+      `scripts/${scriptName}.ts`,
+      ...args,
+    ],
     {
       cwd,
       env: {
@@ -168,114 +176,135 @@ const roleState = async () =>
 let before: { rulehash: string; rule: string }[] = []
 let beforeRoles: Awaited<ReturnType<typeof roleState>> = []
 try {
-  await group("base 93843d42 applies 18 migrations and registry v14 seeds", async () => {
-    script(baseDir, "migrate-disposable", [envFile])
-    script(baseDir, "initialize-test-environment", [envFile, accountFile])
-    script(baseDir, "bootstrap-security", [envFile, accountFile])
-    script(baseDir, "revalidate-permissions", [envFile])
-    execFileSync(
-      "docker",
-      ["cp", join(baseDir, "scripts/local-runtime-grants.sql"), `${name}:/tmp/base-grants.sql`],
-      { stdio: "pipe" }
-    )
-    execFileSync(
-      "docker",
-      [
-        "exec",
-        name,
-        "psql",
-        "-U",
-        "postgres",
-        "-d",
-        "vamotors_local",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-q",
-        "-f",
-        "/tmp/base-grants.sql",
-      ],
-      { stdio: "pipe" }
-    )
-    const migrations = await db.query(
-      'SELECT migration_name FROM vamotors._prisma_migrations ORDER BY migration_name'
-    )
-    assert.equal(migrations.rows.length, 18)
-    assert.ok(
-      !migrations.rows.some((row) =>
-        String(row.migration_name).includes("lease_brokerage")
+  await group(
+    "base 93843d42 applies 18 migrations and registry v14 seeds",
+    async () => {
+      script(baseDir, "migrate-disposable", [envFile])
+      script(baseDir, "initialize-test-environment", [envFile, accountFile])
+      script(baseDir, "bootstrap-security", [envFile, accountFile])
+      script(baseDir, "revalidate-permissions", [envFile])
+      execFileSync(
+        "docker",
+        [
+          "cp",
+          join(baseDir, "scripts/local-runtime-grants.sql"),
+          `${name}:/tmp/base-grants.sql`,
+        ],
+        { stdio: "pipe" }
       )
-    )
-    before = await permissionSet()
-    beforeRoles = await roleState()
-    const admin = beforeRoles.find((row) => row.systemKey === "ADMINISTRATOR")!
-    assert.ok(admin.grants > 0)
-    assert.ok(
-      !before.some((row) => row.rule.includes('"BrokerageDeal"')),
-      "base must not contain brokerage permissions"
-    )
-  })
+      execFileSync(
+        "docker",
+        [
+          "exec",
+          name,
+          "psql",
+          "-U",
+          "postgres",
+          "-d",
+          "vamotors_local",
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-q",
+          "-f",
+          "/tmp/base-grants.sql",
+        ],
+        { stdio: "pipe" }
+      )
+      const migrations = await db.query(
+        "SELECT migration_name FROM vamotors._prisma_migrations ORDER BY migration_name"
+      )
+      assert.equal(migrations.rows.length, 18)
+      assert.ok(
+        !migrations.rows.some((row) =>
+          String(row.migration_name).includes("lease_brokerage")
+        )
+      )
+      before = await permissionSet()
+      beforeRoles = await roleState()
+      const admin = beforeRoles.find(
+        (row) => row.systemKey === "ADMINISTRATOR"
+      )!
+      assert.ok(admin.grants > 0)
+      assert.ok(
+        !before.some((row) => row.rule.includes('"BrokerageDeal"')),
+        "base must not contain brokerage permissions"
+      )
+    }
+  )
 
-  await group("integration applies both features and preserves seeded v14 permissions", async () => {
-    script(source, "migrate-disposable", [envFile])
-    const migrations = await db.query(
-      'SELECT migration_name FROM vamotors._prisma_migrations ORDER BY migration_name'
-    )
-    assert.equal(migrations.rows.length, 21)
-    assert.ok(
-      migrations.rows.some((row) =>
-        String(row.migration_name).includes("lease_brokerage")
+  await group(
+    "integration applies both features and preserves seeded v14 permissions",
+    async () => {
+      script(source, "migrate-disposable", [envFile])
+      const migrations = await db.query(
+        "SELECT migration_name FROM vamotors._prisma_migrations ORDER BY migration_name"
       )
-    )
-    const after = await permissionSet()
-    const oldHashes = new Set(before.map((row) => row.rulehash))
-    const afterMap = new Map(after.map((row) => [row.rulehash, row.rule]))
-    for (const permission of before) {
-      assert.equal(
-        afterMap.get(permission.rulehash),
-        permission.rule,
-        "old grant ceiling must be byte-identical"
+      assert.equal(migrations.rows.length, 21)
+      assert.ok(
+        migrations.rows.some((row) =>
+          String(row.migration_name).includes("lease_brokerage")
+        )
       )
-    }
-    const added = after.filter((row) => !oldHashes.has(row.rulehash))
-    const addedGrants = added.map(({ rule }) => JSON.parse(rule))
-    const addedActions = Object.groupBy(addedGrants, (grant) => grant.subject)
-    assert.deepEqual(
-      Object.fromEntries(
-        Object.entries(addedActions).map(([subject, grants]) => [
-          subject,
-          grants?.map((grant) => grant.action).sort(),
-        ])
-      ),
-      {
-        SaleCase: ["create", "pay", "read", "update"],
-        BrokerageDeal: ["create", "dispatch", "read", "update"],
-        CashFacility: ["create", "pay", "read", "update"],
-        DispatchBatch: ["create", "dispatch", "read"],
-        CommissionEntitlement: ["create", "read"],
+      const after = await permissionSet()
+      const oldHashes = new Set(before.map((row) => row.rulehash))
+      const afterMap = new Map(after.map((row) => [row.rulehash, row.rule]))
+      for (const permission of before) {
+        assert.equal(
+          afterMap.get(permission.rulehash),
+          permission.rule,
+          "old grant ceiling must be byte-identical"
+        )
       }
-    )
-    assert.ok(addedGrants.every(({ fields }) => JSON.stringify(fields) === '["*"]'))
-    script(source, "revalidate-permissions", [envFile])
-    const roles = await roleState()
-    const adminBefore = beforeRoles.find((row) => row.systemKey === "ADMINISTRATOR")!
-    const adminAfter = roles.find((row) => row.systemKey === "ADMINISTRATOR")!
-    assert.equal(adminAfter.grants, adminBefore.grants + added.length)
-    assert.equal(adminAfter.revision, adminBefore.revision + 2)
-    for (const role of roles.filter((row) => row.systemKey !== "ADMINISTRATOR")) {
-      const old = beforeRoles.find(
-        (row) =>
-          row.systemKey === role.systemKey &&
-          row.revision === role.revision &&
-          row.grants === role.grants
+      const added = after.filter((row) => !oldHashes.has(row.rulehash))
+      const addedGrants = added.map(({ rule }) => JSON.parse(rule))
+      const addedActions = Object.groupBy(addedGrants, (grant) => grant.subject)
+      assert.deepEqual(
+        Object.fromEntries(
+          Object.entries(addedActions).map(([subject, grants]) => [
+            subject,
+            grants?.map((grant) => grant.action).sort(),
+          ])
+        ),
+        {
+          SaleCase: ["create", "pay", "read", "update"],
+          BrokerageDeal: ["create", "dispatch", "read", "update"],
+          CashFacility: ["create", "pay", "read", "update"],
+          DispatchBatch: ["create", "dispatch", "read"],
+          CommissionEntitlement: ["create", "read"],
+        }
       )
-      assert.ok(old, `non-administrator grants changed: ${JSON.stringify(role)}`)
+      assert.ok(
+        addedGrants.every(({ fields }) => JSON.stringify(fields) === '["*"]')
+      )
+      script(source, "revalidate-permissions", [envFile])
+      const roles = await roleState()
+      const adminBefore = beforeRoles.find(
+        (row) => row.systemKey === "ADMINISTRATOR"
+      )!
+      const adminAfter = roles.find((row) => row.systemKey === "ADMINISTRATOR")!
+      assert.equal(adminAfter.grants, adminBefore.grants + added.length)
+      assert.equal(adminAfter.revision, adminBefore.revision + 2)
+      for (const role of roles.filter(
+        (row) => row.systemKey !== "ADMINISTRATOR"
+      )) {
+        const old = beforeRoles.find(
+          (row) =>
+            row.systemKey === role.systemKey &&
+            row.revision === role.revision &&
+            row.grants === role.grants
+        )
+        assert.ok(
+          old,
+          `non-administrator grants changed: ${JSON.stringify(role)}`
+        )
+      }
+      const newSubjectGrants = await db.query(
+        `SELECT count(*)::int AS n FROM vamotors."RolePermission" rp JOIN vamotors."Permission" p ON p.id=rp."permissionId" JOIN vamotors."Role" r ON r.id=rp."roleId" WHERE r."systemKey" IS DISTINCT FROM 'ADMINISTRATOR' AND p.rule->>'subject' IN ('BrokerageDeal','CashFacility','DispatchBatch','CommissionEntitlement')`
+      )
+      assert.equal(newSubjectGrants.rows[0].n, 0)
+      assert.equal(registryVersion, 16)
     }
-    const newSubjectGrants = await db.query(
-      `SELECT count(*)::int AS n FROM vamotors."RolePermission" rp JOIN vamotors."Permission" p ON p.id=rp."permissionId" JOIN vamotors."Role" r ON r.id=rp."roleId" WHERE r."systemKey" IS DISTINCT FROM 'ADMINISTRATOR' AND p.rule->>'subject' IN ('BrokerageDeal','CashFacility','DispatchBatch','CommissionEntitlement')`
-    )
-    assert.equal(newSubjectGrants.rows[0].n, 0)
-    assert.equal(registryVersion, 16)
-  })
+  )
 
   await group("repeat migration is a no-op", async () => {
     const beforeRepeat = await permissionSet()

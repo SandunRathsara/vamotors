@@ -130,13 +130,17 @@ export function CashPurchaseTab() {
       {/* Vehicle Details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Vehicle Details</CardTitle>
+          <CardTitle className="text-xl font-semibold">
+            Vehicle Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <form.Field name="make">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Make</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Make
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -151,7 +155,9 @@ export function CashPurchaseTab() {
           <form.Field name="model">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Model</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Model
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -166,14 +172,21 @@ export function CashPurchaseTab() {
           <form.Field name="year">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Year</Label>
-                <Select value={field.state.value} onValueChange={field.handleChange}>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Year
+                </Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={field.handleChange}
+                >
                   <SelectTrigger id={field.name} className="text-sm">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
                   <SelectContent>
                     {YEARS.map((y) => (
-                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -184,7 +197,9 @@ export function CashPurchaseTab() {
           <form.Field name="colour">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Colour</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Colour
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -199,7 +214,9 @@ export function CashPurchaseTab() {
           <form.Field name="engineNumber">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Engine Number</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Engine Number
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -213,7 +230,9 @@ export function CashPurchaseTab() {
           <form.Field name="chassisNumber">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Chassis Number</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Chassis Number
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -227,7 +246,9 @@ export function CashPurchaseTab() {
           <form.Field name="vin">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">VIN <span className="text-muted-foreground">(optional)</span></Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  VIN <span className="text-muted-foreground">(optional)</span>
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -241,7 +262,10 @@ export function CashPurchaseTab() {
           <form.Field name="crNumber">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">CR Number <span className="text-muted-foreground">(optional)</span></Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  CR Number{" "}
+                  <span className="text-muted-foreground">(optional)</span>
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -255,8 +279,13 @@ export function CashPurchaseTab() {
           <form.Field name="fuelType">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Fuel Type</Label>
-                <Select value={field.state.value} onValueChange={field.handleChange}>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Fuel Type
+                </Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={field.handleChange}
+                >
                   <SelectTrigger id={field.name} className="text-sm">
                     <SelectValue placeholder="Select fuel type" />
                   </SelectTrigger>
@@ -274,8 +303,13 @@ export function CashPurchaseTab() {
           <form.Field name="transmission">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Transmission</Label>
-                <Select value={field.state.value} onValueChange={field.handleChange}>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Transmission
+                </Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={field.handleChange}
+                >
                   <SelectTrigger id={field.name} className="text-sm">
                     <SelectValue placeholder="Select transmission" />
                   </SelectTrigger>
@@ -293,13 +327,17 @@ export function CashPurchaseTab() {
       {/* Purchase Details */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">Purchase Details</CardTitle>
+          <CardTitle className="text-xl font-semibold">
+            Purchase Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <form.Field name="supplier">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Supplier</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Supplier
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -331,9 +369,15 @@ export function CashPurchaseTab() {
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={field.state.value ? new Date(field.state.value) : undefined}
+                      selected={
+                        field.state.value
+                          ? new Date(field.state.value)
+                          : undefined
+                      }
                       onSelect={(date) =>
-                        field.handleChange(date ? format(date, "yyyy-MM-dd") : "")
+                        field.handleChange(
+                          date ? format(date, "yyyy-MM-dd") : ""
+                        )
                       }
                     />
                   </PopoverContent>
@@ -345,7 +389,9 @@ export function CashPurchaseTab() {
           <form.Field name="purchasePrice">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Purchase Price (LKR)</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Purchase Price (LKR)
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -362,7 +408,9 @@ export function CashPurchaseTab() {
           <form.Field name="mileageAtPurchase">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Mileage at Purchase (km)</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Mileage at Purchase (km)
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -385,8 +433,10 @@ export function CashPurchaseTab() {
         <CardContent>
           <form.Field name="listedPrice">
             {(field) => (
-              <div className="space-y-1 max-w-sm">
-                <Label htmlFor={field.name} className="text-xs font-normal">Listed Price (LKR)</Label>
+              <div className="max-w-sm space-y-1">
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Listed Price (LKR)
+                </Label>
                 <Input
                   id={field.name}
                   value={field.state.value}
@@ -407,7 +457,9 @@ export function CashPurchaseTab() {
         {(field) => (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-xl font-semibold">Additional Costs</CardTitle>
+              <CardTitle className="text-xl font-semibold">
+                Additional Costs
+              </CardTitle>
               <Button
                 type="button"
                 variant="outline"
@@ -422,17 +474,23 @@ export function CashPurchaseTab() {
             </CardHeader>
             <CardContent className="space-y-3">
               {field.state.value.length === 0 && (
-                <p className="text-sm text-muted-foreground">No additional costs added.</p>
+                <p className="text-sm text-muted-foreground">
+                  No additional costs added.
+                </p>
               )}
               {field.state.value.map((_, i) => (
                 <div key={i} className="flex items-end gap-2">
                   <form.Field name={`additionalCosts[${i}].description`}>
                     {(subField) => (
                       <div className="flex-1 space-y-1">
-                        <Label className="text-xs font-normal">Description</Label>
+                        <Label className="text-xs font-normal">
+                          Description
+                        </Label>
                         <Input
                           value={subField.state.value}
-                          onChange={(e) => subField.handleChange(e.target.value)}
+                          onChange={(e) =>
+                            subField.handleChange(e.target.value)
+                          }
                           placeholder="e.g. Service fee"
                           className="text-sm"
                         />
@@ -442,10 +500,14 @@ export function CashPurchaseTab() {
                   <form.Field name={`additionalCosts[${i}].amount`}>
                     {(subField) => (
                       <div className="w-32 space-y-1">
-                        <Label className="text-xs font-normal">Amount (LKR)</Label>
+                        <Label className="text-xs font-normal">
+                          Amount (LKR)
+                        </Label>
                         <Input
                           value={subField.state.value}
-                          onChange={(e) => subField.handleChange(e.target.value)}
+                          onChange={(e) =>
+                            subField.handleChange(e.target.value)
+                          }
                           placeholder="e.g. 5000"
                           className="text-sm"
                           type="text"
@@ -479,7 +541,9 @@ export function CashPurchaseTab() {
           <form.Field name="internalNotes">
             {(field) => (
               <div className="space-y-1">
-                <Label htmlFor={field.name} className="text-xs font-normal">Internal Notes</Label>
+                <Label htmlFor={field.name} className="text-xs font-normal">
+                  Internal Notes
+                </Label>
                 <Textarea
                   id={field.name}
                   value={field.state.value}

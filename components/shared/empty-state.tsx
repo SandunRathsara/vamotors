@@ -25,7 +25,9 @@ export function EmptyState({
   onClearFilters,
   className,
 }: EmptyStateProps) {
-  const displayHeading = isFilterEmpty ? "No results match your filters" : heading
+  const displayHeading = isFilterEmpty
+    ? "No results match your filters"
+    : heading
   const displayBody = isFilterEmpty
     ? "Try adjusting or clearing the active filters."
     : body
@@ -34,10 +36,13 @@ export function EmptyState({
     <div
       className={cn(
         "flex flex-col items-center justify-center gap-3 py-16 text-center",
-        className,
+        className
       )}
     >
-      <Inbox className="h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
+      <Inbox
+        className="h-10 w-10 text-muted-foreground/50"
+        aria-hidden="true"
+      />
       <div className="flex flex-col gap-1">
         <p className="text-lg font-semibold">{displayHeading}</p>
         <p className="text-sm text-muted-foreground">{displayBody}</p>

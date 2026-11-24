@@ -1,11 +1,17 @@
 import { executeReconciliation } from "@/lib/server/reconciliation"
-import { reconciliationInputs, type ReconciliationCommand } from "@/lib/server/validators"
+import {
+  reconciliationInputs,
+  type ReconciliationCommand,
+} from "@/lib/server/validators"
 import { authenticate } from "@/lib/server/actor"
 import { executeAdmin } from "@/lib/server/admin"
 import { executeRepair } from "@/lib/server/repairs"
 import { executeExpiry } from "@/lib/server/reservation-expiry"
 import { executeCommitment } from "@/lib/server/reservation-sales"
-import { commitmentInputs, type CommitmentCommand } from "@/lib/server/validators"
+import {
+  commitmentInputs,
+  type CommitmentCommand,
+} from "@/lib/server/validators"
 import { executeSale } from "@/lib/server/sales"
 import { issueInvoice } from "@/lib/server/invoices"
 import {
@@ -52,7 +58,10 @@ import { executeStageImport } from "@/lib/server/import-staging"
 import { initUpload, completeUpload } from "@/lib/server/attachments"
 import { attachmentCommands } from "@/lib/server/validators"
 import { executeBrokerage } from "@/lib/server/brokerage"
-import { brokerageInputs, type BrokerageCommandName } from "@/lib/server/validators"
+import {
+  brokerageInputs,
+  type BrokerageCommandName,
+} from "@/lib/server/validators"
 import { rateCommands, type RateCommandName } from "@/lib/server/validators"
 import { partyCommands, type PartyCommandName } from "@/lib/server/validators"
 import {
@@ -72,18 +81,40 @@ export async function POST(
     const { name } = await context.params
     if (name === "issueInvoice") {
       const result = await issueInvoice(identity, await boundedJSON(request))
-      return noStoreJSON(result, result.status === "DOCUMENT_PENDING" ? 202 : 200)
+      return noStoreJSON(
+        result,
+        result.status === "DOCUMENT_PENDING" ? 202 : 200
+      )
     }
-    if (name === "runExpiry") return noStoreJSON(await executeExpiry(identity, await boundedJSON(request)))
+    if (name === "runExpiry")
+      return noStoreJSON(
+        await executeExpiry(identity, await boundedJSON(request))
+      )
     if (Object.hasOwn(commitmentInputs, name))
-      return noStoreJSON(await executeCommitment(identity, name as CommitmentCommand, await boundedJSON(request)))
+      return noStoreJSON(
+        await executeCommitment(
+          identity,
+          name as CommitmentCommand,
+          await boundedJSON(request)
+        )
+      )
     if (name === "previewImport" || name === "confirmImport") {
       const command = name === "previewImport" ? previewImport : confirmImport
       return noStoreJSON(await command(identity, await boundedJSON(request)))
     }
-    if (name !== "reversePayment" && Object.hasOwn(reconciliationInputs, name)) {
-      const result = await executeReconciliation(identity, name as ReconciliationCommand, await boundedJSON(request))
-      return noStoreJSON(result, name === "stageRemittance" && !result.replayed ? 201 : 200)
+    if (
+      name !== "reversePayment" &&
+      Object.hasOwn(reconciliationInputs, name)
+    ) {
+      const result = await executeReconciliation(
+        identity,
+        name as ReconciliationCommand,
+        await boundedJSON(request)
+      )
+      return noStoreJSON(
+        result,
+        name === "stageRemittance" && !result.replayed ? 201 : 200
+      )
     }
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
@@ -109,7 +140,11 @@ export async function POST(
     )
       fail("NOT_FOUND", 404)
     const raw = await boundedJSON(request)
-    if (name === "reversePayment" && (raw as { input?: { sourceType?: string } })?.input?.sourceType === "REMITTANCE")
+    if (
+      name === "reversePayment" &&
+      (raw as { input?: { sourceType?: string } })?.input?.sourceType ===
+        "REMITTANCE"
+    )
       return noStoreJSON(await executeReconciliation(identity, name, raw))
     const brokerageReversal =
       name === "reversePayment" &&
@@ -128,71 +163,75 @@ export async function POST(
             raw
           )
         : Object.hasOwn(repairInputs, name) ||
-      (name === "reversePayment" &&
-        (raw as { input?: { sourceType?: string } })?.input?.sourceType ===
-          "REPAIR")
-        ? await executeRepair(
-            identity,
-            name as RepairCommand | "reversePayment",
-            raw
-          )
-        : Object.hasOwn(saleInputs, name)
-          ? await executeSale(identity, name as SaleCommand, raw)
-          : Object.hasOwn(approvalInputs, name)
-            ? await executeApproval(identity, name as ApprovalCommand, raw)
-          : Object.hasOwn(notificationInputs, name)
-            ? await executeNotification(
-                identity,
-                name as NotificationCommand,
-                raw
-              )
-            : name === "stageImport"
-              ? await executeStageImport(identity, raw)
-              : name === "initUpload"
-                ? await initUpload(identity, raw)
-                : name === "completeUpload"
-                  ? await completeUpload(identity, raw)
-                  : rates
-                    ? await executeRates(identity, name as RateCommandName, raw)
-                    : name === "recordPurchase"
-                      ? await recordPurchase(identity, raw)
-                      : Object.hasOwn(cycleEditInputs, name)
-                        ? await executeCycleEdit(
+            (name === "reversePayment" &&
+              (raw as { input?: { sourceType?: string } })?.input
+                ?.sourceType === "REPAIR")
+          ? await executeRepair(
+              identity,
+              name as RepairCommand | "reversePayment",
+              raw
+            )
+          : Object.hasOwn(saleInputs, name)
+            ? await executeSale(identity, name as SaleCommand, raw)
+            : Object.hasOwn(approvalInputs, name)
+              ? await executeApproval(identity, name as ApprovalCommand, raw)
+              : Object.hasOwn(notificationInputs, name)
+                ? await executeNotification(
+                    identity,
+                    name as NotificationCommand,
+                    raw
+                  )
+                : name === "stageImport"
+                  ? await executeStageImport(identity, raw)
+                  : name === "initUpload"
+                    ? await initUpload(identity, raw)
+                    : name === "completeUpload"
+                      ? await completeUpload(identity, raw)
+                      : rates
+                        ? await executeRates(
                             identity,
-                            name as CycleEditCommand,
+                            name as RateCommandName,
                             raw
                           )
-                        : Object.hasOwn(cycleMoneyInputs, name)
-                          ? await executeCycleMoney(
-                              identity,
-                              name as CycleMoneyCommand,
-                              raw
-                            )
-                          : Object.hasOwn(stockInputs, name)
-                            ? await executeStock(
+                        : name === "recordPurchase"
+                          ? await recordPurchase(identity, raw)
+                          : Object.hasOwn(cycleEditInputs, name)
+                            ? await executeCycleEdit(
                                 identity,
-                                name as StockCommand,
+                                name as CycleEditCommand,
                                 raw
                               )
-                            : name === "updateSettings"
-                              ? await executeSettings(identity, raw)
-                              : directory
-                                ? await executeParty(
+                            : Object.hasOwn(cycleMoneyInputs, name)
+                              ? await executeCycleMoney(
+                                  identity,
+                                  name as CycleMoneyCommand,
+                                  raw
+                                )
+                              : Object.hasOwn(stockInputs, name)
+                                ? await executeStock(
                                     identity,
-                                    name as PartyCommandName,
+                                    name as StockCommand,
                                     raw
                                   )
-                                : customer
-                                  ? await executeCustomer(
-                                      identity,
-                                      name as CustomerCommandName,
-                                      raw
-                                    )
-                                  : await executeAdmin(
-                                      identity,
-                                      name as CommandName,
-                                      raw
-                                    )
+                                : name === "updateSettings"
+                                  ? await executeSettings(identity, raw)
+                                  : directory
+                                    ? await executeParty(
+                                        identity,
+                                        name as PartyCommandName,
+                                        raw
+                                      )
+                                    : customer
+                                      ? await executeCustomer(
+                                          identity,
+                                          name as CustomerCommandName,
+                                          raw
+                                        )
+                                      : await executeAdmin(
+                                          identity,
+                                          name as CommandName,
+                                          raw
+                                        )
     if (result.status === "UPLOAD_READY") return noStoreJSON(result, 201)
     if (result.status === "PENDING_APPROVAL") return noStoreJSON(result, 202)
     const created =

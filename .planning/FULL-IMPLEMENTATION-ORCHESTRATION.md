@@ -7,6 +7,7 @@ Deliver a running, authenticated **local application with every v1 feature worki
 **Superseding user instruction (2026-10-26):** “do not try to do the deployment now. I will handle the deployment later. Just focus on implementing the whole application and working locally”. [Local completion and deferred deployment mapping](implementation/local-completion.md) governs operational scope and all hosting-only subcriteria. Preserve all 134 v1 IDs, delegated implementation and fresh independent review. G0 remains accepted; G1 requires independent real local DB verification. Existing cloud evidence is historical, not a local prerequisite or cloud execution authorization.
 
 The user explicitly approved:
+
 - All v1 scope; v2 and out-of-scope items remain deferred.
 - GPT-6.1 Sol on OpenAI for implementation and independent verification workers.
 - Isolated task branches/worktrees and local commits. Pushes, PR changes and merges are paused by the current instruction (existing Vercel auto-deploy risk).
@@ -38,15 +39,15 @@ Workers do their assigned work themselves; no recursive delegation. A reviewer m
 
 Use these as targeted references, not as reasons to rediscover the whole application:
 
-| Source | Use |
-|---|---|
-| This plan | User-approved delivery scope, host, orchestration rules, and explicit dev defaults |
-| `.planning/REQUIREMENTS.md`, v1 section | Exhaustive feature acceptance catalog; assign every requirement ID |
-| `docs/architecture/c4-model.json` | Target boundaries, transactions, purchase cycles, source-owned payment facts, private files and deployment intent |
-| `docs/round_1_customer_feedback.md` | Brokerage, dispatch, verification and reconciliation workflow detail |
-| `docs/02-1-business-requirements-specification.md`, `docs/02-2-requirements-specification.md` | Detailed business fields, transitions, constraints and invoice/import behavior |
-| `.planning/research/c4-{current,business,infrastructure}-findings.md` | Audit leads and known contradictions; confirm against code |
-| Actual source/configuration and fresh test output | Evidence of what currently exists, not proof of the intended requirements |
+| Source                                                                                        | Use                                                                                                               |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| This plan                                                                                     | User-approved delivery scope, host, orchestration rules, and explicit dev defaults                                |
+| `.planning/REQUIREMENTS.md`, v1 section                                                       | Exhaustive feature acceptance catalog; assign every requirement ID                                                |
+| `docs/architecture/c4-model.json`                                                             | Target boundaries, transactions, purchase cycles, source-owned payment facts, private files and deployment intent |
+| `docs/round_1_customer_feedback.md`                                                           | Brokerage, dispatch, verification and reconciliation workflow detail                                              |
+| `docs/02-1-business-requirements-specification.md`, `docs/02-2-requirements-specification.md` | Detailed business fields, transitions, constraints and invoice/import behavior                                    |
+| `.planning/research/c4-{current,business,infrastructure}-findings.md`                         | Audit leads and known contradictions; confirm against code                                                        |
+| Actual source/configuration and fresh test output                                             | Evidence of what currently exists, not proof of the intended requirements                                         |
 
 Old roadmap completion counters are not evidence. Explicit decisions below supersede stale implementation prescriptions in planning docs. For a newly discovered conflict, the contract owner records the chosen development rule and affected IDs; the verifier checks that the observable feature remains covered. Material new scope/cost or irreversible business-policy decisions go to the user.
 
@@ -79,6 +80,7 @@ The application is a substantial mock-backed frontend, not a transactional backe
 At the audit baseline, build/typecheck and 16 unit tests passed. Lint had three errors; the API suite passed three tests only when browser setup was bypassed. Default Playwright browser installation was missing. These are historical results, not release evidence.
 
 Historical cloud setup (retained evidence; not a current execution path):
+
 - Netlify CLI authenticated as the user's account/team. Repository is **not linked to a Netlify project**. Plan tier, region and permissions must be checked when linking/provisioning.
 - Neon project `vamotors-dev`, AWS US East 2 (Ohio), created by user. Both pooled and direct connections passed read-only transactions.
 - Private R2 bucket `vamotors-dev` created by user. Bucket-scoped credentials passed a signed bucket metadata request. Object write/read, CORS and isolation are still untested.
@@ -94,13 +96,13 @@ At plan creation there were existing modifications to `.gitignore`, `package.jso
 
 Use short, bounded tasks with explicit deliverables, not seven agents each asked to 'finish their area'. A feature owner delivers its schema proposals, commands, HTTP/UI integration and tests end to end; verification is independent.
 
-| Role | Owns | Coordination rule |
-|---|---|---|
-| Integration/ledger worker | Integration branch, PR integration, task ledger, requirement matrix, conflict resolution, release manifest | Sole merge writer; records decisions requested by orchestrator |
-| Foundation/contract worker | Prisma schema/migration order, shared money/state/actor/error contracts, transaction/audit primitives, package manifests | Sole shared-schema/dependency writer; incorporates feature proposals before dependent implementation |
-| Foundation/local-runtime worker | Code, packages, local PostgreSQL/runtime configuration, local scheduler and backup/restore tooling | Sole writer for these active runtime surfaces; coordinate via parent; cloud work deferred |
-| Feature workers | Assigned feature routes/components/services/tests | Touch only declared ownership; request shared changes from owner |
-| Independent verifier | Acceptance scenarios, negative/security/concurrency testing, evidence and review findings | Own test/evidence branch if editing; never accepts based solely on author test claims |
+| Role                            | Owns                                                                                                                     | Coordination rule                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Integration/ledger worker       | Integration branch, PR integration, task ledger, requirement matrix, conflict resolution, release manifest               | Sole merge writer; records decisions requested by orchestrator                                       |
+| Foundation/contract worker      | Prisma schema/migration order, shared money/state/actor/error contracts, transaction/audit primitives, package manifests | Sole shared-schema/dependency writer; incorporates feature proposals before dependent implementation |
+| Foundation/local-runtime worker | Code, packages, local PostgreSQL/runtime configuration, local scheduler and backup/restore tooling                       | Sole writer for these active runtime surfaces; coordinate via parent; cloud work deferred            |
+| Feature workers                 | Assigned feature routes/components/services/tests                                                                        | Touch only declared ownership; request shared changes from owner                                     |
+| Independent verifier            | Acceptance scenarios, negative/security/concurrency testing, evidence and review findings                                | Own test/evidence branch if editing; never accepts based solely on author test claims                |
 
 Use bounded parallelism (default three active implementation workers plus a verifier if the live harness permits). Never exceed tool/provider concurrency restrictions. Shared-schema changes and deploys are serialized. Run only independent ready tasks concurrently. Same-model workers still require distinct task identities and reviewer sessions; follow the live delegation tool's model/session constraints.
 
@@ -112,27 +114,27 @@ Historical autonomous merge permission is paused. Keep default/integration remot
 
 Dependencies refer to accepted contracts/work, not simply 'agent started'. Subdivide large packages into daily-sized vertical slices in the ledger, preserving parent acceptance and a single owner per requirement.
 
-| ID | Task / owner | Dependencies | Deliverable and acceptance |
-|---|---|---|---|
-| T00 | Baseline and traceability / integration | None | Preserved committed baseline, current checks, exhaustive v1 matrix, ownership map, branch strategy, evidence paths; no credential files tracked |
-| T01 | Domain/API contracts / foundation | T00 | Reviewed entity/cycle relations, money bounds/rounding, lifecycle transitions, command/query DTOs, actor/permissions, error/retry contract, policy defaults; schema proposals cover every feature lane |
-| T02 | Local operational preparation / foundation-local runtime | T00; T01 for runtime details | Repeatable local PostgreSQL and app setup, isolated test/recovery destinations, separate runtime/migration secrets, private durable file root/service, local scheduler and backup/run instructions. No cloud/linkage prerequisite; deferred deployment subcriteria tracked separately. |
-| T03 | Database/security spine / foundation | T01 | Version-pinned client/adapter, migrations/constraints, deterministic seed, Better Auth, CASL multirole record/field checks, admin bootstrap, audit/notifications transaction primitives, idempotency; tests prove rollback, denied access and immediate revocation |
-| T04 | Parties/settings / feature | T03 | Full suppliers/vendors/finance companies/customers, active/archive behavior, contacts, inline creation/search, runtime settings validation and history-preserving policy snapshots; new entities selectable everywhere |
-| T05 | Purchases and availability / feature | T03,T04 | Three purchase types, settlement breakdown, physical identity/re-purchase, costs/mileage/listed price, reasoned edits, receipt/hold/release; atomic purchase/payment/audit and cross-browser persistence |
-| T06 | Private documents / feature + foundation-local runtime | T03; T02 local storage/origin readiness | Authorized upload-init/complete/download against private durable local storage or local compatible object service; staging/final isolation, byte verification, immutable evidence, orphan handling and actual denial/IO/restart tests. Cloud R2/CORS acceptance deferred, functionality retained. |
-| T07 | Approvals / feature | T03,T04 | Four proposal types with version-bound payloads, authority checks, separate requester/reviewer, approve/reject exactly once; domain effects applied by owner commands, not arbitrary patches |
-| T08 | Repair/disposal / feature | T05,T07 | Dispatch/return/invoice dates/actual payments, held availability after return, cycle cost projection, approved write-off with zero/positive proceeds; complete UI/history and audit |
-| T09 | Immediate sales and trade-in / feature | T05,T07 | Cash/transfer/handover, customer flow, optional reference, discounted pending sale, trade-in descriptive or inventory intake, source payments, concurrency and receipt invariants |
-| T10 | Reservations and lease sales / feature | T09,T06; T02 local scheduler readiness | Tiered placement, warning/expiry, three resolutions, partial refunds, conversion balance, mandatory down payment, DO receipt/handover and independent finance receipts; observe real local scheduled idempotent invocation and authorized manual catch-up, including missed/failed runs. |
-| T11 | Rates and brokerage intake / feature | T04,T06 | Versioned sheets/cards, both comparison inputs, maxima, quote handoff/charges, customer/guarantors/eligibility with contacts, rejection filtering; no automatic owned-inventory acquisition |
-| T12 | Brokerage execution / feature | T11 | Application inspection/photos/loan adjustments/document verification/fees/file references/batched dispatch; separate Referral flow; blockers/inquiries/non-remittance; cash facility disbursement/recovery; end-to-end UI |
-| T13 | Unified reconciliation / feature | T10,T12 | Company methods, entitlements from both sources, notices/remittances/allocations, partials/overpayments/discrepancy resolutions, reproducible overdue cutoff, Finance navigation; money counted once |
-| T14 | Invoices / feature | T06,T09,T10 | Printable sale PDFs with full fields/declarations/signatures, immutable snapshots and retained versions, safe retry/regeneration after sale edits; all sale types supported |
-| T15 | Reports/dashboard/notification UI / feature | T08,T10,T12,T13; T14 PDF infrastructure | All seven required reports, full filtered CSV/PDF exports, consistent financial breakdown/cash history, dashboard dates and metrics, recipient-specific notification read/link behavior; authoritative queries only |
-| T16 | Historical import / feature | T08,T10,T13; stable schema | CSV/Excel templates, all seven primary record types, row errors/preview/revalidation, bounded all-or-nothing commits, repeat protection and provenance; synthetic historical reconciliation |
-| T17 | UX/PWA and fixture removal / feature | Feature tasks integrated | 360–1920px keyboard/mobile flows, validation and retained failed forms, filters/pagination/cache refresh, real loading/error/conflict states, installable manifest/service worker without sensitive caching; no runtime fixture reads |
-| T18 | Local completion verification and recovery / independent verifier + foundation-local runtime | T02–T17 local acceptance, excluding deferred deployment subcriteria | Fresh final-SHA real-DB/API/multi-browser/end-to-end/security/financial tests, actual local scheduler execution/manual catch-up, restart durability, isolated DB+file restore rehearsal and runnable handoff; separate deferred deployment dossier. |
+| ID  | Task / owner                                                                                 | Dependencies                                                        | Deliverable and acceptance                                                                                                                                                                                                                                                                        |
+| --- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T00 | Baseline and traceability / integration                                                      | None                                                                | Preserved committed baseline, current checks, exhaustive v1 matrix, ownership map, branch strategy, evidence paths; no credential files tracked                                                                                                                                                   |
+| T01 | Domain/API contracts / foundation                                                            | T00                                                                 | Reviewed entity/cycle relations, money bounds/rounding, lifecycle transitions, command/query DTOs, actor/permissions, error/retry contract, policy defaults; schema proposals cover every feature lane                                                                                            |
+| T02 | Local operational preparation / foundation-local runtime                                     | T00; T01 for runtime details                                        | Repeatable local PostgreSQL and app setup, isolated test/recovery destinations, separate runtime/migration secrets, private durable file root/service, local scheduler and backup/run instructions. No cloud/linkage prerequisite; deferred deployment subcriteria tracked separately.            |
+| T03 | Database/security spine / foundation                                                         | T01                                                                 | Version-pinned client/adapter, migrations/constraints, deterministic seed, Better Auth, CASL multirole record/field checks, admin bootstrap, audit/notifications transaction primitives, idempotency; tests prove rollback, denied access and immediate revocation                                |
+| T04 | Parties/settings / feature                                                                   | T03                                                                 | Full suppliers/vendors/finance companies/customers, active/archive behavior, contacts, inline creation/search, runtime settings validation and history-preserving policy snapshots; new entities selectable everywhere                                                                            |
+| T05 | Purchases and availability / feature                                                         | T03,T04                                                             | Three purchase types, settlement breakdown, physical identity/re-purchase, costs/mileage/listed price, reasoned edits, receipt/hold/release; atomic purchase/payment/audit and cross-browser persistence                                                                                          |
+| T06 | Private documents / feature + foundation-local runtime                                       | T03; T02 local storage/origin readiness                             | Authorized upload-init/complete/download against private durable local storage or local compatible object service; staging/final isolation, byte verification, immutable evidence, orphan handling and actual denial/IO/restart tests. Cloud R2/CORS acceptance deferred, functionality retained. |
+| T07 | Approvals / feature                                                                          | T03,T04                                                             | Four proposal types with version-bound payloads, authority checks, separate requester/reviewer, approve/reject exactly once; domain effects applied by owner commands, not arbitrary patches                                                                                                      |
+| T08 | Repair/disposal / feature                                                                    | T05,T07                                                             | Dispatch/return/invoice dates/actual payments, held availability after return, cycle cost projection, approved write-off with zero/positive proceeds; complete UI/history and audit                                                                                                               |
+| T09 | Immediate sales and trade-in / feature                                                       | T05,T07                                                             | Cash/transfer/handover, customer flow, optional reference, discounted pending sale, trade-in descriptive or inventory intake, source payments, concurrency and receipt invariants                                                                                                                 |
+| T10 | Reservations and lease sales / feature                                                       | T09,T06; T02 local scheduler readiness                              | Tiered placement, warning/expiry, three resolutions, partial refunds, conversion balance, mandatory down payment, DO receipt/handover and independent finance receipts; observe real local scheduled idempotent invocation and authorized manual catch-up, including missed/failed runs.          |
+| T11 | Rates and brokerage intake / feature                                                         | T04,T06                                                             | Versioned sheets/cards, both comparison inputs, maxima, quote handoff/charges, customer/guarantors/eligibility with contacts, rejection filtering; no automatic owned-inventory acquisition                                                                                                       |
+| T12 | Brokerage execution / feature                                                                | T11                                                                 | Application inspection/photos/loan adjustments/document verification/fees/file references/batched dispatch; separate Referral flow; blockers/inquiries/non-remittance; cash facility disbursement/recovery; end-to-end UI                                                                         |
+| T13 | Unified reconciliation / feature                                                             | T10,T12                                                             | Company methods, entitlements from both sources, notices/remittances/allocations, partials/overpayments/discrepancy resolutions, reproducible overdue cutoff, Finance navigation; money counted once                                                                                              |
+| T14 | Invoices / feature                                                                           | T06,T09,T10                                                         | Printable sale PDFs with full fields/declarations/signatures, immutable snapshots and retained versions, safe retry/regeneration after sale edits; all sale types supported                                                                                                                       |
+| T15 | Reports/dashboard/notification UI / feature                                                  | T08,T10,T12,T13; T14 PDF infrastructure                             | All seven required reports, full filtered CSV/PDF exports, consistent financial breakdown/cash history, dashboard dates and metrics, recipient-specific notification read/link behavior; authoritative queries only                                                                               |
+| T16 | Historical import / feature                                                                  | T08,T10,T13; stable schema                                          | CSV/Excel templates, all seven primary record types, row errors/preview/revalidation, bounded all-or-nothing commits, repeat protection and provenance; synthetic historical reconciliation                                                                                                       |
+| T17 | UX/PWA and fixture removal / feature                                                         | Feature tasks integrated                                            | 360–1920px keyboard/mobile flows, validation and retained failed forms, filters/pagination/cache refresh, real loading/error/conflict states, installable manifest/service worker without sensitive caching; no runtime fixture reads                                                             |
+| T18 | Local completion verification and recovery / independent verifier + foundation-local runtime | T02–T17 local acceptance, excluding deferred deployment subcriteria | Fresh final-SHA real-DB/API/multi-browser/end-to-end/security/financial tests, actual local scheduler execution/manual catch-up, restart durability, isolated DB+file restore rehearsal and runnable handoff; separate deferred deployment dossier.                                               |
 
 T02 preparation is not feature acceptance. Early usable local G2 requires T03–T05 and the local security portion of T02; later features still require their complete acceptance packages.
 
@@ -140,46 +142,52 @@ T02 preparation is not feature acceptance. Early usable local G2 requires T03–
 
 Every individual ID must become its own matrix row. Ranges below are task ownership, not permission to omit details.
 
-| Requirement IDs | Accountable task |
-|---|---|
-| FNDN-01–08 | T03 (T01 contracts; T00 baseline) |
-| FNDN-09 | T17 |
-| VPRC-01–09, VSTS-01–04 | T05 (T08–T10 contribute transitions) |
-| TPRT-01–08, CUST-01–04 | T04 (T09 integrates sale inline creation/history) |
-| REPR-01–05, WROF-01–03 | T08 |
-| SLGN-01–03, SLCS-01–02, SLTI-01–03 | T09 (T10 supplies in-progress next steps) |
-| SLAD-01–06, SLLS-01–05 | T10 |
-| USER-01–05, AUDT-01–04 | T03 (all feature commands must participate) |
-| APRV-01–05 | T07 (T08–T10 supply domain actions) |
-| INVC-01–03 | T14 |
-| NOTF-01–04, REPT-01–08, FINT-01–04, DASH-01–02 | T15 (domain tasks supply facts/events) |
-| LBRK-01–08, LBRK-10 | T11 |
-| LBRK-09, LBRK-11–24 | T12 |
-| RCNL-01–05 | T13 |
-| IMPT-01–05 | T16 |
-| NFNL-01–02 | T17 |
-| NFNL-03–04 | T02 (T18 verifies local transport boundary, retention and recovery; hosted TLS deferred explicitly) |
+| Requirement IDs                                | Accountable task                                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| FNDN-01–08                                     | T03 (T01 contracts; T00 baseline)                                                                   |
+| FNDN-09                                        | T17                                                                                                 |
+| VPRC-01–09, VSTS-01–04                         | T05 (T08–T10 contribute transitions)                                                                |
+| TPRT-01–08, CUST-01–04                         | T04 (T09 integrates sale inline creation/history)                                                   |
+| REPR-01–05, WROF-01–03                         | T08                                                                                                 |
+| SLGN-01–03, SLCS-01–02, SLTI-01–03             | T09 (T10 supplies in-progress next steps)                                                           |
+| SLAD-01–06, SLLS-01–05                         | T10                                                                                                 |
+| USER-01–05, AUDT-01–04                         | T03 (all feature commands must participate)                                                         |
+| APRV-01–05                                     | T07 (T08–T10 supply domain actions)                                                                 |
+| INVC-01–03                                     | T14                                                                                                 |
+| NOTF-01–04, REPT-01–08, FINT-01–04, DASH-01–02 | T15 (domain tasks supply facts/events)                                                              |
+| LBRK-01–08, LBRK-10                            | T11                                                                                                 |
+| LBRK-09, LBRK-11–24                            | T12                                                                                                 |
+| RCNL-01–05                                     | T13                                                                                                 |
+| IMPT-01–05                                     | T16                                                                                                 |
+| NFNL-01–02                                     | T17                                                                                                 |
+| NFNL-03–04                                     | T02 (T18 verifies local transport boundary, retention and recovery; hosted TLS deferred explicitly) |
 
 ## Gates: evidence before progress
 
 ### G0 — Ready to implement
+
 T00/T01 accepted. Every v1 ID has an owner and planned acceptance scenario; explicit deviations/defaults recorded. Integration and worker checkouts share a known committed baseline. Secret access is scoped and model selection verified.
 
 ### G1 — Transactional LOCAL foundation (not yet accepted)
+
 Fresh independent verification against real isolated local PostgreSQL is required; source/unit PASS alone is insufficient. Database installs from committed migrations and deterministic seed. Real sessions/multiple roles work; public signup disabled; last admin protected. Unauthorized API/RSC access and forbidden fields are denied. Permission removal is effective next request. A forced essential-write failure rolls back business and audit. Restricted application role cannot update/delete audit; runtime/migration/bootstrap secrets remain separate. No cloud-provider or global PG lockdown prerequisite is added.
 
 ### G2 — Early running dev
+
 A loopback local URL runs the verified SHA with real PostgreSQL login/sessions and persistent synthetic purchases. Two independent browser contexts/accounts see the same authorized purchase; app and database/storage process restarts preserve rows, sessions as intended, and private files. Runtime and migration credentials are separated; normal runtime has no test-reset capability. User receives private local login handoff, never a public default password. Hosted HTTPS is deferred, not passed. This is an intermediate milestone, not completion.
 
 **Current gate/acceptance status:** [literal LOCAL G2 remains accepted/pinned EXACTd0/http://127.0.0.1:8000/login](implementation/evidence/G2-d0-literal-acceptance-attributed.md), original G2 heading/criterion paragraph above unchanged. Parent [ACCEPTS bounded T05c.2+combined EXACT236, CLOSES FC-UI-C01/P2 and separately accepts complete ORIGINAL VPRC-02 LOCAL236](implementation/evidence/T05c2-2360cbb-acceptance-attributed.md). Effective **27 LOCAL/107 U/134**, only VPRC-02 result/header count changed, all other133/old26 bindings unchanged/VSTS-03 U. Actual primary FF-only236 clean, its historical26 matrix preserved; later effective27 acceptance records not promoted/human runtime not advanced. **G3 next/G3–G6 pending**, not wholeT05/G3/v1/restore/device/hosted acceptance. [Current HANDOFF](implementation/HANDOFF.md) owns WRITE_OFF same-task accepted236 reconciliation steering; separate fixture dispatch pending, no outcome inferred.
 
 ### G3 — Core dealership workflows
+
 T04–T10 and T14 accepted end to end. Verify: three purchase channels; repurchase history; repair dispatch/return; availability; four sale types; advance expiry/resolution; four approval types; write-off; audit and invoice versions. UI and direct HTTP share the same authoritative rules.
 
 ### G4 — Brokerage and finance
+
 T11–T13 accepted with both mutually exclusive paths, real evidence attachments, verification including no-issue outcomes, dispatch batches, cash facility recovery and mixed-source reconciliation. Neither dummy buttons nor hardcoded timelines pass.
 
 ### G5 — Complete v1 surface
+
 T15–T17 accepted; every requirement has implementation evidence and passing tests. Seven correct reports, complete filtered exports, historical import and PWA work. Runtime fixture imports are removed or demonstrably test-only. Navigation, role visibility and cross-view consistency are verified.
 
 ### G6 — Final LOCAL completion gate (all local conditions required)
@@ -243,6 +251,7 @@ On failure, delegate a bounded correction with the exact reproduction. Verify th
 ## Durable progress and resumption
 
 T00 creates and the integration worker maintains:
+
 - `.planning/implementation/task-ledger.md`: task/subtask ID, owner, dependency, state, live task/session ID, checkout/base SHA, PR/head SHA, reviewer, evidence path, blockers and next action.
 - `.planning/implementation/requirements-matrix.md`: one row per v1 ID, owner, source rule, explicit adjustment/default if any, implementation location, acceptance test, verification result and accepted SHA.
 - `.planning/implementation/decisions.md`: dated decisions, rationale, affected IDs and live-launch questions. Record actual region, free-plan behavior and finalized business defaults.

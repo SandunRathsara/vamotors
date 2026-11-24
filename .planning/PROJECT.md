@@ -82,22 +82,23 @@ Every vehicle's complete financial story — purchase cost, repairs, additional 
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Next.js monolith over NestJS+React | Zero hosting cost, single deployment, simpler architecture | -- Pending |
-| Better Auth over NextAuth | More actively maintained, cleaner API, first-class TypeScript | -- Pending |
-| Neon PostgreSQL over other DBs | Serverless, Prisma compatible, free tier sufficient | -- Pending |
-| CASL for authorization | Dynamic roles and permissions configurable at runtime without code changes | -- Pending |
-| Integer currency storage | Avoid floating-point errors in financial calculations | -- Pending |
+| Decision                                                      | Rationale                                                                           | Outcome    |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------- |
+| Next.js monolith over NestJS+React                            | Zero hosting cost, single deployment, simpler architecture                          | -- Pending |
+| Better Auth over NextAuth                                     | More actively maintained, cleaner API, first-class TypeScript                       | -- Pending |
+| Neon PostgreSQL over other DBs                                | Serverless, Prisma compatible, free tier sufficient                                 | -- Pending |
+| CASL for authorization                                        | Dynamic roles and permissions configurable at runtime without code changes          | -- Pending |
+| Integer currency storage                                      | Avoid floating-point errors in financial calculations                               | -- Pending |
 | Two-field vehicle status (primaryStatus + isAvailableForSale) | Cleanly separates lifecycle state from sale availability, handles complex scenarios | -- Pending |
-| TanStack Form over React Hook Form | Type-safe, pairs well with TanStack ecosystem already in use | -- Pending |
-| Pre-signed URL uploads to R2 | No file bytes through Vercel serverless functions, direct client-to-storage | -- Pending |
+| TanStack Form over React Hook Form                            | Type-safe, pairs well with TanStack ecosystem already in use                        | -- Pending |
+| Pre-signed URL uploads to R2                                  | No file bytes through Vercel serverless functions, direct client-to-storage         | -- Pending |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 **After each phase transition** (via `/gsd:transition`):
+
 1. Requirements invalidated? → Move to Out of Scope with reason
 2. Requirements validated? → Move to Validated with phase reference
 3. New requirements emerged? → Add to Active
@@ -105,10 +106,12 @@ This document evolves at phase transitions and milestone boundaries.
 5. "What This Is" still accurate? → Update if drifted
 
 **After each milestone** (via `/gsd:complete-milestone`):
+
 1. Full review of all sections
 2. Core Value check — still the right priority?
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-13 after Phase 0.1 completion*
+
+_Last updated: 2026-04-13 after Phase 0.1 completion_

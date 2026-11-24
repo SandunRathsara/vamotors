@@ -307,39 +307,39 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
       await read(name, { ...expected, mime: "" })
     }
     function writeGeneratedReport(
-        name: string,
-        source: Uint8Array,
-        mime: "application/pdf" | "text/csv"
-      ): Promise<FileMetadata> {
-        return safe(async () => {
-          key(name, finalPattern)
-          if (!source.byteLength || source.byteLength > maxBytes)
-            fail("UPLOAD_MISMATCH")
-          const bytes = Buffer.from(source)
-          if (mime === pdfMime) checkGeneratedPdf(bytes)
-          const metadata = {
-            mime,
-            size: bytes.length,
-            sha256: digest(bytes),
-          }
-          // A crash between publication and DB commit can adopt the verified bytes.
-          try {
-            await read(name, metadata)
-            return metadata
-          } catch (error) {
-            if (
-              !(error instanceof PrivateFileError) ||
-              error.code !== "DOCUMENT_NOT_READY"
-            )
-              throw error
-          }
-          async function* contents() {
-            yield bytes
-          }
-          await publish(name, contents(), metadata)
+      name: string,
+      source: Uint8Array,
+      mime: "application/pdf" | "text/csv"
+    ): Promise<FileMetadata> {
+      return safe(async () => {
+        key(name, finalPattern)
+        if (!source.byteLength || source.byteLength > maxBytes)
+          fail("UPLOAD_MISMATCH")
+        const bytes = Buffer.from(source)
+        if (mime === pdfMime) checkGeneratedPdf(bytes)
+        const metadata = {
+          mime,
+          size: bytes.length,
+          sha256: digest(bytes),
+        }
+        // A crash between publication and DB commit can adopt the verified bytes.
+        try {
+          await read(name, metadata)
           return metadata
-        })
-      }
+        } catch (error) {
+          if (
+            !(error instanceof PrivateFileError) ||
+            error.code !== "DOCUMENT_NOT_READY"
+          )
+            throw error
+        }
+        async function* contents() {
+          yield bytes
+        }
+        await publish(name, contents(), metadata)
+        return metadata
+      })
+    }
 
     return {
       newStageKey(intentId: string): string {
@@ -394,11 +394,17 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
           return { ...token.metadata }
         })
       },
-      writeGeneratedPdf(name: string, source: Uint8Array): Promise<FileMetadata> {
+      writeGeneratedPdf(
+        name: string,
+        source: Uint8Array
+      ): Promise<FileMetadata> {
         return writeGeneratedReport(name, source, pdfMime)
       },
       writeGeneratedReport,
-      readGeneratedReport(name: string, expected: FileMetadata): Promise<Buffer> {
+      readGeneratedReport(
+        name: string,
+        expected: FileMetadata
+      ): Promise<Buffer> {
         return safe(async () => {
           key(name, finalPattern)
           return read(name, expected)
@@ -420,8 +426,10 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
           key(name, finalPattern)
           if (
             expected.mime !== "text/csv" &&
-            expected.mime !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          ) fail("UPLOAD_MISMATCH")
+            expected.mime !==
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          )
+            fail("UPLOAD_MISMATCH")
           // The attachment was validated on finalization. The reader verifies
           // the retained bytes against its size and hash before import parsing.
           return read(name, { ...expected })

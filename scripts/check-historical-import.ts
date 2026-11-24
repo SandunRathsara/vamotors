@@ -328,7 +328,11 @@ for (const [bytes, field] of [
   )
 }
 
-async function oneFile(type: ImportType, bytes: Buffer, cash?: { cashIn: string; cashOut: string }) {
+async function oneFile(
+  type: ImportType,
+  bytes: Buffer,
+  cash?: { cashIn: string; cashOut: string }
+) {
   const namespace = `${type.toLowerCase()}-${suffix}`
   const target = (
     await command("stageImport", { namespace, types: [type] }, [], 201)
@@ -437,10 +441,17 @@ const financeParty = await query("party", {
 const contactId = financeParty.contacts[0].id
 const checkedAt = "2026-01-15T09:00:00.000Z"
 const recordHistoricalCash = (amount: string) => ({
-  amount, date: "2026-01-16", method: "BANK_TRANSFER", reference: `import-cash-${suffix}`,
+  amount,
+  date: "2026-01-16",
+  method: "BANK_TRANSFER",
+  reference: `import-cash-${suffix}`,
 })
 const facilityTerms = {
-  gross: "1000000", deductions: [], fee: "0", feeMode: "WITHHELD", separatelyRecoverableCharges: "0",
+  gross: "1000000",
+  deductions: [],
+  fee: "0",
+  feeMode: "WITHHELD",
+  separatelyRecoverableCharges: "0",
 }
 const history = [
   {
@@ -464,24 +475,57 @@ const history = [
       feedback: "Historical confirmation",
     },
   },
-  { command: "requestFacility", input: { terms: facilityTerms, reason: "Synthetic facility terms" } },
-  { command: "disburseFacility", sourceKey: "disbursement", input: {
-    payment: recordHistoricalCash("1000000"), separatelyPaidDeductions: [],
-  } },
-  { command: "recoverFacility", sourceKey: "recovery", input: {
-    principal: recordHistoricalCash("100000"), chargeRecovery: null, fee: null,
-  } },
-  { command: "reversePayment", sourceKey: "void-recovery", input: {
-    ...recordHistoricalCash("100000"), direction: "OUT", category: "PRINCIPAL",
-    reversalOfSourceKey: "recovery/recover:principal", reason: "Synthetic reversed recovery",
-  } },
-  { command: "recordBrokerageFee", sourceKey: "broker-fee", input: {
-    category: "PROCESSING", payment: recordHistoricalCash("5000"),
-  } },
-  { command: "reversePayment", sourceKey: "void-fee", input: {
-    ...recordHistoricalCash("5000"), direction: "OUT", category: "PROCESSING",
-    reversalOfSourceKey: "broker-fee/fee", reason: "Synthetic reversed brokerage fee",
-  } },
+  {
+    command: "requestFacility",
+    input: { terms: facilityTerms, reason: "Synthetic facility terms" },
+  },
+  {
+    command: "disburseFacility",
+    sourceKey: "disbursement",
+    input: {
+      payment: recordHistoricalCash("1000000"),
+      separatelyPaidDeductions: [],
+    },
+  },
+  {
+    command: "recoverFacility",
+    sourceKey: "recovery",
+    input: {
+      principal: recordHistoricalCash("100000"),
+      chargeRecovery: null,
+      fee: null,
+    },
+  },
+  {
+    command: "reversePayment",
+    sourceKey: "void-recovery",
+    input: {
+      ...recordHistoricalCash("100000"),
+      direction: "OUT",
+      category: "PRINCIPAL",
+      reversalOfSourceKey: "recovery/recover:principal",
+      reason: "Synthetic reversed recovery",
+    },
+  },
+  {
+    command: "recordBrokerageFee",
+    sourceKey: "broker-fee",
+    input: {
+      category: "PROCESSING",
+      payment: recordHistoricalCash("5000"),
+    },
+  },
+  {
+    command: "reversePayment",
+    sourceKey: "void-fee",
+    input: {
+      ...recordHistoricalCash("5000"),
+      direction: "OUT",
+      category: "PROCESSING",
+      reversalOfSourceKey: "broker-fee/fee",
+      reason: "Synthetic reversed brokerage fee",
+    },
+  },
   {
     command: "referDeal",
     input: {
@@ -515,7 +559,16 @@ const importedDeal = await query("brokerageDeal", {
 })
 assert.equal(importedDeal.provenance.imported, true)
 assert.equal(importedDeal.state, "COMPLETED")
-const exactPair = (facts: { id: string; reversalOf: string | null; amount: string; direction: string; reference: string }[], amount: string) => {
+const exactPair = (
+  facts: {
+    id: string
+    reversalOf: string | null
+    amount: string
+    direction: string
+    reference: string
+  }[],
+  amount: string
+) => {
   const reversal = facts.find((fact) => fact.reversalOf)
   assert.ok(reversal)
   const original = facts.find((fact) => fact.id === reversal.reversalOf)
@@ -526,7 +579,12 @@ const exactPair = (facts: { id: string; reversalOf: string | null; amount: strin
   assert.equal(reversal.amount, original.amount)
   assert.equal(reversal.reference, original.reference)
 }
-exactPair(importedDeal.facility.payments.filter((fact: { category: string }) => fact.category === "PRINCIPAL"), "100000")
+exactPair(
+  importedDeal.facility.payments.filter(
+    (fact: { category: string }) => fact.category === "PRINCIPAL"
+  ),
+  "100000"
+)
 assert.equal(importedDeal.facility.principalOutstanding, "1000000")
 const feeDb = new pg.Client({ connectionString: migration })
 await feeDb.connect()
@@ -606,9 +664,31 @@ const tradeSource = await upload(
     tradeInAcquiredCycleSourceKey: "incoming-cycle",
     completionBasisCosts: "[]",
     payments: JSON.stringify([
-      { sourceKey: "trade-residual", amount: "4800000.00", date: "2026-01-20", method: "BANK_TRANSFER", direction: "IN", category: "SALE" },
-      { sourceKey: "trade-voided", amount: "1000.00", date: "2026-01-20", method: "CASH", direction: "IN", category: "SALE" },
-      { sourceKey: "trade-reversal", reversalOfSourceKey: "trade-voided", amount: "1000.00", date: "2026-01-20", method: "CASH", direction: "OUT", category: "SALE" },
+      {
+        sourceKey: "trade-residual",
+        amount: "4800000.00",
+        date: "2026-01-20",
+        method: "BANK_TRANSFER",
+        direction: "IN",
+        category: "SALE",
+      },
+      {
+        sourceKey: "trade-voided",
+        amount: "1000.00",
+        date: "2026-01-20",
+        method: "CASH",
+        direction: "IN",
+        category: "SALE",
+      },
+      {
+        sourceKey: "trade-reversal",
+        reversalOfSourceKey: "trade-voided",
+        amount: "1000.00",
+        date: "2026-01-20",
+        method: "CASH",
+        direction: "OUT",
+        category: "SALE",
+      },
     ]),
   }),
   "trade-sale",
@@ -647,9 +727,16 @@ const intakePurchase = await query("purchase", {
 assert.equal(intakePurchase.acquisitionKind, "TRADE_IN")
 assert.equal(intakePurchase.financial.cashOut, "0")
 assert.equal(intakePurchase.financial.basis, "100000000")
-const tradeSaleRecord = tradeBatch.importedRecords.find((record: { type: string }) => record.type === "SaleCase")
+const tradeSaleRecord = tradeBatch.importedRecords.find(
+  (record: { type: string }) => record.type === "SaleCase"
+)
 const tradeSale = await query("sale", { id: recordId(tradeSaleRecord.href) })
-exactPair(tradeSale.payments.filter((fact: { amount: string }) => fact.amount === "100000"), "100000")
+exactPair(
+  tradeSale.payments.filter(
+    (fact: { amount: string }) => fact.amount === "100000"
+  ),
+  "100000"
+)
 
 console.log(
   "PASS immediate trade-in sale, linked intake, and noncash consideration"
@@ -1030,17 +1117,23 @@ const voidedDown = lease.payments.find(
 )
 assert.equal(voidedDown.direction, "OUT")
 assert.equal(voidedDown.amount, "45000000")
-assert.ok(lease.payments.some(
-  (payment: { id: string; amount: string; direction: string }) =>
-    payment.id === voidedDown.reversalOf &&
-    payment.amount === voidedDown.amount && payment.direction === "IN"
-))
+assert.ok(
+  lease.payments.some(
+    (payment: { id: string; amount: string; direction: string }) =>
+      payment.id === voidedDown.reversalOf &&
+      payment.amount === voidedDown.amount &&
+      payment.direction === "IN"
+  )
+)
 const financingAudit = await query("audit", {
   type: "SaleCase",
   id: lease.id,
   action: "startFinance",
 })
-assert.equal(financingAudit.data[0]?.reason, "Historical lease reference from imported sale")
+assert.equal(
+  financingAudit.data[0]?.reason,
+  "Historical lease reference from imported sale"
+)
 const leaseCycle = await query("purchase", { cycleId: lease.cycleId })
 assert.equal(leaseCycle.financial.net, "-300000000")
 assert.equal(leaseCycle.historicalStatus, "DELIVERED")

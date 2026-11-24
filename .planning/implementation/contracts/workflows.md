@@ -84,15 +84,15 @@ Invoice lifecycle in files-runtime. Invoice is noncash; generated for every comp
 
 Report query uses authoritative DB joins; all response totals apply full filtered authorized dataset, not current page. Seven ReportKind values map:
 
-| Kind | Population/date basis; required fields and filters |
-| --- | --- |
-| INVENTORY | open ownership cycles only; purchase date; identity/status/availability/days held/basis/listed; status/availability/make/model/date |
-| SOLD | completed sales by sale/handover date<=asOf; date/type/method; customer, sale price, original cost/profit, restated values labelled |
-| PROFIT | cycles selected by make/model/status; sold by saleDate, open by purchaseDate, disposed by disposalDate; all components, original/restated basis, sale/profit/margin null if unsold; date/make/model/status/profit/loss |
-| ADVANCES | ACTIVE or effective EXPIRED unresolved; placement date; customer/vehicle/amount/listed basis/agreed/percent/validity/days outstanding/overdue; status/date |
-| REPAIRS | open repair only by sentDate; vendor/request/sent/days in repair; vendor/date |
-| CASH_FLOW | immutable source facts by actual occurredDate, all source categories from E4; inflow/outflow/net/method breakdown/noncash shown separately excluded; date |
-| DISPOSALS | completed approved disposals by disposalDate; reason/approver/method/basis/proceeds/net loss and original/restated; date |
+| Kind      | Population/date basis; required fields and filters                                                                                                                                                                     |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| INVENTORY | open ownership cycles only; purchase date; identity/status/availability/days held/basis/listed; status/availability/make/model/date                                                                                    |
+| SOLD      | completed sales by sale/handover date<=asOf; date/type/method; customer, sale price, original cost/profit, restated values labelled                                                                                    |
+| PROFIT    | cycles selected by make/model/status; sold by saleDate, open by purchaseDate, disposed by disposalDate; all components, original/restated basis, sale/profit/margin null if unsold; date/make/model/status/profit/loss |
+| ADVANCES  | ACTIVE or effective EXPIRED unresolved; placement date; customer/vehicle/amount/listed basis/agreed/percent/validity/days outstanding/overdue; status/date                                                             |
+| REPAIRS   | open repair only by sentDate; vendor/request/sent/days in repair; vendor/date                                                                                                                                          |
+| CASH_FLOW | immutable source facts by actual occurredDate, all source categories from E4; inflow/outflow/net/method breakdown/noncash shown separately excluded; date                                                              |
+| DISPOSALS | completed approved disposals by disposalDate; reason/approver/method/basis/proceeds/net loss and original/restated; date                                                                                               |
 
 Inventory never displays past sold cycles as current stock, vehicle lifetime detail retains all. Sold report excludes pending/cancelled/future; profitable/loss filter exact sign, no division by zero. CashFlow labels net movement; opening balance only explicit imported/entered opening snapshot with date and audit, never invent from prior-period partial sums. Dashboard asOf date/year/month, stock=IN_STOCK open (available/held counts separate), repair=IN_REPAIR, advances=unresolved active/effective expired with subcounts, recentSales completed<=asOf, period totals by chosen year+month, not same month across years. Quick actions correspond to authorized live forms.
 

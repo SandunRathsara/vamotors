@@ -504,20 +504,29 @@ const handover = z.object({
 })
 export const commitmentInputs = {
   placeReservation: commitmentOpening.extend({ receipt: cashInput }).strict(),
-  startFinance: commitmentOpening.extend({
-    reservationId: id.optional(),
-    downPayment: cashInput,
-    financeAmount: moneyInput.refine((v) => v !== "0"),
-    companyId: id,
-    termMonths: z.number().int().min(1).max(120),
-  }).strict(),
-  convertReservation: handover.extend({
-    reservationId: id, balance: cashInput.nullable(),
-  }).strict(),
+  startFinance: commitmentOpening
+    .extend({
+      reservationId: id.optional(),
+      downPayment: cashInput,
+      financeAmount: moneyInput.refine((v) => v !== "0"),
+      companyId: id,
+      termMonths: z.number().int().min(1).max(120),
+    })
+    .strict(),
+  convertReservation: handover
+    .extend({
+      reservationId: id,
+      balance: cashInput.nullable(),
+    })
+    .strict(),
   cancelRetained: resolutionInput.extend({ reservationId: id }).strict(),
-  recordDO: z.object({ saleCaseId: id, attachmentId: id, issueDate: dateOnly }).strict(),
+  recordDO: z
+    .object({ saleCaseId: id, attachmentId: id, issueDate: dateOnly })
+    .strict(),
   confirmDOAndHandover: handover.extend({ saleCaseId: id }).strict(),
-  recordLenderReceipt: z.object({ saleCaseId: id, payment: cashInput }).strict(),
+  recordLenderReceipt: z
+    .object({ saleCaseId: id, payment: cashInput })
+    .strict(),
 } as const
 export type CommitmentCommand = keyof typeof commitmentInputs
 export const commitmentEnvelope = <N extends CommitmentCommand>(name: N) =>
@@ -528,11 +537,13 @@ export const refundInput = z.union([
 ])
 export const expiryEnvelope = customerEnvelope("createCustomer").extend({
   expected: z.tuple([]),
-  input: z.object({
-    through: z.string().datetime({ offset: true }).optional(),
-    cursor: z.string().max(100).optional(),
-    limit: z.number().int().min(1).max(100).default(100),
-  }).strict(),
+  input: z
+    .object({
+      through: z.string().datetime({ offset: true }).optional(),
+      cursor: z.string().max(100).optional(),
+      limit: z.number().int().min(1).max(100).default(100),
+    })
+    .strict(),
 })
 
 const saleCashCorrection = z
@@ -550,14 +561,17 @@ export const saleEditInput = z
         saleDate: dateOnly.optional(),
         handoverMileage: z.number().int().min(0).max(99999999).optional(),
         notes: text.nullable().optional(),
-        finance: z.object({
-          companyId: id,
-          downPayment: moneyInput.refine((v) => v !== "0"),
-          financeAmount: moneyInput.refine((v) => v !== "0"),
-          termMonths: z.number().int().min(1).max(120),
-          doAttachmentId: id,
-          doIssueDate: dateOnly,
-        }).strict().optional(),
+        finance: z
+          .object({
+            companyId: id,
+            downPayment: moneyInput.refine((v) => v !== "0"),
+            financeAmount: moneyInput.refine((v) => v !== "0"),
+            termMonths: z.number().int().min(1).max(120),
+            doAttachmentId: id,
+            doIssueDate: dateOnly,
+          })
+          .strict()
+          .optional(),
         tradeIn: z
           .object({
             description: text,
@@ -575,12 +589,14 @@ export const saleEditInput = z
       Object.values(v.patch).some((x) => x !== undefined) ||
       v.cashCorrections.length > 0
   )
-export const cancelFinanceErrorInput = z.object({
-  saleCaseId: id,
-  reason: text,
-  receiptReversals: z.array(id).min(1).max(100),
-  disposition: resolutionDisposition,
-}).strict()
+export const cancelFinanceErrorInput = z
+  .object({
+    saleCaseId: id,
+    reason: text,
+    receiptReversals: z.array(id).min(1).max(100),
+    disposition: resolutionDisposition,
+  })
+  .strict()
 export const writeOffInput = z
   .object({
     cycleId: id,
@@ -603,23 +619,42 @@ export const approvalInputs = {
           .object({
             kind: z.literal("DISCOUNT"),
             command: z.discriminatedUnion("name", [
-              z.object({ name: z.literal("completeImmediate"), input: immediateSaleInput }).strict(),
-              z.object({ name: z.literal("placeReservation"), input: commitmentInputs.placeReservation }).strict(),
-              z.object({ name: z.literal("startFinance"), input: commitmentInputs.startFinance }).strict(),
+              z
+                .object({
+                  name: z.literal("completeImmediate"),
+                  input: immediateSaleInput,
+                })
+                .strict(),
+              z
+                .object({
+                  name: z.literal("placeReservation"),
+                  input: commitmentInputs.placeReservation,
+                })
+                .strict(),
+              z
+                .object({
+                  name: z.literal("startFinance"),
+                  input: commitmentInputs.startFinance,
+                })
+                .strict(),
             ]),
           })
           .strict(),
         z.discriminatedUnion("operation", [
-          z.object({
-            kind: z.literal("SALE_EDIT"),
-            operation: z.literal("EDIT_COMPLETION"),
-            input: saleEditInput,
-          }).strict(),
-          z.object({
-            kind: z.literal("SALE_EDIT"),
-            operation: z.literal("CANCEL_FINANCE_ERROR"),
-            input: cancelFinanceErrorInput,
-          }).strict(),
+          z
+            .object({
+              kind: z.literal("SALE_EDIT"),
+              operation: z.literal("EDIT_COMPLETION"),
+              input: saleEditInput,
+            })
+            .strict(),
+          z
+            .object({
+              kind: z.literal("SALE_EDIT"),
+              operation: z.literal("CANCEL_FINANCE_ERROR"),
+              input: cancelFinanceErrorInput,
+            })
+            .strict(),
         ]),
       ]),
       reason: text,
@@ -918,7 +953,9 @@ export const attachmentCommands = {
   initUpload: z
     .object({
       target: z.discriminatedUnion("type", [
-        z.object({ type: z.literal("IMPORT_BATCH"), id: attachmentId }).strict(),
+        z
+          .object({ type: z.literal("IMPORT_BATCH"), id: attachmentId })
+          .strict(),
         z.object({ type: z.literal("SALE_CASE"), id: attachmentId }).strict(),
         z.object({ type: z.literal("REMITTANCE"), id: attachmentId }).strict(),
         z
@@ -953,8 +990,11 @@ export const attachmentCommands = {
       const isImport = value.target.type === "IMPORT_BATCH"
       const isSale = value.target.type === "SALE_CASE"
       if (
-        (isSale !== (value.purpose === "DO")) ||
-        ((value.target.type === "REMITTANCE") !== ["RECONCILIATION_NOTICE", "REMITTANCE_RECEIPT"].includes(value.purpose)) ||
+        isSale !== (value.purpose === "DO") ||
+        (value.target.type === "REMITTANCE") !==
+          ["RECONCILIATION_NOTICE", "REMITTANCE_RECEIPT"].includes(
+            value.purpose
+          ) ||
         (isImport &&
           (value.purpose !== "IMPORT_SOURCE" ||
             ![
@@ -1050,19 +1090,18 @@ export const brokerageInputs = {
       feedback: text,
     })
     .strict()
-    .refine((v) => (v.target === "GUARANTOR") === (v.guarantorId !== undefined)),
+    .refine(
+      (v) => (v.target === "GUARANTOR") === (v.guarantorId !== undefined)
+    ),
   recordInspection: z
     .object({
       dealId: id,
       photos: z
-        .array(
-          z.object({ category: photoCategory, attachmentId: id }).strict()
-        )
+        .array(z.object({ category: photoCategory, attachmentId: id }).strict())
         .min(1)
         .max(9)
         .refine(
-          (rows) =>
-            new Set(rows.map((r) => r.category)).size === rows.length
+          (rows) => new Set(rows.map((r) => r.category)).size === rows.length
         ),
     })
     .strict(),
@@ -1107,10 +1146,7 @@ export const brokerageInputs = {
         )
         .max(100)
         .refine(
-          (rows) =>
-            new Set(
-              rows.map(checklistItemKey)
-            ).size === rows.length
+          (rows) => new Set(rows.map(checklistItemKey)).size === rows.length
         ),
     })
     .strict(),
@@ -1246,8 +1282,9 @@ export const brokerageReversalInput = z
     reason: text,
   })
   .strict()
-export const brokerageReversalEnvelope = customerEnvelope("createCustomer")
-  .extend({ input: brokerageReversalInput })
+export const brokerageReversalEnvelope = customerEnvelope(
+  "createCustomer"
+).extend({ input: brokerageReversalInput })
 export const dispatchInput = z
   .object({
     sourceIds: z
@@ -1282,49 +1319,110 @@ export const brokerageQueryParams = listParams.extend({
 export const dispatchPreviewInput = z
   .object({
     sourceIds: z
-      .array(z.object({ type: z.enum(["VEHICLE_SALE", "BROKERAGE"]), id }).strict())
+      .array(
+        z.object({ type: z.enum(["VEHICLE_SALE", "BROKERAGE"]), id }).strict()
+      )
       .min(1)
       .max(50)
       .refine((rows) => new Set(rows.map((r) => r.id)).size === rows.length),
   })
   .strict()
 
-const bankPayment = cashInput.extend({ method: z.literal("BANK_TRANSFER"), reference: name }).strict()
+const bankPayment = cashInput
+  .extend({ method: z.literal("BANK_TRANSFER"), reference: name })
+  .strict()
 const reconciliationSource = z.enum(["VEHICLE_SALE", "BROKERAGE"])
 const allocatedMoney = moneyInput.refine((value) => value !== "0")
 export const reconciliationInputs = {
   stageRemittance: z.object({ companyId: id, reference: name }).strict(),
-  recordRemittance: z.object({
-    draftId: id,
-    companyId: id,
-    payment: bankPayment,
-    noticeAttachmentId: id.optional(),
-    lines: z.array(z.object({
-      key: name,
-      source: z.object({ type: reconciliationSource, id }).strict().optional(),
-      amount: allocatedMoney,
-      description: text,
-    }).strict()).max(100).refine((lines) => new Set(lines.map((line) => line.key)).size === lines.length),
-  }).strict(),
-  reconcile: z.object({
-    companyId: id,
-    asOfDate: dateOnly,
-    allocations: z.array(z.object({
-      remittanceId: id,
-      entitlementId: id,
-      noticeLineId: id.optional(),
-      amount: allocatedMoney,
-    }).strict()).max(100),
-    resolutions: z.array(z.object({
-      entitlementId: id,
-      kind: z.enum(["KEEP_OPEN", "ACCEPT_SHORTFALL", "CARRY_CREDIT", "RETURN_OVERPAYMENT"]),
-      reason: text,
-    }).strict()).max(100).refine((rows) => new Set(rows.map((row) => row.entitlementId)).size === rows.length),
-  }).strict(),
+  recordRemittance: z
+    .object({
+      draftId: id,
+      companyId: id,
+      payment: bankPayment,
+      noticeAttachmentId: id.optional(),
+      lines: z
+        .array(
+          z
+            .object({
+              key: name,
+              source: z
+                .object({ type: reconciliationSource, id })
+                .strict()
+                .optional(),
+              amount: allocatedMoney,
+              description: text,
+            })
+            .strict()
+        )
+        .max(100)
+        .refine(
+          (lines) =>
+            new Set(lines.map((line) => line.key)).size === lines.length
+        ),
+    })
+    .strict(),
+  reconcile: z
+    .object({
+      companyId: id,
+      asOfDate: dateOnly,
+      allocations: z
+        .array(
+          z
+            .object({
+              remittanceId: id,
+              entitlementId: id,
+              noticeLineId: id.optional(),
+              amount: allocatedMoney,
+            })
+            .strict()
+        )
+        .max(100),
+      resolutions: z
+        .array(
+          z
+            .object({
+              entitlementId: id,
+              kind: z.enum([
+                "KEEP_OPEN",
+                "ACCEPT_SHORTFALL",
+                "CARRY_CREDIT",
+                "RETURN_OVERPAYMENT",
+              ]),
+              reason: text,
+            })
+            .strict()
+        )
+        .max(100)
+        .refine(
+          (rows) =>
+            new Set(rows.map((row) => row.entitlementId)).size === rows.length
+        ),
+    })
+    .strict(),
   reverseAllocation: z.object({ allocationId: id, reason: text }).strict(),
-  returnRemittanceOverpayment: z.object({ remittanceId: id, discrepancyId: id, payment: bankPayment, reason: text }).strict(),
-  reversePayment: z.object({ sourceType: z.literal("REMITTANCE"), sourceId: id, paymentId: id, date: dateOnly.optional(), reason: text }).strict(),
+  returnRemittanceOverpayment: z
+    .object({
+      remittanceId: id,
+      discrepancyId: id,
+      payment: bankPayment,
+      reason: text,
+    })
+    .strict(),
+  reversePayment: z
+    .object({
+      sourceType: z.literal("REMITTANCE"),
+      sourceId: id,
+      paymentId: id,
+      date: dateOnly.optional(),
+      reason: text,
+    })
+    .strict(),
 } as const
 export type ReconciliationCommand = keyof typeof reconciliationInputs
-export const reconciliationEnvelope = <N extends ReconciliationCommand>(name: N) =>
-  customerEnvelope("createCustomer").extend({ input: reconciliationInputs[name] })
+export const reconciliationEnvelope = <N extends ReconciliationCommand>(
+  name: N
+) =>
+  customerEnvelope("createCustomer").extend({
+    input: reconciliationInputs[name],
+  })

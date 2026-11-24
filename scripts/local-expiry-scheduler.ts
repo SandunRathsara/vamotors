@@ -573,7 +573,10 @@ function validateOptions(options: ExpirySchedulerOptions) {
   }
   const payloadFormat: ExpiryPayloadFormat =
     options.payloadFormat ??
-    (endpointPath === DEFAULT_ENDPOINT_PATH || endpointPath.includes("/api/v1/commands/") ? "envelope" : "job")
+    (endpointPath === DEFAULT_ENDPOINT_PATH ||
+    endpointPath.includes("/api/v1/commands/")
+      ? "envelope"
+      : "job")
 
   return {
     origin: url.origin,

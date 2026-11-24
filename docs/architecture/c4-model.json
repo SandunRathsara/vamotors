@@ -44,9 +44,7 @@
           "detail": [
             "One person can have multiple roles. Manager approval is a business action, not a separate application."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §3.14, §9"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §3.14, §9"]
         },
         {
           "id": "vsms",
@@ -110,22 +108,10 @@
           "label": "Manual exchange",
           "detail": "No direct system integration.",
           "points": [
-            [
-              30,
-              93
-            ],
-            [
-              10,
-              93
-            ],
-            [
-              10,
-              553
-            ],
-            [
-              230,
-              553
-            ]
+            [30, 93],
+            [10, 93],
+            [10, 553],
+            [230, 553]
           ],
           "labelX": 94,
           "labelY": 430,
@@ -185,9 +171,7 @@
             "Auth libraries and business modules are components, not independent services.",
             "Current routes use mocks. Production domain logic and persistence are planned."
           ],
-          "sources": [
-            ".planning/research/ARCHITECTURE.md:65–78,365–418"
-          ]
+          "sources": [".planning/research/ARCHITECTURE.md:65–78,365–418"]
         },
         {
           "id": "db",
@@ -256,22 +240,10 @@
           "label": "Signed file transfer",
           "detail": "HTTPS PUT/GET; file bytes bypass application functions.",
           "points": [
-            [
-              490,
-              113
-            ],
-            [
-              710,
-              113
-            ],
-            [
-              710,
-              593
-            ],
-            [
-              690,
-              593
-            ]
+            [490, 113],
+            [710, 113],
+            [710, 593],
+            [690, 593]
           ],
           "labelX": 615,
           "labelY": 220,
@@ -316,10 +288,7 @@
           "detail": [
             "Login is a UI simulation; business permissions are not enforced."
           ],
-          "sources": [
-            "app/",
-            "hooks/use-entity-query.ts"
-          ]
+          "sources": ["app/", "hooks/use-entity-query.ts"]
         },
         {
           "id": "next",
@@ -336,10 +305,7 @@
             "There is no separate API server.",
             "In-memory stores are internal modules of this container, not a database container."
           ],
-          "sources": [
-            "package.json",
-            "app/api/"
-          ]
+          "sources": ["package.json", "app/api/"]
         }
       ],
       "edges": [
@@ -381,10 +347,7 @@
             "The app shell provides navigation, sidebar, header and command palette.",
             "Each feature owns its screens; shared UI primitives stay reusable."
           ],
-          "sources": [
-            "components/",
-            "app/(app)/"
-          ]
+          "sources": ["components/", "app/(app)/"]
         },
         {
           "id": "forms",
@@ -400,11 +363,7 @@
           "detail": [
             "Target: share input contracts with server-side parsing, but keep authorization server-side."
           ],
-          "sources": [
-            "components/ui/",
-            "components/shared/",
-            "package.json"
-          ]
+          "sources": ["components/ui/", "components/shared/", "package.json"]
         },
         {
           "id": "queries",
@@ -442,10 +401,7 @@
             "DiceUI table infrastructure is shared across feature tables.",
             "Target: database-side filtering/pagination replaces in-memory full scans."
           ],
-          "sources": [
-            "hooks/use-data-table.ts",
-            "components/data-table/"
-          ]
+          "sources": ["hooks/use-data-table.ts", "components/data-table/"]
         },
         {
           "id": "api",
@@ -462,10 +418,7 @@
             "The browser never connects directly to the business database.",
             "Signed direct object transfers are the deliberate exception to app-proxied data access."
           ],
-          "sources": [
-            "app/api/",
-            ".planning/research/ARCHITECTURE.md"
-          ]
+          "sources": ["app/api/", ".planning/research/ARCHITECTURE.md"]
         }
       ],
       "edges": [
@@ -538,9 +491,7 @@
             "Authenticate, validate, pass actor context; use record-aware authorization in domain operations.",
             "Server reads must not bypass the same access rules used by HTTP routes."
           ],
-          "sources": [
-            ".planning/research/ARCHITECTURE.md:216–251,400–418"
-          ]
+          "sources": [".planning/research/ARCHITECTURE.md:216–251,400–418"]
         },
         {
           "id": "inventory",
@@ -655,22 +606,10 @@
           "label": "Invokes brokerage",
           "detail": "",
           "points": [
-            [
-              490,
-              103
-            ],
-            [
-              710,
-              103
-            ],
-            [
-              710,
-              583
-            ],
-            [
-              690,
-              583
-            ]
+            [490, 103],
+            [710, 103],
+            [710, 583],
+            [690, 583]
           ],
           "labelX": 610,
           "labelY": 210,
@@ -871,22 +810,10 @@
           "label": "Domain calls",
           "detail": "Imports and expiry invoke the same authorized domain operations, not raw persistence.",
           "points": [
-            [
-              690,
-              608
-            ],
-            [
-              710,
-              608
-            ],
-            [
-              710,
-              108
-            ],
-            [
-              690,
-              108
-            ]
+            [690, 608],
+            [710, 608],
+            [710, 108],
+            [690, 108]
           ],
           "labelX": 650,
           "labelY": 195,
@@ -927,12 +854,8 @@
           "w": 260,
           "h": 116,
           "description": "Builds URL params and a query key, then fetches JSON.",
-          "detail": [
-            "queryKey = [entityKey, params]; staleTime = 30,000ms."
-          ],
-          "sources": [
-            "hooks/use-entity-query.ts:9–32"
-          ]
+          "detail": ["queryKey = [entityKey, params]; staleTime = 30,000ms."],
+          "sources": ["hooks/use-entity-query.ts:9–32"]
         },
         {
           "id": "route",
@@ -948,9 +871,7 @@
           "detail": [
             "The current route has no production auth or business persistence."
           ],
-          "sources": [
-            "app/api/vehicles/route.ts"
-          ]
+          "sources": ["app/api/vehicles/route.ts"]
         },
         {
           "id": "instance",
@@ -966,9 +887,7 @@
           "detail": [
             "Each server process has its own Map; it is not distributed storage."
           ],
-          "sources": [
-            "lib/mock-store.ts:151"
-          ]
+          "sources": ["lib/mock-store.ts:151"]
         },
         {
           "id": "store",
@@ -985,9 +904,7 @@
             "query(): string search, exact filters, sorting and array slicing.",
             "update(): shallow merges a Partial<T>; it does not validate business invariants."
           ],
-          "sources": [
-            "lib/mock-store.ts:32–121"
-          ]
+          "sources": ["lib/mock-store.ts:32–121"]
         },
         {
           "id": "schema",
@@ -1004,9 +921,7 @@
             "This is a mock DTO, not the final purchase-cycle database schema.",
             "A TypeScript assertion on request JSON does not perform runtime validation."
           ],
-          "sources": [
-            "lib/mock-data/schemas.ts:18–52"
-          ]
+          "sources": ["lib/mock-data/schemas.ts:18–52"]
         },
         {
           "id": "fixtures",
@@ -1022,10 +937,7 @@
           "detail": [
             "resetAll() restores all mock collections to their initial fixture state."
           ],
-          "sources": [
-            "lib/mock-data/vehicles.ts",
-            "lib/mock-store.ts:172–187"
-          ]
+          "sources": ["lib/mock-data/vehicles.ts", "lib/mock-store.ts:172–187"]
         }
       ],
       "edges": [
@@ -1088,9 +1000,7 @@
             "Unique normalized engine/chassis pair; optional VIN and CR number.",
             "activePurchaseId points to current ownership, never to historical sale costs."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §3.1"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §3.1"]
         },
         {
           "id": "cycle",
@@ -1188,9 +1098,7 @@
             "Select the sale's purchaseRecordId, never Vehicle.activePurchaseId, for historical profit.",
             "Use exact minor-unit arithmetic with explicit database and JSON bounds."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §7.1–7.3"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §7.1–7.3"]
         }
       ],
       "edges": [
@@ -1283,9 +1191,7 @@
             "Reject duplicate active reservations, stale versions and invalid financial combinations.",
             "Verify required down payment and DO; checking a role name alone is insufficient."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §5.3, §8–9"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §5.3, §8–9"]
         },
         {
           "id": "tx",
@@ -1452,9 +1358,7 @@
             "Referral path: handoff and follow-up; record rejection or non-remittance.",
             "Store finance-company contact and feedback on verification/blocker events."
           ],
-          "sources": [
-            "docs/round_1_customer_feedback.md:18–37"
-          ]
+          "sources": ["docs/round_1_customer_feedback.md:18–37"]
         },
         {
           "id": "dispatch",
@@ -1576,9 +1480,7 @@
           "w": 260,
           "h": 116,
           "description": "Reads API data but also uses bundled fixtures for names and histories.",
-          "detail": [
-            "Fixture lookup is not an authorized server read."
-          ],
+          "detail": ["Fixture lookup is not an authorized server read."],
           "sources": [
             "components/sales/record-sale-dialog.tsx:5–6,82–85",
             "components/vehicles/vehicle-financials.tsx:17–25"
@@ -1599,10 +1501,7 @@
             "Purchases create Vehicle rows; sales/repairs do not coordinate vehicle status.",
             "Current TypeScript assertions do not validate arbitrary JSON."
           ],
-          "sources": [
-            "app/api/purchases/route.ts",
-            "app/api/sales/route.ts"
-          ]
+          "sources": ["app/api/purchases/route.ts", "app/api/sales/route.ts"]
         },
         {
           "id": "reports",
@@ -1638,9 +1537,7 @@
           "detail": [
             "No FK, multi-record transaction, authorization or durable audit guarantee."
           ],
-          "sources": [
-            "lib/mock-store.ts:32–164"
-          ]
+          "sources": ["lib/mock-store.ts:32–164"]
         },
         {
           "id": "fixtures",
@@ -1656,10 +1553,7 @@
           "detail": [
             "Store creation clones these arrays. Editing the Map does not edit the original fixture."
           ],
-          "sources": [
-            "lib/mock-store.ts:36–39",
-            "lib/mock-data/"
-          ]
+          "sources": ["lib/mock-store.ts:36–39", "lib/mock-data/"]
         }
       ],
       "edges": [
@@ -1698,22 +1592,10 @@
           "label": "Bundled fixture lookup",
           "detail": "",
           "points": [
-            [
-              490,
-              103
-            ],
-            [
-              710,
-              103
-            ],
-            [
-              710,
-              583
-            ],
-            [
-              690,
-              583
-            ]
+            [490, 103],
+            [710, 103],
+            [710, 583],
+            [690, 583]
           ],
           "labelX": 610,
           "labelY": 200,
@@ -1774,9 +1656,7 @@
           "detail": [
             "Commission expectation is distinct from receipt; actual remittance is recorded separately."
           ],
-          "sources": [
-            "docs/round_1_customer_feedback.md:29,37–45"
-          ]
+          "sources": ["docs/round_1_customer_feedback.md:29,37–45"]
         },
         {
           "id": "finance",
@@ -1928,9 +1808,7 @@
             "Record/field conditions are enforced against actual entities and scoped collection queries.",
             "Fresh rules once per request; client rule copies only drive presentation."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §3.14–3.17, §9"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §3.14–3.17, §9"]
         },
         {
           "id": "operation",
@@ -2072,9 +1950,7 @@
           "detail": [
             "Return unauthorized/forbidden, validation, pending approval, conflict or success explicitly."
           ],
-          "sources": [
-            ".planning/research/ARCHITECTURE.md:216–251"
-          ]
+          "sources": [".planning/research/ARCHITECTURE.md:216–251"]
         },
         {
           "id": "sales",
@@ -2091,9 +1967,7 @@
             "If below asking price: store exact proposal and return pending; do not hand over or finalize.",
             "A manager's approved proposal is revalidated before the completion transaction."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §5.3, §8.3"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §5.3, §8.3"]
         },
         {
           "id": "db",
@@ -2132,9 +2006,7 @@
           "detail": [
             "Approval does not authorize arbitrary future edits to the sale."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §8.3"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §8.3"]
         },
         {
           "id": "approval",
@@ -2147,9 +2019,7 @@
           "w": 260,
           "h": 116,
           "description": "Checks reviewer and applies the proposed action through the owning domain command.",
-          "detail": [
-            "Never replay arbitrary JSON directly into a record."
-          ],
+          "detail": ["Never replay arbitrary JSON directly into a record."],
           "sources": [
             "docs/02-2-requirements-specification.md §8.3",
             ".planning/research/c4-business-findings.md §8.5"
@@ -2346,9 +2216,7 @@
           "detail": [
             "Eligibility, contact handoff, DO/file references and courier handover are manual outside VSMS."
           ],
-          "sources": [
-            "docs/round_1_customer_feedback.md"
-          ]
+          "sources": ["docs/round_1_customer_feedback.md"]
         },
         {
           "id": "compare",
@@ -2386,9 +2254,7 @@
             "Referral: handoff contact/date → track rejection or non-remittance.",
             "Either path can disburse a cash facility; keep payout/recovery separate from commissions."
           ],
-          "sources": [
-            "docs/round_1_customer_feedback.md:13–37"
-          ]
+          "sources": ["docs/round_1_customer_feedback.md:13–37"]
         },
         {
           "id": "documents",
@@ -2405,9 +2271,7 @@
             "Application requires the specified inspection categories and conditional documents.",
             "Referral does not inherit Application-only photo/document prerequisites."
           ],
-          "sources": [
-            "docs/round_1_customer_feedback.md:19–31"
-          ]
+          "sources": ["docs/round_1_customer_feedback.md:19–31"]
         },
         {
           "id": "finance",
@@ -2575,9 +2439,7 @@
             "EXPIRED remains an unresolved commitment until staff acts.",
             "Mutation guards evaluate dates even if the cron flag is late; cash receipt history never disappears."
           ],
-          "sources": [
-            ".planning/research/c4-business-findings.md §8.2–8.4"
-          ]
+          "sources": [".planning/research/c4-business-findings.md §8.2–8.4"]
         }
       ],
       "edges": [
@@ -2633,9 +2495,7 @@
           "detail": [
             "No OCR. Customer/supplier directories are loaded before records that reference them."
           ],
-          "sources": [
-            "docs/02-2-requirements-specification.md §12"
-          ]
+          "sources": ["docs/02-2-requirements-specification.md §12"]
         },
         {
           "id": "import",
@@ -2692,9 +2552,7 @@
             "Retry keys prevent duplicate historical cycles/payments.",
             "Mark records imported and retain source batch/row references."
           ],
-          "sources": [
-            ".planning/ROADMAP.md:226–239"
-          ]
+          "sources": [".planning/ROADMAP.md:226–239"]
         }
       ],
       "edges": [
@@ -2744,10 +2602,7 @@
           "detail": [
             "No offline business writes; only synthetic data belongs in the current mock deployment."
           ],
-          "sources": [
-            ".planning/PROJECT.md",
-            ".planning/REQUIREMENTS.md"
-          ]
+          "sources": [".planning/PROJECT.md", ".planning/REQUIREMENTS.md"]
         },
         {
           "id": "host",
@@ -2807,10 +2662,7 @@
             "Bucket-scoped server credentials, explicit browser CORS and authenticated signing operations.",
             "Free allowance is not a hard spending cap; monitor storage/operations and confirm account controls."
           ],
-          "sources": [
-            "r2-pricing",
-            "r2-presign"
-          ]
+          "sources": ["r2-pricing", "r2-presign"]
         },
         {
           "id": "scheduler",
@@ -2879,26 +2731,11 @@
           "label": "Daily invocation",
           "detail": "",
           "points": [
-            [
-              30,
-              623
-            ],
-            [
-              10,
-              623
-            ],
-            [
-              10,
-              215
-            ],
-            [
-              560,
-              215
-            ],
-            [
-              560,
-              161
-            ]
+            [30, 623],
+            [10, 623],
+            [10, 215],
+            [560, 215],
+            [560, 161]
           ],
           "labelX": 115,
           "labelY": 215,
@@ -2948,10 +2785,7 @@
             "Current dev command uses portless; dev:port uses port 8000.",
             "No production deployment, CI workflow or infrastructure-as-code configuration was found."
           ],
-          "sources": [
-            "package.json:6–18",
-            "Justfile"
-          ]
+          "sources": ["package.json:6–18", "Justfile"]
         },
         {
           "id": "next",
@@ -2967,10 +2801,7 @@
           "detail": [
             "Playwright starts a build/start server. No real identity provider or database is required for current examples."
           ],
-          "sources": [
-            "playwright.config.ts:14–26",
-            "next.config.mjs"
-          ]
+          "sources": ["playwright.config.ts:14–26", "next.config.mjs"]
         },
         {
           "id": "unit",
@@ -3270,9 +3101,7 @@
       "status": "Recommended sequencing",
       "summary": "Approval and audit enforcement ship with the action they protect.",
       "detail": "UI viewers can arrive later. Sale edits, refunds, discounts and write-offs must enforce approvals and mandatory reasons from their first production implementation. Add integration tests for rollback, double submission, simultaneous sale, buy-back profit and cross-role access.",
-      "sources": [
-        ".planning/ROADMAP.md §Phase 1–7"
-      ]
+      "sources": [".planning/ROADMAP.md §Phase 1–7"]
     },
     {
       "title": "Production hosting is unresolved",

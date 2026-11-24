@@ -61,7 +61,11 @@ type BadgeStyle = {
 const STATUS_STYLES: Record<string, BadgeStyle> = {
   // Vehicle
   Purchased: { variant: "secondary" },
-  InStock: { variant: "default", className: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" },
+  InStock: {
+    variant: "default",
+    className:
+      "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20",
+  },
   InRepair: { variant: "secondary" },
   AdvancePlaced: { variant: "outline" },
   AdvanceExpired: { variant: "destructive" },
@@ -86,7 +90,11 @@ const STATUS_STYLES: Record<string, BadgeStyle> = {
   // Lease deal
   Initiated: { variant: "secondary" },
   EligibilityPending: { variant: "outline" },
-  Eligible: { variant: "default", className: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" },
+  Eligible: {
+    variant: "default",
+    className:
+      "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20",
+  },
   Processing: { variant: "secondary" },
   DocumentsCollected: { variant: "outline" },
   Dispatched: { variant: "default" },
@@ -99,7 +107,11 @@ const STATUS_STYLES: Record<string, BadgeStyle> = {
   Overdue: { variant: "destructive" },
 
   // User
-  Active: { variant: "default", className: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" },
+  Active: {
+    variant: "default",
+    className:
+      "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20",
+  },
   Inactive: { variant: "secondary" },
 }
 

@@ -22,6 +22,7 @@ The primary risks are infrastructure-level: Neon's 5-minute scale-to-zero combin
 The full stack is well-defined with version pinning and verified compatibility. See [STACK.md](.planning/research/STACK.md) for complete details and installation commands.
 
 **Core technologies:**
+
 - **Next.js 15 + React 19 (App Router):** Full-stack monolith — RSC for initial page loads, Route Handlers for API surface, deployed to Vercel with zero additional hosting cost
 - **Prisma 6 + Neon PostgreSQL:** Schema-first ORM with type-safe migrations; `@prisma/adapter-neon` eliminates TCP overhead in serverless via HTTP driver; Neon free tier (0.5 GB, 100 CU-hours/month) is more than sufficient for a single dealership
 - **Better Auth 1.x:** Session-based credentials auth with first-class TypeScript and Next.js App Router support; `nextCookies` plugin required for Server Action cookie handling
@@ -32,6 +33,7 @@ The full stack is well-defined with version pinning and verified compatibility. 
 - **`@react-pdf/renderer` 4.3.x:** Server-side invoice PDF generation via `renderToBuffer()` in Route Handlers; requires `serverExternalPackages` config and must NOT run on Edge Runtime
 
 **Critical version requirements:**
+
 - `@react-pdf/renderer` must be ≥4.1.0 for React 19 support
 - Prisma adapter version must match Prisma client version exactly (both 6.x)
 - `tailwindcss-animate` is removed in Tailwind v4; use `tw-animate-css` instead
@@ -44,6 +46,7 @@ The full stack is well-defined with version pinning and verified compatibility. 
 All 38 business requirements are P1 (must-have for launch). See [FEATURES.md](.planning/research/FEATURES.md) for the full prioritization matrix, competitor analysis, and dependency graph.
 
 **Must have (table stakes) — users expect these to exist:**
+
 - Vehicle inventory list with status badges and quick search (plate, chassis, make/model)
 - Vehicle detail page as a single timeline: purchases, repairs, costs, sales, mileage
 - PDF invoice generation covering all fields per BR-022
@@ -55,6 +58,7 @@ All 38 business requirements are P1 (must-have for launch). See [FEATURES.md](.p
 - Historical data import — validation-first, atomic per batch
 
 **Should have (differentiators) — VA Motors-specific competitive advantage:**
+
 - Vehicle lifetime identity across re-purchases (engine + chassis as identity key; BR-038)
 - Tiered advance validity rules (0–5% = 1 week, 5–10% = 2 weeks, etc.) — auto-enforced by system
 - Two-field vehicle status model (`primaryStatus` + `isAvailableForSale`) — clean separation of lifecycle state from sale readiness
@@ -64,6 +68,7 @@ All 38 business requirements are P1 (must-have for launch). See [FEATURES.md](.p
 - Approval decisions permanently linked to audit trail with mandatory edit reasons
 
 **Defer to v1.x / v2+:**
+
 - Vehicle photo gallery — storage budget dependent; internal ops tool doesn't require it
 - Stock ageing alerts — manual review via RPT-001 is sufficient at launch
 - Email/SMS notifications — in-app bell is sufficient; external channels add cost and deliverability risk
@@ -71,6 +76,7 @@ All 38 business requirements are P1 (must-have for launch). See [FEATURES.md](.p
 - Customer-facing portal / online listings — entirely separate product
 
 **Confirmed anti-features (do not build):**
+
 - Automated advance expiry resolution — cancellation has financial consequences requiring human judgment
 - Automated market pricing / valuation — local market conditions require manual override regardless
 - Bulk status updates — individual transitions enforce integrity and may require approval
@@ -82,6 +88,7 @@ All 38 business requirements are P1 (must-have for launch). See [FEATURES.md](.p
 The system is a standard monolith: React Server Components for initial page loads (calling Prisma directly, no HTTP round-trip), Route Handlers as the HTTP API surface, and domain services in `lib/services/` holding all business logic. The separation between thin Route Handlers and rich domain services is the most important structural decision — it keeps Route Handlers testable, prevents logic duplication across endpoints, and allows cron jobs to reuse the same service functions. See [ARCHITECTURE.md](.planning/research/ARCHITECTURE.md) for the full project structure, data flow diagrams, and Prisma schema topology.
 
 **Major components:**
+
 1. **Route Handler pipeline** (`app/api/`) — fixed execution order: authenticate → authorize (CASL) → validate (Zod) → delegate to service → respond. No business logic inline.
 2. **Domain services** (`lib/services/`) — vehicles, sales, advances, repairs, reports, audit, PDF, notifications. Pure functions + Prisma calls; the only place state-machine transitions and financial calculations live.
 3. **CASL factory** (`lib/casl/ability.ts`) — `createAbilityForUser(userId)` called once per Route Handler request; caches rules in session to avoid per-request DB queries.
@@ -90,6 +97,7 @@ The system is a standard monolith: React Server Components for initial page load
 6. **TanStack Query layer** (client) — cache invalidation after mutations keeps the UI consistent with server state; `staleTime: 0` for mutable business data.
 
 **Key schema decisions:**
+
 - All monetary values stored as `Int` (smallest currency unit); display formatted through a shared `formatCurrency()` utility only
 - Polymorphic `AuditLog` and `Notification` (entityType as string, no FK constraints) — allows new entities without migrations
 - `VehiclePrimaryStatus` as a native PostgreSQL enum — DB-level enforcement
@@ -126,16 +134,19 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 1: Foundation and Infrastructure
+
 **Rationale:** Nothing else can be built without these. Prisma schema errors compound every subsequent phase; auth and permission architecture must be decided before any protected route is built; currency utility and audit log indexes must exist before the first form or write goes live.
 **Delivers:** Working Next.js app skeleton with authentication, database connection, CASL permission system, core utilities, and Prisma schema with all migrations.
 **Addresses:** All 38 BRs depend on this; explicitly resolves pitfalls 1, 3, 4, 6.
 **Avoids:**
+
 - Prisma connection exhaustion (global singleton + pooled URL)
 - Currency display bugs (shared utility from day one)
 - Missing audit log index (in migration 0)
 - CASL per-request DB overhead (session cache strategy defined upfront)
 
 **Specific deliverables:**
+
 - Prisma schema (all entities, enums, relations) + migrations
 - `lib/db.ts` singleton with Neon adapter
 - Better Auth setup with `nextCookies` plugin
@@ -149,6 +160,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 2: Vehicle Lifecycle Core
+
 **Rationale:** The vehicle record is the central entity that every other module references by `vehicleId`. Purchase recording, the 10-state machine, repair management, and cost tracking must all exist before sales can be built. Cost basis auto-calculation requires repair and additional cost systems to be cohesive from the start — not built independently.
 **Delivers:** Complete vehicle inventory management — purchase recording (3 channels), status transitions, repair history, additional costs, mileage tracking, cost basis auto-calculation.
 **Addresses:** BR-001 through BR-014, BR-034 (cost basis), mileage history.
@@ -158,6 +170,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 3: Supplier and Customer Directories
+
 **Rationale:** Reference data that purchase and sale forms depend on. Inline creation during forms (modal/slide-over, no redirect) is a table-stakes UX expectation. These are relatively simple CRUD modules but must exist before Phase 4 sales forms can be completed end-to-end.
 **Delivers:** Supplier directory (company + contacts), repair vendor directory, customer directory, inline creation from any form that needs them.
 **Addresses:** BR-008 (suppliers), BR-009 (repair vendors), BR-023 (customers).
@@ -166,10 +179,12 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 4: Sales, Advances, and File Uploads
+
 **Rationale:** Depends on vehicles (Phase 2) and customers (Phase 3). The four sale channels have distinct state transitions and the advance system has business-specific expiry logic that requires the Vercel cron job. R2 file uploads are a hard blocker for lease/finance sales (DO document is mandatory per BR-019). Building file upload in parallel with sale forms ensures lease sales are testable end-to-end when Phase 4 closes.
 **Delivers:** Sale recording (cash, advance/reservation, lease/finance, trade-in), advance payment management with tiered expiry rules, Vercel cron for advance expiry, R2 presigned upload for DO documents.
 **Addresses:** BR-015 through BR-021, BR-016–BR-017 (advance expiry), BR-018–BR-019 (lease/finance with DO).
 **Avoids:**
+
 - Advance cron silent failure (pitfall 7 — idempotent job with manual trigger and structured logging)
 - R2 CORS misconfiguration (pitfall 8 — tested from deployed Vercel domain)
 - Streaming file bytes through Vercel (presigned PUT URL pattern throughout)
@@ -177,6 +192,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 5: Approval Workflows and Notifications
+
 **Rationale:** Approval gates (discount, write-off, refund, sale edit) depend on SaleRecord and AdvancePayment existing. Notifications depend on approval events being generated. Building this after sales ensures the approval triggers have real data to act on.
 **Delivers:** ApprovalRequest creation and resolution for all 4 gates, in-app notification bell with unread count and linked records, notification delivery for approval events and advance expiry alerts.
 **Addresses:** BR-027–BR-028 (approval workflows), BR-030–BR-031 (notifications).
@@ -185,6 +201,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 6: PDF Invoice Generation
+
 **Rationale:** Requires SaleRecord to exist (Phase 4). Isolated as its own phase because the Vercel cold-start timeout risk for `@react-pdf/renderer` requires careful testing and dedicated optimization that shouldn't block the rest of the sales flow.
 **Delivers:** Invoice PDF generation from `/api/sales/:id/invoice`, downloadable from the sale detail page, audit log entry on each generation.
 **Addresses:** BR-022 (invoice generation).
@@ -193,6 +210,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 7: Reports
+
 **Rationale:** All 7 reports are read-only aggregations over transactional data that must exist first. No new entities. Build last among core features — reports are only accurate once all data sources are stable.
 **Delivers:** RPT-001 through RPT-007 with date-range filtering, CSV export, PDF export, per-vehicle profit, business cash flow view.
 **Addresses:** BR-035–BR-036 (profit + cash flow), all 7 RPT requirements.
@@ -201,6 +219,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 8: Audit Trail Viewer
+
 **Rationale:** AuditLog is written throughout all previous phases. This phase adds only the read-only admin UI. Low risk, no new write paths, can be deferred without blocking any operation.
 **Delivers:** Field-level audit history viewer on vehicle detail pages and per-entity pages; admin-accessible audit search.
 **Addresses:** BR-029 (audit trail UI — the write side is implemented in Phases 1–7).
@@ -208,6 +227,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ---
 
 ### Phase 9: Historical Data Import
+
 **Rationale:** Must come last — import templates reference entity fields that must be finalized first. If schemas change after import is built, templates break. This is a one-time operation and does not block the system going live.
 **Delivers:** One-time CSV import for historical vehicles, sales, customers, and suppliers. Validation-first (per-row error display before commit), atomic per batch, imported records flagged distinctly.
 **Addresses:** BR-032–BR-033.
@@ -246,12 +266,12 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 
 ## Confidence Assessment
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Stack | HIGH | All libraries verified via official docs, GitHub releases, and community sources. Version compatibility matrix is fully specified. |
-| Features | HIGH | Requirements are explicit and comprehensive (38 BRs). Feature landscape verified against DMS competitor analysis. Minor gaps (search bar on inventory, dashboard counts) are implicit and uncontroversial. |
-| Architecture | HIGH | Patterns verified against Next.js official docs, Prisma guides, and CASL official cookbook. Build order is internally consistent with feature dependency graph. |
-| Pitfalls | HIGH | Critical pitfalls verified against official docs and community incident reports. Domain pitfalls derived from spec analysis cross-referenced with common DMS failure patterns. |
+| Area         | Confidence | Notes                                                                                                                                                                                                      |
+| ------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stack        | HIGH       | All libraries verified via official docs, GitHub releases, and community sources. Version compatibility matrix is fully specified.                                                                         |
+| Features     | HIGH       | Requirements are explicit and comprehensive (38 BRs). Feature landscape verified against DMS competitor analysis. Minor gaps (search bar on inventory, dashboard counts) are implicit and uncontroversial. |
+| Architecture | HIGH       | Patterns verified against Next.js official docs, Prisma guides, and CASL official cookbook. Build order is internally consistent with feature dependency graph.                                            |
+| Pitfalls     | HIGH       | Critical pitfalls verified against official docs and community incident reports. Domain pitfalls derived from spec analysis cross-referenced with common DMS failure patterns.                             |
 
 **Overall confidence: HIGH**
 
@@ -269,6 +289,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - [Next.js App Router Docs](https://nextjs.org/docs/app) — RSC patterns, Route Handlers, caching layers, serverExternalPackages
 - [Prisma + Neon Guide](https://neon.com/docs/guides/prisma) — two-connection-string pattern, adapter setup
 - [Better Auth Next.js Docs](https://better-auth.com/docs/integrations/next) — nextCookies plugin, session management
@@ -280,6 +301,7 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 - [Vercel Hobby Plan Limits](https://vercel.com/docs/plans/hobby) — 10s function timeout
 
 ### Secondary (MEDIUM confidence)
+
 - [CASL GitHub Releases](https://github.com/stalniy/casl/releases) — @casl/ability@6.8.0, @casl/react@5.0.1 versions
 - [@react-pdf/renderer GitHub Issue #2912](https://github.com/diegomura/react-pdf/issues/2912) — React 19 support confirmed in v4.1.0
 - [Next.js Caching Deep Dive Discussion #54075](https://github.com/vercel/next.js/discussions/54075) — Router Cache stale data behavior
@@ -287,9 +309,10 @@ Based on the combined research, dependency graph from FEATURES.md, and build ord
 - [Frazer DMS](https://www.frazer.com/), [DealerCenter](https://www.dealercenter.com/), [MotorDesk](https://motordesk.com/) — competitor feature analysis
 
 ### Tertiary (LOW confidence)
+
 - TanStack Form + Zod v4 native compatibility — GitHub issue #1529 + community confirmation; not yet in official docs
 
 ---
 
-*Research completed: 2026-03-21*
-*Ready for roadmap: yes*
+_Research completed: 2026-03-21_
+_Ready for roadmap: yes_

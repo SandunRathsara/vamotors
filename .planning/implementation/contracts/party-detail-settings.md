@@ -14,15 +14,15 @@ Each applicable contribution has `state: PENDING_DOMAIN | READY` and `links`. PE
 
 Readiness is a static server domain integration capability, not a per-record result inferred from rows, hidden-row existence/counts, table existence, party.active, receipts or client flags. Runtime read failures return the existing error, never successful empty/pending fallback. Once a lane is integrated and independently accepted, parent may authorize READY. T16 adds real imported facts to the same relations, not synthetic history. T04's directory/detail contribution may finish while downstream domains remain pending; that is not cross-domain acceptance.
 
-| Contribution / relation | Independently authorized target; link ID/date/status | Domain readiness obligation |
-| --- | --- | --- |
-| Supplier.purchases / PurchaseRecord.supplierId | PurchaseRecord; cycle ID/purchaseDate/status | T05 all cycles; T16 imported facts later; PENDING_DOMAIN |
-| RepairVendor.repairs / RepairRecord.vendorId | RepairRecord; repair ID/sentDate/open-or-returned derived status | T08 all repairs; PENDING_DOMAIN |
-| FinanceCompany.settlementPurchases / LeasePurchaseDetail.companyId, FINANCE_COMPANY only | PurchaseRecord; cycle ID/purchaseDate/status | T05 settlement relations; PENDING_DOMAIN |
-| FinanceCompany.leaseSales / LeaseFinanceDetail.companyId | SaleCase; case ID/opened local date/state | T10 including uncompleted/cancelled; PENDING_DOMAIN |
-| FinanceCompany.brokerage / BrokerageDeal.companyId | BrokerageDeal; deal ID/created local date/state | T11/T12 including rejected; PENDING_DOMAIN |
-| FinanceCompany.entitlements / CommissionEntitlement.companyId | CommissionEntitlement; entitlement ID/sentDate/state | T13 mixed owned-sale/brokerage sources; PENDING_DOMAIN |
-| FinanceCompany.remittances / Remittance.companyId | Remittance; remittance ID/receivedDate or staged-created local date/state | T13 including staged/fully allocated; PENDING_DOMAIN |
+| Contribution / relation                                                                  | Independently authorized target; link ID/date/status                      | Domain readiness obligation                              |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Supplier.purchases / PurchaseRecord.supplierId                                           | PurchaseRecord; cycle ID/purchaseDate/status                              | T05 all cycles; T16 imported facts later; PENDING_DOMAIN |
+| RepairVendor.repairs / RepairRecord.vendorId                                             | RepairRecord; repair ID/sentDate/open-or-returned derived status          | T08 all repairs; PENDING_DOMAIN                          |
+| FinanceCompany.settlementPurchases / LeasePurchaseDetail.companyId, FINANCE_COMPANY only | PurchaseRecord; cycle ID/purchaseDate/status                              | T05 settlement relations; PENDING_DOMAIN                 |
+| FinanceCompany.leaseSales / LeaseFinanceDetail.companyId                                 | SaleCase; case ID/opened local date/state                                 | T10 including uncompleted/cancelled; PENDING_DOMAIN      |
+| FinanceCompany.brokerage / BrokerageDeal.companyId                                       | BrokerageDeal; deal ID/created local date/state                           | T11/T12 including rejected; PENDING_DOMAIN               |
+| FinanceCompany.entitlements / CommissionEntitlement.companyId                            | CommissionEntitlement; entitlement ID/sentDate/state                      | T13 mixed owned-sale/brokerage sources; PENDING_DOMAIN   |
+| FinanceCompany.remittances / Remittance.companyId                                        | Remittance; remittance ID/receivedDate or staged-created local date/state | T13 including staged/fully allocated; PENDING_DOMAIN     |
 
 Local dates use persisted event-time policy/timezone where applicable, not today's browser timezone. Dates are labels, not new cash/eligibility rules. No synthetic zero/empty evidence in pending tables.
 

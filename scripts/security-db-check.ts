@@ -209,29 +209,83 @@ async function main() {
           !history.includes(password) && !history.includes('"password"')
         )
         const membership = await db.auditEntry.findFirstOrThrow({
-          where: { commandId: result.commandId, entityType: "UserRole", entityId: result.result.id },
+          where: {
+            commandId: result.commandId,
+            entityType: "UserRole",
+            entityId: result.result.id,
+          },
         })
-        assert.deepEqual((membership.fieldDiff as Record<string, unknown>).roleId, { before: null, after: role.id })
-        const subject = await securityQuery(a.identity, "audit", new URLSearchParams({
-          type: "UserRole", id: result.result.id, relatedId: role.id,
-        })) as { total: number }
+        assert.deepEqual(
+          (membership.fieldDiff as Record<string, unknown>).roleId,
+          { before: null, after: role.id }
+        )
+        const subject = (await securityQuery(
+          a.identity,
+          "audit",
+          new URLSearchParams({
+            type: "UserRole",
+            id: result.result.id,
+            relatedId: role.id,
+          })
+        )) as { total: number }
         assert.equal(subject.total, 1)
-        const syntheticRole = await executeAdmin(a.identity, "saveRole", envelope({
-          name: `Audit permission ${randomUUID()}`,
-          grants: [{ subject: "Customer", action: "read", fields: ["id"] }],
-          reason: "Test new permission",
-        }))
-        const permission = await db.rolePermission.findFirstOrThrow({ where: { roleId: syntheticRole.result.id } })
-        await executeAdmin(a.identity, "saveRole", envelope({
-          id: syntheticRole.result.id, name: `Audit permission ${syntheticRole.result.id}`,
-          grants: [], reason: "Test removed permission",
-        }, [{ type: "Role", id: syntheticRole.result.id, revision: syntheticRole.result.revision }]))
-        const permissionHistory = await securityQuery(a.identity, "audit", new URLSearchParams({
-          type: "RolePermission", id: syntheticRole.result.id, relatedId: permission.permissionId,
-        })) as { data: { action: string; fields: { path: string; before: unknown; after: unknown }[] }[] }
-        assert.deepEqual(permissionHistory.data.map((entry) => entry.action), ["create", "delete"])
-        assert.ok(permissionHistory.data[1].fields.some((field) => field.path === "permissionId" &&
-          field.before === permission.permissionId && field.after === null))
+        const syntheticRole = await executeAdmin(
+          a.identity,
+          "saveRole",
+          envelope({
+            name: `Audit permission ${randomUUID()}`,
+            grants: [{ subject: "Customer", action: "read", fields: ["id"] }],
+            reason: "Test new permission",
+          })
+        )
+        const permission = await db.rolePermission.findFirstOrThrow({
+          where: { roleId: syntheticRole.result.id },
+        })
+        await executeAdmin(
+          a.identity,
+          "saveRole",
+          envelope(
+            {
+              id: syntheticRole.result.id,
+              name: `Audit permission ${syntheticRole.result.id}`,
+              grants: [],
+              reason: "Test removed permission",
+            },
+            [
+              {
+                type: "Role",
+                id: syntheticRole.result.id,
+                revision: syntheticRole.result.revision,
+              },
+            ]
+          )
+        )
+        const permissionHistory = (await securityQuery(
+          a.identity,
+          "audit",
+          new URLSearchParams({
+            type: "RolePermission",
+            id: syntheticRole.result.id,
+            relatedId: permission.permissionId,
+          })
+        )) as {
+          data: {
+            action: string
+            fields: { path: string; before: unknown; after: unknown }[]
+          }[]
+        }
+        assert.deepEqual(
+          permissionHistory.data.map((entry) => entry.action),
+          ["create", "delete"]
+        )
+        assert.ok(
+          permissionHistory.data[1].fields.some(
+            (field) =>
+              field.path === "permissionId" &&
+              field.before === permission.permissionId &&
+              field.after === null
+          )
+        )
         const credential = await db.account.findFirstOrThrow({
           where: { userId: result.result.id, providerId: "credential" },
         })
@@ -523,20 +577,31 @@ async function main() {
                 before: null,
                 after: { name: "Synthetic rollback" },
               })
-              await notify(tx, { commandId, userId: seedIds.admin }, {
-                recipientUserId: seedIds.admin,
-                eventKey: `probe:${commandId}`,
-                kind: "APPROVAL_OUTCOME",
-                targetType: "Role",
-                targetId: roleId,
-              })
+              await notify(
+                tx,
+                { commandId, userId: seedIds.admin },
+                {
+                  recipientUserId: seedIds.admin,
+                  eventKey: `probe:${commandId}`,
+                  kind: "APPROVAL_OUTCOME",
+                  targetType: "Role",
+                  targetId: roleId,
+                }
+              )
             }),
-            (error: unknown) => error instanceof Error && error.message.includes("notification_audit_probe")
+            (error: unknown) =>
+              error instanceof Error &&
+              error.message.includes("notification_audit_probe")
           )
         } finally {
           await migrator.$executeRaw`ALTER TABLE vamotors."AuditEntry" DROP CONSTRAINT notification_audit_probe`
         }
-        assert.equal(await db.notification.count({ where: { eventKey: `probe:${commandId}` } }), 0)
+        assert.equal(
+          await db.notification.count({
+            where: { eventKey: `probe:${commandId}` },
+          }),
+          0
+        )
         assert.equal(await db.role.count({ where: { id: roleId } }), 0)
         assert.equal(
           await db.commandReceipt.count({ where: { id: commandId } }),
@@ -706,8 +771,12 @@ async function main() {
         }
       }
     )
-    await check("enumerate committed command receipts and check transactional audit", async () => {
-      const rows = await db.$queryRaw<{ command: string; receipts: number; missing: number }[]>`
+    await check(
+      "enumerate committed command receipts and check transactional audit",
+      async () => {
+        const rows = await db.$queryRaw<
+          { command: string; receipts: number; missing: number }[]
+        >`
         SELECT c."commandName" AS command, count(*)::int AS receipts,
           count(*) FILTER (WHERE NOT EXISTS (
             SELECT 1 FROM vamotors."AuditEntry" a WHERE a."commandId" = c.id
@@ -716,13 +785,14 @@ async function main() {
         WHERE c."commandName" NOT IN ('markNotificationRead', 'markAllNotificationsRead', 'issueInvoice')
         GROUP BY 1 ORDER BY 1
       `
-      // These operations can record an idempotency receipt when there is no business change.
-      assert.ok(rows.length > 0)
-      for (const row of rows) {
-        assert.equal(row.missing, 0, row.command)
-        console.log(`AUDIT ${row.command} ${row.receipts}`)
+        // These operations can record an idempotency receipt when there is no business change.
+        assert.ok(rows.length > 0)
+        for (const row of rows) {
+          assert.equal(row.missing, 0, row.command)
+          console.log(`AUDIT ${row.command} ${row.receipts}`)
+        }
       }
-    })
+    )
     console.log(
       "Bounded real-DB security checks passed; no downstream sale/import/hosted acceptance implied."
     )

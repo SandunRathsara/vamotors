@@ -8,5 +8,9 @@ export default async function LeaseDealsPage({
 }) {
   await pageActor()
   const { quote } = await searchParams
-  return <BrokerageList initialQuoteId={typeof quote === "string" ? quote : undefined} />
+  return (
+    <BrokerageList
+      initialQuoteId={typeof quote === "string" ? quote : undefined}
+    />
+  )
 }

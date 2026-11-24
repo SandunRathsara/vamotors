@@ -228,7 +228,11 @@ async function main() {
     throw new Error("PROJECT_CLUSTER_MISMATCH")
   const expirySecretFile = file("expiry-scheduler.key")
   if (action === "setup") {
-    if (!existsSync(expirySecretFile)) await writeFile(expirySecretFile, token() + "\n", { mode: 0o600, flag: "wx" })
+    if (!existsSync(expirySecretFile))
+      await writeFile(expirySecretFile, token() + "\n", {
+        mode: 0o600,
+        flag: "wx",
+      })
     const migration = await privateEnvironment(migrationFile)
     const admin = await privateEnvironment(adminFile)
     authorizedMigration(migration)
@@ -360,14 +364,28 @@ async function main() {
       true
     )
   if (action === "expiry") {
-    const result = spawnSync(process.execPath, [
-      "--import", "tsx", "scripts/local-expiry-scheduler.ts",
-      "--base-url", process.env.EXPIRY_BASE_URL ?? runtime.APP_ORIGIN!,
-      "--secret-file", expirySecretFile,
-      "--state-file", file("expiry-scheduler-health.json"),
-      ...process.argv.slice(3),
-    ], { cwd, env, stdio: "inherit" })
-    if (result.error || (result.status !== 0 && result.signal !== "SIGINT" && result.signal !== "SIGTERM"))
+    const result = spawnSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "scripts/local-expiry-scheduler.ts",
+        "--base-url",
+        process.env.EXPIRY_BASE_URL ?? runtime.APP_ORIGIN!,
+        "--secret-file",
+        expirySecretFile,
+        "--state-file",
+        file("expiry-scheduler-health.json"),
+        ...process.argv.slice(3),
+      ],
+      { cwd, env, stdio: "inherit" }
+    )
+    if (
+      result.error ||
+      (result.status !== 0 &&
+        result.signal !== "SIGINT" &&
+        result.signal !== "SIGTERM")
+    )
       throw new Error("LOCAL_STEP_FAILED: expiry scheduler")
   }
   if (action === "dev")

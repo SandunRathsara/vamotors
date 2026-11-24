@@ -11,7 +11,7 @@ export default function LeaseDealsLoading() {
         <Skeleton className="h-9 w-32" />
       </div>
       <div className="rounded-md border">
-        <div className="p-4 space-y-3">
+        <div className="space-y-3 p-4">
           {Array.from({ length: 7 }).map((_, i) => (
             <Skeleton key={i} className="h-10 w-full" />
           ))}

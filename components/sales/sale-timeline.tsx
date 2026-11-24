@@ -16,12 +16,14 @@ interface SaleTimelineProps {
 export function SaleTimeline({ timeline }: SaleTimelineProps) {
   if (!timeline || timeline.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">No timeline events recorded.</p>
+      <p className="text-sm text-muted-foreground">
+        No timeline events recorded.
+      </p>
     )
   }
 
   return (
-    <ol className="relative border-l border-border pl-6 space-y-6">
+    <ol className="relative space-y-6 border-l border-border pl-6">
       {timeline.map((entry, index) => {
         const isLast = index === timeline.length - 1
         const isFirst = index === 0
@@ -34,8 +36,8 @@ export function SaleTimeline({ timeline }: SaleTimelineProps) {
                 isFirst
                   ? "bg-primary"
                   : isLast
-                    ? "bg-muted border border-border"
-                    : "bg-primary/60",
+                    ? "border border-border bg-muted"
+                    : "bg-primary/60"
               )}
             >
               {isFirst && (
@@ -54,9 +56,11 @@ export function SaleTimeline({ timeline }: SaleTimelineProps) {
                   }
                 })()}
               </time>
-              <p className="text-sm font-normal leading-tight">{entry.event}</p>
+              <p className="text-sm leading-tight font-normal">{entry.event}</p>
               {entry.detail && (
-                <p className="text-xs font-normal text-muted-foreground">{entry.detail}</p>
+                <p className="text-xs font-normal text-muted-foreground">
+                  {entry.detail}
+                </p>
               )}
             </div>
           </li>

@@ -264,19 +264,40 @@ try {
   await page.getByLabel("Down payment").fill("150")
   await page.getByLabel("Term (months)").fill("12")
   await page.getByLabel("Payment date").fill(daysAgo(2))
-  await page.getByLabel("Sale reference", { exact: true }).fill("Converted case reference")
-  await page.getByRole("button", { name: "Convert to lease sale", exact: true }).last().click()
-  assert.equal(await page.getByLabel("Reason for changing the sale reference").evaluate((input: HTMLInputElement) => input.validity.valueMissing), true)
-  await page.getByLabel("Reason for changing the sale reference").fill("Retain the corrected case reference")
+  await page
+    .getByLabel("Sale reference", { exact: true })
+    .fill("Converted case reference")
+  await page
+    .getByRole("button", { name: "Convert to lease sale", exact: true })
+    .last()
+    .click()
+  assert.equal(
+    await page
+      .getByLabel("Reason for changing the sale reference")
+      .evaluate((input: HTMLInputElement) => input.validity.valueMissing),
+    true
+  )
+  await page
+    .getByLabel("Reason for changing the sale reference")
+    .fill("Retain the corrected case reference")
   await submit("startFinance", "Convert to lease sale")
   let current = await sale(placed.result.id)
   assert.equal(current.reference, "Converted case reference")
-  const conversionAudit = await query<{ data: { reason?: string; fields: { path: string; before: unknown; after: unknown }[] }[] }>(
-    admin,
-    `audit?type=SaleCase&id=${current.id}&action=startFinance`
+  const conversionAudit = await query<{
+    data: {
+      reason?: string
+      fields: { path: string; before: unknown; after: unknown }[]
+    }[]
+  }>(admin, `audit?type=SaleCase&id=${current.id}&action=startFinance`)
+  assert.equal(
+    conversionAudit.data[0]?.reason,
+    "Retain the corrected case reference"
   )
-  assert.equal(conversionAudit.data[0]?.reason, "Retain the corrected case reference")
-  assert.ok(conversionAudit.data[0]?.fields.some((field) => field.path === "reference" && field.after === current.reference))
+  assert.ok(
+    conversionAudit.data[0]?.fields.some(
+      (field) => field.path === "reference" && field.after === current.reference
+    )
+  )
   assert.equal(current.state, "FINANCE_PENDING")
   assert.equal(current.finance?.principal, "80000")
   assert.equal(current.payments?.length, 2)
@@ -326,7 +347,10 @@ try {
   await expect(reason).toBeVisible()
   await reason.fill(decreaseReason)
   await submit("confirmDOAndHandover", "Confirm handover")
-  assert.equal((await cycle(current.cycleId)).mileage.at(-1)?.decreaseReason, decreaseReason)
+  assert.equal(
+    (await cycle(current.cycleId)).mileage.at(-1)?.decreaseReason,
+    decreaseReason
+  )
   current = await sale(placed.result.id)
   assert.equal(current.state, "COMPLETED")
   assert.equal(current.reservation?.effectiveStatus, "CONVERTED")

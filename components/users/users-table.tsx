@@ -1,6 +1,11 @@
 "use client"
 import { useState } from "react"
-import { parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates } from "nuqs"
+import {
+  parseAsInteger,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryStates,
+} from "nuqs"
 import { useQuery } from "@tanstack/react-query"
 import type {
   UserAdminDTO,
@@ -29,7 +34,8 @@ export async function allRoles() {
 
 export function UsersTable() {
   const { can } = useCapabilities()
-  const defaultKind = can("User", "read") || can("User", "create") ? "users" : "roles"
+  const defaultKind =
+    can("User", "read") || can("User", "create") ? "users" : "roles"
   const [filters, setFilters] = useQueryStates({
     kind: parseAsStringEnum(["users", "roles"]).withDefault(defaultKind),
     q: parseAsString.withDefault(""),
@@ -159,7 +165,10 @@ export function UsersTable() {
           value={active}
           onChange={(e) => {
             const value = e.target.value
-            void setFilters({ active: value === "true" || value === "false" ? value : "", page: 1 })
+            void setFilters({
+              active: value === "true" || value === "false" ? value : "",
+              page: 1,
+            })
           }}
         >
           <option value="">All access states</option>
@@ -189,7 +198,10 @@ export function UsersTable() {
           disabled={!nameSort}
           variant="outline"
           onClick={() => {
-            void setFilters({ direction: direction === "asc" ? "desc" : "asc", page: 1 })
+            void setFilters({
+              direction: direction === "asc" ? "desc" : "asc",
+              page: 1,
+            })
           }}
         >
           Name {direction === "asc" ? "↑" : "↓"}

@@ -581,7 +581,8 @@ export function AcquisitionWorkspace({
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const name = inventory ? "inventory" : "purchases"
-  const canRead = ability.can("read", "PurchaseRecord") &&
+  const canRead =
+    ability.can("read", "PurchaseRecord") &&
     (!inventory || ability.can("read", "Vehicle"))
   const [params, setParams] = useQueryStates({
     page: parseAsInteger.withDefault(1),
@@ -592,7 +593,14 @@ export function AcquisitionWorkspace({
     model: parseAsString.withDefault(""),
     order: parseAsString.withDefault("id"),
   })
-  const { q: search, status, available: availability, make, model, order: sort } = params
+  const {
+    q: search,
+    status,
+    available: availability,
+    make,
+    model,
+    order: sort,
+  } = params
   const page = Math.max(1, params.page)
   const [form, setForm] = useState(false)
   const filters = new URLSearchParams({
@@ -617,7 +625,10 @@ export function AcquisitionWorkspace({
   function navigate(page: number, q = search) {
     void setParams({ page, q })
   }
-  function filter(key: "status" | "order" | "available" | "make" | "model", value: string) {
+  function filter(
+    key: "status" | "order" | "available" | "make" | "model",
+    value: string
+  ) {
     void setParams({ [key]: value, page: 1 })
   }
   return (
@@ -692,7 +703,13 @@ export function AcquisitionWorkspace({
               >
                 {(inventory
                   ? ["id", "status", "available", "listedPrice"]
-                  : ["id", "purchaseDate", "purchasePrice", "listedPrice", "status"]
+                  : [
+                      "id",
+                      "purchaseDate",
+                      "purchasePrice",
+                      "listedPrice",
+                      "status",
+                    ]
                 ).map((f) => (
                   <option key={f} value={f}>
                     {f}
@@ -715,10 +732,12 @@ export function AcquisitionWorkspace({
                     <option value="false">Unavailable</option>
                   </select>
                 </div>
-                {([
-                  ["make", make],
-                  ["model", model],
-                ] as const).map(([key, value]) => (
+                {(
+                  [
+                    ["make", make],
+                    ["model", model],
+                  ] as const
+                ).map(([key, value]) => (
                   <div key={key} className="space-y-2">
                     <Label htmlFor={`stock-${key}`}>Exact {key} filter</Label>
                     <Input
@@ -727,7 +746,8 @@ export function AcquisitionWorkspace({
                       defaultValue={value}
                       maxLength={200}
                       onBlur={(e) => {
-                        if (e.target.value !== value) filter(key, e.target.value)
+                        if (e.target.value !== value)
+                          filter(key, e.target.value)
                       }}
                       className="min-h-11 text-base"
                     />
@@ -743,7 +763,10 @@ export function AcquisitionWorkspace({
               {query.error instanceof RequestError
                 ? query.error.code
                 : "Request failed"}{" "}
-              <button className="underline" onClick={() => void query.refetch()}>
+              <button
+                className="underline"
+                onClick={() => void query.refetch()}
+              >
                 Retry read
               </button>
             </p>
@@ -786,7 +809,9 @@ export function AcquisitionWorkspace({
                         prefetch={false}
                         className="inline-flex min-h-11 items-center underline"
                         href={
-                          inventory ? `/vehicles/${row.id}` : `/purchases/${row.id}`
+                          inventory
+                            ? `/vehicles/${row.id}`
+                            : `/purchases/${row.id}`
                         }
                       >
                         View {inventory ? "vehicle" : "purchase"}
@@ -1259,17 +1284,22 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
       {cycle.statusHistory && (
         <div className="space-y-1">
           <h3 className="font-semibold">Vehicle status history</h3>
-          {cycle.historicalStatus && <p>Historical status · {statusLabels[cycle.historicalStatus]}</p>}
+          {cycle.historicalStatus && (
+            <p>Historical status · {statusLabels[cycle.historicalStatus]}</p>
+          )}
           {cycle.statusHistory.length > 0 ? (
             <ol className="space-y-1">
               {cycle.statusHistory.map((event) => (
                 <li key={event.id}>
-                  {event.at?.slice(0, 10)} · {event.from && `${statusLabels[event.from]} → `}
+                  {event.at?.slice(0, 10)} ·{" "}
+                  {event.from && `${statusLabels[event.from]} → `}
                   {event.to && statusLabels[event.to]}
                 </li>
               ))}
             </ol>
-          ) : <p>No recorded status changes.</p>}
+          ) : (
+            <p>No recorded status changes.</p>
+          )}
         </div>
       )}
       <DisposalHistory cycle={cycle} />
@@ -1318,7 +1348,9 @@ export function AcquisitionDetail({
     queryKey: [vehicle ? "inventory" : "purchases", "detail", id],
     retry: false,
     queryFn: () =>
-      privateRequest<{ data: Cycle & Vehicle & { cycles?: Cycle[]; repairs?: Cycle["repairs"] } }>(
+      privateRequest<{
+        data: Cycle & Vehicle & { cycles?: Cycle[]; repairs?: Cycle["repairs"] }
+      }>(
         `/api/v1/queries/${name}?${vehicle ? "id" : "cycleId"}=${encodeURIComponent(id)}`
       ),
   })
@@ -1354,11 +1386,18 @@ export function AcquisitionDetail({
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }
       />
-      {((vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row)
-        ?.nextActions?.some((action) => ["completeImmediate", "placeReservation", "startFinance"].includes(action))) && (
+      {(vehicle
+        ? row?.cycles?.find((c) => c.id === row.cycleId)
+        : row
+      )?.nextActions?.some((action) =>
+        ["completeImmediate", "placeReservation", "startFinance"].includes(
+          action
+        )
+      ) && (
         <RecordSaleDialog
           onCompleted={(result) => {
-            if (result.status === "APPLIED") router.push(`/sales/${result.result.id}`)
+            if (result.status === "APPLIED")
+              router.push(`/sales/${result.result.id}`)
           }}
           fixedCycle={
             vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row
@@ -1406,7 +1445,7 @@ export function AcquisitionDetail({
                     </Link>
                   )}
                 </div>
-                ))}
+              ))}
             </>
           ) : (
             <>

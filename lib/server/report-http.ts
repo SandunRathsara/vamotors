@@ -639,17 +639,25 @@ export function reportExportEndpoint(
       sameOrigin(request)
       const input = exportStart.safeParse(await boundedJSON(request))
       if (!input.success) fail("INVALID_INPUT", 422)
-      const create = () => txRun(async (tx) => {
-        await assertEnvironment(tx, true)
-        return startExport(tx, await currentActor(tx, identity), input.data)
-      })
+      const create = () =>
+        txRun(async (tx) => {
+          await assertEnvironment(tx, true)
+          return startExport(tx, await currentActor(tx, identity), input.data)
+        })
       const job = await create().catch((error: unknown) => {
-        if (error instanceof Error && "code" in error &&
-          (error.code === "P2002" || error.code === "P2034")) return create()
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          (error.code === "P2002" || error.code === "P2034")
+        )
+          return create()
         throw error
       })
       const status = await txRun(async (tx) =>
-        jobStatus(tx, await authorizeJob(tx, await currentActor(tx, identity), job.id))
+        jobStatus(
+          tx,
+          await authorizeJob(tx, await currentActor(tx, identity), job.id)
+        )
       )
       return noStoreJSON({ ok: true, data: status }, 201)
     }
@@ -687,13 +695,10 @@ export function reportExportEndpoint(
       sameOrigin(request)
       const input = exportStep.safeParse(await boundedJSON(request))
       if (!input.success) fail("INVALID_INPUT", 422)
-      await txRun(
-        async (tx) => {
-          await assertEnvironment(tx, true)
-          return continueExport(tx, identity, rawId, input.data.revision)
-        },
-        "ReadCommitted"
-      )
+      await txRun(async (tx) => {
+        await assertEnvironment(tx, true)
+        return continueExport(tx, identity, rawId, input.data.revision)
+      }, "ReadCommitted")
     }
     const authorize = async (tx: Tx) =>
       authorizeJob(tx, await currentActor(tx, identity), rawId)

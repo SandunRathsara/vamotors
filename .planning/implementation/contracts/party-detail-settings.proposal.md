@@ -22,15 +22,15 @@ Reuse PartyDTO without changing list responses. New detail-only `contributions` 
 
 Every applicable contribution carries `state: PENDING_DOMAIN | READY` and `links`. `PENDING_DOMAIN` means its domain's full lawful link population is not yet supplied; links may include already persisted, independently authorized facts. In particular foundation purchase rows can appear while purchases remain pending. `[]` with PENDING_DOMAIN means **history pending**, never “no history”, zero activity or complete. `READY` means all authorized links for that relation at response `asOf`, including archived/cancelled/settled records; it never promises existence/nonexistence of forbidden rows or all-domain completeness. A ready empty collection means no visible records in that domain only. Readiness is a server integration capability, not inferred from zero rows, runtime table existence, party.active, a receipt or a client's flag. Pending metadata is static domain readiness, not a hidden-row count. Runtime read failures return the existing error, not a downgraded successful empty/pending result.
 
-| Contribution / relation | Independently authorized target; link identity/date/status | Contributor and readiness obligation |
-| --- | --- | --- |
-| Supplier.purchases / PurchaseRecord.supplierId | PurchaseRecord; cycle ID/purchaseDate/status | T05 all purchase cycles (T16 imported facts later); currently PENDING_DOMAIN |
-| RepairVendor.repairs / RepairRecord.vendorId | RepairRecord; repair ID/sentDate/open-or-returned derived status | T08 all repairs; currently PENDING_DOMAIN |
-| FinanceCompany.settlementPurchases / LeasePurchaseDetail.companyId, FINANCE_COMPANY only | PurchaseRecord; cycle ID/purchaseDate/status | T05 settlement relations; currently PENDING_DOMAIN |
-| FinanceCompany.leaseSales / LeaseFinanceDetail.companyId | SaleCase; case ID/opened local date/state | T10 lease cases including uncompleted/cancelled; currently PENDING_DOMAIN |
-| FinanceCompany.brokerage / BrokerageDeal.companyId | BrokerageDeal; deal ID/created local date/state | T11/T12 including rejected; currently PENDING_DOMAIN |
-| FinanceCompany.entitlements / CommissionEntitlement.companyId | CommissionEntitlement; entitlement ID/sentDate/state | T13 mixed owned-sale/brokerage sources; currently PENDING_DOMAIN |
-| FinanceCompany.remittances / Remittance.companyId | Remittance; remittance ID/receivedDate or staged-created local date/state | T13 includes staged and fully allocated; currently PENDING_DOMAIN |
+| Contribution / relation                                                                  | Independently authorized target; link identity/date/status                | Contributor and readiness obligation                                         |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Supplier.purchases / PurchaseRecord.supplierId                                           | PurchaseRecord; cycle ID/purchaseDate/status                              | T05 all purchase cycles (T16 imported facts later); currently PENDING_DOMAIN |
+| RepairVendor.repairs / RepairRecord.vendorId                                             | RepairRecord; repair ID/sentDate/open-or-returned derived status          | T08 all repairs; currently PENDING_DOMAIN                                    |
+| FinanceCompany.settlementPurchases / LeasePurchaseDetail.companyId, FINANCE_COMPANY only | PurchaseRecord; cycle ID/purchaseDate/status                              | T05 settlement relations; currently PENDING_DOMAIN                           |
+| FinanceCompany.leaseSales / LeaseFinanceDetail.companyId                                 | SaleCase; case ID/opened local date/state                                 | T10 lease cases including uncompleted/cancelled; currently PENDING_DOMAIN    |
+| FinanceCompany.brokerage / BrokerageDeal.companyId                                       | BrokerageDeal; deal ID/created local date/state                           | T11/T12 including rejected; currently PENDING_DOMAIN                         |
+| FinanceCompany.entitlements / CommissionEntitlement.companyId                            | CommissionEntitlement; entitlement ID/sentDate/state                      | T13 mixed owned-sale/brokerage sources; currently PENDING_DOMAIN             |
+| FinanceCompany.remittances / Remittance.companyId                                        | Remittance; remittance ID/receivedDate or staged-created local date/state | T13 includes staged and fully allocated; currently PENDING_DOMAIN            |
 
 Local dates use persisted event-time policy/timezone when applicable, not today's browser timezone. Dates are labels, not new cash or eligibility rules. No synthetic zero/empty evidence in pending tables. Once a lane is integrated and independently accepted, parent may authorize its READY capability; T16 later adds real import facts into those same relations, not a second synthetic history population. T04 can finish its directory/detail contribution while these domains remain pending; it cannot claim all cross-domain requirements passed.
 
@@ -63,15 +63,15 @@ Parent first reviews this contract proposal and supplier/vendor candidate indepe
 
 ### Exact outstanding contributions (no whole-ID claims)
 
-| Requirement(s) | This proposed slice can contribute | Still required |
-| --- | --- | --- |
-| TPRT-01 | Real finance third tab completes directory population surface | All three authorized populations + integrated UI independent proof |
-| TPRT-02/03/05 | Direct typed detail + scoped full current contacts, persistent supplier/vendor candidate subject to its own review | T05 supplier history/archive linkage and inline selection; T08 vendor selection/repair history; all negative/UI proof |
-| TPRT-04 | Existing persisted supplier refs reusable | T05 actual search/select/create-inline purchase journey |
-| TPRT-06/07 | Finance entity/contact/policy CRUD and immutable version evidence | T10 lease, T11/T12 quote/deal path/commission snapshot preservation, T13 shared reconciliation; one company ID everywhere |
-| TPRT-08 | Persisted finance options | T10 real lease picker/new/inactive/missing-company tests |
-| CUST-01–04 | None changed; bounded acceptance preserved | Existing parent-recorded sale-inline/full-history domain gaps unchanged |
-| Settings / T04 | Persisted read prerequisite and, if implemented, separately verified full-object writes | Full Settings UI + downstream snapshot behavior; no new requirement ID |
+| Requirement(s) | This proposed slice can contribute                                                                                 | Still required                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| TPRT-01        | Real finance third tab completes directory population surface                                                      | All three authorized populations + integrated UI independent proof                                                        |
+| TPRT-02/03/05  | Direct typed detail + scoped full current contacts, persistent supplier/vendor candidate subject to its own review | T05 supplier history/archive linkage and inline selection; T08 vendor selection/repair history; all negative/UI proof     |
+| TPRT-04        | Existing persisted supplier refs reusable                                                                          | T05 actual search/select/create-inline purchase journey                                                                   |
+| TPRT-06/07     | Finance entity/contact/policy CRUD and immutable version evidence                                                  | T10 lease, T11/T12 quote/deal path/commission snapshot preservation, T13 shared reconciliation; one company ID everywhere |
+| TPRT-08        | Persisted finance options                                                                                          | T10 real lease picker/new/inactive/missing-company tests                                                                  |
+| CUST-01–04     | None changed; bounded acceptance preserved                                                                         | Existing parent-recorded sale-inline/full-history domain gaps unchanged                                                   |
+| Settings / T04 | Persisted read prerequisite and, if implemented, separately verified full-object writes                            | Full Settings UI + downstream snapshot behavior; no new requirement ID                                                    |
 
 ## Contract-only checks and handback
 

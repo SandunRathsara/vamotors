@@ -25,7 +25,15 @@ import type {
 } from "../../.planning/implementation/contracts/api"
 import { A, B, bounded, minor, parseMajor, sum, tierDays } from "../money"
 import { states } from "../state"
-import { brokerageInputs, brokerageReversalInput, cashInput, dispatchInput, financeInput, importTypes, reconciliationInputs } from "./validators"
+import {
+  brokerageInputs,
+  brokerageReversalInput,
+  cashInput,
+  dispatchInput,
+  financeInput,
+  importTypes,
+  reconciliationInputs,
+} from "./validators"
 import { canonical } from "./idempotency"
 import { validateXlsx } from "./private-files/xlsx-validation.mjs"
 
@@ -143,11 +151,7 @@ const PARTY_CATEGORIES = ["INDIVIDUAL", "COMPANY"] as const
 const FUEL_TYPES = ["PETROL", "DIESEL", "HYBRID", "ELECTRIC", "OTHER"] as const
 const TRANSMISSIONS = ["MANUAL", "AUTOMATIC", "CVT", "OTHER"] as const
 const PURCHASE_TYPES = ["CASH", "LEASE_SETTLEMENT", "BRAND_NEW"] as const
-const INSTITUTION_TYPES = [
-  "FINANCE_COMPANY",
-  "BANK",
-  "PRIVATE_PARTY",
-] as const
+const INSTITUTION_TYPES = ["FINANCE_COMPANY", "BANK", "PRIVATE_PARTY"] as const
 const DISPOSAL_METHODS = ["SCRAPPED", "AUCTIONED", "DONATED", "OTHER"] as const
 const SALE_KINDS = ["CASH", "ADVANCE", "LEASE", "TRADE_IN"] as const
 const SALE_STATES = [
@@ -469,28 +473,32 @@ const PARTY_FLAT_CONTACT_ALIASES: readonly ImportColumnSpec[] = [
     name: "contactName",
     type: "string",
     required: false,
-    description: "Convenience single-contact name when contacts JSON is omitted",
+    description:
+      "Convenience single-contact name when contacts JSON is omitted",
     example: "",
   },
   {
     name: "contactPhone",
     type: "string",
     required: false,
-    description: "Convenience single-contact phone when contacts JSON is omitted",
+    description:
+      "Convenience single-contact phone when contacts JSON is omitted",
     example: "",
   },
   {
     name: "contactEmail",
     type: "string",
     required: false,
-    description: "Convenience single-contact email when contacts JSON is omitted",
+    description:
+      "Convenience single-contact email when contacts JSON is omitted",
     example: "",
   },
   {
     name: "contactRole",
     type: "string",
     required: false,
-    description: "Convenience single-contact role when contacts JSON is omitted",
+    description:
+      "Convenience single-contact role when contacts JSON is omitted",
     example: "",
   },
   {
@@ -503,60 +511,198 @@ const PARTY_FLAT_CONTACT_ALIASES: readonly ImportColumnSpec[] = [
 ]
 
 const extensionKey: ImportColumnSpec = {
-  name: "sourceKey", type: "string", required: true, description: "Unique source key",
+  name: "sourceKey",
+  type: "string",
+  required: true,
+  description: "Unique source key",
   example: "legacy-001",
 }
 const activeColumn: ImportColumnSpec = {
   name: "isActive",
   type: "boolean",
   required: false,
-  description: "False to archive the party after importing its historical relationships",
+  description:
+    "False to archive the party after importing its historical relationships",
   example: "",
 }
 
 export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
   REMITTANCES: {
-    version: 1, type: "REMITTANCES", columns: [
+    version: 1,
+    type: "REMITTANCES",
+    columns: [
       extensionKey,
-      { name: "companySourceKey", type: "string", required: false, description: "Finance company source key", example: "finance-001" },
-      { name: "companyExistingId", type: "uuid", required: false, description: "Existing finance company UUID", example: "" },
-      { name: "reference", type: "string", required: true, description: "Unique bank transfer reference", example: "BANK-001" },
-      { name: "amount", type: "money", required: true, description: "Received amount in major currency units", example: "10000.00" },
-      { name: "date", type: "date", required: true, description: "Date of receipt", example: "2026-01-30" },
-      { name: "asOfDate", type: "date", required: true, description: "Historical reconciliation cutoff", example: "2026-01-30" },
-      { name: "draftId", type: "uuid", required: false, description: "Existing staged remittance for the verified notice", example: "" },
-      { name: "noticeAttachmentId", type: "uuid", required: false, description: "Finalized notice attachment on that draft", example: "" },
-      { name: "noticeLines", type: "json", required: false, description: "Notice line array with distinct key, amount in major units, and description", example: "" },
-      { name: "reversalDate", type: "date", required: false, description: "Date this bank receipt was reversed", example: "" },
-      { name: "reversalReason", type: "string", required: false, description: "Historical reason for reversing this bank receipt and any allocations", example: "" },
-      { name: "allocations", type: "json", required: false,
-        description: "Array with source type SALES/BROKERAGE, sourceKey or existingId, amount in major currency units, and optional noticeLineKey",
-        example: '[{"type":"SALES","sourceKey":"sale-001","amount":"10000.00"}]' },
+      {
+        name: "companySourceKey",
+        type: "string",
+        required: false,
+        description: "Finance company source key",
+        example: "finance-001",
+      },
+      {
+        name: "companyExistingId",
+        type: "uuid",
+        required: false,
+        description: "Existing finance company UUID",
+        example: "",
+      },
+      {
+        name: "reference",
+        type: "string",
+        required: true,
+        description: "Unique bank transfer reference",
+        example: "BANK-001",
+      },
+      {
+        name: "amount",
+        type: "money",
+        required: true,
+        description: "Received amount in major currency units",
+        example: "10000.00",
+      },
+      {
+        name: "date",
+        type: "date",
+        required: true,
+        description: "Date of receipt",
+        example: "2026-01-30",
+      },
+      {
+        name: "asOfDate",
+        type: "date",
+        required: true,
+        description: "Historical reconciliation cutoff",
+        example: "2026-01-30",
+      },
+      {
+        name: "draftId",
+        type: "uuid",
+        required: false,
+        description: "Existing staged remittance for the verified notice",
+        example: "",
+      },
+      {
+        name: "noticeAttachmentId",
+        type: "uuid",
+        required: false,
+        description: "Finalized notice attachment on that draft",
+        example: "",
+      },
+      {
+        name: "noticeLines",
+        type: "json",
+        required: false,
+        description:
+          "Notice line array with distinct key, amount in major units, and description",
+        example: "",
+      },
+      {
+        name: "reversalDate",
+        type: "date",
+        required: false,
+        description: "Date this bank receipt was reversed",
+        example: "",
+      },
+      {
+        name: "reversalReason",
+        type: "string",
+        required: false,
+        description:
+          "Historical reason for reversing this bank receipt and any allocations",
+        example: "",
+      },
+      {
+        name: "allocations",
+        type: "json",
+        required: false,
+        description:
+          "Array with source type SALES/BROKERAGE, sourceKey or existingId, amount in major currency units, and optional noticeLineKey",
+        example:
+          '[{"type":"SALES","sourceKey":"sale-001","amount":"10000.00"}]',
+      },
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
   FINANCE_COMPANIES: {
-    version: 1, type: "FINANCE_COMPANIES", columns: [
+    version: 1,
+    type: "FINANCE_COMPANIES",
+    columns: [
       extensionKey,
-      { name: "name", type: "string", required: true, description: "Finance company name", example: "Synthetic Finance" },
-      { name: "financePolicy", type: "json", required: true, description: "Company policy with money in minor units",
-        example: '{"path":"REFERRAL","commission":{"basis":"FIXED","fixed":"0","rateBps":0},"processingFee":"0","reconciliationMethod":"PER_DEAL"}' },
-      { name: "financeContacts", type: "json", required: true, description: "Company contacts",
-        example: '[{"name":"Finance Desk","phone":"0771234567","role":"Loan officer","primary":true}]' },
+      {
+        name: "name",
+        type: "string",
+        required: true,
+        description: "Finance company name",
+        example: "Synthetic Finance",
+      },
+      {
+        name: "financePolicy",
+        type: "json",
+        required: true,
+        description: "Company policy with money in minor units",
+        example:
+          '{"path":"REFERRAL","commission":{"basis":"FIXED","fixed":"0","rateBps":0},"processingFee":"0","reconciliationMethod":"PER_DEAL"}',
+      },
+      {
+        name: "financeContacts",
+        type: "json",
+        required: true,
+        description: "Company contacts",
+        example:
+          '[{"name":"Finance Desk","phone":"0771234567","role":"Loan officer","primary":true}]',
+      },
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
   BROKERAGE: {
-    version: 1, type: "BROKERAGE", columns: [
+    version: 1,
+    type: "BROKERAGE",
+    columns: [
       extensionKey,
-      { name: "customerSourceKey", type: "string", required: false, description: "Customer source key", example: "cust-001" },
-      { name: "customerExistingId", type: "uuid", required: false, description: "Existing customer UUID", example: "" },
-      { name: "quoteId", type: "uuid", required: true, description: "Existing, currently usable quote UUID",
-        example: "11111111-1111-4111-8111-111111111111" },
-      { name: "guarantors", type: "json", required: true, description: "Guarantor information",
-        example: '[{"name":"Synthetic Guarantor","identity":"812345678V","address":"10 Park Lane","phone":"0776543210"}]' },
-      { name: "existingDealId", type: "uuid", required: false, description: "Draft deal already holding verified historical documents", example: "" },
-      { name: "history", type: "json", required: false, description: "Ordered brokerage commands, with the deal ID omitted. Values in payment steps are in minor units. Add a sourceKey to fee, disbursement, recovery and reversal steps. A reversal references sourceKey/fee, /payout, /deduction:N, /recover:principal, /recover:charge, /recover:fee or /replacement and supplies the exact opposite payment plus reason.", example: "" },
+      {
+        name: "customerSourceKey",
+        type: "string",
+        required: false,
+        description: "Customer source key",
+        example: "cust-001",
+      },
+      {
+        name: "customerExistingId",
+        type: "uuid",
+        required: false,
+        description: "Existing customer UUID",
+        example: "",
+      },
+      {
+        name: "quoteId",
+        type: "uuid",
+        required: true,
+        description: "Existing, currently usable quote UUID",
+        example: "11111111-1111-4111-8111-111111111111",
+      },
+      {
+        name: "guarantors",
+        type: "json",
+        required: true,
+        description: "Guarantor information",
+        example:
+          '[{"name":"Synthetic Guarantor","identity":"812345678V","address":"10 Park Lane","phone":"0776543210"}]',
+      },
+      {
+        name: "existingDealId",
+        type: "uuid",
+        required: false,
+        description: "Draft deal already holding verified historical documents",
+        example: "",
+      },
+      {
+        name: "history",
+        type: "json",
+        required: false,
+        description:
+          "Ordered brokerage commands, with the deal ID omitted. Values in payment steps are in minor units. Add a sourceKey to fee, disbursement, recovery and reversal steps. A reversal references sourceKey/fee, /payout, /deduction:N, /recover:principal, /recover:charge, /recover:fee or /replacement and supplies the exact opposite payment plus reason.",
+        example: "",
+      },
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
@@ -754,7 +900,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "supplierSourceKey",
         type: "string",
         required: false,
-        description: "Supplier sourceKey (XOR with supplierExistingId/sellerCustomer*)",
+        description:
+          "Supplier sourceKey (XOR with supplierExistingId/sellerCustomer*)",
         example: "sup-001",
       },
       {
@@ -803,7 +950,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "cycleNumber",
         type: "integer",
         required: true,
-        description: "1-based acquisition cycle number for this physical identity",
+        description:
+          "1-based acquisition cycle number for this physical identity",
         example: "1",
       },
       {
@@ -894,22 +1042,23 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "mileage",
         type: "json",
         required: false,
-        description:
-          "JSON array [{reading,date,remark?,decreaseReason?}]",
+        description: "JSON array [{reading,date,remark?,decreaseReason?}]",
         example: '[{"reading":42000,"date":"2026-01-10","remark":"Intake"}]',
       },
       {
         name: "initialMileageReading",
         type: "integer",
         required: false,
-        description: "Convenience initial mileage reading when mileage JSON omitted",
+        description:
+          "Convenience initial mileage reading when mileage JSON omitted",
         example: "",
       },
       {
         name: "initialMileageDate",
         type: "date",
         required: false,
-        description: "Convenience initial mileage date when mileage JSON omitted",
+        description:
+          "Convenience initial mileage date when mileage JSON omitted",
         example: "",
       },
       {
@@ -1004,7 +1153,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "disposalReceiptAmount",
         type: "money",
         required: false,
-        description: "Optional receipt amount (must equal disposalProceeds when > 0)",
+        description:
+          "Optional receipt amount (must equal disposalProceeds when > 0)",
         example: "",
       },
       {
@@ -1018,7 +1168,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "disposalReceiptMethod",
         type: "enum",
         required: false,
-        description: "CASH | BANK_TRANSFER (required when disposalProceeds > 0)",
+        description:
+          "CASH | BANK_TRANSFER (required when disposalProceeds > 0)",
         example: "",
       },
       {
@@ -1032,7 +1183,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "disposalApproverName",
         type: "string",
         required: false,
-        description: "Nonblank legacy approver name (required when WRITTEN_OFF)",
+        description:
+          "Nonblank legacy approver name (required when WRITTEN_OFF)",
         example: "",
       },
       {
@@ -1095,7 +1247,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "saleCaseSourceKey",
         type: "string",
         required: true,
-        description: "Shared SaleCase key (paired with ADVANCES when kind=ADVANCE)",
+        description:
+          "Shared SaleCase key (paired with ADVANCES when kind=ADVANCE)",
         example: "case-001",
       },
       {
@@ -1123,7 +1276,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "completionDate",
         type: "date",
         required: false,
-        description: "Gregorian YYYY-MM-DD handover/completion date (when COMPLETED)",
+        description:
+          "Gregorian YYYY-MM-DD handover/completion date (when COMPLETED)",
         example: "2026-01-20",
       },
       {
@@ -1137,21 +1291,24 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "completionBasisPurchase",
         type: "money",
         required: false,
-        description: "Frozen purchase basis in major currency units (when COMPLETED)",
+        description:
+          "Frozen purchase basis in major currency units (when COMPLETED)",
         example: "5000000.00",
       },
       {
         name: "completionBasisRepairs",
         type: "json",
         required: false,
-        description: "JSON array [{sourceKey,amount}] of repair basis components",
+        description:
+          "JSON array [{sourceKey,amount}] of repair basis components",
         example: "[]",
       },
       {
         name: "completionBasisCosts",
         type: "json",
         required: false,
-        description: "JSON array [{sourceKey,amount}] of additional cost components",
+        description:
+          "JSON array [{sourceKey,amount}] of additional cost components",
         example: '[{"sourceKey":"cost-001","amount":"25000.00"}]',
       },
       {
@@ -1242,7 +1399,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "tradeInAcquiredCycleExistingId",
         type: "uuid",
         required: false,
-        description: "Optional existing acquired cycle UUID for trade-in intake",
+        description:
+          "Optional existing acquired cycle UUID for trade-in intake",
         example: "",
       },
       {
@@ -1320,7 +1478,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "returnedDate",
         type: "date",
         required: false,
-        description: "Gregorian YYYY-MM-DD return date (all 4 return fields or none)",
+        description:
+          "Gregorian YYYY-MM-DD return date (all 4 return fields or none)",
         example: "2026-01-15",
       },
       {
@@ -1348,7 +1507,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "payments",
         type: "json",
         required: false,
-        description: "JSON array of LegacyPayment[] (must be empty if unreturned)",
+        description:
+          "JSON array of LegacyPayment[] (must be empty if unreturned)",
         example:
           '[{"sourceKey":"pay-rep-001","amount":"45000.00","date":"2026-01-15","method":"CASH","direction":"OUT","category":"REPAIR"}]',
       },
@@ -1504,7 +1664,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         name: "retainedAmount",
         type: "money",
         required: false,
-        description: "Retained advance amount in major units (when REFUNDED/CANCELLED)",
+        description:
+          "Retained advance amount in major units (when REFUNDED/CANCELLED)",
         example: "",
       },
       {
@@ -1548,7 +1709,9 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
   },
 }
 
-export function getImportTemplateSchema(kind: ImportType): ImportTemplateSchema {
+export function getImportTemplateSchema(
+  kind: ImportType
+): ImportTemplateSchema {
   return IMPORT_SCHEMAS[kind]
 }
 
@@ -1889,7 +2052,10 @@ async function parseXlsxMatrix(
   for (const s of sheets) {
     for (const r of s.data) {
       for (const c of r) {
-        if (c !== null && ++totalWorkbookCells > IMPORT_LIMITS.maxWorkbookCells) {
+        if (
+          c !== null &&
+          ++totalWorkbookCells > IMPORT_LIMITS.maxWorkbookCells
+        ) {
           return {
             ok: false,
             errors: [
@@ -2103,7 +2269,14 @@ function makeRowReader(
     if (!coerced.ok) {
       if (!checkedFormula.has(col)) {
         checkedFormula.add(col)
-        addError(errors, rowNumber, col, coerced.code, coerced.message, reader.sourceKey)
+        addError(
+          errors,
+          rowNumber,
+          col,
+          coerced.code,
+          coerced.message,
+          reader.sourceKey
+        )
       }
       return undefined
     }
@@ -2591,9 +2764,18 @@ function parseJsonStringField(
     )
     return undefined
   }
-  const safe = checkJsonStringSafety(raw, rowNumber, fieldPath, errors, sourceKey)
+  const safe = checkJsonStringSafety(
+    raw,
+    rowNumber,
+    fieldPath,
+    errors,
+    sourceKey
+  )
   if (!safe) {
-    if (opts.required && !errors.some((e) => e.field === fieldPath && e.rowNumber === rowNumber)) {
+    if (
+      opts.required &&
+      !errors.some((e) => e.field === fieldPath && e.rowNumber === rowNumber)
+    ) {
       addError(
         errors,
         rowNumber,
@@ -3442,7 +3624,10 @@ function parseMileageArray(r: RowReader): Mileage[] {
   // Check chronological non-decreasing mileage unless decreaseReason is given.
   const sorted = [...out].sort((a, b) => a.date.localeCompare(b.date))
   for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i].reading < sorted[i - 1].reading && !sorted[i].decreaseReason) {
+    if (
+      sorted[i].reading < sorted[i - 1].reading &&
+      !sorted[i].decreaseReason
+    ) {
       addError(
         r.errors,
         r.rowNumber,
@@ -3669,7 +3854,13 @@ function parseVehicleRow(
   const crNumber = r.optString("crNumber", 100)
   const vehicleNotes = r.optString("vehicleNotes", 2000)
 
-  const supplier = parseLegacyRefPair(r, "supplier", "SUPPLIERS", namespace, false)
+  const supplier = parseLegacyRefPair(
+    r,
+    "supplier",
+    "SUPPLIERS",
+    namespace,
+    false
+  )
   const sellerCustomer = parseLegacyRefPair(
     r,
     "sellerCustomer",
@@ -3752,7 +3943,10 @@ function parseVehicleRow(
     const reqRef = r.reqString("settlementReference", 200)
     const reqAmt = r.reqMoney("settlementAmount")
     const reqCash = r.reqMoney("settlementCashToSeller")
-    const reqInstType = r.reqEnum("settlementInstitutionType", INSTITUTION_TYPES)
+    const reqInstType = r.reqEnum(
+      "settlementInstitutionType",
+      INSTITUTION_TYPES
+    )
 
     if (reqAmt !== undefined && reqCash !== undefined) {
       const total = bounded(minor(reqAmt) + minor(reqCash), A)
@@ -4416,7 +4610,11 @@ function parseSaleRow(
       namespace,
       false
     )
-    if (reqVal !== undefined && price !== undefined && minor(reqVal) > minor(price)) {
+    if (
+      reqVal !== undefined &&
+      price !== undefined &&
+      minor(reqVal) > minor(price)
+    ) {
       addError(
         r.errors,
         r.rowNumber,
@@ -4865,9 +5063,7 @@ function parsePolicySnapshot(
     )
   ) {
     days =
-      amount && listedBasis
-        ? tierDays(minor(amount), minor(listedBasis))
-        : 7
+      amount && listedBasis ? tierDays(minor(amount), minor(listedBasis)) : 7
   }
   if (!isValidTimeZone(timezone) || !tiers || days === undefined) {
     return undefined
@@ -4876,37 +5072,144 @@ function parsePolicySnapshot(
 }
 
 const historySourceKey = z.string().trim().min(1).max(100)
-const historicalBrokerageSteps = z.array(z.discriminatedUnion("command", [
-  z.object({ command: z.literal("recordEligibility"), input: brokerageInputs.recordEligibility.innerType()
-    .omit({ dealId: true, guarantorId: true })
-    .extend({ guarantorIdentity: z.string().trim().min(1).max(200).optional() })
-    .refine((step) => (step.target === "GUARANTOR") === !!step.guarantorIdentity) }).strict(),
-  z.object({ command: z.literal("recordInspection"), input: brokerageInputs.recordInspection.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("adjustLoan"), input: brokerageInputs.adjustLoan.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("setChecklist"), input: brokerageInputs.setChecklist.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("verifyDocuments"), input: brokerageInputs.verifyDocuments.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("setProcessingFee"), input: brokerageInputs.setProcessingFee.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("informCompany"), input: brokerageInputs.informCompany.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("referDeal"), input: brokerageInputs.referDeal.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("rejectDeal"), input: brokerageInputs.rejectDeal.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("completeBrokerage"), input: brokerageInputs.completeBrokerage.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("dispatchBatch"), input: dispatchInput.omit({ sourceIds: true }) }).strict(),
-  z.object({ command: z.literal("requestFacility"), input: brokerageInputs.requestFacility.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("disburseFacility"), sourceKey: historySourceKey,
-    input: brokerageInputs.disburseFacility.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("recoverFacility"), sourceKey: historySourceKey,
-    input: brokerageInputs.recoverFacility.innerType().omit({ dealId: true })
-      .refine((value) => value.principal || value.chargeRecovery || value.fee) }).strict(),
-  z.object({ command: z.literal("recordBrokerageFee"), sourceKey: historySourceKey,
-    input: brokerageInputs.recordBrokerageFee.omit({ dealId: true }) }).strict(),
-  z.object({ command: z.literal("reversePayment"), sourceKey: historySourceKey,
-    input: cashInput.extend({
-      direction: z.enum(["IN", "OUT"]),
-      category: z.enum(["PROCESSING", "ADDITIONAL", "PAYOUT", "DEDUCTION", "PRINCIPAL", "CHARGE", "FEE"]),
-      reversalOfSourceKey: z.string().trim().min(1).max(130),
-      ...brokerageReversalInput.pick({ reason: true, replacement: true }).shape,
-    }).strict() }).strict(),
-])).max(20)
+const historicalBrokerageSteps = z
+  .array(
+    z.discriminatedUnion("command", [
+      z
+        .object({
+          command: z.literal("recordEligibility"),
+          input: brokerageInputs.recordEligibility
+            .innerType()
+            .omit({ dealId: true, guarantorId: true })
+            .extend({
+              guarantorIdentity: z.string().trim().min(1).max(200).optional(),
+            })
+            .refine(
+              (step) =>
+                (step.target === "GUARANTOR") === !!step.guarantorIdentity
+            ),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("recordInspection"),
+          input: brokerageInputs.recordInspection.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("adjustLoan"),
+          input: brokerageInputs.adjustLoan.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("setChecklist"),
+          input: brokerageInputs.setChecklist.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("verifyDocuments"),
+          input: brokerageInputs.verifyDocuments.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("setProcessingFee"),
+          input: brokerageInputs.setProcessingFee.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("informCompany"),
+          input: brokerageInputs.informCompany.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("referDeal"),
+          input: brokerageInputs.referDeal.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("rejectDeal"),
+          input: brokerageInputs.rejectDeal.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("completeBrokerage"),
+          input: brokerageInputs.completeBrokerage.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("dispatchBatch"),
+          input: dispatchInput.omit({ sourceIds: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("requestFacility"),
+          input: brokerageInputs.requestFacility.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("disburseFacility"),
+          sourceKey: historySourceKey,
+          input: brokerageInputs.disburseFacility.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("recoverFacility"),
+          sourceKey: historySourceKey,
+          input: brokerageInputs.recoverFacility
+            .innerType()
+            .omit({ dealId: true })
+            .refine(
+              (value) => value.principal || value.chargeRecovery || value.fee
+            ),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("recordBrokerageFee"),
+          sourceKey: historySourceKey,
+          input: brokerageInputs.recordBrokerageFee.omit({ dealId: true }),
+        })
+        .strict(),
+      z
+        .object({
+          command: z.literal("reversePayment"),
+          sourceKey: historySourceKey,
+          input: cashInput
+            .extend({
+              direction: z.enum(["IN", "OUT"]),
+              category: z.enum([
+                "PROCESSING",
+                "ADDITIONAL",
+                "PAYOUT",
+                "DEDUCTION",
+                "PRINCIPAL",
+                "CHARGE",
+                "FEE",
+              ]),
+              reversalOfSourceKey: z.string().trim().min(1).max(130),
+              ...brokerageReversalInput.pick({
+                reason: true,
+                replacement: true,
+              }).shape,
+            })
+            .strict(),
+        })
+        .strict(),
+    ])
+  )
+  .max(20)
 
 function historicalBrokerageCash(
   step: LegacyBrokerageStep,
@@ -4914,27 +5217,49 @@ function historicalBrokerageCash(
   cashOut: bigint[]
 ) {
   const add = (payments: (CashInput | null | undefined)[], total: bigint[]) => {
-    for (const payment of payments) if (payment) total.push(minor(payment.amount))
+    for (const payment of payments)
+      if (payment) total.push(minor(payment.amount))
   }
   switch (step.command) {
     case "recordBrokerageFee":
       add([step.input.payment], cashIn)
       break
     case "disburseFacility":
-      add([step.input.payment, ...step.input.separatelyPaidDeductions.map((line) => line.payment)], cashOut)
+      add(
+        [
+          step.input.payment,
+          ...step.input.separatelyPaidDeductions.map((line) => line.payment),
+        ],
+        cashOut
+      )
       break
     case "recoverFacility":
-      add([step.input.principal, step.input.chargeRecovery, step.input.fee], cashIn)
+      add(
+        [step.input.principal, step.input.chargeRecovery, step.input.fee],
+        cashIn
+      )
       break
     case "reversePayment":
       add([step.input], step.input.direction === "IN" ? cashIn : cashOut)
-      add([step.input.replacement], step.input.direction === "IN" ? cashOut : cashIn)
+      add(
+        [step.input.replacement],
+        step.input.direction === "IN" ? cashOut : cashIn
+      )
       break
   }
 }
 
-function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["REMITTANCES"] | null {
-  const company = parseLegacyRefPair(r, "company", "FINANCE_COMPANIES", namespace, true)
+function parseRemittanceRow(
+  r: RowReader,
+  namespace: string
+): ImportPayloads["REMITTANCES"] | null {
+  const company = parseLegacyRefPair(
+    r,
+    "company",
+    "FINANCE_COMPANIES",
+    namespace,
+    true
+  )
   const reference = r.reqString("reference", 200)
   const amount = r.reqMoney("amount", { positive: true })
   const date = r.reqDate("date")
@@ -4944,66 +5269,164 @@ function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["RE
   const reversalDate = r.optDate("reversalDate")
   const reversalReason = r.optString("reversalReason", 2000)
   const lineSchema = reconciliationInputs.recordRemittance.shape.lines
-    .innerType().element.omit({ source: true }).extend({ amount: z.string() })
-  const lines = z.array(lineSchema).max(100).safeParse(r.optJson("noticeLines") ?? [])
+    .innerType()
+    .element.omit({ source: true })
+    .extend({ amount: z.string() })
+  const lines = z
+    .array(lineSchema)
+    .max(100)
+    .safeParse(r.optJson("noticeLines") ?? [])
   if (!lines.success) {
-    addError(r.errors, r.rowNumber, "noticeLines", "INVALID_JSON", "Expected notice lines with key, description and amount", r.sourceKey)
+    addError(
+      r.errors,
+      r.rowNumber,
+      "noticeLines",
+      "INVALID_JSON",
+      "Expected notice lines with key, description and amount",
+      r.sourceKey
+    )
     return null
   }
-  if (!!draftId !== !!noticeAttachmentId || (lines.data.length && !noticeAttachmentId)) {
-    addError(r.errors, r.rowNumber, "noticeAttachmentId", "INVALID_INPUT", "Supply the staged draft and its finalized notice together", r.sourceKey)
+  if (
+    !!draftId !== !!noticeAttachmentId ||
+    (lines.data.length && !noticeAttachmentId)
+  ) {
+    addError(
+      r.errors,
+      r.rowNumber,
+      "noticeAttachmentId",
+      "INVALID_INPUT",
+      "Supply the staged draft and its finalized notice together",
+      r.sourceKey
+    )
     return null
   }
   const noticeLines = lines.data.flatMap((line, index) => {
     const amount = parseImportMoney(line.amount, { positive: true })
     if (!amount.ok) {
-      addError(r.errors, r.rowNumber, `noticeLines[${index}].amount`, amount.code, amount.message, r.sourceKey)
+      addError(
+        r.errors,
+        r.rowNumber,
+        `noticeLines[${index}].amount`,
+        amount.code,
+        amount.message,
+        r.sourceKey
+      )
       return []
     }
     return [{ ...line, amount: amount.value }]
   })
   const lineKeys = new Set(noticeLines.map((line) => line.key))
   if (lineKeys.size !== noticeLines.length)
-    addError(r.errors, r.rowNumber, "noticeLines", "DUPLICATE_SOURCE_KEY", "Notice line keys must be unique", r.sourceKey)
+    addError(
+      r.errors,
+      r.rowNumber,
+      "noticeLines",
+      "DUPLICATE_SOURCE_KEY",
+      "Notice line keys must be unique",
+      r.sourceKey
+    )
   const raw = r.optJson("allocations") ?? []
-  const rows = z.array(z.object({
-    type: z.enum(["SALES", "BROKERAGE"]),
-    sourceKey: z.string().trim().min(1).max(200).optional(),
-    existingId: z.string().uuid().optional(),
-    amount: z.string(),
-    noticeLineKey: z.string().trim().min(1).max(200).optional(),
-  }).strict().refine((row) => !!row.sourceKey !== !!row.existingId)).max(100).safeParse(raw)
+  const rows = z
+    .array(
+      z
+        .object({
+          type: z.enum(["SALES", "BROKERAGE"]),
+          sourceKey: z.string().trim().min(1).max(200).optional(),
+          existingId: z.string().uuid().optional(),
+          amount: z.string(),
+          noticeLineKey: z.string().trim().min(1).max(200).optional(),
+        })
+        .strict()
+        .refine((row) => !!row.sourceKey !== !!row.existingId)
+    )
+    .max(100)
+    .safeParse(raw)
   if (!rows.success) {
-    addError(r.errors, r.rowNumber, "allocations", "INVALID_JSON", "Expected allocation type, source key or UUID, and amount", r.sourceKey)
+    addError(
+      r.errors,
+      r.rowNumber,
+      "allocations",
+      "INVALID_JSON",
+      "Expected allocation type, source key or UUID, and amount",
+      r.sourceKey
+    )
     return null
   }
   if (!company || !reference || !amount || !date || !asOfDate) return null
-  const payment = reconciliationInputs.recordRemittance.shape.payment.safeParse({ amount, date, reference, method: "BANK_TRANSFER" })
+  const payment = reconciliationInputs.recordRemittance.shape.payment.safeParse(
+    { amount, date, reference, method: "BANK_TRANSFER" }
+  )
   if (!payment.success || asOfDate < date) {
-    addError(r.errors, r.rowNumber, "asOfDate", "INVALID_INPUT", "A valid bank payment must precede or match the reconciliation cutoff", r.sourceKey)
+    addError(
+      r.errors,
+      r.rowNumber,
+      "asOfDate",
+      "INVALID_INPUT",
+      "A valid bank payment must precede or match the reconciliation cutoff",
+      r.sourceKey
+    )
     return null
   }
-  if (!!reversalDate !== !!reversalReason || (reversalDate && reversalDate < asOfDate)) {
-    addError(r.errors, r.rowNumber, "reversalDate", "INVALID_INPUT", "A reversal needs a reason and must follow or match the receipt and reconciliation cutoff", r.sourceKey)
+  if (
+    !!reversalDate !== !!reversalReason ||
+    (reversalDate && reversalDate < asOfDate)
+  ) {
+    addError(
+      r.errors,
+      r.rowNumber,
+      "reversalDate",
+      "INVALID_INPUT",
+      "A reversal needs a reason and must follow or match the receipt and reconciliation cutoff",
+      r.sourceKey
+    )
     return null
   }
   const allocations = rows.data.flatMap((row, index) => {
     const value = parseImportMoney(row.amount)
     if (!value.ok || value.value === "0") {
-      addError(r.errors, r.rowNumber, `allocations[${index}].amount`, "INVALID_MONEY", "Allocation must be positive money in major units", r.sourceKey)
+      addError(
+        r.errors,
+        r.rowNumber,
+        `allocations[${index}].amount`,
+        "INVALID_MONEY",
+        "Allocation must be positive money in major units",
+        r.sourceKey
+      )
       return []
     }
-    const source = row.existingId ? { existingId: row.existingId.toLowerCase() }
+    const source = row.existingId
+      ? { existingId: row.existingId.toLowerCase() }
       : { namespace, type: row.type, sourceKey: row.sourceKey! }
     if (row.noticeLineKey && !lineKeys.has(row.noticeLineKey))
-      addError(r.errors, r.rowNumber, `allocations[${index}].noticeLineKey`, "INVALID_INPUT", "Allocation must name a line in noticeLines", r.sourceKey)
-    return [{ source, sourceType: row.type, amount: value.value,
-      ...(row.noticeLineKey ? { noticeLineKey: row.noticeLineKey } : {}),
-    }]
+      addError(
+        r.errors,
+        r.rowNumber,
+        `allocations[${index}].noticeLineKey`,
+        "INVALID_INPUT",
+        "Allocation must name a line in noticeLines",
+        r.sourceKey
+      )
+    return [
+      {
+        source,
+        sourceType: row.type,
+        amount: value.value,
+        ...(row.noticeLineKey ? { noticeLineKey: row.noticeLineKey } : {}),
+      },
+    ]
   })
-  return { company, payment: payment.data, asOfDate, allocations,
-    ...(reversalDate && reversalReason ? { reversal: { date: reversalDate, reason: reversalReason } } : {}),
-    ...(draftId && noticeAttachmentId ? { draftId, noticeAttachmentId, noticeLines } : {}),
+  return {
+    company,
+    payment: payment.data,
+    asOfDate,
+    allocations,
+    ...(reversalDate && reversalReason
+      ? { reversal: { date: reversalDate, reason: reversalReason } }
+      : {}),
+    ...(draftId && noticeAttachmentId
+      ? { draftId, noticeAttachmentId, noticeLines }
+      : {}),
   }
 }
 
@@ -5022,7 +5445,11 @@ function parseAdvanceRow(
   )
   const agreed = r.reqMoney("agreed", { positive: true })
   const amount = r.reqMoney("amount", { positive: true })
-  if (agreed !== undefined && amount !== undefined && minor(amount) > minor(agreed)) {
+  if (
+    agreed !== undefined &&
+    amount !== undefined &&
+    minor(amount) > minor(agreed)
+  ) {
     addError(
       r.errors,
       r.rowNumber,
@@ -5057,13 +5484,7 @@ function parseAdvanceRow(
   let disposition: Disposition | undefined
 
   if (state === "CONVERTED") {
-    compSale = parseLegacyRefPair(
-      r,
-      "completedSale",
-      "SALES",
-      namespace,
-      true
-    )
+    compSale = parseLegacyRefPair(r, "completedSale", "SALES", namespace, true)
     resolutionDate = r.reqDate("resolutionDate")
     if (
       r.hasAny([
@@ -5238,7 +5659,11 @@ export function computeControlTotals(
     switch (row.type) {
       case "VEHICLES": {
         purchaseAmounts.push(minor(row.payload.purchasePrice))
-        collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)
+        collectPaymentTotals(
+          row.payload.payments,
+          cashInAmounts,
+          cashOutAmounts
+        )
         for (const cost of row.payload.additionalCosts) {
           costAmounts.push(minor(cost.amount))
           collectPaymentTotals(cost.payments, cashInAmounts, cashOutAmounts)
@@ -5252,25 +5677,39 @@ export function computeControlTotals(
         if (row.payload.invoiceAmount !== undefined) {
           costAmounts.push(minor(row.payload.invoiceAmount))
         }
-        collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)
+        collectPaymentTotals(
+          row.payload.payments,
+          cashInAmounts,
+          cashOutAmounts
+        )
         break
       }
       case "SALES": {
         if (row.payload.state === "COMPLETED") {
           considerationAmounts.push(minor(row.payload.price))
         }
-        collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)
+        collectPaymentTotals(
+          row.payload.payments,
+          cashInAmounts,
+          cashOutAmounts
+        )
         break
       }
       case "BROKERAGE":
-        for (const step of row.payload.history ?? []) historicalBrokerageCash(step, cashInAmounts, cashOutAmounts)
+        for (const step of row.payload.history ?? [])
+          historicalBrokerageCash(step, cashInAmounts, cashOutAmounts)
         break
       case "REMITTANCES":
         cashInAmounts.push(minor(row.payload.payment.amount))
-        if (row.payload.reversal) cashOutAmounts.push(minor(row.payload.payment.amount))
+        if (row.payload.reversal)
+          cashOutAmounts.push(minor(row.payload.payment.amount))
         break
       case "ADVANCES": {
-        collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)
+        collectPaymentTotals(
+          row.payload.payments,
+          cashInAmounts,
+          cashOutAmounts
+        )
         break
       }
       case "SUPPLIERS":
@@ -5378,12 +5817,14 @@ function collectDistinctKeys(
     switch (row.type) {
       case "REMITTANCES":
         addRef(row.payload.company)
-        for (const allocation of row.payload.allocations) addRef(allocation.source)
+        for (const allocation of row.payload.allocations)
+          addRef(allocation.source)
         break
       case "BROKERAGE":
         addRef(row.payload.customer)
         if (row.payload.quoteId) referencedExistingIds.add(row.payload.quoteId)
-        if (row.payload.existingDealId) referencedExistingIds.add(row.payload.existingDealId)
+        if (row.payload.existingDealId)
+          referencedExistingIds.add(row.payload.existingDealId)
         break
       case "CUSTOMERS":
         customerIdentities.add(
@@ -5666,7 +6107,10 @@ export async function parseImportBuffer<K extends ImportType>(
         "COLUMN_COUNT_MISMATCH",
         `Expected ${canonicalHeaders.length} columns, got ${row.cells.length}`
       )
-    } else if (format === "XLSX" && row.cells.length > canonicalHeaders.length) {
+    } else if (
+      format === "XLSX" &&
+      row.cells.length > canonicalHeaders.length
+    ) {
       const hasExtraNonEmpty = row.cells
         .slice(canonicalHeaders.length)
         .some((c) => c !== null && !(typeof c === "string" && c === ""))
@@ -5721,35 +6165,95 @@ export async function parseImportBuffer<K extends ImportType>(
           contacts: reader.optJson("financeContacts"),
         })
         if (company.success) payload = company.data as ImportPayloads[K]
-        else for (const issue of company.error.issues)
-          addError(rowErrors, row.rowNumber, issue.path.join("."), "INVALID_INPUT", issue.message, sourceKey)
+        else
+          for (const issue of company.error.issues)
+            addError(
+              rowErrors,
+              row.rowNumber,
+              issue.path.join("."),
+              "INVALID_INPUT",
+              issue.message,
+              sourceKey
+            )
         break
       }
       case "BROKERAGE": {
         const existingDealId = reader.optUuid("existingDealId")
-        const history = historicalBrokerageSteps.safeParse(reader.optJson("history") ?? [])
+        const history = historicalBrokerageSteps.safeParse(
+          reader.optJson("history") ?? []
+        )
         if (!history.success) {
           for (const issue of history.error.issues)
-            addError(rowErrors, row.rowNumber, ["history", ...issue.path].join("."), "INVALID_INPUT", issue.message, sourceKey)
+            addError(
+              rowErrors,
+              row.rowNumber,
+              ["history", ...issue.path].join("."),
+              "INVALID_INPUT",
+              issue.message,
+              sourceKey
+            )
           break
         }
         const progress = history.data.length ? { history: history.data } : {}
         if (existingDealId) {
-          if (!history.data.length || reader.hasAny(["customerSourceKey", "customerExistingId", "quoteId", "guarantors"]))
-            addError(rowErrors, row.rowNumber, "existingDealId", "INVALID_INPUT",
-              "Supply historical steps for the existing deal and clear intake columns", sourceKey)
+          if (
+            !history.data.length ||
+            reader.hasAny([
+              "customerSourceKey",
+              "customerExistingId",
+              "quoteId",
+              "guarantors",
+            ])
+          )
+            addError(
+              rowErrors,
+              row.rowNumber,
+              "existingDealId",
+              "INVALID_INPUT",
+              "Supply historical steps for the existing deal and clear intake columns",
+              sourceKey
+            )
           else payload = { existingDealId, ...progress } as ImportPayloads[K]
           break
         }
-        const customer = parseLegacyRefPair(reader, "customer", "CUSTOMERS", namespace, true)
+        const customer = parseLegacyRefPair(
+          reader,
+          "customer",
+          "CUSTOMERS",
+          namespace,
+          true
+        )
         const quoteId = reader.optUuid("quoteId")
-        const guarantors = brokerageInputs.openBrokerage.shape.guarantors.safeParse(reader.optJson("guarantors"))
-        if (!quoteId) addError(rowErrors, row.rowNumber, "quoteId", "REQUIRED", "Quote UUID is required", sourceKey)
+        const guarantors =
+          brokerageInputs.openBrokerage.shape.guarantors.safeParse(
+            reader.optJson("guarantors")
+          )
+        if (!quoteId)
+          addError(
+            rowErrors,
+            row.rowNumber,
+            "quoteId",
+            "REQUIRED",
+            "Quote UUID is required",
+            sourceKey
+          )
         if (!guarantors.success)
           for (const issue of guarantors.error.issues)
-            addError(rowErrors, row.rowNumber, ["guarantors", ...issue.path].join("."), "INVALID_INPUT", issue.message, sourceKey)
+            addError(
+              rowErrors,
+              row.rowNumber,
+              ["guarantors", ...issue.path].join("."),
+              "INVALID_INPUT",
+              issue.message,
+              sourceKey
+            )
         if (customer && quoteId && guarantors.success)
-          payload = { customer, quoteId, guarantors: guarantors.data, ...progress } as ImportPayloads[K]
+          payload = {
+            customer,
+            quoteId,
+            guarantors: guarantors.data,
+            ...progress,
+          } as ImportPayloads[K]
         break
       }
       case "SUPPLIERS":
@@ -5760,9 +6264,7 @@ export async function parseImportBuffer<K extends ImportType>(
         payload = parseCustomerRow(reader) as ImportPayloads[K] | null
         break
       case "VEHICLES":
-        payload = parseVehicleRow(reader, namespace) as
-          | ImportPayloads[K]
-          | null
+        payload = parseVehicleRow(reader, namespace) as ImportPayloads[K] | null
         break
       case "SALES":
         payload = parseSaleRow(reader, namespace) as ImportPayloads[K] | null
@@ -5771,12 +6273,12 @@ export async function parseImportBuffer<K extends ImportType>(
         payload = parseRepairRow(reader, namespace) as ImportPayloads[K] | null
         break
       case "REMITTANCES":
-        payload = parseRemittanceRow(reader, namespace) as ImportPayloads[K] | null
-        break
-      case "ADVANCES":
-        payload = parseAdvanceRow(reader, namespace) as
+        payload = parseRemittanceRow(reader, namespace) as
           | ImportPayloads[K]
           | null
+        break
+      case "ADVANCES":
+        payload = parseAdvanceRow(reader, namespace) as ImportPayloads[K] | null
         break
     }
 

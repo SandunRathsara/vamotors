@@ -31,7 +31,13 @@ export default async function AuditReport({
   if (canRead && typeof type === "string" && typeof id === "string" && id) {
     params.set("type", type)
     params.set("id", id)
-    for (const key of ["relatedId", "from", "through", "action", "page"] as const) {
+    for (const key of [
+      "relatedId",
+      "from",
+      "through",
+      "action",
+      "page",
+    ] as const) {
       const value = filters[key]
       if (typeof value === "string" && value.trim()) params.set(key, value)
     }
@@ -91,20 +97,37 @@ export default async function AuditReport({
             </label>
             <label className="grid gap-1.5 text-sm">
               Related ID
-              <Input name="relatedId" defaultValue={typeof relatedId === "string" ? relatedId : ""} />
-              <span className="text-xs text-muted-foreground">Role ID for UserRole, permission ID for RolePermission</span>
+              <Input
+                name="relatedId"
+                defaultValue={typeof relatedId === "string" ? relatedId : ""}
+              />
+              <span className="text-xs text-muted-foreground">
+                Role ID for UserRole, permission ID for RolePermission
+              </span>
             </label>
             <label className="grid gap-1.5 text-sm">
               From date (UTC)
-              <Input type="date" name="from" defaultValue={typeof from === "string" ? from : ""} />
+              <Input
+                type="date"
+                name="from"
+                defaultValue={typeof from === "string" ? from : ""}
+              />
             </label>
             <label className="grid gap-1.5 text-sm">
               Through date (UTC)
-              <Input type="date" name="through" defaultValue={typeof through === "string" ? through : ""} />
+              <Input
+                type="date"
+                name="through"
+                defaultValue={typeof through === "string" ? through : ""}
+              />
             </label>
             <label className="grid gap-1.5 text-sm">
               Action
-              <Input name="action" maxLength={100} defaultValue={typeof action === "string" ? action : ""} />
+              <Input
+                name="action"
+                maxLength={100}
+                defaultValue={typeof action === "string" ? action : ""}
+              />
             </label>
             <Button type="submit">View history</Button>
           </form>

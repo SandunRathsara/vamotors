@@ -1,6 +1,11 @@
 "use client"
 import { useState } from "react"
-import { parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates } from "nuqs"
+import {
+  parseAsInteger,
+  parseAsString,
+  parseAsStringEnum,
+  useQueryStates,
+} from "nuqs"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useActor } from "@/components/providers/auth-boundary"
 import { abilityFor } from "@/lib/server/permissions"
@@ -20,13 +25,21 @@ export function PartyDirectory() {
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const defaultKind = ability.can("read", "Supplier")
-    ? "SUPPLIER" : ability.can("read", "RepairVendor") ? "REPAIR_VENDOR" : "FINANCE_COMPANY"
-  const [{ type: kind, page: pageParam, q: search, active }, setFilters] = useQueryStates({
-    type: parseAsStringEnum<DirectoryKind>(["SUPPLIER", "REPAIR_VENDOR", "FINANCE_COMPANY"]).withDefault(defaultKind),
-    page: parseAsInteger.withDefault(1),
-    q: parseAsString.withDefault(""),
-    active: parseAsStringEnum(["", "true", "false"]).withDefault(""),
-  })
+    ? "SUPPLIER"
+    : ability.can("read", "RepairVendor")
+      ? "REPAIR_VENDOR"
+      : "FINANCE_COMPANY"
+  const [{ type: kind, page: pageParam, q: search, active }, setFilters] =
+    useQueryStates({
+      type: parseAsStringEnum<DirectoryKind>([
+        "SUPPLIER",
+        "REPAIR_VENDOR",
+        "FINANCE_COMPANY",
+      ]).withDefault(defaultKind),
+      page: parseAsInteger.withDefault(1),
+      q: parseAsString.withDefault(""),
+      active: parseAsStringEnum(["", "true", "false"]).withDefault(""),
+    })
   const page = Math.max(1, pageParam)
   const type =
     kind === "FINANCE_COMPANY"
@@ -184,7 +197,10 @@ export function PartyDirectory() {
         className="flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault()
-          void setFilters({ q: String(new FormData(e.currentTarget).get("q") ?? ""), page: 1 })
+          void setFilters({
+            q: String(new FormData(e.currentTarget).get("q") ?? ""),
+            page: 1,
+          })
         }}
       >
         <div className="min-w-0 flex-1 space-y-2">
@@ -205,7 +221,10 @@ export function PartyDirectory() {
             value={active}
             onChange={(e) => {
               const value = e.target.value
-              void setFilters({ active: value === "true" || value === "false" ? value : "", page: 1 })
+              void setFilters({
+                active: value === "true" || value === "false" ? value : "",
+                page: 1,
+              })
             }}
             className="min-h-11 rounded-md border bg-background px-3"
           >

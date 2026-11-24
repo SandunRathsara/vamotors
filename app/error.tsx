@@ -1,8 +1,8 @@
-'use client'
+"use client"
 
-import Link from 'next/link'
+import Link from "next/link"
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button"
 
 interface ErrorProps {
   reset: () => void
@@ -14,8 +14,9 @@ export default function Error({ reset }: ErrorProps) {
       <div className="flex flex-col items-center gap-6 text-center">
         <div className="flex flex-col items-center gap-2">
           <h1 className="text-2xl font-semibold">Something went wrong</h1>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            An unexpected error occurred. Refresh the page or return to the dashboard.
+          <p className="max-w-sm text-sm text-muted-foreground">
+            An unexpected error occurred. Refresh the page or return to the
+            dashboard.
           </p>
         </div>
         <div className="flex gap-3">

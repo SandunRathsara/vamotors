@@ -1,7 +1,10 @@
 import "server-only"
 import { randomUUID } from "node:crypto"
 import type { Prisma } from "@prisma/client"
-import type { Applied, Dependency } from "../../.planning/implementation/contracts/api"
+import type {
+  Applied,
+  Dependency,
+} from "../../.planning/implementation/contracts/api"
 import { assertEnvironment, database, type Tx } from "./db"
 import { currentActor, type Actor, type Identity } from "./actor"
 import { transaction, nextBusinessSequence } from "./transactions"
@@ -121,7 +124,10 @@ function readiness(row: DealRow) {
       message: `Deal is ${row.state}`,
     })
   }
-  if (row.path === "APPLICATION" && (!commonEligible(row) || row.photos.length !== 9)) {
+  if (
+    row.path === "APPLICATION" &&
+    (!commonEligible(row) || row.photos.length !== 9)
+  ) {
     blockers.push({
       code: "CHECKLIST_INCOMPLETE",
       field: "photos",
@@ -210,14 +216,18 @@ export async function executeDispatch(
         if (prior.inputHash !== digest) fail("IDEMPOTENCY_MISMATCH")
         return dispatchApplied(prior.id, true, batch, [])
       }
-      if (
-        envelope.input.sourceIds.some((row) => row.type !== "BROKERAGE")
-      )
+      if (envelope.input.sourceIds.some((row) => row.type !== "BROKERAGE"))
         fail("INVALID_INPUT", 422)
-      requireFields(actor.ability, "DispatchBatch", "create", {
-        ...envelope.input,
-        createdBy: actor.userId,
-      }, Object.keys(envelope.input))
+      requireFields(
+        actor.ability,
+        "DispatchBatch",
+        "create",
+        {
+          ...envelope.input,
+          createdBy: actor.userId,
+        },
+        Object.keys(envelope.input)
+      )
       const ids = [...new Set(envelope.input.sourceIds.map((s) => s.id))].sort()
       const deals: DealRow[] = []
       for (const id of ids) {
@@ -232,7 +242,19 @@ export async function executeDispatch(
           "BrokerageDeal",
           "read",
           { ...dealDTO(row), createdBy: row.createdBy },
-          ["id", "revision", "state", "path", "photos", "eligibility", "checklist", "verification", "fileReference", "quoteStatus", "issues"]
+          [
+            "id",
+            "revision",
+            "state",
+            "path",
+            "photos",
+            "eligibility",
+            "checklist",
+            "verification",
+            "fileReference",
+            "quoteStatus",
+            "issues",
+          ]
         )
         requireFields(
           actor.ability,
@@ -252,8 +274,7 @@ export async function executeDispatch(
         if (match.revision !== dep.revision)
           throw new CommandError("STALE_REVISION", 409, false, required)
       }
-      if (deals.some((row) => row.path !== "APPLICATION"))
-        fail("PATH_MISMATCH")
+      if (deals.some((row) => row.path !== "APPLICATION")) fail("PATH_MISMATCH")
       for (const member of envelope.input.sourceIds) {
         const row = deals.find((d) => d.id === member.id)!
         if (
@@ -477,15 +498,17 @@ export async function dispatchReplay(
   const batch = await loadBatch(tx, actor, result.id)
   const deals = []
   for (const item of batch.items)
-    if (item.brokerageDealId) deals.push(await loadDeal(tx, actor, item.brokerageDealId))
-  return dispatchApplied(receipt.id, true, batch, deals.map((row) => ref(row)))
+    if (item.brokerageDealId)
+      deals.push(await loadDeal(tx, actor, item.brokerageDealId))
+  return dispatchApplied(
+    receipt.id,
+    true,
+    batch,
+    deals.map((row) => ref(row))
+  )
 }
 
-export async function dispatchPreviewQuery(
-  tx: Tx,
-  actor: Actor,
-  raw: unknown
-) {
+export async function dispatchPreviewQuery(tx: Tx, actor: Actor, raw: unknown) {
   const parsed = dispatchPreviewInput.safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const unique = [
@@ -525,7 +548,19 @@ export async function dispatchPreviewQuery(
       "BrokerageDeal",
       "read",
       { ...dealDTO(row), createdBy: row.createdBy },
-      ["id", "revision", "state", "path", "photos", "eligibility", "checklist", "verification", "fileReference", "quoteStatus", "issues"]
+      [
+        "id",
+        "revision",
+        "state",
+        "path",
+        "photos",
+        "eligibility",
+        "checklist",
+        "verification",
+        "fileReference",
+        "quoteStatus",
+        "issues",
+      ]
     )
     const state = readiness(row)
     result.push({
@@ -544,10 +579,7 @@ export async function dispatchPreviewQuery(
   return result
 }
 
-export async function dispatchRead(
-  identity: Identity,
-  raw: unknown
-) {
+export async function dispatchRead(identity: Identity, raw: unknown) {
   return database().$transaction(
     async (tx) => {
       await assertEnvironment(tx)

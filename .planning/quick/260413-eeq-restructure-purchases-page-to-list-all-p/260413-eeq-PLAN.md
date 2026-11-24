@@ -40,48 +40,101 @@ Output: Purchases page with DataTableShell, pagination, search, filtering, and a
 <!-- Key types and contracts the executor needs -->
 
 From lib/mock-data/schemas.ts:
+
 ```typescript
 export type Vehicle = {
-  id: string; make: string; model: string; year: number; colour: string;
-  engineNumber: string; chassisNumber: string; vin?: string; crNumber?: string;
-  fuelType: "Petrol" | "Diesel" | "Hybrid" | "Electric";
-  transmission: "Manual" | "Automatic";
-  status: "Purchased" | "InStock" | "InRepair" | "AdvancePlaced" | "AdvanceExpired" | "FinancePending" | "DOReceived" | "Delivered" | "Sold" | "WrittenOff";
-  isAvailableForSale: boolean; purchasePrice: number; listedPrice: number; costBasis: number;
-  purchaseDate: string; purchaseType: "Cash" | "LeaseSettlement" | "BrandNew";
-  supplierId: string; /* ... */ createdAt: string; updatedAt: string;
+  id: string
+  make: string
+  model: string
+  year: number
+  colour: string
+  engineNumber: string
+  chassisNumber: string
+  vin?: string
+  crNumber?: string
+  fuelType: "Petrol" | "Diesel" | "Hybrid" | "Electric"
+  transmission: "Manual" | "Automatic"
+  status:
+    | "Purchased"
+    | "InStock"
+    | "InRepair"
+    | "AdvancePlaced"
+    | "AdvanceExpired"
+    | "FinancePending"
+    | "DOReceived"
+    | "Delivered"
+    | "Sold"
+    | "WrittenOff"
+  isAvailableForSale: boolean
+  purchasePrice: number
+  listedPrice: number
+  costBasis: number
+  purchaseDate: string
+  purchaseType: "Cash" | "LeaseSettlement" | "BrandNew"
+  supplierId: string
+  /* ... */ createdAt: string
+  updatedAt: string
 }
-export type PaginatedResponse<T> = { data: T[]; total: number; page: number; pageSize: number; }
+export type PaginatedResponse<T> = {
+  data: T[]
+  total: number
+  page: number
+  pageSize: number
+}
 ```
 
 From lib/mock-store.ts:
+
 ```typescript
 export const vehiclesStore = new MockStore<Vehicle>(vehicleFixtures)
 // vehiclesStore.query({ page, pageSize, sortBy, sortDir, q, filters }) => PaginatedResponse<Vehicle>
 ```
 
 From hooks/use-entity-query.ts:
+
 ```typescript
-export function useEntityQuery<T>(entityKey: string, endpoint: string, params: Record<string, string | number | undefined | null>): UseQueryResult<T>
+export function useEntityQuery<T>(
+  entityKey: string,
+  endpoint: string,
+  params: Record<string, string | number | undefined | null>
+): UseQueryResult<T>
 ```
 
 From hooks/use-entity-mutation.ts:
+
 ```typescript
-export function useEntityMutation(opts: { entityKey: string; endpoint: string; method: string; successMessage: string }): UseMutationResult
+export function useEntityMutation(opts: {
+  entityKey: string
+  endpoint: string
+  method: string
+  successMessage: string
+}): UseMutationResult
 ```
 
 From components/ui/sheet.tsx:
+
 ```typescript
-export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription }
+export {
+  Sheet,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+}
 // SheetContent accepts side?: "top" | "right" | "bottom" | "left" and className for overrides
 // Default max-width is sm:max-w-sm — MUST override to sm:max-w-2xl for purchase form
 ```
 
 From lib/mock-data/third-parties.ts:
+
 ```typescript
 // thirdPartiesFixtures contains suppliers with id "tp-001", "tp-002", etc.
 // Vehicles reference suppliers via supplierId field
 ```
+
 </interfaces>
 </context>
 
@@ -102,11 +155,11 @@ Rewrite the GET handler in `app/api/purchases/route.ts` to match the pattern in 
 Keep the existing POST handler unchanged.
 
 Important: The vehicles store contains ALL vehicles (InStock, Sold, InRepair, etc.), not just purchases. Since every vehicle was purchased, the table should show all vehicles as purchase records — this is correct behavior. The `q` search will search across all string fields of Vehicle, and `purchaseType` and `status` filters allow narrowing down.
-  </action>
-  <verify>
-    <automated>curl -s "http://localhost:3000/api/purchases?page=1&pageSize=5" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log('page:', d.page, 'pageSize:', d.pageSize, 'total:', d.total, 'dataLen:', d.data.length); process.exit(d.page===1 && d.pageSize===5 && d.total>0 && d.data.length<=5 ? 0 : 1)"</automated>
-  </verify>
-  <done>GET /api/purchases returns paginated response with page, pageSize, total, and data array. Supports q, purchaseType, status, sortBy, sortDir query params.</done>
+</action>
+<verify>
+<automated>curl -s "http://localhost:3000/api/purchases?page=1&pageSize=5" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log('page:', d.page, 'pageSize:', d.pageSize, 'total:', d.total, 'dataLen:', d.data.length); process.exit(d.page===1 && d.pageSize===5 && d.total>0 && d.data.length<=5 ? 0 : 1)"</automated>
+</verify>
+<done>GET /api/purchases returns paginated response with page, pageSize, total, and data array. Supports q, purchaseType, status, sortBy, sortDir query params.</done>
 </task>
 
 <task type="auto">
@@ -121,6 +174,7 @@ Important: The vehicles store contains ALL vehicles (InStock, Sold, InRepair, et
 **Create `components/purchases/purchases-columns.tsx`** — follow `components/sales/sales-columns.tsx` pattern:
 
 Define `purchasesColumns: ColumnDef<Vehicle>[]` with these columns:
+
 1. `index` — row number (#), no sorting, size 48
 2. `purchaseDate` — formatted with `format(new Date(row.original.purchaseDate), "dd MMM yyyy")`, enable sorting
 3. `vehicle` — display `{make} {model} {year}` as a Link to `/vehicles/{id}`, enable sorting, accessorFn concatenates make+model
@@ -149,12 +203,15 @@ Import from: `@tanstack/react-table` (ColumnDef), `date-fns` (format), `next/lin
 3. Import Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription from `@/components/ui/sheet`
 4. Import PurchaseForm from `./purchase-form`
 5. Render:
+
 ```tsx
 <Sheet open={open} onOpenChange={onOpenChange}>
-  <SheetContent side="right" className="sm:max-w-2xl w-full overflow-y-auto">
+  <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
     <SheetHeader>
       <SheetTitle>Record Purchase</SheetTitle>
-      <SheetDescription>Add a new vehicle purchase to inventory</SheetDescription>
+      <SheetDescription>
+        Add a new vehicle purchase to inventory
+      </SheetDescription>
     </SheetHeader>
     <div className="px-4 pb-4">
       <PurchaseForm />
@@ -162,6 +219,7 @@ Import from: `@tanstack/react-table` (ColumnDef), `date-fns` (format), `next/lin
   </SheetContent>
 </Sheet>
 ```
+
 The key override is `className="sm:max-w-2xl w-full overflow-y-auto"` on SheetContent to make it wide enough for the tabbed form (the default sm:max-w-sm is too narrow). `overflow-y-auto` ensures the long form is scrollable within the sheet.
 
 **Update `app/(app)/purchases/page.tsx`** — match `app/(app)/sales/page.tsx` pattern:
@@ -170,6 +228,7 @@ The key override is `className="sm:max-w-2xl w-full overflow-y-auto"` on SheetCo
 2. Import React, PageHeader, Button, PurchasesTable, RecordPurchaseSheet
 3. Add `const [sheetOpen, setSheetOpen] = React.useState(false)` state
 4. Render:
+
 ```tsx
 <div className="space-y-6">
   <PageHeader
@@ -183,6 +242,7 @@ The key override is `className="sm:max-w-2xl w-full overflow-y-auto"` on SheetCo
   <RecordPurchaseSheet open={sheetOpen} onOpenChange={setSheetOpen} />
 </div>
 ```
+
   </action>
   <verify>
     <automated>cd /Users/alpha/Developer/personal/va && npx tsc --noEmit --pretty 2>&1 | head -30</automated>
@@ -204,10 +264,11 @@ The key override is `className="sm:max-w-2xl w-full overflow-y-auto"` on SheetCo
 </verification>
 
 <success_criteria>
+
 - Purchases page displays all vehicle records in a DataTableShell with pagination
 - "+ Record Purchase" button opens existing PurchaseForm in a right-side Sheet
 - Sheet width is sm:max-w-2xl (not default sm:max-w-sm) to accommodate the tabbed form
 - API GET /api/purchases supports page, pageSize, q, purchaseType, status, sortBy, sortDir params
 - Pattern matches sales/repairs page structure: "use client" page, PageHeader with actions, Table, Sheet/Dialog
 - No TypeScript errors
-</success_criteria>
+  </success_criteria>

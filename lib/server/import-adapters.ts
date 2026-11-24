@@ -91,12 +91,14 @@ function payment(input: LegacyPayment) {
 }
 
 function exactReversal(original: LegacyPayment, reversal: LegacyPayment) {
-  return original.direction !== reversal.direction &&
+  return (
+    original.direction !== reversal.direction &&
     original.amount === reversal.amount &&
     original.date === reversal.date &&
     original.method === reversal.method &&
     original.reference === reversal.reference &&
     original.category === reversal.category
+  )
 }
 
 function saleReceipts(rows: LegacyPayment[]) {
@@ -110,8 +112,11 @@ function saleReceipts(rows: LegacyPayment[]) {
     }
     const original = originals.get(row.reversalOfSourceKey)
     need(
-      original && original.direction === "IN" && original.category !== "REFUND" &&
-        !reversed.has(original.sourceKey) && exactReversal(original, row),
+      original &&
+        original.direction === "IN" &&
+        original.category !== "REFUND" &&
+        !reversed.has(original.sourceKey) &&
+        exactReversal(original, row),
       `payments.${row.sourceKey}`,
       "A reversal must exactly match an earlier unreversed receipt in this source"
     )
@@ -119,8 +124,11 @@ function saleReceipts(rows: LegacyPayment[]) {
     pairs.push(original)
   }
   return {
-    active: rows.filter((row) => !row.reversalOfSourceKey && !reversed.has(row.sourceKey)),
-    pairs: (...categories: string[]) => pairs.filter((row) => categories.includes(row.category)),
+    active: rows.filter(
+      (row) => !row.reversalOfSourceKey && !reversed.has(row.sourceKey)
+    ),
+    pairs: (...categories: string[]) =>
+      pairs.filter((row) => categories.includes(row.category)),
     reversed: pairs,
   }
 }
@@ -720,7 +728,8 @@ const advances: ImportAdapter<"ADVANCES"> = {
       "Advance receipt must match the placement amount and date"
     )
     need(
-      active.length === (refund ? 2 : 1) && reversed.every((row) => row.category === "ADVANCE") &&
+      active.length === (refund ? 2 : 1) &&
+        reversed.every((row) => row.category === "ADVANCE") &&
         !!refund === (p.state === "REFUNDED"),
       "payments",
       "Supply an advance receipt and a refund only for a refunded advance"
@@ -844,7 +853,9 @@ async function historicalCommitmentSale(
   if (p.kind === "ADVANCE") {
     const balance = receiptOf(active, "BALANCE")
     need(
-      p.completion && reservation && active.length === (balance ? 1 : 0) &&
+      p.completion &&
+        reservation &&
+        active.length === (balance ? 1 : 0) &&
         reversed.every((row) => row.category === "BALANCE"),
       "payments",
       "Converted advances require completion and a balance receipt when money is due"
@@ -881,7 +892,9 @@ async function historicalCommitmentSale(
   need(
     down?.amount === finance.downPayment &&
       active.length === 1 + lender.length &&
-      reversed.every((row) => ["DOWN_PAYMENT", "LENDER"].includes(row.category)) &&
+      reversed.every((row) =>
+        ["DOWN_PAYMENT", "LENDER"].includes(row.category)
+      ) &&
       lender.every(
         (entry) => entry.direction === "IN" && !entry.reversalOfSourceKey
       ) &&
@@ -956,7 +969,10 @@ async function historicalCommitmentSale(
         await commitmentRefs(tx, saleCaseId)
       ),
       tx,
-      { closedAt: ctx.cycleCloseDates.get(cycleId), reversedReceipts: pairs("LENDER") }
+      {
+        closedAt: ctx.cycleCloseDates.get(cycleId),
+        reversedReceipts: pairs("LENDER"),
+      }
     )
     for (const entry of [...lender].sort((a, b) =>
       a.date.localeCompare(b.date)
@@ -1054,9 +1070,10 @@ const sales: ImportAdapter<"SALES"> = {
     const { active, reversed } = saleReceipts(p.payments)
     const [receipt] = active
     need(
-      reversed.every((entry) => entry.category === "SALE") && (residual === 0n
-        ? active.length === 0
-        : active.length === 1 &&
+      reversed.every((entry) => entry.category === "SALE") &&
+        (residual === 0n
+          ? active.length === 0
+          : active.length === 1 &&
             receipt.direction === "IN" &&
             receipt.category === "SALE" &&
             !receipt.reversalOfSourceKey &&
@@ -1321,7 +1338,10 @@ type BrokerageSourcePayment = {
 async function restoreBrokerageCash(
   { tx, identity }: Pick<ImportContext, "tx" | "identity">,
   deal: NonNullable<Awaited<ReturnType<typeof loadHistoricalDeal>>>,
-  step: Extract<NonNullable<ImportPayloads["BROKERAGE"]["history"]>[number], { sourceKey: string }>,
+  step: Extract<
+    NonNullable<ImportPayloads["BROKERAGE"]["history"]>[number],
+    { sourceKey: string }
+  >,
   payments: Map<string, BrokerageSourcePayment>
 ) {
   const field = `history.${step.sourceKey}`
@@ -1332,40 +1352,88 @@ async function restoreBrokerageCash(
   if (step.command === "reversePayment") {
     const original = payments.get(step.input.reversalOfSourceKey)
     need(
-      original && exactReversal(original.source, { ...step.input, sourceKey: step.sourceKey }),
+      original &&
+        exactReversal(original.source, {
+          ...step.input,
+          sourceKey: step.sourceKey,
+        }),
       field,
       "A reversal must exactly match an earlier unreversed payment in this source"
     )
     if (original.sourceType === "FACILITY" && facility)
       expected.push(ref("CashFacility", facility))
-    result = await executeBrokerage(identity, "reversePayment", env({
-      sourceId: original.sourceId,
-      sourceType: original.sourceType,
-      paymentId: original.id,
-      reason: step.input.reason,
-      replacement: step.input.replacement,
-    }, expected), tx)
+    result = await executeBrokerage(
+      identity,
+      "reversePayment",
+      env(
+        {
+          sourceId: original.sourceId,
+          sourceType: original.sourceType,
+          paymentId: original.id,
+          reason: step.input.reason,
+          replacement: step.input.replacement,
+        },
+        expected
+      ),
+      tx
+    )
     replacementId = original.id
     payments.delete(step.input.reversalOfSourceKey)
   } else {
     if (step.command !== "recordBrokerageFee" && facility)
       expected.push(ref("CashFacility", facility))
-    result = await executeBrokerage(identity, step.command, env({
-      ...step.input, dealId: deal.id,
-    }, expected), tx)
+    result = await executeBrokerage(
+      identity,
+      step.command,
+      env(
+        {
+          ...step.input,
+          dealId: deal.id,
+        },
+        expected
+      ),
+      tx
+    )
   }
 
   const [fees, facilityPayments] = await Promise.all([
-    tx.brokerageFeeReceipt.findMany({ where: { dealId: deal.id, commandId: result.commandId, reversalOf: null } }),
-    facility ? tx.facilityPayment.findMany({ where: { facilityId: facility.id, commandId: result.commandId, reversalOf: null } }) : [],
+    tx.brokerageFeeReceipt.findMany({
+      where: { dealId: deal.id, commandId: result.commandId, reversalOf: null },
+    }),
+    facility
+      ? tx.facilityPayment.findMany({
+          where: {
+            facilityId: facility.id,
+            commandId: result.commandId,
+            reversalOf: null,
+          },
+        })
+      : [],
   ])
   for (const fact of [...fees, ...facilityPayments]) {
     const sourceKey = `${step.sourceKey}/${fact.lineKey === `replace:${replacementId}` ? "replacement" : fact.lineKey}`
-    need(fact.direction === "IN" || fact.direction === "OUT", field, "Unexpected payment direction")
-    need(fact.method === "CASH" || fact.method === "BANK_TRANSFER", field, "Unexpected payment method")
-    const owner = "facilityId" in fact
-      ? { sourceType: "FACILITY" as const, sourceId: fact.facilityId, category: fact.component }
-      : { sourceType: "BROKERAGE_FEE" as const, sourceId: fact.dealId, category: fact.category }
+    need(
+      fact.direction === "IN" || fact.direction === "OUT",
+      field,
+      "Unexpected payment direction"
+    )
+    need(
+      fact.method === "CASH" || fact.method === "BANK_TRANSFER",
+      field,
+      "Unexpected payment method"
+    )
+    const owner =
+      "facilityId" in fact
+        ? {
+            sourceType: "FACILITY" as const,
+            sourceId: fact.facilityId,
+            category: fact.component,
+          }
+        : {
+            sourceType: "BROKERAGE_FEE" as const,
+            sourceId: fact.dealId,
+            category: fact.category,
+          }
     payments.set(sourceKey, {
       id: fact.id,
       sourceType: owner.sourceType,
@@ -1385,7 +1453,10 @@ async function restoreBrokerageCash(
 }
 
 function loadHistoricalDeal(tx: Tx, dealId: string) {
-  return tx.brokerageDeal.findUnique({ where: { id: dealId }, include: dealInclude })
+  return tx.brokerageDeal.findUnique({
+    where: { id: dealId },
+    include: dealInclude,
+  })
 }
 
 async function restoreBrokerageProgress(
@@ -1402,9 +1473,18 @@ async function restoreBrokerageProgress(
     need(deal, "existingDealId", "Brokerage deal could not be resolved")
     const dealRef = ref("BrokerageDeal", deal)
     if ("sourceKey" in step) {
-      need(!stepKeys.has(step.sourceKey), "history", "Payment step source key occurs more than once")
+      need(
+        !stepKeys.has(step.sourceKey),
+        "history",
+        "Payment step source key occurs more than once"
+      )
       stepKeys.add(step.sourceKey)
-      result = await restoreBrokerageCash({ tx, identity }, deal, step, payments)
+      result = await restoreBrokerageCash(
+        { tx, identity },
+        deal,
+        step,
+        payments
+      )
     } else if (step.command === "dispatchBatch") {
       const dispatched = await executeBrokerage(
         identity,
@@ -1450,11 +1530,17 @@ async function restoreBrokerageProgress(
         env(input, [
           dealRef,
           ...(step.command === "requestFacility"
-            ? deal.facility ? [ref("CashFacility", deal.facility)] : []
-            : [ref(
-                "FinanceCompany",
-                await tx.financeCompany.findUniqueOrThrow({ where: { id: deal.companyId } })
-              )]),
+            ? deal.facility
+              ? [ref("CashFacility", deal.facility)]
+              : []
+            : [
+                ref(
+                  "FinanceCompany",
+                  await tx.financeCompany.findUniqueOrThrow({
+                    where: { id: deal.companyId },
+                  })
+                ),
+              ]),
         ]),
         tx
       )

@@ -32,7 +32,11 @@ import {
 import { project, readScope, requireFields } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { currentSettings } from "./settings"
-import { appliedAllocations, checkIndependentLenderReceipt, refreshLenderEntitlement } from "./reconciliation"
+import {
+  appliedAllocations,
+  checkIndependentLenderReceipt,
+  refreshLenderEntitlement,
+} from "./reconciliation"
 import { invoiceDetail, queueInvoice } from "./invoice-data"
 import { A, C, tradeInResidual } from "../money"
 import {
@@ -54,10 +58,19 @@ export const saleInclude = {
   customer: true,
   reservation: true,
   inventoryLease: true,
-  entitlement: { select: {
-    allocations: { select: { amount: true, reversalOf: true } },
-    discrepancies: { where: { resolution: "CARRY_CREDIT" }, select: { allocationId: true, expectedMinusAllocated: true, resolution: true } },
-  } },
+  entitlement: {
+    select: {
+      allocations: { select: { amount: true, reversalOf: true } },
+      discrepancies: {
+        where: { resolution: "CARRY_CREDIT" },
+        select: {
+          allocationId: true,
+          expectedMinusAllocated: true,
+          resolution: true,
+        },
+      },
+    },
+  },
   purchaseRecord: { include: purchaseInclude },
   receipts: {
     orderBy: [
@@ -111,18 +124,30 @@ async function resolveActorNames(
   return new Map(users.map((u) => [u.id, u.name]))
 }
 
-export const directLenderPaid = (row: SaleRow) => row.receipts
-  .filter((receipt) => receipt.category === "LENDER")
-  .reduce((total, receipt) => total + (receipt.direction === "IN" ? receipt.amount : -receipt.amount), 0n)
+export const directLenderPaid = (row: SaleRow) =>
+  row.receipts
+    .filter((receipt) => receipt.category === "LENDER")
+    .reduce(
+      (total, receipt) =>
+        total + (receipt.direction === "IN" ? receipt.amount : -receipt.amount),
+      0n
+    )
 
 export function lenderPaid(row: SaleRow) {
   const direct = directLenderPaid(row)
   if (!row.inventoryLease) return direct
-  const received = direct + (row.entitlement ? appliedAllocations(row.entitlement).applied : 0n)
-  return received > row.inventoryLease.principal ? row.inventoryLease.principal : received
+  const received =
+    direct +
+    (row.entitlement ? appliedAllocations(row.entitlement).applied : 0n)
+  return received > row.inventoryLease.principal
+    ? row.inventoryLease.principal
+    : received
 }
 
-export function reservationDTO(row: NonNullable<SaleRow["reservation"]>, now = new Date()) {
+export function reservationDTO(
+  row: NonNullable<SaleRow["reservation"]>,
+  now = new Date()
+) {
   const expiryFlagPending = row.state === "ACTIVE" && row.expiresAt <= now
   const policy = row.policySnapshot as { percentDisplay: string }
   return {
@@ -133,9 +158,13 @@ export function reservationDTO(row: NonNullable<SaleRow["reservation"]>, now = n
     percentDisplay: policy.percentDisplay,
     validThrough: formatDate(row.validThrough),
     expiresAt: row.expiresAt.toISOString(),
-    effectiveStatus: (expiryFlagPending ? "EXPIRED" : row.state) as NonNullable<SaleDTO["reservation"]>["effectiveStatus"],
+    effectiveStatus: (expiryFlagPending ? "EXPIRED" : row.state) as NonNullable<
+      SaleDTO["reservation"]
+    >["effectiveStatus"],
     expiryFlagPending,
-    ...(row.retainedAmount !== null ? { retainedAmount: row.retainedAmount.toString() } : {}),
+    ...(row.retainedAmount !== null
+      ? { retainedAmount: row.retainedAmount.toString() }
+      : {}),
   }
 }
 
@@ -146,23 +175,52 @@ export function saleDTO(
   const timeline: SaleDTO["timeline"] = [
     {
       at: row.openedAt.toISOString(),
-      action: row.reservation ? "RESERVATION_PLACED" : row.inventoryLease ? "FINANCE_STARTED" : row.approvalId ? "DISCOUNT_APPROVED_SALE" : "COMPLETED",
+      action: row.reservation
+        ? "RESERVATION_PLACED"
+        : row.inventoryLease
+          ? "FINANCE_STARTED"
+          : row.approvalId
+            ? "DISCOUNT_APPROVED_SALE"
+            : "COMPLETED",
       actorName:
         actorNames.get(row.completion?.createdBy ?? row.createdBy) ?? "System",
     },
-    ...(row.reservation?.warnedAt ? [{
-      at: row.reservation.warnedAt.toISOString(), action: "ADVANCE_EXPIRING", actorName: "System",
-    }] : []),
-    ...(row.reservation?.expiredAt ? [{
-      at: row.reservation.expiredAt.toISOString(), action: "ADVANCE_EXPIRED", actorName: "System",
-    }] : []),
-    ...(row.inventoryLease?.issueDate ? [{
-      at: row.inventoryLease.issueDate.toISOString(), action: "DO_RECEIVED", actorName: "Staff",
-    }] : []),
-    ...(row.completion && (row.reservation || row.inventoryLease) ? [{
-      at: row.completion.recordedAt.toISOString(), action: "HANDOVER_COMPLETED",
-      actorName: actorNames.get(row.completion.createdBy) ?? "Staff",
-    }] : []),
+    ...(row.reservation?.warnedAt
+      ? [
+          {
+            at: row.reservation.warnedAt.toISOString(),
+            action: "ADVANCE_EXPIRING",
+            actorName: "System",
+          },
+        ]
+      : []),
+    ...(row.reservation?.expiredAt
+      ? [
+          {
+            at: row.reservation.expiredAt.toISOString(),
+            action: "ADVANCE_EXPIRED",
+            actorName: "System",
+          },
+        ]
+      : []),
+    ...(row.inventoryLease?.issueDate
+      ? [
+          {
+            at: row.inventoryLease.issueDate.toISOString(),
+            action: "DO_RECEIVED",
+            actorName: "Staff",
+          },
+        ]
+      : []),
+    ...(row.completion && (row.reservation || row.inventoryLease)
+      ? [
+          {
+            at: row.completion.recordedAt.toISOString(),
+            action: "HANDOVER_COMPLETED",
+            actorName: actorNames.get(row.completion.createdBy) ?? "Staff",
+          },
+        ]
+      : []),
     ...row.receipts.map((r) => ({
       at: r.recordedAt.toISOString(),
       action: `SALE_RECEIPT_${r.direction}${r.reversalOf ? "_REVERSAL" : ""}`,
@@ -173,9 +231,7 @@ export function saleDTO(
       action: `SALE_EDIT_V${c.version}`,
       actorName: actorNames.get(c.createdBy) ?? "System",
     })),
-  ].sort(
-    (a, b) => a.at.localeCompare(b.at) || a.action.localeCompare(b.action)
-  )
+  ].sort((a, b) => a.at.localeCompare(b.at) || a.action.localeCompare(b.action))
   const latestCorrection = row.corrections.at(-1)
   const correctedSnap = latestCorrection?.correctedSnapshot as
     | { saleDate?: string; handoverMileage?: number }
@@ -189,19 +245,29 @@ export function saleDTO(
     state: row.state,
     price: row.agreedPrice.toString(),
     ...(row.reference !== null ? { reference: row.reference } : {}),
-    ...(row.reservation ? { reservation: reservationDTO(row.reservation) } : {}),
-    ...(row.inventoryLease ? {
-      finance: {
-        companyId: row.inventoryLease.companyId,
-        companyName: row.inventoryLease.companyName,
-        down: row.inventoryLease.down.toString(),
-        principal: row.inventoryLease.principal.toString(),
-        termMonths: row.inventoryLease.termMonths,
-        ...(row.inventoryLease.doAttachmentId ? { doAttachmentId: row.inventoryLease.doAttachmentId } : {}),
-        ...(row.inventoryLease.issueDate ? { issueDate: formatDate(row.inventoryLease.issueDate) } : {}),
-        lenderOutstanding: (row.inventoryLease.principal - lenderPaid(row)).toString(),
-      },
-    } : {}),
+    ...(row.reservation
+      ? { reservation: reservationDTO(row.reservation) }
+      : {}),
+    ...(row.inventoryLease
+      ? {
+          finance: {
+            companyId: row.inventoryLease.companyId,
+            companyName: row.inventoryLease.companyName,
+            down: row.inventoryLease.down.toString(),
+            principal: row.inventoryLease.principal.toString(),
+            termMonths: row.inventoryLease.termMonths,
+            ...(row.inventoryLease.doAttachmentId
+              ? { doAttachmentId: row.inventoryLease.doAttachmentId }
+              : {}),
+            ...(row.inventoryLease.issueDate
+              ? { issueDate: formatDate(row.inventoryLease.issueDate) }
+              : {}),
+            lenderOutstanding: (
+              row.inventoryLease.principal - lenderPaid(row)
+            ).toString(),
+          },
+        }
+      : {}),
     ...(row.tradeIn
       ? {
           tradeIn: {
@@ -217,7 +283,8 @@ export function saleDTO(
       ? {
           completion: {
             id: row.completion.id,
-            date: correctedSnap?.saleDate ?? formatDate(row.completion.saleDate),
+            date:
+              correctedSnap?.saleDate ?? formatDate(row.completion.saleDate),
             mileage:
               correctedSnap?.handoverMileage ?? row.completion.handoverMileage,
             basisVersionId:
@@ -275,7 +342,10 @@ export function visibleSale(
     ["vehicle", "purchaseDate", "purchasePrice", "mileage"].every((f) =>
       actor.ability.can(
         "create",
-        subject("PurchaseRecord", { createdBy: actor.userId, status: "PURCHASED" }),
+        subject("PurchaseRecord", {
+          createdBy: actor.userId,
+          status: "PURCHASED",
+        }),
         f
       )
     )
@@ -299,23 +369,50 @@ export function visibleSale(
     nextActions.push("requestApproval")
   }
   if ("nextActions" in result) {
-    const canUpdate = (field: string) => actor.ability.can("update", subject("SaleCase", saleAuth(row)), field)
+    const canUpdate = (field: string) =>
+      actor.ability.can("update", subject("SaleCase", saleAuth(row)), field)
     if (row.state === "RESERVED" || row.state === "EXPIRED") {
-      for (const action of ["convertReservation", "cancelRetained", "startFinance"])
+      for (const action of [
+        "convertReservation",
+        "cancelRetained",
+        "startFinance",
+      ])
         if (canUpdate(action)) nextActions.push(action)
     }
-    if (["RESERVED", "EXPIRED", "FINANCE_PENDING", "DO_RECEIVED"].includes(row.state)
-      && canUpdate("refund")
-      && actor.ability.can("create", subject("ApprovalRequest", { createdBy: actor.userId }), "proposal.kind"))
+    if (
+      ["RESERVED", "EXPIRED", "FINANCE_PENDING", "DO_RECEIVED"].includes(
+        row.state
+      ) &&
+      canUpdate("refund") &&
+      actor.ability.can(
+        "create",
+        subject("ApprovalRequest", { createdBy: actor.userId }),
+        "proposal.kind"
+      )
+    )
       nextActions.push("requestApproval")
-    if (["FINANCE_PENDING", "DO_RECEIVED"].includes(row.state) && !row.reservation
-      && canUpdate("cancelFinanceError")
-      && actor.ability.can("create", subject("ApprovalRequest", { createdBy: actor.userId }), "proposal.operation"))
+    if (
+      ["FINANCE_PENDING", "DO_RECEIVED"].includes(row.state) &&
+      !row.reservation &&
+      canUpdate("cancelFinanceError") &&
+      actor.ability.can(
+        "create",
+        subject("ApprovalRequest", { createdBy: actor.userId }),
+        "proposal.operation"
+      )
+    )
       nextActions.push("cancelFinanceError")
-    if (row.state === "FINANCE_PENDING" && canUpdate("recordDO")) nextActions.push("recordDO")
-    if (row.state === "DO_RECEIVED" && canUpdate("confirmDOAndHandover")) nextActions.push("confirmDOAndHandover")
-    if (row.state === "COMPLETED" && row.inventoryLease && row.inventoryLease.principal > lenderPaid(row)
-      && canUpdate("recordLenderReceipt")) nextActions.push("recordLenderReceipt")
+    if (row.state === "FINANCE_PENDING" && canUpdate("recordDO"))
+      nextActions.push("recordDO")
+    if (row.state === "DO_RECEIVED" && canUpdate("confirmDOAndHandover"))
+      nextActions.push("confirmDOAndHandover")
+    if (
+      row.state === "COMPLETED" &&
+      row.inventoryLease &&
+      row.inventoryLease.principal > lenderPaid(row) &&
+      canUpdate("recordLenderReceipt")
+    )
+      nextActions.push("recordLenderReceipt")
     result.nextActions = nextActions
   }
   result.redactedFields = [
@@ -474,7 +571,12 @@ export function immediateCreateFields(input: ImmediateSale) {
 export async function recordHistoricalSaleReversals(
   tx: Tx,
   actor: Actor,
-  sale: { id: string; purchaseRecordId: string; createdBy: string; customerId: string },
+  sale: {
+    id: string
+    purchaseRecordId: string
+    createdBy: string
+    customerId: string
+  },
   commandId: string,
   entries: readonly LegacyPayment[]
 ) {
@@ -482,7 +584,10 @@ export async function recordHistoricalSaleReversals(
   const settings = await currentSettings(tx)
   for (const [index, entry] of entries.entries()) {
     requireFields(actor.ability, "SaleCase", "pay", sale, [
-      "amount", "date", "method", ...(entry.reference ? ["reference"] : []),
+      "amount",
+      "date",
+      "method",
+      ...(entry.reference ? ["reference"] : []),
     ])
     const data = {
       saleCaseId: sale.id,
@@ -498,7 +603,11 @@ export async function recordHistoricalSaleReversals(
       commandId,
     }
     const original = await tx.saleReceipt.create({
-      data: { ...data, direction: "IN", lineKey: `historical-original:${index}` },
+      data: {
+        ...data,
+        direction: "IN",
+        lineKey: `historical-original:${index}`,
+      },
     })
     await tx.saleReceipt.create({
       data: {
@@ -584,7 +693,10 @@ export async function completeImmediateInTx(
   }
 
   await lockEntities(tx, {
-    vehicles: [planCycle.vehicleId, ...(preIntakeVehicleId ? [preIntakeVehicleId] : [])],
+    vehicles: [
+      planCycle.vehicleId,
+      ...(preIntakeVehicleId ? [preIntakeVehicleId] : []),
+    ],
     purchases: [planCycle.id],
     customers: [input.customerId],
   })
@@ -777,8 +889,15 @@ export async function completeImmediateInTx(
   if (row.revision === 2147483647 || row.vehicle.revision === 2147483647)
     fail("REVISION_EXHAUSTED")
 
-  const now = reviewedAt ?? (params.historical?.closedAt ? new Date(params.historical.closedAt) : new Date())
-  if (params.historical?.closedAt && (now > new Date() || now < new Date(`${input.date}T00:00:00+05:30`)))
+  const now =
+    reviewedAt ??
+    (params.historical?.closedAt
+      ? new Date(params.historical.closedAt)
+      : new Date())
+  if (
+    params.historical?.closedAt &&
+    (now > new Date() || now < new Date(`${input.date}T00:00:00+05:30`))
+  )
     fail("INVALID_INPUT", 422)
   const settings = await currentSettings(tx)
   const latestBasis = row.basisVersions.at(-1)!
@@ -885,7 +1004,9 @@ export async function completeImmediateInTx(
         method: input.method,
         currency: settings.currency,
         scale: settings.scale,
-        reference: params.historical ? params.historical.receiptReference : input.reference ?? null,
+        reference: params.historical
+          ? params.historical.receiptReference
+          : (input.reference ?? null),
         createdBy: actor.userId,
         commandId,
         lineKey: "sale",
@@ -893,13 +1014,27 @@ export async function completeImmediateInTx(
     })
   }
   const reversedReceipts = params.historical?.reversedReceipts ?? []
-  if (reversedReceipts.some((entry) =>
-    entry.category !== "SALE" || entry.date > input.date ||
-    entry.date < formatDate(row.receivedDate ?? row.purchaseDate)
-  )) fail("INVALID_INPUT", 422)
-  await recordHistoricalSaleReversals(tx, actor, {
-    id: saleCaseId, purchaseRecordId: row.id, createdBy: initiatedBy, customerId: customer.id,
-  }, commandId, reversedReceipts)
+  if (
+    reversedReceipts.some(
+      (entry) =>
+        entry.category !== "SALE" ||
+        entry.date > input.date ||
+        entry.date < formatDate(row.receivedDate ?? row.purchaseDate)
+    )
+  )
+    fail("INVALID_INPUT", 422)
+  await recordHistoricalSaleReversals(
+    tx,
+    actor,
+    {
+      id: saleCaseId,
+      purchaseRecordId: row.id,
+      createdBy: initiatedBy,
+      customerId: customer.id,
+    },
+    commandId,
+    reversedReceipts
+  )
   let acquiredCycle: {
     cycleId: string
     vehicleId: string
@@ -970,8 +1105,20 @@ export async function completeImmediateInTx(
   const afterSaleDto = saleDTO(afterSale, actorNames)
 
   for (const [entityType, entityId, rev, before, after] of [
-    ["PurchaseRecord", row.id, afterPurchase.revision, purchaseDTO(row), purchaseDTO(afterPurchase)],
-    ["Vehicle", row.vehicleId, afterPurchase.vehicle.revision, vehicleDTO(row), vehicleDTO(afterPurchase)],
+    [
+      "PurchaseRecord",
+      row.id,
+      afterPurchase.revision,
+      purchaseDTO(row),
+      purchaseDTO(afterPurchase),
+    ],
+    [
+      "Vehicle",
+      row.vehicleId,
+      afterPurchase.vehicle.revision,
+      vehicleDTO(row),
+      vehicleDTO(afterPurchase),
+    ],
     ["SaleCase", saleCaseId, 1, null, afterSaleDto],
   ] as const) {
     await audit(tx, {
@@ -1031,12 +1178,28 @@ export async function completeImmediateInTx(
     saleRevision: 1,
     affected: [
       { type: "SaleCase" as const, id: saleCaseId, revision: 1 },
-      { type: "PurchaseRecord" as const, id: row.id, revision: afterPurchase.revision },
-      { type: "Vehicle" as const, id: row.vehicleId, revision: afterPurchase.vehicle.revision },
+      {
+        type: "PurchaseRecord" as const,
+        id: row.id,
+        revision: afterPurchase.revision,
+      },
+      {
+        type: "Vehicle" as const,
+        id: row.vehicleId,
+        revision: afterPurchase.vehicle.revision,
+      },
       ...(acquiredCycle
         ? [
-            { type: "PurchaseRecord" as const, id: acquiredCycle.cycleId, revision: 1 },
-            { type: "Vehicle" as const, id: acquiredCycle.vehicleId, revision: acquiredCycle.vehicleRevision },
+            {
+              type: "PurchaseRecord" as const,
+              id: acquiredCycle.cycleId,
+              revision: 1,
+            },
+            {
+              type: "Vehicle" as const,
+              id: acquiredCycle.vehicleId,
+              revision: acquiredCycle.vehicleRevision,
+            },
           ]
         : []),
     ] as Dependency[],
@@ -1067,21 +1230,20 @@ export async function saleReplay(
     "identityRevision",
   ])
   if (receipt.commandName === "completeImmediate") {
-    requireFields(
-      actor.ability,
-      "SaleCase",
-      "create",
-      saleAuth(sale, names),
-      ["cycleId", "customerId", "kind", "price", "date", "mileage", "method"]
-    )
+    requireFields(actor.ability, "SaleCase", "create", saleAuth(sale, names), [
+      "cycleId",
+      "customerId",
+      "kind",
+      "price",
+      "date",
+      "mileage",
+      "method",
+    ])
   } else if (receipt.commandName === "intakeTradeIn") {
-    requireFields(
-      actor.ability,
-      "SaleCase",
-      "update",
-      saleAuth(sale, names),
-      ["vehicle", "mileage"]
-    )
+    requireFields(actor.ability, "SaleCase", "update", saleAuth(sale, names), [
+      "vehicle",
+      "mileage",
+    ])
     const seller = await tx.customer.findUnique({
       where: { id: sale.customerId },
       select: { id: true, active: true, createdBy: true },
@@ -1090,7 +1252,8 @@ export async function saleReplay(
     requireFields(actor.ability, "Customer", "read", seller, ["id", "active"])
   }
   const acq =
-    sale.tradeIn?.intakeCommandId === receipt.id && sale.tradeIn.acquiredPurchaseId
+    sale.tradeIn?.intakeCommandId === receipt.id &&
+    sale.tradeIn.acquiredPurchaseId
       ? await loadPurchase(tx, sale.tradeIn.acquiredPurchaseId)
       : null
   if (acq) {
@@ -1112,15 +1275,34 @@ export async function saleReplay(
     affected: [
       { type: "SaleCase", id: sale.id, revision: sale.revision },
       { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
-      { type: "Vehicle", id: cycle.vehicleId, revision: cycle.vehicle.revision },
+      {
+        type: "Vehicle",
+        id: cycle.vehicleId,
+        revision: cycle.vehicle.revision,
+      },
       ...(acq
         ? [
-            { type: "PurchaseRecord" as const, id: acq.id, revision: acq.revision },
-            { type: "Vehicle" as const, id: acq.vehicleId, revision: acq.vehicle.revision },
+            {
+              type: "PurchaseRecord" as const,
+              id: acq.id,
+              revision: acq.revision,
+            },
+            {
+              type: "Vehicle" as const,
+              id: acq.vehicleId,
+              revision: acq.vehicle.revision,
+            },
           ]
         : []),
     ],
-    invalidate: ["sales", "purchases", "inventory", "customers", "reports", "dashboard"],
+    invalidate: [
+      "sales",
+      "purchases",
+      "inventory",
+      "customers",
+      "reports",
+      "dashboard",
+    ],
   }
 }
 
@@ -1132,10 +1314,11 @@ export async function executeSale(
   historical?: HistoricalSale
 ): Promise<Applied> {
   if (historical && !existingTx) fail("INVALID_INPUT", 422)
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   checkMoneyInput(raw)
   const parsed = saleEnvelope(name).safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -1191,7 +1374,14 @@ export async function executeSale(
         replayed: false,
         result: { type: "SaleCase" as const, id: saleId, revision: 1 },
         affected: done.affected ?? [],
-        invalidate: ["sales", "purchases", "inventory", "customers", "reports", "dashboard"],
+        invalidate: [
+          "sales",
+          "purchases",
+          "inventory",
+          "customers",
+          "reports",
+          "dashboard",
+        ],
       }
     }
 
@@ -1204,15 +1394,27 @@ export async function executeSale(
 
     const planSale = await tx.saleCase.findUnique({
       where: { id: input.saleId },
-      select: { id: true, purchaseRecordId: true, purchaseRecord: { select: { vehicleId: true } } },
+      select: {
+        id: true,
+        purchaseRecordId: true,
+        purchaseRecord: { select: { vehicleId: true } },
+      },
     })
     if (!planSale) fail("NOT_FOUND", 404)
     const preIntakeVehicle = await tx.vehicle.findUnique({
-      where: { normalizedEngine_normalizedChassis: { normalizedEngine: engine, normalizedChassis: chassis } },
+      where: {
+        normalizedEngine_normalizedChassis: {
+          normalizedEngine: engine,
+          normalizedChassis: chassis,
+        },
+      },
       select: { id: true },
     })
     await lockEntities(tx, {
-      vehicles: [planSale.purchaseRecord.vehicleId, ...(preIntakeVehicle ? [preIntakeVehicle.id] : [])],
+      vehicles: [
+        planSale.purchaseRecord.vehicleId,
+        ...(preIntakeVehicle ? [preIntakeVehicle.id] : []),
+      ],
       purchases: [planSale.purchaseRecordId],
       sales: [planSale.id],
     })
@@ -1279,7 +1481,9 @@ export async function executeSale(
       intake: {
         vehicle: input.vehicle,
         mileage: input.mileage,
-        ...(input.listedPrice !== undefined ? { listedPrice: input.listedPrice } : {}),
+        ...(input.listedPrice !== undefined
+          ? { listedPrice: input.listedPrice }
+          : {}),
       },
       expected: envelope.expected,
       saleDate,
@@ -1421,7 +1625,14 @@ export async function executeSale(
           revision: intakeResult.vehicleRevision,
         },
       ],
-      invalidate: ["sales", "purchases", "inventory", "customers", "reports", "dashboard"],
+      invalidate: [
+        "sales",
+        "purchases",
+        "inventory",
+        "customers",
+        "reports",
+        "dashboard",
+      ],
     }
   }, existingTx)
 }
@@ -1479,11 +1690,15 @@ export async function prepareSaleEditApproval(
     await lockEntities(tx, {
       vehicles: [
         plan.purchaseRecord.vehicleId,
-        ...(plan.tradeIn?.acquiredVehicleId ? [plan.tradeIn.acquiredVehicleId] : []),
+        ...(plan.tradeIn?.acquiredVehicleId
+          ? [plan.tradeIn.acquiredVehicleId]
+          : []),
       ],
       purchases: [
         plan.purchaseRecordId,
-        ...(plan.tradeIn?.acquiredPurchaseId ? [plan.tradeIn.acquiredPurchaseId] : []),
+        ...(plan.tradeIn?.acquiredPurchaseId
+          ? [plan.tradeIn.acquiredPurchaseId]
+          : []),
       ],
       sales: [plan.id],
       customers: [
@@ -1530,24 +1745,42 @@ export async function prepareSaleEditApproval(
     ...(input.cashCorrections.length ? ["cashCorrections"] : []),
   ])
 
-  if (sale.state !== "COMPLETED" || cycle.status !== "SOLD") fail("INVALID_STATE")
-  if (input.patch.tradeIn && sale.kind !== "TRADE_IN") fail("INVALID_INPUT", 422)
+  if (sale.state !== "COMPLETED" || cycle.status !== "SOLD")
+    fail("INVALID_STATE")
+  if (input.patch.tradeIn && sale.kind !== "TRADE_IN")
+    fail("INVALID_INPUT", 422)
 
-  let nextCustomer: { id: string; revision: number; active: boolean; fullName: string } | null = null
+  let nextCustomer: {
+    id: string
+    revision: number
+    active: boolean
+    fullName: string
+  } | null = null
   if (input.patch.customerId) {
-    const cu = await tx.customer.findUnique({ where: { id: input.patch.customerId } })
+    const cu = await tx.customer.findUnique({
+      where: { id: input.patch.customerId },
+    })
     if (!cu) fail("NOT_FOUND", 404)
-    requireFields(actor.ability, "Customer", "read", cu, ["id", "revision", "active"])
+    requireFields(actor.ability, "Customer", "read", cu, [
+      "id",
+      "revision",
+      "active",
+    ])
     if (!cu.active) fail("INVALID_STATE")
     nextCustomer = cu
   }
 
-  const nextPrice = input.patch.price ? BigInt(input.patch.price) : sale.agreedPrice
+  const nextPrice = input.patch.price
+    ? BigInt(input.patch.price)
+    : sale.agreedPrice
   if (nextPrice <= 0n || nextPrice > A) fail("INVALID_INPUT", 422)
   const nextTradeInVal = input.patch.tradeIn
     ? BigInt(input.patch.tradeIn.value)
-    : sale.tradeIn?.value ?? 0n
-  if (sale.kind === "TRADE_IN" && (nextTradeInVal <= 0n || nextTradeInVal > nextPrice))
+    : (sale.tradeIn?.value ?? 0n)
+  if (
+    sale.kind === "TRADE_IN" &&
+    (nextTradeInVal <= 0n || nextTradeInVal > nextPrice)
+  )
     fail("OVERALLOWANCE", 422)
 
   const lease = sale.inventoryLease
@@ -1555,10 +1788,15 @@ export async function prepareSaleEditApproval(
   if (finance) {
     if (!lease) fail("INVALID_INPUT", 422)
     // The lender and its contracted principal own the original entitlement.
-    if (finance.companyId !== lease.companyId || BigInt(finance.financeAmount) !== lease.principal)
+    if (
+      finance.companyId !== lease.companyId ||
+      BigInt(finance.financeAmount) !== lease.principal
+    )
       fail("OBLIGATION_OPEN")
     requireFields(actor.ability, "SaleCase", "read", saleAuth(sale), [
-      "finance.companyId", "finance.principal", "finance.doAttachmentId",
+      "finance.companyId",
+      "finance.principal",
+      "finance.doAttachmentId",
     ])
     if (finance.doAttachmentId !== lease.doAttachmentId)
       fail("INVALID_INPUT", 422)
@@ -1567,7 +1805,8 @@ export async function prepareSaleEditApproval(
   const tradeInValueChanged =
     Boolean(input.patch.tradeIn) && nextTradeInVal !== sale.tradeIn?.value
   const customerChanged =
-    Boolean(input.patch.customerId) && input.patch.customerId !== sale.customerId
+    Boolean(input.patch.customerId) &&
+    input.patch.customerId !== sale.customerId
 
   if (
     tradeInValueChanged &&
@@ -1580,13 +1819,22 @@ export async function prepareSaleEditApproval(
   const today = colomboToday()
   if (saleDateStr > today || saleDateStr < formatDate(cycle.purchaseDate))
     fail("INVALID_INPUT", 422)
-  const issueDate = finance?.doIssueDate ?? (lease?.issueDate && formatDate(lease.issueDate))
-  if (lease && (!issueDate || issueDate < formatDate(lease.openedDate) || issueDate > saleDateStr))
+  const issueDate =
+    finance?.doIssueDate ?? (lease?.issueDate && formatDate(lease.issueDate))
+  if (
+    lease &&
+    (!issueDate ||
+      issueDate < formatDate(lease.openedDate) ||
+      issueDate > saleDateStr)
+  )
     fail("INVALID_INPUT", 422)
   if (sale.reservation && saleDateStr < formatDate(sale.reservation.placedDate))
     fail("INVALID_INPUT", 422)
   const nextCycle = await tx.purchaseRecord.findFirst({
-    where: { vehicleId: cycle.vehicleId, cycleNumber: { gt: cycle.cycleNumber } },
+    where: {
+      vehicleId: cycle.vehicleId,
+      cycleNumber: { gt: cycle.cycleNumber },
+    },
     orderBy: { cycleNumber: "asc" },
     select: { purchaseDate: true },
   })
@@ -1598,10 +1846,13 @@ export async function prepareSaleEditApproval(
       .filter((m) => m.sourceSaleCompletionId !== sale.completion!.id)
       .sort(
         (a, b) =>
-          formatDate(a.recordedDate).localeCompare(formatDate(b.recordedDate)) ||
-          a.id.localeCompare(b.id)
+          formatDate(a.recordedDate).localeCompare(
+            formatDate(b.recordedDate)
+          ) || a.id.localeCompare(b.id)
       )
-    const before = prior.filter((m) => formatDate(m.recordedDate) <= saleDateStr).at(-1)
+    const before = prior
+      .filter((m) => formatDate(m.recordedDate) <= saleDateStr)
+      .at(-1)
     if (before && input.patch.handoverMileage < before.reading)
       fail("INVALID_INPUT", 422)
   }
@@ -1611,50 +1862,85 @@ export async function prepareSaleEditApproval(
   const add = (category: string, amount: bigint) =>
     projected.set(category, (projected.get(category) ?? 0n) + amount)
   for (const receipt of sale.receipts)
-    add(receipt.category, receipt.direction === "IN" ? receipt.amount : -receipt.amount)
+    add(
+      receipt.category,
+      receipt.direction === "IN" ? receipt.amount : -receipt.amount
+    )
   for (const corr of input.cashCorrections) {
     if (seenPaymentIds.has(corr.paymentId)) fail("INVALID_INPUT", 422)
     seenPaymentIds.add(corr.paymentId)
     const target = sale.receipts.find((r) => r.id === corr.paymentId)
     if (!target) fail("NOT_FOUND", 404)
-    if (target.direction !== "IN" || target.reversalOf ||
-      sale.receipts.some((r) => r.reversalOf === target.id))
+    if (
+      target.direction !== "IN" ||
+      target.reversalOf ||
+      sale.receipts.some((r) => r.reversalOf === target.id)
+    )
       fail("INVALID_STATE")
-    if (target.category === "ADVANCE" &&
-      (!corr.replacement || BigInt(corr.replacement.amount) !== target.amount ||
-        corr.replacement.date !== formatDate(target.occurredDate)))
+    if (
+      target.category === "ADVANCE" &&
+      (!corr.replacement ||
+        BigInt(corr.replacement.amount) !== target.amount ||
+        corr.replacement.date !== formatDate(target.occurredDate))
+    )
       fail("OBLIGATION_OPEN")
     if (corr.replacement) {
       const { date, method, reference } = corr.replacement
-      if (date > today || date < formatDate(cycle.purchaseDate) ||
+      if (
+        date > today ||
+        date < formatDate(cycle.purchaseDate) ||
         (target.category === "BALANCE" &&
-          (date < formatDate(sale.reservation!.placedDate) || date > saleDateStr)) ||
-        (target.category === "DOWN_PAYMENT" && date !== formatDate(lease!.openedDate)) ||
+          (date < formatDate(sale.reservation!.placedDate) ||
+            date > saleDateStr)) ||
+        (target.category === "DOWN_PAYMENT" &&
+          date !== formatDate(lease!.openedDate)) ||
         (target.category === "LENDER" &&
-          (date < formatDate(lease!.openedDate) || (method === "CASH" && !reference))))
+          (date < formatDate(lease!.openedDate) ||
+            (method === "CASH" && !reference)))
+      )
         fail("INVALID_INPUT", 422)
     }
     if (target.category === "LENDER" && corr.replacement)
-      await checkIndependentLenderReceipt(tx, lease!.companyId, corr.replacement)
-    add(target.category, BigInt(corr.replacement?.amount ?? "0") - target.amount)
+      await checkIndependentLenderReceipt(
+        tx,
+        lease!.companyId,
+        corr.replacement
+      )
+    add(
+      target.category,
+      BigInt(corr.replacement?.amount ?? "0") - target.amount
+    )
   }
   const amount = (category: string) => projected.get(category) ?? 0n
   const advance = sale.reservation?.amount ?? 0n
   if (lease) {
     const down = finance ? BigInt(finance.downPayment) : lease.down
-    const allocated = sale.entitlement ? appliedAllocations(sale.entitlement).applied : 0n
+    const allocated = sale.entitlement
+      ? appliedAllocations(sale.entitlement).applied
+      : 0n
     const lenderIncreased = amount("LENDER") > directLenderPaid(sale)
-    if (amount("DOWN_PAYMENT") !== down || down + advance + lease.principal !== nextPrice ||
-        amount("LENDER") < 0n || amount("LENDER") > lease.principal ||
-        (lenderIncreased && amount("LENDER") + allocated > lease.principal))
+    if (
+      amount("DOWN_PAYMENT") !== down ||
+      down + advance + lease.principal !== nextPrice ||
+      amount("LENDER") < 0n ||
+      amount("LENDER") > lease.principal ||
+      (lenderIncreased && amount("LENDER") + allocated > lease.principal)
+    )
       fail("BALANCE_MISMATCH", 422)
   } else if (sale.reservation) {
     if (amount("BALANCE") !== nextPrice - advance || nextPrice < advance)
       fail("BALANCE_MISMATCH", 422)
-    if (sale.receipts.some((receipt) => receipt.category === "BALANCE" &&
-        receipt.direction === "IN" && !receipt.reversalOf && !seenPaymentIds.has(receipt.id) &&
-        !sale.receipts.some((r) => r.reversalOf === receipt.id) &&
-        formatDate(receipt.occurredDate) > saleDateStr))
+    if (
+      sale.receipts.some(
+        (receipt) =>
+          receipt.category === "BALANCE" &&
+          receipt.direction === "IN" &&
+          !receipt.reversalOf &&
+          !seenPaymentIds.has(receipt.id) &&
+          !sale.receipts.some((r) => r.reversalOf === receipt.id) &&
+          formatDate(receipt.occurredDate) > saleDateStr
+      )
+    )
       fail("INVALID_INPUT", 422)
   } else if (amount("SALE") !== nextPrice - nextTradeInVal) {
     fail("BALANCE_MISMATCH", 422)
@@ -1683,7 +1969,13 @@ export async function prepareSaleEditApproval(
     { type: "SaleCase", id: sale.id, revision: sale.revision },
     { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
     ...(nextCustomer
-      ? [{ type: "Customer" as const, id: nextCustomer.id, revision: nextCustomer.revision }]
+      ? [
+          {
+            type: "Customer" as const,
+            id: nextCustomer.id,
+            revision: nextCustomer.revision,
+          },
+        ]
       : []),
     ...acquiredRef,
   ]
@@ -1742,7 +2034,9 @@ export async function applySaleEditApproval(
     fail("REVISION_EXHAUSTED")
 
   const nextCustomerId = input.patch.customerId ?? sale.customerId
-  const nextPrice = input.patch.price ? BigInt(input.patch.price) : sale.agreedPrice
+  const nextPrice = input.patch.price
+    ? BigInt(input.patch.price)
+    : sale.agreedPrice
   const nextReference =
     input.patch.reference !== undefined ? input.patch.reference : sale.reference
   const nextNotes =
@@ -1795,10 +2089,9 @@ export async function applySaleEditApproval(
           ? {
               tradeInDescription:
                 input.patch.tradeIn?.description ?? sale.tradeIn.description,
-              tradeInValue: (
-                input.patch.tradeIn
-                  ? BigInt(input.patch.tradeIn.value)
-                  : sale.tradeIn.value
+              tradeInValue: (input.patch.tradeIn
+                ? BigInt(input.patch.tradeIn.value)
+                : sale.tradeIn.value
               ).toString(),
             }
           : {}),
@@ -1813,7 +2106,8 @@ export async function applySaleEditApproval(
 
   let acquiredRowBefore: Awaited<ReturnType<typeof loadPurchase>> = null
   if (sale.tradeIn && (input.patch.tradeIn || input.patch.customerId)) {
-    const nextDesc = input.patch.tradeIn?.description ?? sale.tradeIn.description
+    const nextDesc =
+      input.patch.tradeIn?.description ?? sale.tradeIn.description
     const nextVal = input.patch.tradeIn
       ? BigInt(input.patch.tradeIn.value)
       : sale.tradeIn.value
@@ -1830,7 +2124,10 @@ export async function applySaleEditApproval(
       sale.tradeIn.acquiredPurchaseId &&
       (valueChanged || nextCustomerId !== sale.customerId)
     ) {
-      acquiredRowBefore = await loadPurchase(tx, sale.tradeIn.acquiredPurchaseId)
+      acquiredRowBefore = await loadPurchase(
+        tx,
+        sale.tradeIn.acquiredPurchaseId
+      )
       if (!acquiredRowBefore) fail("NOT_FOUND", 404)
       if (valueChanged && acquiredRowBefore.closedAt !== null)
         fail("OBLIGATION_OPEN")
@@ -1849,7 +2146,10 @@ export async function applySaleEditApproval(
           (acc, r) => acc + (r.invoiceAmount ?? 0n),
           0n
         )
-        const costs = acquiredRowBefore.costs.reduce((acc, c) => acc + c.amount, 0n)
+        const costs = acquiredRowBefore.costs.reduce(
+          (acc, c) => acc + c.amount,
+          0n
+        )
         const nextTotal = nextVal + repairs + costs
         if (nextTotal > C) fail("MONEY_OVERFLOW", 422)
         await tx.cycleBasisVersion.create({
@@ -1923,9 +2223,14 @@ export async function applySaleEditApproval(
     }
   }
 
-  if (input.cashCorrections.some((corr) =>
-    sale.receipts.some((receipt) => receipt.id === corr.paymentId && receipt.category === "LENDER")
-  )) {
+  if (
+    input.cashCorrections.some((corr) =>
+      sale.receipts.some(
+        (receipt) =>
+          receipt.id === corr.paymentId && receipt.category === "LENDER"
+      )
+    )
+  ) {
     await refreshLenderEntitlement(tx, sale.id, {
       commandId,
       userId: actor.userId,
@@ -1947,7 +2252,13 @@ export async function applySaleEditApproval(
     orderBy: { version: "desc" },
   })
   await queueInvoice(
-    tx, afterSale, await currentSettings(tx), actor.userId, commandId, sequence, latestInvoice
+    tx,
+    afterSale,
+    await currentSettings(tx),
+    actor.userId,
+    commandId,
+    sequence,
+    latestInvoice
   )
   const afterCycle = afterSale.purchaseRecord
   const afterNames = await resolveActorNames(tx, [afterSale])
@@ -1955,8 +2266,20 @@ export async function applySaleEditApproval(
 
   for (const [entityType, entityId, rev, before, after] of [
     ["SaleCase", sale.id, afterSale.revision, beforeSale, afterSaleDto],
-    ["PurchaseRecord", cycle.id, afterCycle.revision, beforePurchase, purchaseDTO(afterCycle)],
-    ["Vehicle", cycle.vehicleId, afterCycle.vehicle.revision, beforeVehicle, vehicleDTO(afterCycle)],
+    [
+      "PurchaseRecord",
+      cycle.id,
+      afterCycle.revision,
+      beforePurchase,
+      purchaseDTO(afterCycle),
+    ],
+    [
+      "Vehicle",
+      cycle.vehicleId,
+      afterCycle.vehicle.revision,
+      beforeVehicle,
+      vehicleDTO(afterCycle),
+    ],
   ] as const) {
     await audit(tx, {
       commandId,
@@ -1965,7 +2288,10 @@ export async function applySaleEditApproval(
       approverId: actor.userId,
       entityType,
       entityId,
-      action: entityType === "SaleCase" && (sale.reservation || sale.inventoryLease) ? "reviewApproval" : "approvedSaleEdit",
+      action:
+        entityType === "SaleCase" && (sale.reservation || sale.inventoryLease)
+          ? "reviewApproval"
+          : "approvedSaleEdit",
       reason: input.reason,
       before,
       after,
@@ -2036,7 +2362,10 @@ export async function applySaleEditApproval(
   return { affected }
 }
 
-export async function authenticatedSaleDetail(headers: Headers, saleId: string) {
+export async function authenticatedSaleDetail(
+  headers: Headers,
+  saleId: string
+) {
   const identity = await authenticate(headers)
   return database().$transaction(
     async (tx) => {
@@ -2052,18 +2381,43 @@ export async function authenticatedSaleDetail(headers: Headers, saleId: string) 
   )
 }
 
-export async function commitmentList(tx: Tx, actor: Actor, args: Record<string, string>) {
-  const parsed = listParams.extend({ kind: z.enum(["ADVANCE", "LEASE"]).optional() }).strict().safeParse(args)
+export async function commitmentList(
+  tx: Tx,
+  actor: Actor,
+  args: Record<string, string>
+) {
+  const parsed = listParams
+    .extend({ kind: z.enum(["ADVANCE", "LEASE"]).optional() })
+    .strict()
+    .safeParse(args)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const { kind, page, pageSize } = parsed.data
-  const scope = readScope(actor.grants, actor.userId, "SaleCase", ["id", "kind", "state"])
+  const scope = readScope(actor.grants, actor.userId, "SaleCase", [
+    "id",
+    "kind",
+    "state",
+  ])
   const where = { AND: [scope, { kind: kind ?? { in: ["ADVANCE", "LEASE"] } }] }
   const [rows, total] = await Promise.all([
-    tx.saleCase.findMany({ where, include: saleInclude, orderBy: [{ openedAt: "desc" }, { id: "asc" }], skip: (page-1)*pageSize, take: pageSize }),
+    tx.saleCase.findMany({
+      where,
+      include: saleInclude,
+      orderBy: [{ openedAt: "desc" }, { id: "asc" }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
     tx.saleCase.count({ where }),
   ])
   const names = await resolveActorNames(tx, rows)
-  return { ok: true, data: rows.map((row) => visibleSale(actor, row, names)), total, page, pageSize, asOf: new Date().toISOString(), redactedFields: [] }
+  return {
+    ok: true,
+    data: rows.map((row) => visibleSale(actor, row, names)),
+    total,
+    page,
+    pageSize,
+    asOf: new Date().toISOString(),
+    redactedFields: [],
+  }
 }
 
 export async function saleQuery(
@@ -2085,7 +2439,11 @@ export async function saleAudit(
   args: Record<string, string>
 ) {
   const parsed = listParams
-    .extend({ ...auditFilterInputs, type: z.enum(["SaleCase", "SaleCompletion"]), id })
+    .extend({
+      ...auditFilterInputs,
+      type: z.enum(["SaleCase", "SaleCompletion"]),
+      id,
+    })
     .strict()
     .safeParse(args)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -2119,11 +2477,13 @@ export async function saleAudit(
     if (input.type === "SaleCase")
       return actor.ability.can("read", saleSubject, path)
     if (path === "originalProfit")
-      return actor.ability.can(
-        "read",
-        subject("PurchaseRecord", purchaseAuth(sale.purchaseRecord)),
-        "financial.originalProfit"
-      ) && actor.ability.can("read", saleSubject, "price")
+      return (
+        actor.ability.can(
+          "read",
+          subject("PurchaseRecord", purchaseAuth(sale.purchaseRecord)),
+          "financial.originalProfit"
+        ) && actor.ability.can("read", saleSubject, "price")
+      )
     const field = completionPaths[path]
     return !!field && actor.ability.can("read", saleSubject, field)
   }
@@ -2143,13 +2503,18 @@ export async function saleAudit(
     tx.auditEntry.count({ where }),
   ])
   const actorUsers = await tx.user.findMany({
-    where: { id: { in: rows.map((r) => r.userId).filter((u): u is string => !!u) } },
+    where: {
+      id: { in: rows.map((r) => r.userId).filter((u): u is string => !!u) },
+    },
     select: { id: true, name: true },
   })
   const userMap = new Map(actorUsers.map((u) => [u.id, u.name]))
   const data = rows.map((entry) => {
     const fields = Object.entries(
-      (entry.fieldDiff ?? {}) as Record<string, { before: unknown; after: unknown }>
+      (entry.fieldDiff ?? {}) as Record<
+        string,
+        { before: unknown; after: unknown }
+      >
     )
       .filter(([path]) => canReadDiff(path))
       .map(([path, change]) => ({
@@ -2165,11 +2530,22 @@ export async function saleAudit(
       at: entry.recordedAt.toISOString(),
       actor: {
         kind: entry.actorKind,
-        ...(entry.userId && actor.ability.can("read", subject("User", { id: entry.userId }), "id")
-          ? { userId: entry.userId, name: actor.ability.can("read", subject("User", { id: entry.userId }), "name") ? userMap.get(entry.userId) : undefined }
+        ...(entry.userId &&
+        actor.ability.can("read", subject("User", { id: entry.userId }), "id")
+          ? {
+              userId: entry.userId,
+              name: actor.ability.can(
+                "read",
+                subject("User", { id: entry.userId }),
+                "name"
+              )
+                ? userMap.get(entry.userId)
+                : undefined,
+            }
           : {}),
       },
-      ...(entry.reason && (entry.action !== "startFinance" || canReadDiff("reference"))
+      ...(entry.reason &&
+      (entry.action !== "startFinance" || canReadDiff("reference"))
         ? { reason: entry.reason }
         : {}),
       fields,

@@ -31,7 +31,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
-import { currentSettingsRef, FinanceCompanyField, FinancePaymentFields, useCurrencyLabel, type CompanyOption } from "./commitment-fields"
+import {
+  currentSettingsRef,
+  FinanceCompanyField,
+  FinancePaymentFields,
+  useCurrencyLabel,
+  type CompanyOption,
+} from "./commitment-fields"
 
 type VisibleCycle = Visible<PurchaseCycleDTO>
 
@@ -54,13 +60,24 @@ export function RecordSaleDialog({
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const canCreate = (action: string) => {
     if (fixedCycle) return fixedCycle.nextActions?.includes(action as never)
-    const fields = ["cycleId", "customerId", "price",
-      ...(action === "completeImmediate" ? ["kind", "date", "mileage", "method"] : [action])]
-    return ability.can("read", "PurchaseRecord", "status") &&
+    const fields = [
+      "cycleId",
+      "customerId",
+      "price",
+      ...(action === "completeImmediate"
+        ? ["kind", "date", "mileage", "method"]
+        : [action]),
+    ]
+    return (
+      ability.can("read", "PurchaseRecord", "status") &&
       ability.can("read", "Customer", "id") &&
       fields.every((field) => ability.can("create", "SaleCase", field))
+    )
   }
-  const canRecord = canCreate("completeImmediate") || canCreate("placeReservation") || canCreate("startFinance")
+  const canRecord =
+    canCreate("completeImmediate") ||
+    canCreate("placeReservation") ||
+    canCreate("startFinance")
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen ?? uncontrolledOpen
   const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
@@ -71,15 +88,33 @@ export function RecordSaleDialog({
   const [cycleId, setCycleId] = useState(fixedCycle?.id ?? "")
   const [customerSearch, setCustomerSearch] = useState("")
   const [buyer, setBuyer] = useState<VisibleCustomer>()
-  const [kind, setKind] = useState(canCreate("completeImmediate") ? "CASH" : canCreate("placeReservation") ? "ADVANCE" : "LEASE")
+  const [kind, setKind] = useState(
+    canCreate("completeImmediate")
+      ? "CASH"
+      : canCreate("placeReservation")
+        ? "ADVANCE"
+        : "LEASE"
+  )
   const [company, setCompany] = useState<CompanyOption>()
   const immediate = kind === "CASH" || kind === "TRADE_IN"
-  const command = kind === "ADVANCE" ? "placeReservation" : kind === "LEASE" ? "startFinance" : "completeImmediate"
-  const actionLabel = kind === "ADVANCE" ? "Place advance" : kind === "LEASE" ? "Start lease sale" : "Complete Immediate Sale"
+  const command =
+    kind === "ADVANCE"
+      ? "placeReservation"
+      : kind === "LEASE"
+        ? "startFinance"
+        : "completeImmediate"
+  const actionLabel =
+    kind === "ADVANCE"
+      ? "Place advance"
+      : kind === "LEASE"
+        ? "Start lease sale"
+        : "Complete Immediate Sale"
   const [price, setPrice] = useState("")
   const [date, setDate] = useState("")
   const [mileage, setMileage] = useState("")
-  const [method, setMethod] = useState<"CASH" | "BANK_TRANSFER">("BANK_TRANSFER")
+  const [method, setMethod] = useState<"CASH" | "BANK_TRANSFER">(
+    "BANK_TRANSFER"
+  )
   const [reference, setReference] = useState("")
   const [reason, setReason] = useState("")
 
@@ -172,8 +207,7 @@ export function RecordSaleDialog({
   const customers = (customersQuery.data?.data.data ?? []).filter(
     (c) => c.active !== false
   )
-  const selectedCustomer =
-    customers.find((c) => c.id === buyer?.id) ?? buyer
+  const selectedCustomer = customers.find((c) => c.id === buyer?.id) ?? buyer
   const customerOptions =
     buyer && !customers.some((c) => c.id === buyer.id)
       ? [buyer, ...customers]
@@ -202,7 +236,9 @@ export function RecordSaleDialog({
           },
         })
         if (!parsed.success)
-          throw Error("Valid customer details (name, NIC/passport, address, phone) required")
+          throw Error(
+            "Valid customer details (name, NIC/passport, address, phone) required"
+          )
         payload = JSON.stringify(parsed.data)
         setInlineCustBody(payload)
       }
@@ -214,12 +250,14 @@ export function RecordSaleDialog({
           body: payload,
         }
       )
-      const { data: customer } = await privateRequest<{ data: VisibleCustomer }>(
-        `/api/v1/queries/customer?id=${encodeURIComponent(res.result.id)}`
-      )
+      const { data: customer } = await privateRequest<{
+        data: VisibleCustomer
+      }>(`/api/v1/queries/customer?id=${encodeURIComponent(res.result.id)}`)
       setInlineCustBody(null)
       setBuyer(customer)
-      await queries.invalidateQueries({ queryKey: ["sales", "customers-select"] })
+      await queries.invalidateQueries({
+        queryKey: ["sales", "customers-select"],
+      })
       await queries.invalidateQueries({ queryKey: ["customers"] })
       setInlineCustomerOpen(false)
       setInlineCustDraft({
@@ -231,8 +269,17 @@ export function RecordSaleDialog({
         email: "",
       })
     } catch (e) {
-      const code = e instanceof RequestError ? e.code : e instanceof Error ? e.message : "ERROR"
-      if (e instanceof RequestError && e.status < 500 && code !== "IDEMPOTENCY_MISMATCH")
+      const code =
+        e instanceof RequestError
+          ? e.code
+          : e instanceof Error
+            ? e.message
+            : "ERROR"
+      if (
+        e instanceof RequestError &&
+        e.status < 500 &&
+        code !== "IDEMPOTENCY_MISMATCH"
+      )
         setInlineCustBody(null)
       setInlineCustErr(code)
     } finally {
@@ -243,7 +290,11 @@ export function RecordSaleDialog({
   async function buildSaleEnvelope(form?: FormData) {
     if (!selectedCycle?.id || !selectedCycle.revision)
       throw Error("Select an available IN_STOCK purchase cycle")
-    if (!selectedCustomer?.id || !selectedCustomer.revision || selectedCustomer.active === false)
+    if (
+      !selectedCustomer?.id ||
+      !selectedCustomer.revision ||
+      selectedCustomer.active === false
+    )
       throw Error("Select an active customer")
     const priceMinor = parseMajor(price)
     const expected: Dependency[] = [
@@ -260,20 +311,46 @@ export function RecordSaleDialog({
     ]
     if (!immediate) {
       expected.push(await currentSettingsRef())
-      const base = { cycleId: selectedCycle.id, customerId: selectedCustomer.id, price: priceMinor,
-        reference: reference.trim() || undefined, reason: reason.trim() || undefined }
+      const base = {
+        cycleId: selectedCycle.id,
+        customerId: selectedCustomer.id,
+        price: priceMinor,
+        reference: reference.trim() || undefined,
+        reason: reason.trim() || undefined,
+      }
       const payment = { date, method, reference: reference.trim() || undefined }
-      const input = kind === "ADVANCE"
-        ? { ...base, receipt: { ...payment, amount: parseMajor(String(form?.get("advance") ?? "")) } }
-        : (() => {
-          if (!company) throw Error("Select a finance company")
-          expected.push({ type: "FinanceCompany", id: company.id, revision: company.revision })
-          const down = parseMajor(String(form?.get("downPayment") ?? ""))
-          return { ...base, downPayment: { ...payment, amount: down }, companyId: company.id,
-            termMonths: Number(form?.get("termMonths")), financeAmount: (BigInt(priceMinor) - BigInt(down)).toString() }
-        })()
-      return commitmentEnvelope(command === "placeReservation" ? command : "startFinance").parse({
-        schemaVersion: 1, idempotencyKey: crypto.randomUUID(), expected, input,
+      const input =
+        kind === "ADVANCE"
+          ? {
+              ...base,
+              receipt: {
+                ...payment,
+                amount: parseMajor(String(form?.get("advance") ?? "")),
+              },
+            }
+          : (() => {
+              if (!company) throw Error("Select a finance company")
+              expected.push({
+                type: "FinanceCompany",
+                id: company.id,
+                revision: company.revision,
+              })
+              const down = parseMajor(String(form?.get("downPayment") ?? ""))
+              return {
+                ...base,
+                downPayment: { ...payment, amount: down },
+                companyId: company.id,
+                termMonths: Number(form?.get("termMonths")),
+                financeAmount: (BigInt(priceMinor) - BigInt(down)).toString(),
+              }
+            })()
+      return commitmentEnvelope(
+        command === "placeReservation" ? command : "startFinance"
+      ).parse({
+        schemaVersion: 1,
+        idempotencyKey: crypto.randomUUID(),
+        expected,
+        input,
       })
     }
     let tradeInPayload: Record<string, unknown> | undefined
@@ -303,7 +380,9 @@ export function RecordSaleDialog({
             colour: intakeVehicle.colour,
             fuelType: intakeVehicle.fuelType,
             transmission: intakeVehicle.transmission,
-            ...(intakeVehicle.vin.trim() ? { vin: intakeVehicle.vin.trim() } : {}),
+            ...(intakeVehicle.vin.trim()
+              ? { vin: intakeVehicle.vin.trim() }
+              : {}),
             ...(intakeVehicle.crNumber.trim()
               ? { crNumber: intakeVehicle.crNumber.trim() }
               : {}),
@@ -321,7 +400,9 @@ export function RecordSaleDialog({
               ? { decreaseReason: intakeMileage.decreaseReason.trim() }
               : {}),
           },
-          ...(intakeListed.trim() ? { listedPrice: parseMajor(intakeListed) } : {}),
+          ...(intakeListed.trim()
+            ? { listedPrice: parseMajor(intakeListed) }
+            : {}),
         }
       }
       tradeInPayload = {
@@ -349,7 +430,9 @@ export function RecordSaleDialog({
     })
     if (!parsed.success)
       throw Error(
-        parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")
+        parsed.error.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("; ")
       )
     return parsed.data
   }
@@ -369,17 +452,20 @@ export function RecordSaleDialog({
         submitted = JSON.stringify(env)
         setBody(submitted)
       }
-      const res = await privateRequest<Applied>(
-        `/api/v1/commands/${command}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: submitted,
-        }
-      )
+      const res = await privateRequest<Applied>(`/api/v1/commands/${command}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: submitted,
+      })
       setBody(null)
       setSaleLink(`/sales/${res.result.id}`)
-      setStatusMsg(immediate ? `Immediate sale completed (${res.commandId}).` : kind === "ADVANCE" ? "Advance placed. Open the sale for conversion and cancellation options." : "Down payment recorded. Open the sale to upload the delivery order.")
+      setStatusMsg(
+        immediate
+          ? `Immediate sale completed (${res.commandId}).`
+          : kind === "ADVANCE"
+            ? "Advance placed. Open the sale for conversion and cancellation options."
+            : "Down payment recorded. Open the sale to upload the delivery order."
+      )
       for (const k of res.invalidate)
         void queries.invalidateQueries({ queryKey: [k] })
       onCompleted?.(res)
@@ -397,9 +483,18 @@ export function RecordSaleDialog({
           "Price is below listed price. Enter a discount reason and submit for manager approval."
         )
       } else {
-        const isStale = ["STALE_REVISION", "REVISION_REQUIRED", "IDENTITY_CONFLICT"].includes(code)
+        const isStale = [
+          "STALE_REVISION",
+          "REVISION_REQUIRED",
+          "IDENTITY_CONFLICT",
+        ].includes(code)
         setStale(isStale)
-        if (err instanceof RequestError && err.status < 500 && !isStale && code !== "IDEMPOTENCY_MISMATCH")
+        if (
+          err instanceof RequestError &&
+          err.status < 500 &&
+          !isStale &&
+          code !== "IDEMPOTENCY_MISMATCH"
+        )
           setBody(null)
         setStatusMsg(code)
       }
@@ -455,7 +550,11 @@ export function RecordSaleDialog({
             ? err.message
             : "ERROR"
       setStatusMsg(code)
-      if (err instanceof RequestError && err.status < 500 && code !== "IDEMPOTENCY_MISMATCH")
+      if (
+        err instanceof RequestError &&
+        err.status < 500 &&
+        code !== "IDEMPOTENCY_MISMATCH"
+      )
         setDiscountBody(null)
     } finally {
       setPending(false)
@@ -466,7 +565,8 @@ export function RecordSaleDialog({
   try {
     if (price) {
       const p = BigInt(parseMajor(price))
-      const t = kind === "TRADE_IN" && tradeValue ? BigInt(parseMajor(tradeValue)) : 0n
+      const t =
+        kind === "TRADE_IN" && tradeValue ? BigInt(parseMajor(tradeValue)) : 0n
       netPreview = major(p - t)
     }
   } catch {
@@ -477,7 +577,11 @@ export function RecordSaleDialog({
   return (
     <div className="space-y-4">
       <Button type="button" onClick={() => setOpen((v) => !v)}>
-        {open ? "Close sale form" : canCreate("completeImmediate") ? "Complete Immediate Sale" : "New reservation or lease sale"}
+        {open
+          ? "Close sale form"
+          : canCreate("completeImmediate")
+            ? "Complete Immediate Sale"
+            : "New reservation or lease sale"}
       </Button>
       {open && (
         <form
@@ -499,7 +603,8 @@ export function RecordSaleDialog({
                 <option value="">Select IN_STOCK available vehicle…</option>
                 {availableCycles.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.identity?.make} {c.identity?.model} ({c.identity?.year}) · Listed{" "}
+                    {c.identity?.make} {c.identity?.model} ({c.identity?.year})
+                    · Listed{" "}
                     {c.listedPrice ? major(BigInt(c.listedPrice)) : "None"}
                   </option>
                 ))}
@@ -517,25 +622,33 @@ export function RecordSaleDialog({
               value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)}
             />
-            {customersQuery.isError && <p role="status">Customer search is unavailable.</p>}
+            {customersQuery.isError && (
+              <p role="status">Customer search is unavailable.</p>
+            )}
             {customersQuery.isSuccess && customers.length === 0 && (
               <p role="status">No matching active customers.</p>
             )}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Label htmlFor="sale-customer">Buyer Customer</Label>
-              {ability.can("create", "Customer") && <Button
-                type="button"
-                variant="outline"
-                onClick={() => setInlineCustomerOpen((v) => !v)}
-              >
-                {inlineCustomerOpen ? "Cancel inline customer" : "New customer inline"}
-              </Button>}
+              {ability.can("create", "Customer") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setInlineCustomerOpen((v) => !v)}
+                >
+                  {inlineCustomerOpen
+                    ? "Cancel inline customer"
+                    : "New customer inline"}
+                </Button>
+              )}
             </div>
             <select
               id="sale-customer"
               className="h-11 w-full rounded-md border bg-background px-3"
               value={buyer?.id ?? ""}
-              onChange={(e) => setBuyer(customerOptions.find((c) => c.id === e.target.value))}
+              onChange={(e) =>
+                setBuyer(customerOptions.find((c) => c.id === e.target.value))
+              }
               required
             >
               <option value="">Select active customer…</option>
@@ -554,14 +667,20 @@ export function RecordSaleDialog({
                     placeholder="Full name *"
                     value={inlineCustDraft.fullName}
                     onChange={(e) =>
-                      setInlineCustDraft({ ...inlineCustDraft, fullName: e.target.value })
+                      setInlineCustDraft({
+                        ...inlineCustDraft,
+                        fullName: e.target.value,
+                      })
                     }
                   />
                   <Input
                     placeholder="Calling name *"
                     value={inlineCustDraft.callingName}
                     onChange={(e) =>
-                      setInlineCustDraft({ ...inlineCustDraft, callingName: e.target.value })
+                      setInlineCustDraft({
+                        ...inlineCustDraft,
+                        callingName: e.target.value,
+                      })
                     }
                   />
                   <Input
@@ -578,31 +697,46 @@ export function RecordSaleDialog({
                     placeholder="Phone *"
                     value={inlineCustDraft.phone}
                     onChange={(e) =>
-                      setInlineCustDraft({ ...inlineCustDraft, phone: e.target.value })
+                      setInlineCustDraft({
+                        ...inlineCustDraft,
+                        phone: e.target.value,
+                      })
                     }
                   />
                   <Input
                     placeholder="Address *"
                     value={inlineCustDraft.address}
                     onChange={(e) =>
-                      setInlineCustDraft({ ...inlineCustDraft, address: e.target.value })
+                      setInlineCustDraft({
+                        ...inlineCustDraft,
+                        address: e.target.value,
+                      })
                     }
                   />
                   <Input
                     placeholder="Email"
                     value={inlineCustDraft.email}
                     onChange={(e) =>
-                      setInlineCustDraft({ ...inlineCustDraft, email: e.target.value })
+                      setInlineCustDraft({
+                        ...inlineCustDraft,
+                        email: e.target.value,
+                      })
                     }
                   />
                 </div>
-                {inlineCustErr && <p role="alert" className="text-sm">{inlineCustErr}</p>}
+                {inlineCustErr && (
+                  <p role="alert" className="text-sm">
+                    {inlineCustErr}
+                  </p>
+                )}
                 <Button
                   type="button"
                   disabled={inlineCustPending}
                   onClick={() => void submitInlineCustomer()}
                 >
-                  {inlineCustPending ? "Creating customer…" : "Save Customer & Select"}
+                  {inlineCustPending
+                    ? "Creating customer…"
+                    : "Save Customer & Select"}
                 </Button>
               </div>
             )}
@@ -621,10 +755,18 @@ export function RecordSaleDialog({
                   setDiscountMode(false)
                 }}
               >
-                {canCreate("completeImmediate") && <option value="CASH">CASH</option>}
-                {canCreate("completeImmediate") && <option value="TRADE_IN">TRADE_IN</option>}
-                {canCreate("placeReservation") && <option value="ADVANCE">Advance reservation</option>}
-                {canCreate("startFinance") && <option value="LEASE">Inventory lease</option>}
+                {canCreate("completeImmediate") && (
+                  <option value="CASH">CASH</option>
+                )}
+                {canCreate("completeImmediate") && (
+                  <option value="TRADE_IN">TRADE_IN</option>
+                )}
+                {canCreate("placeReservation") && (
+                  <option value="ADVANCE">Advance reservation</option>
+                )}
+                {canCreate("startFinance") && (
+                  <option value="LEASE">Inventory lease</option>
+                )}
               </select>
             </div>
             <div>
@@ -641,7 +783,9 @@ export function RecordSaleDialog({
               />
             </div>
             <div>
-              <Label htmlFor="sale-date">{immediate ? "Sale / Handover Date" : "Payment date"}</Label>
+              <Label htmlFor="sale-date">
+                {immediate ? "Sale / Handover Date" : "Payment date"}
+              </Label>
               <Input
                 id="sale-date"
                 type="date"
@@ -650,17 +794,19 @@ export function RecordSaleDialog({
                 onChange={(e) => setDate(e.target.value)}
               />
             </div>
-            {immediate && <div>
-              <Label htmlFor="sale-mileage">Handover Mileage (km)</Label>
-              <Input
-                id="sale-mileage"
-                type="number"
-                min={0}
-                required
-                value={mileage}
-                onChange={(e) => setMileage(e.target.value)}
-              />
-            </div>}
+            {immediate && (
+              <div>
+                <Label htmlFor="sale-mileage">Handover Mileage (km)</Label>
+                <Input
+                  id="sale-mileage"
+                  type="number"
+                  min={0}
+                  required
+                  value={mileage}
+                  onChange={(e) => setMileage(e.target.value)}
+                />
+              </div>
+            )}
             <div>
               <Label htmlFor="sale-method">Receipt Method</Label>
               <select
@@ -685,11 +831,21 @@ export function RecordSaleDialog({
             </div>
           </div>
 
-          {kind === "ADVANCE" && <Label className="grid gap-2">Advance amount{currency}<Input name="advance" inputMode="decimal" required /></Label>}
-          {kind === "LEASE" && <div className="grid gap-3 sm:grid-cols-3">
-            <FinanceCompanyField value={company?.id ?? ""} onChange={setCompany} />
-            <FinancePaymentFields />
-          </div>}
+          {kind === "ADVANCE" && (
+            <Label className="grid gap-2">
+              Advance amount{currency}
+              <Input name="advance" inputMode="decimal" required />
+            </Label>
+          )}
+          {kind === "LEASE" && (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <FinanceCompanyField
+                value={company?.id ?? ""}
+                onChange={setCompany}
+              />
+              <FinancePaymentFields />
+            </div>
+          )}
           {kind === "TRADE_IN" && (
             <div className="space-y-3 rounded-md border p-3">
               <h3 className="font-medium">Trade-In Consideration</h3>
@@ -744,7 +900,10 @@ export function RecordSaleDialog({
                     placeholder="Make *"
                     value={intakeVehicle.make}
                     onChange={(e) =>
-                      setIntakeVehicle({ ...intakeVehicle, make: e.target.value })
+                      setIntakeVehicle({
+                        ...intakeVehicle,
+                        make: e.target.value,
+                      })
                     }
                   />
                   <Input
@@ -752,7 +911,10 @@ export function RecordSaleDialog({
                     placeholder="Model *"
                     value={intakeVehicle.model}
                     onChange={(e) =>
-                      setIntakeVehicle({ ...intakeVehicle, model: e.target.value })
+                      setIntakeVehicle({
+                        ...intakeVehicle,
+                        model: e.target.value,
+                      })
                     }
                   />
                   <Input
@@ -761,7 +923,10 @@ export function RecordSaleDialog({
                     placeholder="Year *"
                     value={intakeVehicle.year}
                     onChange={(e) =>
-                      setIntakeVehicle({ ...intakeVehicle, year: e.target.value })
+                      setIntakeVehicle({
+                        ...intakeVehicle,
+                        year: e.target.value,
+                      })
                     }
                   />
                   <Input
@@ -842,7 +1007,11 @@ export function RecordSaleDialog({
             </div>
           )}
 
-          {statusMsg && <p role="status" className="text-sm">{statusMsg}</p>}
+          {statusMsg && (
+            <p role="status" className="text-sm">
+              {statusMsg}
+            </p>
+          )}
           {(approvalLink || discountMode) && (
             <p
               role="status"
@@ -854,12 +1023,22 @@ export function RecordSaleDialog({
             </p>
           )}
           {saleLink && (
-            <Link prefetch={false} className="inline-block underline" href={saleLink}>
-              {immediate ? "Open completed sale detail" : "Open sale and next steps"}
+            <Link
+              prefetch={false}
+              className="inline-block underline"
+              href={saleLink}
+            >
+              {immediate
+                ? "Open completed sale detail"
+                : "Open sale and next steps"}
             </Link>
           )}
           {approvalLink && (
-            <Link prefetch={false} className="inline-block underline" href={approvalLink}>
+            <Link
+              prefetch={false}
+              className="inline-block underline"
+              href={approvalLink}
+            >
               Open pending approval request
             </Link>
           )}

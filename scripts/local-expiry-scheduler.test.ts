@@ -368,7 +368,10 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       output: { write: () => {} },
       onTick: (record) => {
         captured.push(record)
-        if (captured.filter((r) => r.event === "expiry_overlap_skipped").length === 2)
+        if (
+          captured.filter((r) => r.event === "expiry_overlap_skipped")
+            .length === 2
+        )
           firstResponse.resolve()
       },
     })
@@ -494,7 +497,8 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       secretFile,
       "--endpoint",
       "/api/v1/jobs/reservation-expiry",
-      "--payload-format", "job",
+      "--payload-format",
+      "job",
       "--catch-up",
       "--through",
       fixedThrough,

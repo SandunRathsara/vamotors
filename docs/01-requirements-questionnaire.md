@@ -197,7 +197,7 @@ Signatures: Both parties must sign to finalize the transfer.
 - [x] Outstanding advance payments
 - [x] Vehicles currently in repair
 - [x] Total cash flow summary (money in vs. money out)
-- [ ] Other: _______________
+- [ ] Other: **\*\***\_\_\_**\*\***
 
 > Additional notes:
 
@@ -237,4 +237,4 @@ Signatures: Both parties must sign to finalize the transfer.
 
 **Thank you for taking the time to answer these questions. Your responses will directly shape the system design and ensure we build exactly what your business needs.**
 
-*Please return this completed document at your earliest convenience. If any question is unclear, feel free to add a comment and we can discuss it further.*
+_Please return this completed document at your earliest convenience. If any question is unclear, feel free to add a comment and we can discuss it further._

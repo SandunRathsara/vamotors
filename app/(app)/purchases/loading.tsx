@@ -4,7 +4,10 @@ import { PageHeader } from "@/components/shared/page-header"
 export default function PurchasesLoading() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Purchases" description="Record vehicle purchases into inventory" />
+      <PageHeader
+        title="Purchases"
+        description="Record vehicle purchases into inventory"
+      />
 
       {/* Tab triggers skeleton */}
       <div className="flex gap-2">
@@ -15,7 +18,7 @@ export default function PurchasesLoading() {
 
       {/* Form skeleton */}
       <div className="space-y-6">
-        <div className="rounded-lg border p-6 space-y-4">
+        <div className="space-y-4 rounded-lg border p-6">
           <Skeleton className="h-6 w-40" />
           <div className="grid gap-4 sm:grid-cols-2">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -27,7 +30,7 @@ export default function PurchasesLoading() {
           </div>
         </div>
 
-        <div className="rounded-lg border p-6 space-y-4">
+        <div className="space-y-4 rounded-lg border p-6">
           <Skeleton className="h-6 w-40" />
           <div className="grid gap-4 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (

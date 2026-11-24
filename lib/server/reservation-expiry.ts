@@ -162,13 +162,17 @@ export async function processReservation(
         )
       )
         continue
-      await notify(tx, { commandId, userId }, {
-        recipientUserId: recipient.id,
-        eventKey,
-        kind,
-        targetType: "SaleCase",
-        targetId: sale.id,
-      })
+      await notify(
+        tx,
+        { commandId, userId },
+        {
+          recipientUserId: recipient.id,
+          eventKey,
+          kind,
+          targetType: "SaleCase",
+          targetId: sale.id,
+        }
+      )
     }
     await publishCommitment(
       tx,

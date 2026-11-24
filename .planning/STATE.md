@@ -43,16 +43,16 @@ Progress: [░░░░░░░░░░] 0%
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 00.1 | 11 | - | - |
-| 0.2 | 3 | - | - |
+| ----- | ----- | ----- | -------- |
+| 00.1  | 11    | -     | -        |
+| 0.2   | 3     | -     | -        |
 
 **Recent Trend:**
 
 - Last 5 plans: none yet
 - Trend: -
 
-*Updated after each plan completion*
+_Updated after each plan completion_
 | Phase 00.1 P02 | 40 | 2 tasks | 19 files |
 | Phase 00.1 P03 | 252 | 3 tasks | 20 files |
 | Phase 00.1 P04 | 25 | 2 tasks | 10 files |
@@ -104,9 +104,9 @@ None yet.
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260322-tpo | Review and update UI designs from Stitch mockups | 2026-03-22 | e6101ae | [260322-tpo-review-and-update-ui-designs-from-stitch](./quick/260322-tpo-review-and-update-ui-designs-from-stitch/) |
+| #          | Description                                                                  | Date       | Commit  | Directory                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| 260322-tpo | Review and update UI designs from Stitch mockups                             | 2026-03-22 | e6101ae | [260322-tpo-review-and-update-ui-designs-from-stitch](./quick/260322-tpo-review-and-update-ui-designs-from-stitch/) |
 | 260413-eeq | Restructure purchases page to list all purchases with Record Purchase button | 2026-04-13 | 433359c | [260413-eeq-restructure-purchases-page-to-list-all-p](./quick/260413-eeq-restructure-purchases-page-to-list-all-p/) |
 
 ### Blockers/Concerns

@@ -7,7 +7,11 @@ interface SkeletonTableProps {
   className?: string
 }
 
-export function SkeletonTable({ columns = 6, rows = 5, className }: SkeletonTableProps) {
+export function SkeletonTable({
+  columns = 6,
+  rows = 5,
+  className,
+}: SkeletonTableProps) {
   return (
     <div className={cn("flex flex-col gap-2.5", className)}>
       {/* Toolbar skeleton */}

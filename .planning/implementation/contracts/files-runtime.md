@@ -34,18 +34,18 @@ Report PDFs use same render/private-download primitive but E5X/W15 complete-popu
 
 Names/constraints only; T01 does not open secret files, provision resources or execute SQL. Existing credential inputs ONLY `~/.config/vamotors/dev-neon.env` (`DATABASE_URL`,`DIRECT_URL`) and `~/.config/vamotors/dev-r2.env` (`R2_ACCESS_KEY_ID`,`R2_SECRET_ACCESS_KEY`,`R2_ENDPOINT`,`R2_BUCKET_NAME`). Never print values, connection/signed URLs, tokens. T02 may update delivery through private-secret tool/approved files, never add new secret files to Git or ask chat for passwords.
 
-| Name / role | Required scope / installation boundary |
-| --- | --- |
-| DATABASE_URL | pooled restricted `vamotors_runtime` on dedicated dev DB/schema, TLS; used runtime only, not owner URL copied from existing file |
-| DIRECT_URL | direct `vamotors_migrator`, schema/migrations owner; CI migration job/manual approved deploy only, **not installed in runtime/preview/build** |
-| BETTER_AUTH_SECRET | private random>=32-byte material via harness; server runtime only, per environment distinct |
-| BETTER_AUTH_URL / APP_ORIGIN | exact authenticated HTTPS dev origin, localhost permitted explicit local environment only; trusted origins explicit, never wildcard previews |
-| APP_ENV / ENVIRONMENT_ID | local/disposable-test/shared-dev/preview classification + immutable dev UUID/tag verified against DB Environment singleton; mismatch fail503 before writes |
-| APP_CURRENCY / APP_TIMEZONE | LKR/Asia/Colombo initial policy defaults, persisted/snapshotted; environment changes cannot reinterpret existing values |
-| R2_* | existing bucket-scoped credentials; server only, private bucket; runtime prefix isolated environment; preview has no shared-dev write credentials |
-| SCHEDULER_SECRET | private independent random bearer for narrowly scoped expiry entry (not an admin credential); constant-time compare/no log |
-| BOOTSTRAP_TOKEN | private single-use high-entropy token, hash stored with expiry<=30min; migration-owned bootstrap procedure only, absent normal runtime |
-| BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD | private credential handoff via harness, used guarded local/operational bootstrap only; no public password/default credential seed |
+| Name / role                                      | Required scope / installation boundary                                                                                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DATABASE_URL                                     | pooled restricted `vamotors_runtime` on dedicated dev DB/schema, TLS; used runtime only, not owner URL copied from existing file                           |
+| DIRECT_URL                                       | direct `vamotors_migrator`, schema/migrations owner; CI migration job/manual approved deploy only, **not installed in runtime/preview/build**              |
+| BETTER_AUTH_SECRET                               | private random>=32-byte material via harness; server runtime only, per environment distinct                                                                |
+| BETTER_AUTH_URL / APP_ORIGIN                     | exact authenticated HTTPS dev origin, localhost permitted explicit local environment only; trusted origins explicit, never wildcard previews               |
+| APP_ENV / ENVIRONMENT_ID                         | local/disposable-test/shared-dev/preview classification + immutable dev UUID/tag verified against DB Environment singleton; mismatch fail503 before writes |
+| APP_CURRENCY / APP_TIMEZONE                      | LKR/Asia/Colombo initial policy defaults, persisted/snapshotted; environment changes cannot reinterpret existing values                                    |
+| R2\_\*                                           | existing bucket-scoped credentials; server only, private bucket; runtime prefix isolated environment; preview has no shared-dev write credentials          |
+| SCHEDULER_SECRET                                 | private independent random bearer for narrowly scoped expiry entry (not an admin credential); constant-time compare/no log                                 |
+| BOOTSTRAP_TOKEN                                  | private single-use high-entropy token, hash stored with expiry<=30min; migration-owned bootstrap procedure only, absent normal runtime                     |
+| BOOTSTRAP_ADMIN_EMAIL / BOOTSTRAP_ADMIN_PASSWORD | private credential handoff via harness, used guarded local/operational bootstrap only; no public password/default credential seed                          |
 
 Environment table singleton `{id,name,allowBusinessWrites,disposableTest,bootstrappedAt}` compared to env on every writable connection setup. Runtime grants schema USAGE, explicitly needed SELECT/INSERT/UPDATE for mutable business tables, INSERT/SELECT only on audit/status/payment/issued snapshot history; no CREATE/ALTER/DROP/TRUNCATE, no role ownership/superuser, no audit/payment UPDATE/DELETE. Runtime cannot update Environment/bootstrap/AdminGuard protection configuration directly; only guarded command/trigger path. Scheduler authority only expiry via app, not DB owner. No `SET ROLE migrator` grant. T03 proves auth adapter's session/credential updates still work with scoped auth-table grants; do not blanket revoke auth lifecycle operations while claiming login works.
 

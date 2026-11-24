@@ -41,22 +41,22 @@ T03 migration, initialization, bootstrap or acceptance runner on this target yet
 
 ## Resource identity and free-only configuration
 
-| Resource | Actual ID/value |
-| --- | --- |
-| Organization / subscription | `org-fancy-mode-53675625`, `free` / `free_v3` |
-| Project / actual name / region | `crimson-cherry-69611458`, VA Motors, `aws-us-east-2` |
-| Original branch, unchanged | `br-autumn-rain-b56rxlj9` |
-| Original endpoint, unchanged | `ep-mute-lab-b5d4mno7` |
-| New verification branch | `br-sweet-tooth-b5p418na` |
-| New branch name | `t02b1-verification-d5272bd3` |
-| New branch created_at | `2026-10-25T23:59:08Z` |
-| New endpoint | `ep-rapid-darkness-b5t8cypf` |
-| Direct host | `ep-rapid-darkness-b5t8cypf.c-7.us-east-2.aws.neon.tech` |
-| Pool host | `ep-rapid-darkness-b5t8cypf-pooler.c-7.us-east-2.aws.neon.tech` |
-| Dedicated database / API database ID | `t03_disposable_1e760e0e` / `2384869` |
-| Copied database IDs | `neondb`: `2384693`; `vamotors`: `2384694` |
-| Proposed immutable Environment UUID | `082e708d-06a2-460a-bd6e-de03c1ce8d21` |
-| Future APP_ENV / origin | `disposable-test` / `http://localhost:3000` |
+| Resource                             | Actual ID/value                                                 |
+| ------------------------------------ | --------------------------------------------------------------- |
+| Organization / subscription          | `org-fancy-mode-53675625`, `free` / `free_v3`                   |
+| Project / actual name / region       | `crimson-cherry-69611458`, VA Motors, `aws-us-east-2`           |
+| Original branch, unchanged           | `br-autumn-rain-b56rxlj9`                                       |
+| Original endpoint, unchanged         | `ep-mute-lab-b5d4mno7`                                          |
+| New verification branch              | `br-sweet-tooth-b5p418na`                                       |
+| New branch name                      | `t02b1-verification-d5272bd3`                                   |
+| New branch created_at                | `2026-10-25T23:59:08Z`                                          |
+| New endpoint                         | `ep-rapid-darkness-b5t8cypf`                                    |
+| Direct host                          | `ep-rapid-darkness-b5t8cypf.c-7.us-east-2.aws.neon.tech`        |
+| Pool host                            | `ep-rapid-darkness-b5t8cypf-pooler.c-7.us-east-2.aws.neon.tech` |
+| Dedicated database / API database ID | `t03_disposable_1e760e0e` / `2384869`                           |
+| Copied database IDs                  | `neondb`: `2384693`; `vamotors`: `2384694`                      |
+| Proposed immutable Environment UUID  | `082e708d-06a2-460a-bd6e-de03c1ce8d21`                          |
+| Future APP_ENV / origin              | `disposable-test` / `http://localhost:3000`                     |
 
 Immediately before creation: one of ten branch slots used, Free subscription
 reconfirmed. Current docs permit three Free root branches; only one existed.
@@ -131,23 +131,23 @@ CA `/etc/ssl/cert.pem` and required channel binding, 8-second connection and
 statement timeouts; no pooled startup GUCs. Connection URLs/passwords never
 appeared in argv/logs/artifacts. No sleeps/polling/background checks.
 
-| Check, while new roles temporarily LOGIN | Observed result |
-| --- | --- |
-| Runtime direct and pooled dedicated target | Both connected as exact runtime |
-| Fresh runtime credentials vs ORIGINAL direct+pool, each `neondb`+`vamotors` | All four authentication denied |
-| New branch runtime vs copied `neondb` and `vamotors` | Both CONNECT permission denied |
-| New branch runtime vs `template0` | Connection denied (catalog disallows connections) |
-| New branch runtime vs `postgres`, `template1` | **Both connected: isolation failure** |
-| Target runtime CREATE SCHEMA, table in `vamotors`, table in `public`, TEMP table | All denied42501 |
-| Target runtime CREATE ROLE, SET ROLE migrator, SET ROLE owner | All denied42501 |
-| Target runtime SET ROLE neon_superuser | Denied by Neon guard, SQLSTATEXX000; no membership exists |
-| Target runtime ALTER self CREATEROLE, ALTER DATABASE OWNER | Both denied42501 |
-| Runtime TEMP table in `postgres` | **Allowed: isolation failure**, rolled back |
-| Target catalog memberships / table count | None / zero |
-| After NOLOGIN: fresh runtime+migrator direct+pool connections | All four denied |
-| Original before/after role attributes, memberships, DB ACLs, schema ACLs, table counts | Exact equality across both application databases |
-| Original endpoint ID/branch/host/min/max/suspension | Unchanged |
-| Original branch API roles | Still only `neondb_owner`; exact new roles absent |
+| Check, while new roles temporarily LOGIN                                               | Observed result                                           |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Runtime direct and pooled dedicated target                                             | Both connected as exact runtime                           |
+| Fresh runtime credentials vs ORIGINAL direct+pool, each `neondb`+`vamotors`            | All four authentication denied                            |
+| New branch runtime vs copied `neondb` and `vamotors`                                   | Both CONNECT permission denied                            |
+| New branch runtime vs `template0`                                                      | Connection denied (catalog disallows connections)         |
+| New branch runtime vs `postgres`, `template1`                                          | **Both connected: isolation failure**                     |
+| Target runtime CREATE SCHEMA, table in `vamotors`, table in `public`, TEMP table       | All denied42501                                           |
+| Target runtime CREATE ROLE, SET ROLE migrator, SET ROLE owner                          | All denied42501                                           |
+| Target runtime SET ROLE neon_superuser                                                 | Denied by Neon guard, SQLSTATEXX000; no membership exists |
+| Target runtime ALTER self CREATEROLE, ALTER DATABASE OWNER                             | Both denied42501                                          |
+| Runtime TEMP table in `postgres`                                                       | **Allowed: isolation failure**, rolled back               |
+| Target catalog memberships / table count                                               | None / zero                                               |
+| After NOLOGIN: fresh runtime+migrator direct+pool connections                          | All four denied                                           |
+| Original before/after role attributes, memberships, DB ACLs, schema ACLs, table counts | Exact equality across both application databases          |
+| Original endpoint ID/branch/host/min/max/suspension                                    | Unchanged                                                 |
+| Original branch API roles                                                              | Still only `neondb_owner`; exact new roles absent         |
 
 Each write-denial probe ran alone inside BEGIN/ROLLBACK; unexpected successful
 GRANT could only be a no-op without grant options, and no such grant persisted.
@@ -198,22 +198,22 @@ the blocker. Foundation then returns migration-ready confirmation plus exact
 table/column/function identities. Infrastructure applies ONLY this reviewed
 proposal; **none of these table/function grants has run**:
 
-| Object in `vamotors` | Exact runtime grant after foundation confirmation |
-| --- | --- |
-| `user` | SELECT, INSERT; UPDATE(name,active,authzRevision,updatedAt); no DELETE |
-| `session` | SELECT, INSERT, UPDATE, DELETE |
-| `account` | SELECT, INSERT only |
-| `verification` | None |
-| `Environment` | SELECT(singleton,id,name,allowBusinessWrites,disposableTest,bootstrappedAt) only |
-| `AdminGuard` | No direct grants; EXECUTE `vamotors.lock_admin_guard()` only, after fixed-search-path definer review |
-| `Role` | SELECT, INSERT; UPDATE(name,active,revision) only |
-| `Permission` | SELECT, INSERT only |
-| `UserRole`, `RolePermission` | SELECT, INSERT, DELETE only |
-| `CommandReceipt`, `AuditEntry`, `EntityReadVersion`, `StatusEvent` | SELECT, INSERT only |
-| `BusinessSequence` | SELECT; UPDATE(value) only |
-| `Notification` | SELECT, INSERT; UPDATE(readAt,revision) only |
-| `Customer`, `Supplier`, `SupplierContact`, `Vehicle`, `PurchaseRecord` | None |
-| `_prisma_migrations`, other schemas, future tables | None |
+| Object in `vamotors`                                                   | Exact runtime grant after foundation confirmation                                                    |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `user`                                                                 | SELECT, INSERT; UPDATE(name,active,authzRevision,updatedAt); no DELETE                               |
+| `session`                                                              | SELECT, INSERT, UPDATE, DELETE                                                                       |
+| `account`                                                              | SELECT, INSERT only                                                                                  |
+| `verification`                                                         | None                                                                                                 |
+| `Environment`                                                          | SELECT(singleton,id,name,allowBusinessWrites,disposableTest,bootstrappedAt) only                     |
+| `AdminGuard`                                                           | No direct grants; EXECUTE `vamotors.lock_admin_guard()` only, after fixed-search-path definer review |
+| `Role`                                                                 | SELECT, INSERT; UPDATE(name,active,revision) only                                                    |
+| `Permission`                                                           | SELECT, INSERT only                                                                                  |
+| `UserRole`, `RolePermission`                                           | SELECT, INSERT, DELETE only                                                                          |
+| `CommandReceipt`, `AuditEntry`, `EntityReadVersion`, `StatusEvent`     | SELECT, INSERT only                                                                                  |
+| `BusinessSequence`                                                     | SELECT; UPDATE(value) only                                                                           |
+| `Notification`                                                         | SELECT, INSERT; UPDATE(readAt,revision) only                                                         |
+| `Customer`, `Supplier`, `SupplierContact`, `Vehicle`, `PurchaseRecord` | None                                                                                                 |
+| `_prisma_migrations`, other schemas, future tables                     | None                                                                                                 |
 
 No auth adapter requirement silently broadens this matrix. Only after grants are
 confirmed does foundation initialize the matching singleton, prepare the separate

@@ -90,7 +90,7 @@ export function DataTableShell<TData>({
       </DataTableAdvancedToolbar>
 
       {isEmpty && (
-        <div className="min-h-[300px] flex items-center justify-center">
+        <div className="flex min-h-[300px] items-center justify-center">
           <EmptyState
             heading={emptyState?.heading ?? "No records found"}
             body={emptyState?.body ?? "No data is available yet."}

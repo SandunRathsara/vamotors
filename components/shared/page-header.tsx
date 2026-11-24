@@ -8,11 +8,21 @@ interface PageHeaderProps {
   className?: string
 }
 
-export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  actions,
+  className,
+}: PageHeaderProps) {
   return (
-    <div className={cn("mb-6 flex flex-row items-center justify-between", className)}>
+    <div
+      className={cn(
+        "mb-6 flex flex-row items-center justify-between",
+        className
+      )}
+    >
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold leading-tight">{title}</h1>
+        <h1 className="text-2xl leading-tight font-semibold">{title}</h1>
         {description && (
           <p className="text-sm text-muted-foreground">{description}</p>
         )}

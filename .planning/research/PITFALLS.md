@@ -17,12 +17,14 @@ The project correctly stores all monetary values as integers (smallest currency 
 Currency format is configured via `APP_CURRENCY` env var, meaning the decimal precision (2 for LKR/USD, 0 for JPY) varies by deployment. Developers hardcode "divide by 100" and forget the env var controls decimal precision. The bug also appears when different developers implement different forms without sharing a central currency utility.
 
 **How to avoid:**
+
 - Create a single `formatCurrency(amountInSmallestUnit: number): string` utility on day one that reads `APP_CURRENCY` to determine decimal precision and symbol.
 - Create a matching `parseCurrencyInput(displayString: string): number` for form inputs.
 - Never allow raw integer-to-display conversion outside this utility.
 - Add an explicit `CURRENCY_DECIMAL_PLACES` env var (e.g., `2`) alongside `APP_CURRENCY` to make precision unambiguous.
 
 **Warning signs:**
+
 - A vehicle purchased for 1.5M appears as 150,000,000 or 15,000 in the UI.
 - Profit calculations are off by exactly 100x.
 - Different forms show different decimal representations of the same amount.
@@ -41,12 +43,14 @@ The 10-state vehicle lifecycle (`PURCHASED → IN_STOCK → IN_REPAIR → ...`) 
 The state machine is defined in the spec (Section 4.3) but will likely live as a service-layer function. Nothing prevents `prisma.vehicle.update({ data: { primaryStatus: 'SOLD' } })` from being called directly anywhere in the codebase. The two-field design (`primaryStatus` + `isAvailableForSale`) makes invalid combinations possible: 8 of the 10 statuses force `isAvailableForSale = false` (Section 4.4), but only IN_STOCK allows it to be `true`.
 
 **How to avoid:**
+
 - Implement one `transitionVehicleStatus(vehicleId, newStatus, actor)` function that is the only place `primaryStatus` is written.
 - This function validates the transition against the allowed transition map, enforces `isAvailableForSale` forced-false rules, and writes an AuditLog entry — all in a single transaction.
 - Add a Prisma middleware or database check constraint that rejects `isAvailableForSale = true` when `primaryStatus` is anything other than `IN_STOCK`.
 - Data import (Section 12) must route through the same transition validator or explicitly whitelist known-good historical states.
 
 **Warning signs:**
+
 - A vehicle appears in SOLD status but still shows in the available inventory list.
 - Audit log has no entry for a status change that clearly happened.
 - Import creates vehicles in terminal states (`SOLD`, `WRITTEN_OFF`) that also have `isAvailableForSale = true`.
@@ -65,6 +69,7 @@ Vercel Hobby plan limits function execution to 10 seconds. Neon free tier scales
 Developers place `new PrismaClient()` inside the Route Handler function body. In a hot Vercel instance this works. After a cold period, the combination of slow Neon wake-up and Prisma's own connection ramp-up consumes the 10-second budget before the query runs.
 
 **How to avoid:**
+
 - Use the global singleton pattern for `PrismaClient` (one instance per Vercel worker, reused across warm invocations).
 - Use Neon's pooled connection string (PgBouncer endpoint, port 5432) — not the direct connection — for all application traffic.
 - Add `?connect_timeout=10&pool_timeout=15` to the DATABASE_URL.
@@ -72,6 +77,7 @@ Developers place `new PrismaClient()` inside the Route Handler function body. In
 - Add `?sslmode=require` — PgBouncer in transaction mode requires SSL.
 
 **Warning signs:**
+
 - `PrismaClientInitializationError: Can't reach database server` errors appearing in Vercel logs after periods of inactivity.
 - Functions timing out at exactly 10s with no query result logged.
 - Connection count at Neon dashboard hitting ceiling under normal load.
@@ -92,12 +98,14 @@ A secondary failure: permissions are loaded at login into the session/JWT, but w
 The spec notes "Permission cache is invalidated when a role's permissions are modified" (Section 9.1) but doesn't specify the mechanism. Without an explicit invalidation strategy, developers either (a) never implement cache invalidation and rely on login-time loading, or (b) hit the DB on every request.
 
 **How to avoid:**
+
 - Cache the `AbilityRules[]` array per role in the session payload (JWT or database session). This avoids per-request DB hits.
 - When a role's permissions change (via admin UI), invalidate affected sessions using Better Auth's session invalidation API. This forces re-login for affected users.
 - Alternatively, store a `permissionsVersion` integer per role; include it in the session; if the version in the request's session doesn't match the DB version, re-fetch and re-sign the session.
 - Limit the CASL permission model to the ~60–80 rules this system needs (6 actions × 11 subjects + conditional overrides). Don't over-engineer conditions beyond what the spec requires.
 
 **Warning signs:**
+
 - Each API response shows 3+ database queries for permission loading in query logs.
 - Users can still perform actions after their role was stripped of that permission.
 - CASL `Ability` build time becomes measurable (>5ms) as permissions grow.
@@ -118,12 +126,14 @@ The specific failure for VSMS: a cashier completes a sale, the vehicle status ch
 Next.js has four caching layers: Request Memoization, Data Cache, Full Route Cache, and Router Cache (client). Developers using App Router for the first time treat it like a SPA: they expect data to be fresh because they know they "called the server." The Router Cache (client-side, 30s default in Next.js 15) will serve stale page state even when the server has fresh data, until the user navigates away and back.
 
 **How to avoid:**
+
 - For all mutable business data (vehicle status, sale records, financial figures), use TanStack Query on the client with `staleTime: 0` and explicit `invalidateQueries` after mutations.
 - Do not rely on Server Component fetch caching for any entity that changes during normal operations.
 - Call `revalidatePath('/inventory')` or `revalidateTag('vehicles')` in Server Actions/Route Handlers that mutate vehicle state.
 - Prefer the pattern: Server Component prefetches data → passes to Client Component via TanStack Query hydration → Client Component owns cache invalidation.
 
 **Warning signs:**
+
 - After a sale is recorded, the vehicle still appears in the "available" inventory list until page refresh.
 - Report data doesn't update after new transactions are added.
 - TanStack Query and Next.js cache both caching the same data at different layers, causing double-stale issues.
@@ -144,6 +154,7 @@ The documented failure mode: Vercel Hobby functions time out at 10s with no exte
 PDF generation is naturally slow compared to JSON API responses. Developers copy a working local setup to production without accounting for the cold start + timeout combination unique to the free Vercel tier.
 
 **How to avoid:**
+
 - Separate data fetching from PDF rendering: fetch all data in one query, then pass to the renderer. Avoid any DB calls inside the PDF component tree.
 - Use `@react-pdf/renderer`'s `renderToBuffer()` (not `renderToStream()`) for simpler response handling in Route Handlers.
 - Configure `@react-pdf/renderer` as a server-only import with Next.js `serverExternalPackages` in `next.config.ts` to avoid bundling it client-side and reduce bundle size.
@@ -152,6 +163,7 @@ PDF generation is naturally slow compared to JSON API responses. Developers copy
 - Test PDF generation with a Neon-cold-start simulation (query a fresh DB, then generate PDF) before declaring this complete.
 
 **Warning signs:**
+
 - PDF generation works locally but times out on Vercel after periods of inactivity.
 - Vercel build fails with "bundle size exceeds 50MB" referencing react-pdf.
 - Invoice download returns a 504 Gateway Timeout.
@@ -170,6 +182,7 @@ Section 6.2 specifies a "scheduled background job runs daily" to expire advances
 Serverless cron jobs don't have the same retry and observability infrastructure as dedicated queue/scheduler services. Vercel Hobby supports cron jobs but provides no native dead-letter queue or alerting on failure.
 
 **How to avoid:**
+
 - Implement the expiry job as a Vercel Cron Job (`vercel.json` schedule, or `app/api/cron/advance-expiry/route.ts` with `vercel.json` config).
 - Protect the cron endpoint with a shared secret header (`CRON_SECRET`) to prevent public invocation.
 - Make the job idempotent: query for `AdvancePayment WHERE status = ACTIVE AND validUntil < NOW()`, process each in a loop with individual try/catch. A failure on one record should not abort the rest.
@@ -178,6 +191,7 @@ Serverless cron jobs don't have the same retry and observability infrastructure 
 - Consider a "defensive display" in the UI: when rendering an advance, check `validUntil < today` and show it as visually expired even if the DB status hasn't been updated yet.
 
 **Warning signs:**
+
 - Advances show status `ACTIVE` past their `validUntil` date.
 - No `ADVANCE_EXPIRING` or `ADVANCE_EXPIRED` notifications have been sent in days despite active advances.
 - Vercel function logs show the cron endpoint returning 200 but audit log shows no expiry events.
@@ -199,6 +213,7 @@ AuditLog is append-only and covers every CREATE/UPDATE/DELETE/STATUS_CHANGE acro
 AuditLog is added as a "simple append" after the main logic. No index is applied because "it's just a log." The JSONB snapshot approach is correct but the query pattern is not anticipated during initial schema design.
 
 **How to avoid:**
+
 - Add composite index `(entityType, entityId, performedAt DESC)` to the AuditLog table from the first migration.
 - Add index `(performedBy, performedAt DESC)` for user activity reports.
 - Write AuditLog rows in the same transaction as the business record change (no separate async write). Async writes can miss failures and create phantom audit entries.
@@ -206,6 +221,7 @@ AuditLog is added as a "simple append" after the main logic. No index is applied
 - For the admin dashboard, always paginate AuditLog queries — never `SELECT *` without a `LIMIT`.
 
 **Warning signs:**
+
 - Vehicle detail page loads slowly because it's fetching the full unindexed audit history.
 - Sequential `EXPLAIN ANALYZE` shows `Seq Scan` on AuditLog.
 - Prisma interactive transactions start timing out on heavily-edited vehicles.
@@ -217,63 +233,63 @@ Database schema phase — add indexes in the initial Prisma migration, before an
 
 ## Technical Debt Patterns
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Skipping the state machine validator and writing `primaryStatus` directly in feature handlers | Faster to build each feature independently | Vehicles end up in invalid states; impossible to audit which handler caused it | Never |
-| Reloading CASL permissions from DB on every request | Simplest to implement; always current | 50–200ms overhead per request; connection budget consumed | Never — session cache is straightforward |
-| Generating PDF synchronously inside a Route Handler that also does data fetching | Single endpoint is simple | Timeout risk on Vercel Hobby cold starts | Never — separate data fetch from render |
-| Using `SalePrice - (PurchasePrice + sum(repairs))` computed at query time without testing currency edge cases | Works for common cases | Fails for re-purchased vehicles if `activePurchaseId` is not correctly scoped | Never — test cost basis scoping from day one |
-| Running the historical data import as a single Prisma transaction for thousands of rows | Simple rollback story | Prisma interactive transaction timeout at ~5000ms default; import of 500+ rows will fail | Never — use chunked batches with `createMany` |
-| Instantiating `new PrismaClient()` in each Route Handler | No boilerplate needed | Connection exhaustion in production; P1001 errors under load | Never in Next.js — always use the global singleton |
+| Shortcut                                                                                                      | Immediate Benefit                          | Long-term Cost                                                                           | When Acceptable                                    |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Skipping the state machine validator and writing `primaryStatus` directly in feature handlers                 | Faster to build each feature independently | Vehicles end up in invalid states; impossible to audit which handler caused it           | Never                                              |
+| Reloading CASL permissions from DB on every request                                                           | Simplest to implement; always current      | 50–200ms overhead per request; connection budget consumed                                | Never — session cache is straightforward           |
+| Generating PDF synchronously inside a Route Handler that also does data fetching                              | Single endpoint is simple                  | Timeout risk on Vercel Hobby cold starts                                                 | Never — separate data fetch from render            |
+| Using `SalePrice - (PurchasePrice + sum(repairs))` computed at query time without testing currency edge cases | Works for common cases                     | Fails for re-purchased vehicles if `activePurchaseId` is not correctly scoped            | Never — test cost basis scoping from day one       |
+| Running the historical data import as a single Prisma transaction for thousands of rows                       | Simple rollback story                      | Prisma interactive transaction timeout at ~5000ms default; import of 500+ rows will fail | Never — use chunked batches with `createMany`      |
+| Instantiating `new PrismaClient()` in each Route Handler                                                      | No boilerplate needed                      | Connection exhaustion in production; P1001 errors under load                             | Never in Next.js — always use the global singleton |
 
 ---
 
 ## Integration Gotchas
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| Cloudflare R2 presigned URLs | Including `Content-Type` in the signed headers — browser upload will fail because R2 sees mismatched signed headers | Generate presigned PUT URL without signed `Content-Type`; let the browser set it at upload time |
-| Cloudflare R2 CORS | Assuming dashboard CORS settings apply to S3 API endpoint — they don't; they apply only to public URLs | Configure CORS using Wrangler CLI for the bucket; set `AllowedOrigins` to your Vercel domain explicitly |
-| Neon + Prisma pooled connection | Using the direct connection string (not PgBouncer) for application traffic — fails under any concurrency | Always use the pooled connection string (`?pgbouncer=true&connection_limit=1`) for app; use direct connection only for migrations |
-| Better Auth + Next.js middleware | Calling `auth.api.getSession()` inside every middleware invocation (incl. static asset routes) — adds DB overhead to every request | Use middleware only for cookie existence check; validate the full session only in Route Handlers |
-| Better Auth cookie in Server Actions | Calling sign-in methods in a Server Action without the `nextCookies` plugin — cookies won't be set | Install Better Auth's `nextCookies` plugin, which intercepts Set-Cookie headers from Server Action context |
-| TanStack Query + Server Components | Fetching data in a Server Component and trying to use it in a Client Component query cache — the caches are separate | Use `HydrationBoundary` + `dehydrate()` pattern: prefetch in Server Component, pass dehydrated state to client |
+| Integration                          | Common Mistake                                                                                                                     | Correct Approach                                                                                                                  |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Cloudflare R2 presigned URLs         | Including `Content-Type` in the signed headers — browser upload will fail because R2 sees mismatched signed headers                | Generate presigned PUT URL without signed `Content-Type`; let the browser set it at upload time                                   |
+| Cloudflare R2 CORS                   | Assuming dashboard CORS settings apply to S3 API endpoint — they don't; they apply only to public URLs                             | Configure CORS using Wrangler CLI for the bucket; set `AllowedOrigins` to your Vercel domain explicitly                           |
+| Neon + Prisma pooled connection      | Using the direct connection string (not PgBouncer) for application traffic — fails under any concurrency                           | Always use the pooled connection string (`?pgbouncer=true&connection_limit=1`) for app; use direct connection only for migrations |
+| Better Auth + Next.js middleware     | Calling `auth.api.getSession()` inside every middleware invocation (incl. static asset routes) — adds DB overhead to every request | Use middleware only for cookie existence check; validate the full session only in Route Handlers                                  |
+| Better Auth cookie in Server Actions | Calling sign-in methods in a Server Action without the `nextCookies` plugin — cookies won't be set                                 | Install Better Auth's `nextCookies` plugin, which intercepts Set-Cookie headers from Server Action context                        |
+| TanStack Query + Server Components   | Fetching data in a Server Component and trying to use it in a Client Component query cache — the caches are separate               | Use `HydrationBoundary` + `dehydrate()` pattern: prefetch in Server Component, pass dehydrated state to client                    |
 
 ---
 
 ## Performance Traps
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Profit calculation computed at query time without pre-scoped `purchaseRecordId` | "Gross Profit" on the sales report is wrong for vehicles that have been re-purchased | Always join `VehicleCost` and `RepairRecord` on `purchaseRecordId = activePurchaseId`, not `vehicleId` alone | From the first re-purchased vehicle |
-| Unindexed `AuditLog` full-table scans | Vehicle audit history takes 2–5s to load on vehicles with many edits | Composite index `(entityType, entityId, performedAt DESC)` from migration 0 | ~10,000 audit rows (expected within 1–2 years of active use) |
-| `N+1` query on the inventory list — fetching cost basis per-vehicle in a loop | Inventory list with 100 vehicles takes 2–3s to load | Use Prisma `include` or aggregate the cost basis with a `groupBy` query; never loop over `findUnique` in a list render | ~50 vehicles in inventory |
-| Notification polling interval too aggressive | Notification badge updates drain Vercel function invocations on Hobby plan (limited to 100K/month) | Poll no more than every 30s; use SSE (Server-Sent Events) for a persistent connection that pushes only on change | When multiple concurrent users are active |
-| Report CSV/PDF export with no row limit | Exporting "all-time" sales report causes Vercel function memory pressure and timeout | Paginate or cap exports at 1,000 rows; add date range validation server-side | Reports spanning 3+ years of history |
+| Trap                                                                            | Symptoms                                                                                           | Prevention                                                                                                             | When It Breaks                                               |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Profit calculation computed at query time without pre-scoped `purchaseRecordId` | "Gross Profit" on the sales report is wrong for vehicles that have been re-purchased               | Always join `VehicleCost` and `RepairRecord` on `purchaseRecordId = activePurchaseId`, not `vehicleId` alone           | From the first re-purchased vehicle                          |
+| Unindexed `AuditLog` full-table scans                                           | Vehicle audit history takes 2–5s to load on vehicles with many edits                               | Composite index `(entityType, entityId, performedAt DESC)` from migration 0                                            | ~10,000 audit rows (expected within 1–2 years of active use) |
+| `N+1` query on the inventory list — fetching cost basis per-vehicle in a loop   | Inventory list with 100 vehicles takes 2–3s to load                                                | Use Prisma `include` or aggregate the cost basis with a `groupBy` query; never loop over `findUnique` in a list render | ~50 vehicles in inventory                                    |
+| Notification polling interval too aggressive                                    | Notification badge updates drain Vercel function invocations on Hobby plan (limited to 100K/month) | Poll no more than every 30s; use SSE (Server-Sent Events) for a persistent connection that pushes only on change       | When multiple concurrent users are active                    |
+| Report CSV/PDF export with no row limit                                         | Exporting "all-time" sales report causes Vercel function memory pressure and timeout               | Paginate or cap exports at 1,000 rows; add date range validation server-side                                           | Reports spanning 3+ years of history                         |
 
 ---
 
 ## Security Mistakes
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Checking CASL permissions only on the frontend (`can('update', 'SaleRecord')`) | A user who can manipulate the client payload can perform any action by calling the API directly | Every Route Handler must independently re-build the CASL `Ability` from the session and check permissions before executing business logic |
-| Exposing the raw `ApprovalRequest.payload` JSON to non-manager roles | Payload contains proposed sale details (including prices) that a sales person should not see before approval | Server-side filter `payload` out of the response for non-approve roles |
-| Presigned R2 URLs with no expiry or long expiry (>15 minutes) | A leaked URL allows anyone to replace a DO document for a lease sale | Set presigned URL expiry to 5 minutes; validate that the uploaded file is a PDF before storing the path in `doDocumentPath` |
-| Import endpoint accessible without auth | Historical data import bypasses approval workflows by design; if the endpoint is public, anyone can inject records | Protect the import endpoint with both authentication and an explicit `can('import', 'all')` admin-only permission |
-| Storing `listedPrice` comparisons for discount detection purely client-side | Sale form could submit `salePrice < listedPrice` without triggering the approval workflow | Discount detection (`salePrice < Vehicle.listedPrice`) must occur in the Route Handler, not the client, and must create an `ApprovalRequest` before the sale is committed |
+| Mistake                                                                        | Risk                                                                                                               | Prevention                                                                                                                                                                |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checking CASL permissions only on the frontend (`can('update', 'SaleRecord')`) | A user who can manipulate the client payload can perform any action by calling the API directly                    | Every Route Handler must independently re-build the CASL `Ability` from the session and check permissions before executing business logic                                 |
+| Exposing the raw `ApprovalRequest.payload` JSON to non-manager roles           | Payload contains proposed sale details (including prices) that a sales person should not see before approval       | Server-side filter `payload` out of the response for non-approve roles                                                                                                    |
+| Presigned R2 URLs with no expiry or long expiry (>15 minutes)                  | A leaked URL allows anyone to replace a DO document for a lease sale                                               | Set presigned URL expiry to 5 minutes; validate that the uploaded file is a PDF before storing the path in `doDocumentPath`                                               |
+| Import endpoint accessible without auth                                        | Historical data import bypasses approval workflows by design; if the endpoint is public, anyone can inject records | Protect the import endpoint with both authentication and an explicit `can('import', 'all')` admin-only permission                                                         |
+| Storing `listedPrice` comparisons for discount detection purely client-side    | Sale form could submit `salePrice < listedPrice` without triggering the approval workflow                          | Discount detection (`salePrice < Vehicle.listedPrice`) must occur in the Route Handler, not the client, and must create an `ApprovalRequest` before the sale is committed |
 
 ---
 
 ## UX Pitfalls
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| No optimistic UI on status transitions | Cashier clicks "Mark as Returned from Repair" — page freezes for 1–2s, staff clicks again creating a duplicate action | Use TanStack Query mutation + optimistic update; disable the button immediately on click; show loading state |
-| Advance expiry displayed as server time only | Staff in a different timezone see confusing "expired yesterday" messages for advances that haven't technically expired locally | Display all dates in the configured `APP_TIMEZONE`; include relative time ("3 days overdue") alongside absolute date |
-| Financial figures with no currency symbol or decimal formatting | "1500000" shown in the profit column — staff misread it as 15,000 | Every monetary value in the UI must pass through `formatCurrency()`; never render raw integers from the API |
-| Approval request submits with no confirmation of what was submitted | Sales person submits discount request, doesn't know if it went through | Show a confirmation dialog summarizing the pending request before submission; show a "pending approval" badge on the sale record |
-| Inactive/soft-deleted entities appear in dropdowns | Staff selects a deactivated supplier or customer by mistake | All `findMany` queries for dropdown data must filter `isActive: true` by default; add a "show inactive" toggle only where needed |
+| Pitfall                                                             | User Impact                                                                                                                    | Better Approach                                                                                                                  |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| No optimistic UI on status transitions                              | Cashier clicks "Mark as Returned from Repair" — page freezes for 1–2s, staff clicks again creating a duplicate action          | Use TanStack Query mutation + optimistic update; disable the button immediately on click; show loading state                     |
+| Advance expiry displayed as server time only                        | Staff in a different timezone see confusing "expired yesterday" messages for advances that haven't technically expired locally | Display all dates in the configured `APP_TIMEZONE`; include relative time ("3 days overdue") alongside absolute date             |
+| Financial figures with no currency symbol or decimal formatting     | "1500000" shown in the profit column — staff misread it as 15,000                                                              | Every monetary value in the UI must pass through `formatCurrency()`; never render raw integers from the API                      |
+| Approval request submits with no confirmation of what was submitted | Sales person submits discount request, doesn't know if it went through                                                         | Show a confirmation dialog summarizing the pending request before submission; show a "pending approval" badge on the sale record |
+| Inactive/soft-deleted entities appear in dropdowns                  | Staff selects a deactivated supplier or customer by mistake                                                                    | All `findMany` queries for dropdown data must filter `isActive: true` by default; add a "show inactive" toggle only where needed |
 
 ---
 
@@ -294,32 +310,32 @@ Database schema phase — add indexes in the initial Prisma migration, before an
 
 ## Recovery Strategies
 
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Vehicle stuck in invalid state (e.g., SOLD + isAvailableForSale = true) | LOW | Admin UI "state correction" tool, or direct Prisma migration script; write AuditLog entry explaining manual correction |
-| Prisma connection exhaustion in production | LOW | Restart the Vercel deployment (re-deploys clear stale connections); switch to pooled connection string permanently |
-| Stale CASL permissions in active sessions | LOW | Force all sessions of affected users to expire via Better Auth's session management API; users re-login and get fresh permissions |
-| Advance expiry cron missed a run | MEDIUM | Trigger the cron endpoint manually via admin UI; verify AuditLog shows the delayed expiry events; send manual notifications |
-| PDF generation timeout on Vercel | MEDIUM | Optimize data fetch (single query instead of multiple), remove embedded assets from template, test again; if still failing, pre-generate PDF eagerly on sale creation rather than on-demand download |
-| Historical import partially committed (transaction failed mid-batch) | MEDIUM | Identify the `importBatchId` from logs; query for records with that batch ID; either complete the remaining records or delete and re-import the entire batch |
-| Audit log data corruption (missing entries for a period) | HIGH | Audit log gaps cannot be back-filled from application state — they are a permanent data integrity hole. Prevention is the only viable strategy. If discovered early, add compensating entries with `performedBy = system-recovery` and a note. |
+| Pitfall                                                                 | Recovery Cost | Recovery Steps                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vehicle stuck in invalid state (e.g., SOLD + isAvailableForSale = true) | LOW           | Admin UI "state correction" tool, or direct Prisma migration script; write AuditLog entry explaining manual correction                                                                                                                         |
+| Prisma connection exhaustion in production                              | LOW           | Restart the Vercel deployment (re-deploys clear stale connections); switch to pooled connection string permanently                                                                                                                             |
+| Stale CASL permissions in active sessions                               | LOW           | Force all sessions of affected users to expire via Better Auth's session management API; users re-login and get fresh permissions                                                                                                              |
+| Advance expiry cron missed a run                                        | MEDIUM        | Trigger the cron endpoint manually via admin UI; verify AuditLog shows the delayed expiry events; send manual notifications                                                                                                                    |
+| PDF generation timeout on Vercel                                        | MEDIUM        | Optimize data fetch (single query instead of multiple), remove embedded assets from template, test again; if still failing, pre-generate PDF eagerly on sale creation rather than on-demand download                                           |
+| Historical import partially committed (transaction failed mid-batch)    | MEDIUM        | Identify the `importBatchId` from logs; query for records with that batch ID; either complete the remaining records or delete and re-import the entire batch                                                                                   |
+| Audit log data corruption (missing entries for a period)                | HIGH          | Audit log gaps cannot be back-filled from application state — they are a permanent data integrity hole. Prevention is the only viable strategy. If discovered early, add compensating entries with `performedBy = system-recovery` and a note. |
 
 ---
 
 ## Pitfall-to-Phase Mapping
 
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| Integer currency display/input errors | Foundation — currency utility | All monetary inputs and displays use the shared utility; no raw integer rendering anywhere in the codebase |
-| Vehicle state machine bypassed | Core lifecycle phase | State transition tests cover every valid and every invalid transition; direct Prisma `update` of `primaryStatus` does not exist outside the transition function |
-| Neon cold start + Prisma connection exhaustion | Foundation — infrastructure setup | Prisma singleton pattern in place; pooled connection string in DATABASE_URL; cold-start test passes under 10s |
-| CASL permissions loaded per-request | Auth and permissions phase | Prisma query logs show 0 permission queries after initial session load |
-| Next.js App Router stale cache | First data-displaying feature | Inventory list updates within 1s of a sale being recorded, without page reload |
-| PDF invoice timeout | Invoice generation phase | Invoice generates successfully from a cold Neon compute on Vercel Hobby |
-| Advance expiry cron silent failure | Advance payment phase | Cron job has idempotent error handling; manual trigger available; structured log output |
-| Audit log index missing | Database schema phase (migration 0) | `EXPLAIN ANALYZE` on AuditLog queries shows index scan, not seq scan |
-| R2 CORS misconfiguration | File upload phase | DO document upload works end-to-end from the deployed Vercel domain, not just localhost |
-| Import transaction timeout | Data import phase | Import of 500 rows completes within 10s; import of 1 invalid row in a 100-row batch rolls back all 100 rows |
+| Pitfall                                        | Prevention Phase                    | Verification                                                                                                                                                    |
+| ---------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Integer currency display/input errors          | Foundation — currency utility       | All monetary inputs and displays use the shared utility; no raw integer rendering anywhere in the codebase                                                      |
+| Vehicle state machine bypassed                 | Core lifecycle phase                | State transition tests cover every valid and every invalid transition; direct Prisma `update` of `primaryStatus` does not exist outside the transition function |
+| Neon cold start + Prisma connection exhaustion | Foundation — infrastructure setup   | Prisma singleton pattern in place; pooled connection string in DATABASE_URL; cold-start test passes under 10s                                                   |
+| CASL permissions loaded per-request            | Auth and permissions phase          | Prisma query logs show 0 permission queries after initial session load                                                                                          |
+| Next.js App Router stale cache                 | First data-displaying feature       | Inventory list updates within 1s of a sale being recorded, without page reload                                                                                  |
+| PDF invoice timeout                            | Invoice generation phase            | Invoice generates successfully from a cold Neon compute on Vercel Hobby                                                                                         |
+| Advance expiry cron silent failure             | Advance payment phase               | Cron job has idempotent error handling; manual trigger available; structured log output                                                                         |
+| Audit log index missing                        | Database schema phase (migration 0) | `EXPLAIN ANALYZE` on AuditLog queries shows index scan, not seq scan                                                                                            |
+| R2 CORS misconfiguration                       | File upload phase                   | DO document upload works end-to-end from the deployed Vercel domain, not just localhost                                                                         |
+| Import transaction timeout                     | Data import phase                   | Import of 500 rows completes within 10s; import of 1 invalid row in a 100-row batch rolls back all 100 rows                                                     |
 
 ---
 
@@ -338,5 +354,6 @@ Database schema phase — add indexes in the initial Prisma migration, before an
 - Domain-specific pitfalls: Derived from analysis of VSMS requirements specification (docs/02-2-requirements-specification.md) v1.2
 
 ---
-*Pitfalls research for: Vehicle Sale Management System (VSMS)*
-*Researched: 2026-03-21*
+
+_Pitfalls research for: Vehicle Sale Management System (VSMS)_
+_Researched: 2026-03-21_

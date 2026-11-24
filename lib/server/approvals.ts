@@ -1,4 +1,13 @@
-import { applyFinanceError, financeErrorAuthority, prepareFinanceError, prepareRefund, applyRefund, refundAuthority, prepareCommitmentDiscount, commitmentDiscountAuthority } from "./reservation-sales"
+import {
+  applyFinanceError,
+  financeErrorAuthority,
+  prepareFinanceError,
+  prepareRefund,
+  applyRefund,
+  refundAuthority,
+  prepareCommitmentDiscount,
+  commitmentDiscountAuthority,
+} from "./reservation-sales"
 import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { subject } from "@casl/ability"
@@ -57,7 +66,13 @@ import {
   loadSale,
   saleAuth,
 } from "./sales"
-import { audit, auditFilterInputs, auditScope, writeReadVersion, notify } from "./audit"
+import {
+  audit,
+  auditFilterInputs,
+  auditScope,
+  writeReadVersion,
+  notify,
+} from "./audit"
 import { canonical, inputDigest } from "./idempotency"
 import { runtimeConfig } from "./config"
 import { project, readScope, requireFields } from "./permissions"
@@ -86,12 +101,22 @@ function saved(a: ApprovalRequest) {
   const expected = approvalEnvelope("requestApproval").shape.expected.safeParse(
     a.expected
   )
-  if (!proposal.success || !expected.success || a.schemaVersion !== 1 || a.kind !== proposal.data.kind)
+  if (
+    !proposal.success ||
+    !expected.success ||
+    a.schemaVersion !== 1 ||
+    a.kind !== proposal.data.kind
+  )
     fail("INTERNAL_ERROR", 500)
   if (
-    (proposal.data.kind === "WRITE_OFF" && proposal.data.input.cycleId !== a.cycleId) ||
-    (proposal.data.kind === "DISCOUNT" && proposal.data.command.input.cycleId !== a.cycleId) ||
-    (proposal.data.kind === "SALE_EDIT" && (proposal.data.operation === "EDIT_COMPLETION" ? proposal.data.input.saleId : proposal.data.input.saleCaseId) !== a.saleCaseId)
+    (proposal.data.kind === "WRITE_OFF" &&
+      proposal.data.input.cycleId !== a.cycleId) ||
+    (proposal.data.kind === "DISCOUNT" &&
+      proposal.data.command.input.cycleId !== a.cycleId) ||
+    (proposal.data.kind === "SALE_EDIT" &&
+      (proposal.data.operation === "EDIT_COMPLETION"
+        ? proposal.data.input.saleId
+        : proposal.data.input.saleCaseId) !== a.saleCaseId)
   )
     fail("INTERNAL_ERROR", 500)
   return { proposal: proposal.data, expected: expected.data }
@@ -147,7 +172,16 @@ async function domainAuthority(
   tx: Tx,
   actor: Authority,
   row: Cycle,
-  a: Pick<ApprovalRequest, "proposal" | "expected" | "schemaVersion" | "kind" | "cycleId" | "saleCaseId" | "requestedBy">
+  a: Pick<
+    ApprovalRequest,
+    | "proposal"
+    | "expected"
+    | "schemaVersion"
+    | "kind"
+    | "cycleId"
+    | "saleCaseId"
+    | "requestedBy"
+  >
 ) {
   const { proposal } = saved(a as ApprovalRequest)
   if (proposal.kind === "WRITE_OFF") {
@@ -163,7 +197,13 @@ async function domainAuthority(
   readableRefs(actor, row)
   if (proposal.kind === "DISCOUNT") {
     if (proposal.command.name !== "completeImmediate") {
-      await commitmentDiscountAuthority(tx, actor, row, proposal.command, a.requestedBy)
+      await commitmentDiscountAuthority(
+        tx,
+        actor,
+        row,
+        proposal.command,
+        a.requestedBy
+      )
       return
     }
     requireFields(actor.ability, "PurchaseRecord", "read", auth(row), [
@@ -215,13 +255,15 @@ async function domainAuthority(
           "purchaseDate",
           "purchasePrice",
           "mileage",
-          ...(command.tradeIn.intake.listedPrice !== undefined ? ["listedPrice"] : []),
+          ...(command.tradeIn.intake.listedPrice !== undefined
+            ? ["listedPrice"]
+            : []),
         ]
       )
     return
   }
   if (proposal.kind === "REFUND") {
-    const sale = a.saleCaseId && await loadSale(tx, a.saleCaseId)
+    const sale = a.saleCaseId && (await loadSale(tx, a.saleCaseId))
     if (!sale) fail("NOT_FOUND", 404)
     refundAuthority(actor, sale, proposal.input)
     return
@@ -376,7 +418,10 @@ async function reviewAuthority(
     "payloadHash",
     "reason",
   ])
-  if (proposal.kind === "SALE_EDIT" && proposal.operation === "EDIT_COMPLETION") {
+  if (
+    proposal.kind === "SALE_EDIT" &&
+    proposal.operation === "EDIT_COMPLETION"
+  ) {
     const sale = await loadSale(tx, proposal.input.saleId)
     if (!sale) fail("NOT_FOUND", 404)
     requireFields(actor.ability, "SaleCase", "update", saleAuth(sale), [
@@ -384,10 +429,16 @@ async function reviewAuthority(
       "reason",
     ])
   }
-  if (proposal.kind === "SALE_EDIT" && proposal.operation === "CANCEL_FINANCE_ERROR")
+  if (
+    proposal.kind === "SALE_EDIT" &&
+    proposal.operation === "CANCEL_FINANCE_ERROR"
+  )
     requireFields(actor.ability, "ApprovalRequest", "read", rowSubject(a), [
-      "proposal.operation", "proposal.input.saleCaseId", "proposal.input.receiptReversals",
-      "proposal.input.disposition", "proposal.input.reason",
+      "proposal.operation",
+      "proposal.input.saleCaseId",
+      "proposal.input.receiptReversals",
+      "proposal.input.disposition",
+      "proposal.input.reason",
     ])
 }
 function validInput(row: Cycle, input: WriteOff) {
@@ -445,18 +496,32 @@ export async function executeImportedWriteOff(
   tx: Tx,
   identity: Identity,
   raw: WriteOff,
-  evidence: { batchId: string; rowId: string; closedAt: string; legacy: LegacyApprovalEvidence }
+  evidence: {
+    batchId: string
+    rowId: string
+    closedAt: string
+    legacy: LegacyApprovalEvidence
+  }
 ) {
   return transaction(async (step) => {
     const actor = await currentActor(step, identity)
-    const batch = await step.importBatch.findUniqueOrThrow({ where: { id: evidence.batchId } })
-    if (!actor.administrator || batch.state === "COMMITTED") fail("FORBIDDEN", 403)
+    const batch = await step.importBatch.findUniqueOrThrow({
+      where: { id: evidence.batchId },
+    })
+    if (!actor.administrator || batch.state === "COMMITTED")
+      fail("FORBIDDEN", 403)
     requireFields(actor.ability, "ImportBatch", "read", batch, ["id", "state"])
     const input = writeOffInput.parse(raw)
     const row = await lockedCycle(step, input.cycleId)
     eligible(row)
     validInput(row, input)
-    requireWriteOffAuthority(actor, auth(row), vehicleAuth(row), visiblePurchase(actor, row), input)
+    requireWriteOffAuthority(
+      actor,
+      auth(row),
+      vehicleAuth(row),
+      visiblePurchase(actor, row),
+      input
+    )
     const date = new Date(evidence.closedAt)
     if (date < new Date(`${input.date}T00:00:00+05:30`) || date > new Date())
       fail("INVALID_INPUT", 422)
@@ -466,38 +531,93 @@ export async function executeImportedWriteOff(
     const sequence = await nextBusinessSequence(step)
     await step.commandReceipt.create({
       data: {
-        id: commandId, environmentId: runtimeConfig().ENVIRONMENT_ID,
-        actorKey: `USER:${actor.userId}`, commandName: action, idempotencyKey: commandId,
-        inputHash: inputDigest({ input, evidence }, runtimeConfig().BETTER_AUTH_SECRET),
-        businessSequence: sequence, result: { type: "Disposal", id: disposalId, revision: 1 },
+        id: commandId,
+        environmentId: runtimeConfig().ENVIRONMENT_ID,
+        actorKey: `USER:${actor.userId}`,
+        commandName: action,
+        idempotencyKey: commandId,
+        inputHash: inputDigest(
+          { input, evidence },
+          runtimeConfig().BETTER_AUTH_SECRET
+        ),
+        businessSequence: sequence,
+        result: { type: "Disposal", id: disposalId, revision: 1 },
       },
     })
     const basis = row.basisVersions.at(-1)!
     const financial = purchaseDTO(row).financial!
     await applyApprovedWriteOff(step, {
-      cycleId: row.id, vehicleId: row.vehicleId, disposalId, commandId,
-      reviewerId: actor.userId, reviewedAt: date, input,
+      cycleId: row.id,
+      vehicleId: row.vehicleId,
+      disposalId,
+      commandId,
+      reviewerId: actor.userId,
+      reviewedAt: date,
+      input,
       importedApproval: {
-        kind: "IMPORTED", historicalApprovalBypass: true, initiatedByAdminId: actor.userId,
-        batchId: evidence.batchId, rowId: evidence.rowId, legacy: evidence.legacy,
+        kind: "IMPORTED",
+        historicalApprovalBypass: true,
+        initiatedByAdminId: actor.userId,
+        batchId: evidence.batchId,
+        rowId: evidence.rowId,
+        legacy: evidence.legacy,
       },
-      basisVersionId: basis.id, basis: basis.total, cashIn: BigInt(financial.cashIn),
-      cashOut: BigInt(financial.cashOut), currency: basis.currency, scale: basis.scale,
+      basisVersionId: basis.id,
+      basis: basis.total,
+      cashIn: BigInt(financial.cashIn),
+      cashOut: BigInt(financial.cashOut),
+      currency: basis.currency,
+      scale: basis.scale,
     })
     await step.statusEvent.create({
-      data: { cycleId: row.id, from: row.status, to: "WRITTEN_OFF", action,
-        commandId, userId: actor.userId, occurredAt: new Date(input.date) },
+      data: {
+        cycleId: row.id,
+        from: row.status,
+        to: "WRITTEN_OFF",
+        action,
+        commandId,
+        userId: actor.userId,
+        occurredAt: new Date(input.date),
+      },
     })
     const after = (await loadPurchase(step, row.id))!
     let disposalVersionId: string | undefined
     for (const [entityType, entityId, revision, before, payload] of [
-      ["PurchaseRecord", row.id, after.revision, purchaseDTO(row), purchaseDTO(after)],
-      ["Vehicle", row.vehicleId, after.vehicle.revision, vehicleDTO(row), vehicleDTO(after)],
+      [
+        "PurchaseRecord",
+        row.id,
+        after.revision,
+        purchaseDTO(row),
+        purchaseDTO(after),
+      ],
+      [
+        "Vehicle",
+        row.vehicleId,
+        after.vehicle.revision,
+        vehicleDTO(row),
+        vehicleDTO(after),
+      ],
       ["Disposal", disposalId, 1, null, disposalDTO(after.disposal!)],
     ] as const) {
-      await audit(step, { commandId, userId: null, importActor: actor.userId, entityType, entityId, action,
-        reason: input.reason, before, after: payload })
-      const version = await writeReadVersion(step, { commandId, sequence, entityType, entityId, revision, payload })
+      await audit(step, {
+        commandId,
+        userId: null,
+        importActor: actor.userId,
+        entityType,
+        entityId,
+        action,
+        reason: input.reason,
+        before,
+        after: payload,
+      })
+      const version = await writeReadVersion(step, {
+        commandId,
+        sequence,
+        entityType,
+        entityId,
+        revision,
+        payload,
+      })
       if (entityType === "Disposal") disposalVersionId = version.id
     }
     return disposalVersionId!
@@ -544,7 +664,10 @@ export function visibleApproval(
   let full = true
   if (proposal.kind === "WRITE_OFF") {
     const input = proposal.input
-    const candidate = subject("Disposal", { ...input, createdBy: a.requestedBy })
+    const candidate = subject("Disposal", {
+      ...input,
+      createdBy: a.requestedBy,
+    })
     const projectedInput = (
       value.proposal as { input?: Record<string, unknown> } | undefined
     )?.input
@@ -583,8 +706,7 @@ export function visibleApproval(
       full = false
     }
   } else {
-    const saleCheckId =
-      a.saleCaseId ?? undefined
+    const saleCheckId = a.saleCaseId ?? undefined
     const saleTarget = row.sales.find((s) => s.id === saleCheckId)
     const saleCond = {
       createdBy: saleTarget?.createdBy ?? a.requestedBy,
@@ -593,17 +715,25 @@ export function visibleApproval(
           ? proposal.command.input.customerId
           : saleTarget?.customerId,
     }
-    if ((proposal.kind === "REFUND" ||
-        (proposal.kind === "SALE_EDIT" && proposal.operation === "CANCEL_FINANCE_ERROR")) &&
-        !["id", "payments.id", "payments.amount", "payments.date", "payments.direction"].every(
-      (field) => actor.ability.can("read", subject("SaleCase", saleCond), field))) {
+    if (
+      (proposal.kind === "REFUND" ||
+        (proposal.kind === "SALE_EDIT" &&
+          proposal.operation === "CANCEL_FINANCE_ERROR")) &&
+      ![
+        "id",
+        "payments.id",
+        "payments.amount",
+        "payments.date",
+        "payments.direction",
+      ].every((field) =>
+        actor.ability.can("read", subject("SaleCase", saleCond), field)
+      )
+    ) {
       delete value.proposal
       value.redactedFields.push("proposal")
       full = false
     }
-    if (
-      !actor.ability.can("read", subject("SaleCase", saleCond), "price")
-    ) {
+    if (!actor.ability.can("read", subject("SaleCase", saleCond), "price")) {
       full = false
       delete value.payloadHash
       value.redactedFields.push("payloadHash")
@@ -860,7 +990,11 @@ export async function approvalAudit(
   args: Record<string, string>
 ) {
   const parsed = listParams
-    .extend({ ...auditFilterInputs, type: z.enum(["ApprovalRequest", "Disposal"]), id })
+    .extend({
+      ...auditFilterInputs,
+      type: z.enum(["ApprovalRequest", "Disposal"]),
+      id,
+    })
     .strict()
     .safeParse(args)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -984,7 +1118,8 @@ async function resolveLiveRefs(
         where: { id: ref.id },
         select: { revision: true },
       })
-      if (p) out.push({ type: "PurchaseRecord", id: ref.id, revision: p.revision })
+      if (p)
+        out.push({ type: "PurchaseRecord", id: ref.id, revision: p.revision })
     } else if (ref.type === "Vehicle") {
       const v = await tx.vehicle.findUnique({
         where: { id: ref.id },
@@ -998,12 +1133,16 @@ async function resolveLiveRefs(
       })
       if (c) out.push({ type: "Customer", id: ref.id, revision: c.revision })
     } else if (ref.type === "Settings" || ref.type === "FinanceCompany") {
-      const record = ref.type === "Settings"
-        ? await tx.settings.findUnique({ where: { id: ref.id } })
-        : await tx.financeCompany.findUnique({ where: { id: ref.id } })
+      const record =
+        ref.type === "Settings"
+          ? await tx.settings.findUnique({ where: { id: ref.id } })
+          : await tx.financeCompany.findUnique({ where: { id: ref.id } })
       if (record) out.push({ ...ref, revision: record.revision })
     } else if (ref.type === "Reservation") {
-      const record = await tx.reservation.findUnique({ where: { id: ref.id }, select: { revision: true } })
+      const record = await tx.reservation.findUnique({
+        where: { id: ref.id },
+        select: { revision: true },
+      })
       if (record) out.push({ ...ref, revision: record.revision })
     } else if (ref.type === "SaleCase") {
       const s = await tx.saleCase.findUnique({
@@ -1023,8 +1162,9 @@ export async function executeApproval(
 ): Promise<Applied | Pending> {
   await database().$transaction((tx) => currentActor(tx, identity))
   // Preserve MONEY_OVERFLOW rather than silently recategorizing canonical A+1 as schema failure.
-  const rawProp = (raw as { input?: { proposal?: Record<string, unknown> } } | null)
-    ?.input?.proposal
+  const rawProp = (
+    raw as { input?: { proposal?: Record<string, unknown> } } | null
+  )?.input?.proposal
   const rawAmounts: unknown[] = []
   if (rawProp?.kind === "WRITE_OFF") {
     const p = rawProp.input as WriteOff | undefined
@@ -1039,7 +1179,11 @@ export async function executeApproval(
   } else if (rawProp?.kind === "SALE_EDIT") {
     const se = rawProp.input as
       | {
-          patch?: { price?: string; tradeIn?: { value?: string }; finance?: { downPayment?: string; financeAmount?: string } }
+          patch?: {
+            price?: string
+            tradeIn?: { value?: string }
+            finance?: { downPayment?: string; financeAmount?: string }
+          }
           cashCorrections?: { replacement?: { amount?: string } }[]
         }
       | undefined
@@ -1115,17 +1259,28 @@ export async function executeApproval(
       } else if (input.proposal.kind === "DISCOUNT") {
         requireWorkflowCreate(actor, input.proposal)
         if (input.proposal.command.name === "completeImmediate") {
-          const prep = await prepareDiscountApproval(tx, actor, input.proposal.command.input, envelope.expected)
+          const prep = await prepareDiscountApproval(
+            tx,
+            actor,
+            input.proposal.command.input,
+            envelope.expected
+          )
           row = prep.cycle
           expected = prep.expectedDeps
           snapshot = prep.snapshot
         } else {
-          const prep = await prepareCommitmentDiscount(tx, actor, input.proposal.command, envelope.expected)
+          const prep = await prepareCommitmentDiscount(
+            tx,
+            actor,
+            input.proposal.command,
+            envelope.expected
+          )
           row = prep.row
           expected = prep.required
           snapshot = prep.snapshot
         }
-        if (envelope.expected.length !== expected.length) fail("INVALID_INPUT", 422)
+        if (envelope.expected.length !== expected.length)
+          fail("INVALID_INPUT", 422)
       } else if (input.proposal.kind === "REFUND") {
         requireWorkflowCreate(actor, input.proposal)
         const prep = await prepareRefund(
@@ -1233,13 +1388,17 @@ export async function executeApproval(
         payload: approvalDTO(a),
       })
       for (const recipientUserId of recipients)
-        await notify(tx, { commandId, userId: actor.userId }, {
-          recipientUserId,
-          eventKey: `approval:required:${a.id}:1`,
-          kind: "APPROVAL_REQUIRED",
-          targetType: "ApprovalRequest",
-          targetId: a.id,
-        })
+        await notify(
+          tx,
+          { commandId, userId: actor.userId },
+          {
+            recipientUserId,
+            eventKey: `approval:required:${a.id}:1`,
+            kind: "APPROVAL_REQUIRED",
+            targetType: "ApprovalRequest",
+            targetId: a.id,
+          }
+        )
       return {
         ok: true,
         status: "PENDING_APPROVAL",
@@ -1258,7 +1417,10 @@ export async function executeApproval(
     if (!plan) fail("NOT_FOUND", 404)
     const planSaved = saved(plan)
     // Lock proposal targets in A2 order before reading/updating ApprovalRequest.
-    if (planSaved.proposal.kind === "DISCOUNT" && planSaved.proposal.command.name === "completeImmediate") {
+    if (
+      planSaved.proposal.kind === "DISCOUNT" &&
+      planSaved.proposal.command.name === "completeImmediate"
+    ) {
       const ci = planSaved.proposal.command.input
       if (ci.kind === "TRADE_IN" && ci.tradeIn.intake) {
         const engine = ci.tradeIn.intake.vehicle.engineNumber
@@ -1284,7 +1446,9 @@ export async function executeApproval(
     for (const vid of [...new Set(lockVehicles)].sort())
       await tx.$queryRaw`SELECT id FROM vamotors."Vehicle" WHERE id=${vid}::uuid FOR UPDATE`
     const row = await lockedCycle(tx, plan.cycleId)
-    for (const pid of [...new Set(lockPurchases)].filter((x) => x !== plan.cycleId).sort())
+    for (const pid of [...new Set(lockPurchases)]
+      .filter((x) => x !== plan.cycleId)
+      .sort())
       await tx.$queryRaw`SELECT id FROM vamotors."PurchaseRecord" WHERE id=${pid}::uuid FOR UPDATE`
     for (const sid of [...new Set(lockSales)].sort())
       await tx.$queryRaw`SELECT id FROM vamotors."SaleCase" WHERE id=${sid}::uuid FOR UPDATE`
@@ -1327,27 +1491,59 @@ export async function executeApproval(
     )
       throw new CommandError("APPROVAL_STALE", 409, false, current)
 
-    const refund = savedValue.proposal.kind === "REFUND"
-      ? await prepareRefund(tx, actor, savedValue.proposal.input, savedValue.expected)
-      : null
-    if (refund && canonical(refund.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
-    const financeError = savedValue.proposal.kind === "SALE_EDIT" &&
+    const refund =
+      savedValue.proposal.kind === "REFUND"
+        ? await prepareRefund(
+            tx,
+            actor,
+            savedValue.proposal.input,
+            savedValue.expected
+          )
+        : null
+    if (refund && canonical(refund.snapshot) !== canonical(a.snapshot))
+      fail("APPROVAL_STALE")
+    const financeError =
+      savedValue.proposal.kind === "SALE_EDIT" &&
       savedValue.proposal.operation === "CANCEL_FINANCE_ERROR"
-      ? await prepareFinanceError(tx, actor, savedValue.proposal.input, savedValue.expected, false)
-      : null
-    if (financeError && canonical(financeError.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
+        ? await prepareFinanceError(
+            tx,
+            actor,
+            savedValue.proposal.input,
+            savedValue.expected,
+            false
+          )
+        : null
+    if (
+      financeError &&
+      canonical(financeError.snapshot) !== canonical(a.snapshot)
+    )
+      fail("APPROVAL_STALE")
     if (savedValue.proposal.kind === "WRITE_OFF") {
       eligible(row)
       validInput(row, savedValue.proposal.input)
     } else if (savedValue.proposal.kind === "DISCOUNT") {
       const proposal = savedValue.proposal
       if (proposal.command.name === "completeImmediate") {
-        await prepareDiscountApproval(tx, actor, proposal.command.input, savedValue.expected)
+        await prepareDiscountApproval(
+          tx,
+          actor,
+          proposal.command.input,
+          savedValue.expected
+        )
       } else {
-        const prepared = await prepareCommitmentDiscount(tx, actor, proposal.command, savedValue.expected)
-        if (canonical(prepared.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
+        const prepared = await prepareCommitmentDiscount(
+          tx,
+          actor,
+          proposal.command,
+          savedValue.expected
+        )
+        if (canonical(prepared.snapshot) !== canonical(a.snapshot))
+          fail("APPROVAL_STALE")
       }
-    } else if (savedValue.proposal.kind === "SALE_EDIT" && savedValue.proposal.operation === "EDIT_COMPLETION") {
+    } else if (
+      savedValue.proposal.kind === "SALE_EDIT" &&
+      savedValue.proposal.operation === "EDIT_COMPLETION"
+    ) {
       await prepareSaleEditApproval(
         tx,
         actor,
@@ -1473,39 +1669,88 @@ export async function executeApproval(
       } else if (savedValue.proposal.kind === "DISCOUNT") {
         const proposal = savedValue.proposal
         if (proposal.command.name !== "completeImmediate") {
-          const done = await prepareCommitmentDiscount(tx, actor, proposal.command, savedValue.expected, {
-            approvalId: a.id,
-            context: { commandId, sequence, userId: actor.userId, action: name,
-              initiatedBy: a.requestedBy, approverId: actor.userId, reason: a.reason },
-          })
+          const done = await prepareCommitmentDiscount(
+            tx,
+            actor,
+            proposal.command,
+            savedValue.expected,
+            {
+              approvalId: a.id,
+              context: {
+                commandId,
+                sequence,
+                userId: actor.userId,
+                action: name,
+                initiatedBy: a.requestedBy,
+                approverId: actor.userId,
+                reason: a.reason,
+              },
+            }
+          )
           const cycle = (await loadPurchase(tx, done.row.id))!
-          domainAffected = [...refs(cycle), { type: "SaleCase", id: done.saleId, revision: 1 }]
+          domainAffected = [
+            ...refs(cycle),
+            { type: "SaleCase", id: done.saleId, revision: 1 },
+          ]
         } else {
-        const done = await completeImmediateInTx(tx, actor, {
-          input: proposal.command.input,
-          expected: savedValue.expected,
-          commandId,
-          sequence,
-          approvalId: a.id,
-          reviewedAt,
-          initiatedBy: a.requestedBy,
-          approverId: actor.userId,
-        })
-        domainAffected = done.affected ?? []
+          const done = await completeImmediateInTx(tx, actor, {
+            input: proposal.command.input,
+            expected: savedValue.expected,
+            commandId,
+            sequence,
+            approvalId: a.id,
+            reviewedAt,
+            initiatedBy: a.requestedBy,
+            approverId: actor.userId,
+          })
+          domainAffected = done.affected ?? []
         }
       } else if (savedValue.proposal.kind === "REFUND" && refund) {
-        const resolved = await applyRefund(tx, {
-          commandId, sequence, userId: actor.userId, action: name,
-          initiatedBy: a.requestedBy, approverId: actor.userId, reason: savedValue.proposal.input.reason,
-        }, refund.sale, savedValue.proposal.input)
-        domainAffected = [...refs(resolved.purchaseRecord), { type: "SaleCase", id: resolved.id, revision: resolved.revision }]
-      } else if (savedValue.proposal.kind === "SALE_EDIT" && savedValue.proposal.operation === "CANCEL_FINANCE_ERROR" && financeError) {
-        const resolved = await applyFinanceError(tx, {
-          commandId, sequence, userId: actor.userId, action: name,
-          initiatedBy: a.requestedBy, approverId: actor.userId, reason: savedValue.proposal.input.reason,
-        }, financeError.sale, savedValue.proposal.input)
-        domainAffected = [...refs(resolved.purchaseRecord), { type: "SaleCase", id: resolved.id, revision: resolved.revision }]
-      } else if (savedValue.proposal.kind === "SALE_EDIT" && savedValue.proposal.operation === "EDIT_COMPLETION") {
+        const resolved = await applyRefund(
+          tx,
+          {
+            commandId,
+            sequence,
+            userId: actor.userId,
+            action: name,
+            initiatedBy: a.requestedBy,
+            approverId: actor.userId,
+            reason: savedValue.proposal.input.reason,
+          },
+          refund.sale,
+          savedValue.proposal.input
+        )
+        domainAffected = [
+          ...refs(resolved.purchaseRecord),
+          { type: "SaleCase", id: resolved.id, revision: resolved.revision },
+        ]
+      } else if (
+        savedValue.proposal.kind === "SALE_EDIT" &&
+        savedValue.proposal.operation === "CANCEL_FINANCE_ERROR" &&
+        financeError
+      ) {
+        const resolved = await applyFinanceError(
+          tx,
+          {
+            commandId,
+            sequence,
+            userId: actor.userId,
+            action: name,
+            initiatedBy: a.requestedBy,
+            approverId: actor.userId,
+            reason: savedValue.proposal.input.reason,
+          },
+          financeError.sale,
+          savedValue.proposal.input
+        )
+        domainAffected = [
+          ...refs(resolved.purchaseRecord),
+          { type: "SaleCase", id: resolved.id, revision: resolved.revision },
+        ]
+      } else if (
+        savedValue.proposal.kind === "SALE_EDIT" &&
+        savedValue.proposal.operation === "EDIT_COMPLETION"
+      ) {
         const edited = await applySaleEditApproval(tx, actor, {
           saleId: savedValue.proposal.input.saleId,
           input: savedValue.proposal.input,
@@ -1537,13 +1782,17 @@ export async function executeApproval(
       revision: updated.revision,
       payload: approvalDTO(updated),
     })
-    await notify(tx, { commandId, userId: actor.userId }, {
-      recipientUserId: a.requestedBy,
-      eventKey: `approval:outcome:${a.id}:${updated.revision}`,
-      kind: "APPROVAL_OUTCOME",
-      targetType: "ApprovalRequest",
-      targetId: a.id,
-    })
+    await notify(
+      tx,
+      { commandId, userId: actor.userId },
+      {
+        recipientUserId: a.requestedBy,
+        eventKey: `approval:outcome:${a.id}:${updated.revision}`,
+        kind: "APPROVAL_OUTCOME",
+        targetType: "ApprovalRequest",
+        targetId: a.id,
+      }
+    )
     return {
       ok: true,
       status: "APPLIED",

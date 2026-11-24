@@ -72,14 +72,16 @@ export function FileDropzone({
       const oversized = incoming.filter((f) => f.size > maxBytes)
       if (oversized.length > 0) {
         toast.error(
-          `${oversized.length} file(s) exceed the ${maxSizeMB} MB limit and were not added.`,
+          `${oversized.length} file(s) exceed the ${maxSizeMB} MB limit and were not added.`
         )
       }
       const valid = incoming.filter((f) => f.size <= maxBytes)
 
       // Count validation
       if (valid.length > remaining) {
-        toast.error(`You can only add ${remaining} more file(s) (max ${maxFiles}).`)
+        toast.error(
+          `You can only add ${remaining} more file(s) (max ${maxFiles}).`
+        )
       }
       const toAdd = valid.slice(0, remaining)
       if (toAdd.length === 0) return
@@ -110,7 +112,7 @@ export function FileDropzone({
 
       onFilesChange([...files, ...newPreviews])
     },
-    [files, maxFiles, maxSizeMB, onFilesChange],
+    [files, maxFiles, maxSizeMB, onFilesChange]
   )
 
   const removeFile = React.useCallback(
@@ -119,7 +121,7 @@ export function FileDropzone({
       if (target) URL.revokeObjectURL(target.previewUrl)
       onFilesChange(files.filter((f) => f.id !== id))
     },
-    [files, onFilesChange],
+    [files, onFilesChange]
   )
 
   // ── Drag-and-drop handlers ────────────────────────────────────────────────
@@ -165,12 +167,16 @@ export function FileDropzone({
           "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-6 py-10 transition-colors",
           isDragOver
             ? "border-primary bg-primary/5"
-            : "border-border hover:border-primary/50 hover:bg-accent/50",
+            : "border-border hover:border-primary/50 hover:bg-accent/50"
         )}
       >
-        <UploadCloud className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+        <UploadCloud
+          className="h-8 w-8 text-muted-foreground"
+          aria-hidden="true"
+        />
         <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Click to upload</span> or drag and drop
+          <span className="font-medium text-foreground">Click to upload</span>{" "}
+          or drag and drop
         </p>
         <p className="text-xs text-muted-foreground">
           {accept.replace("/*", " files")} &mdash; max {maxSizeMB} MB each
@@ -187,7 +193,11 @@ export function FileDropzone({
 
       {/* Upload progress */}
       {progress !== null && (
-        <Progress value={progress} className="h-1.5" aria-label="Upload progress" />
+        <Progress
+          value={progress}
+          className="h-1.5"
+          aria-label="Upload progress"
+        />
       )}
 
       {/* File preview grid */}
@@ -207,7 +217,7 @@ export function FileDropzone({
                 type="button"
                 variant="destructive"
                 size="icon"
-                className="absolute right-1 top-1 h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute top-1 right-1 h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation()
                   removeFile(fp.id)
@@ -223,7 +233,9 @@ export function FileDropzone({
               >
                 {fp.filename}
               </p>
-              <p className="text-xs text-muted-foreground">{formatBytes(fp.size)}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatBytes(fp.size)}
+              </p>
             </div>
           ))}
         </div>

@@ -197,7 +197,9 @@ function Sidebar({
           data-slot="sidebar"
           data-mobile="true"
           onCloseAutoFocus={(event) => {
-            const trigger = document.querySelector<HTMLElement>('[data-sidebar="trigger"]')
+            const trigger = document.querySelector<HTMLElement>(
+              '[data-sidebar="trigger"]'
+            )
             if (trigger) {
               event.preventDefault()
               trigger.focus()

@@ -236,9 +236,18 @@ try {
         .getByRole("button", { name: "Set asking price", exact: true })
         .click()
       await page.getByLabel("Asking price (major units)").fill("0.00")
-      await page.getByRole("button", { name: "Confirm cycle edit", exact: true }).click()
-      assert.equal(await page.getByLabel("Asking price reason").evaluate((input: HTMLInputElement) => input.validity.valueMissing), true)
-      await page.getByLabel("Asking price reason").fill("Record an explicit zero asking price")
+      await page
+        .getByRole("button", { name: "Confirm cycle edit", exact: true })
+        .click()
+      assert.equal(
+        await page
+          .getByLabel("Asking price reason")
+          .evaluate((input: HTMLInputElement) => input.validity.valueMissing),
+        true
+      )
+      await page
+        .getByLabel("Asking price reason")
+        .fill("Record an explicit zero asking price")
       await page
         .getByRole("button", { name: "Confirm cycle edit", exact: true })
         .focus()
@@ -444,7 +453,11 @@ try {
       await restore()
       await cmd(
         "setListedPrice",
-        { cycleId: cycle.id, amount: "99999999999999", reason: "Set maximum price" },
+        {
+          cycleId: cycle.id,
+          amount: "99999999999999",
+          reason: "Set maximum price",
+        },
         refs(cycle, "setListedPrice")
       )
       cycle = await current()
@@ -452,7 +465,11 @@ try {
       await zeroEffect(
         "setListedPrice",
         envelope(
-          { cycleId: cycle.id, amount: cycle.listedPrice, reason: "Duplicate price" },
+          {
+            cycleId: cycle.id,
+            amount: cycle.listedPrice,
+            reason: "Duplicate price",
+          },
           refs(cycle, "setListedPrice")
         ),
         409
@@ -973,7 +990,9 @@ try {
         .getByRole("button", { name: "Set asking price", exact: true })
         .click()
       await page.getByLabel("Asking price (major units)").fill("222.00")
-      await page.getByLabel("Asking price reason").fill("Verify unchanged retry")
+      await page
+        .getByLabel("Asking price reason")
+        .fill("Verify unchanged retry")
       await page
         .context()
         .route("**/api/v1/commands/setListedPrice", async (route) => {
@@ -1005,7 +1024,9 @@ try {
         .getByRole("button", { name: "Set asking price", exact: true })
         .click()
       await page.getByLabel("Asking price (major units)").fill("333.00")
-      await page.getByLabel("Asking price reason").fill("Retain the reviewed asking price")
+      await page
+        .getByLabel("Asking price reason")
+        .fill("Retain the reviewed asking price")
       row = await current(row.id)
       await cmd(
         "setListedPrice",

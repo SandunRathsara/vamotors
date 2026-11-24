@@ -506,7 +506,10 @@ try {
   assert.deepEqual(job.parts, [])
   const digest = job.digest
   await acquire("after-export-cutoff", { kind: "RELEASE" })
-  assert.equal((await read("INVENTORY", `&make=${tag}&status=IN_STOCK`)).total, 37)
+  assert.equal(
+    (await read("INVENTORY", `&make=${tag}&status=IN_STOCK`)).total,
+    37
+  )
   await f.stop()
   await f.start()
   assert.equal((await staff.get(`${exportPath}/${jobId}`)).status(), 404)

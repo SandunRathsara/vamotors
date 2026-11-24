@@ -1,30 +1,30 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import { fileURLToPath } from 'node:url';
+import { defineConfig } from "vitest/config"
+import react from "@vitejs/plugin-react"
+import { fileURLToPath } from "node:url"
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./', import.meta.url)),
+      "@": fileURLToPath(new URL("./", import.meta.url)),
     },
   },
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: false,
-    include: ['**/*.test.{ts,tsx}'],
-    exclude: ['**/node_modules/**', 'tests/e2e/**', 'tests/api/**', '.next/**'],
-    setupFiles: ['./vitest.setup.ts'],
+    include: ["**/*.test.{ts,tsx}"],
+    exclude: ["**/node_modules/**", "tests/e2e/**", "tests/api/**", ".next/**"],
+    setupFiles: ["./vitest.setup.ts"],
     clearMocks: true,
     restoreMocks: true,
     // Plan 01 ships the harness before Plan 02 ships the first tests;
     // keep `just test-unit` green when the include glob matches zero files.
     passWithNoTests: true,
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['lib/**', 'components/**', 'hooks/**'],
-      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts'],
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["lib/**", "components/**", "hooks/**"],
+      exclude: ["**/*.test.{ts,tsx}", "**/*.d.ts"],
     },
   },
-});
+})

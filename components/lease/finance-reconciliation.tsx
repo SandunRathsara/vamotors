@@ -110,7 +110,10 @@ export function FinanceReconciliation() {
     queryKey: ["reconciliation", "companies"],
     queryFn: () => read<Company[]>("reconciliationCompanies"),
   })
-  const [{ company: selection, asOf: cutoff, run: runId, overdue }, setFilters] = useQueryStates({
+  const [
+    { company: selection, asOf: cutoff, run: runId, overdue },
+    setFilters,
+  ] = useQueryStates({
     company: parseAsString.withDefault(""),
     asOf: parseAsString.withDefault(today()),
     run: parseAsString.withDefault(""),
@@ -301,7 +304,9 @@ export function FinanceReconciliation() {
             max={today()}
             value={cutoff}
             disabled={!!runId}
-            onChange={(event) => void setFilters({ asOf: event.target.value, run: "" })}
+            onChange={(event) =>
+              void setFilters({ asOf: event.target.value, run: "" })
+            }
           />
         </Field>
         <Field label="Reconciliation view">
@@ -359,12 +364,19 @@ export function FinanceReconciliation() {
                 <input
                   type="checkbox"
                   checked={overdue}
-                  onChange={(event) => void setFilters({ overdue: event.target.checked })}
+                  onChange={(event) =>
+                    void setFilters({ overdue: event.target.checked })
+                  }
                 />{" "}
                 Overdue only
               </label>
             </div>
-            <div className="overflow-x-auto" role="region" aria-label="Commission entitlements" tabIndex={0}>
+            <div
+              className="overflow-x-auto"
+              role="region"
+              aria-label="Commission entitlements"
+              tabIndex={0}
+            >
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b text-muted-foreground">
                   <tr>

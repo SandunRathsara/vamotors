@@ -202,7 +202,10 @@ export function CustomerDirectory({ id }: { id?: string }) {
           className="flex flex-wrap items-end gap-3"
           onSubmit={(e) => {
             e.preventDefault()
-            void setFilters({ q: String(new FormData(e.currentTarget).get("q") ?? ""), page: 1 })
+            void setFilters({
+              q: String(new FormData(e.currentTarget).get("q") ?? ""),
+              page: 1,
+            })
           }}
         >
           <div className="min-w-0 flex-1 space-y-2">
@@ -314,9 +317,11 @@ export function CustomerDirectory({ id }: { id?: string }) {
               <div>
                 <dt className="text-sm text-muted-foreground">Provenance</dt>
                 <dd>
-                  {row.provenance.imported === false
-                    ? "Created in this application (not imported)"
-                    : <ImportedBadge provenance={row.provenance} />}
+                  {row.provenance.imported === false ? (
+                    "Created in this application (not imported)"
+                  ) : (
+                    <ImportedBadge provenance={row.provenance} />
+                  )}
                 </dd>
               </div>
             )}
@@ -422,7 +427,10 @@ export function CustomerDirectory({ id }: { id?: string }) {
           {row.links?.map((link) => {
             if (!link.type || !link.id) return null
             return (
-              <p key={`${link.type}:${link.id}`} className="text-sm break-words">
+              <p
+                key={`${link.type}:${link.id}`}
+                className="text-sm break-words"
+              >
                 <Link
                   prefetch={false}
                   className="underline"
@@ -431,7 +439,9 @@ export function CustomerDirectory({ id }: { id?: string }) {
                   {link.type} · {link.id}
                 </Link>{" "}
                 · {link.date} · {link.status}
-                {link.amount !== undefined ? ` · ${link.amount} minor units` : ""}
+                {link.amount !== undefined
+                  ? ` · ${link.amount} minor units`
+                  : ""}
               </p>
             )
           })}

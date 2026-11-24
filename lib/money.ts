@@ -118,13 +118,14 @@ export function formatCurrency(
   currency: string,
   mode: "display" | "decimal" = "display"
 ): string {
-  const decimal = major(typeof value === "bigint" ? value : minor(value, B, true))
+  const decimal = major(
+    typeof value === "bigint" ? value : minor(value, B, true)
+  )
   if (mode === "decimal") return decimal
   const [whole, fraction] = decimal.split(".")
   const amount = `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}.${fraction}`
   return currency ? `${currency} ${amount}` : amount
 }
-
 
 export function sum(values: readonly bigint[], bound = B): bigint {
   return bounded(

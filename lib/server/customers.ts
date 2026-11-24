@@ -137,12 +137,16 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
       }
       const amount = actor.ability.can("read", saleSubject, "price")
       if (!amount) visible.redactedFields.push("links.amount")
-      const correction = s.corrections[0]?.correctedSnapshot as { saleDate?: string } | undefined
+      const correction = s.corrections[0]?.correctedSnapshot as
+        | { saleDate?: string }
+        | undefined
       return [
         {
           type: "SALE",
           id: s.id,
-          date: correction?.saleDate ?? (s.completion?.saleDate ?? s.openedAt).toISOString().slice(0, 10),
+          date:
+            correction?.saleDate ??
+            (s.completion?.saleDate ?? s.openedAt).toISOString().slice(0, 10),
           status: s.state,
           ...(amount ? { amount: s.agreedPrice.toString() } : {}),
         },
@@ -212,10 +216,11 @@ export async function executeCustomer(
   existingTx?: Tx
 ): Promise<Applied> {
   // Authenticate before validation; neither this nor a client hint authorizes execution.
-  if (!existingTx) await database().$transaction(async (tx) => {
-    await assertEnvironment(tx)
-    await currentActor(tx, identity)
-  })
+  if (!existingTx)
+    await database().$transaction(async (tx) => {
+      await assertEnvironment(tx)
+      await currentActor(tx, identity)
+    })
   const parsed = customerEnvelope(name).safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
   const envelope = parsed.data
