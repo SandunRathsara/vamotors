@@ -41,6 +41,7 @@ export function historicalCommitmentRows(ids: FixtureIds) {
     })),
     ADVANCES: states.map((state, i) => ({
       sourceKey: `deposit-${i}`,
+      legacyOriginalId: `${prefix}-deposit-${i}`,
       cycleSourceKey: `cycle-${i}`,
       customerSourceKey: "",
       customerExistingId: customerId,
