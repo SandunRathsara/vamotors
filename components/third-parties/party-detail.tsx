@@ -1,4 +1,5 @@
 "use client"
+import { ImportedBadge } from "@/components/imports/imported-badge"
 import { Activity, useState } from "react"
 import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
@@ -70,6 +71,7 @@ export function PartyDetail({ kind, id }: { kind: DirectoryKind; id: string }) {
             <h1 className="text-2xl font-semibold break-words">
               {row.name ?? "Name unavailable"}
             </h1>
+            <ImportedBadge provenance={row.provenance} />
             <p>
               {row.active === undefined
                 ? "Status unavailable"

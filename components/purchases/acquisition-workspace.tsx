@@ -1,4 +1,5 @@
 "use client"
+import { ImportedBadge } from "@/components/imports/imported-badge"
 import { useEffect, useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
@@ -1315,6 +1316,7 @@ export function AcquisitionDetail({
       )}
       {row && (
         <>
+          <ImportedBadge provenance={row.provenance} />
           <dl className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
             {physicalFields.map(([key, label]) => (
               <div key={key}>

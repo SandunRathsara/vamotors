@@ -54,7 +54,7 @@ describe("T06b staging trust boundaries", () => {
         namespace: " retained ",
       }).namespace
     ).toBe("retained")
-    for (const bad of [[], ["SUPPLIERS", "SUPPLIERS"], ["FINANCE_COMPANIES"]])
+    for (const bad of [[], ["SUPPLIERS", "SUPPLIERS"], ["RECONCILIATION"]])
       expect(
         attachmentCommands.stageImport.safeParse({ types: bad, namespace: "n" })
           .success

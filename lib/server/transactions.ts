@@ -16,9 +16,21 @@ function sqlCode(error: unknown, depth = 0): string | undefined {
   // PostgreSQL SQLSTATE at meta.driverAdapterError.cause.originalCode.
   for (const code of [e.originalCode, e.code])
     if (
-      ["P2034", "40001", "40P01", "55P03", "P2002", "23505"].includes(
-        code ?? ""
-      )
+      [
+        "P2034",
+        "40001",
+        "40P01",
+        "55P03",
+        "P2002",
+        "23505",
+        "P2003",
+        "23503",
+        "P2004",
+        "23514",
+        "23502",
+        "P2028",
+        "57014",
+      ].includes(code ?? "")
     )
       return code
   return (
@@ -27,8 +39,40 @@ function sqlCode(error: unknown, depth = 0): string | undefined {
     sqlCode(e.cause, depth + 1)
   )
 }
-export async function transaction<T>(run: (tx: Tx) => Promise<T>) {
-  for (let attempt = 0; attempt < 3; attempt++) {
+export function isDbConstraintError(error: unknown) {
+  const code = sqlCode(error)
+  return (
+    !!code &&
+    ["P2002", "23505", "P2003", "23503", "P2004", "23514", "23502"].includes(
+      code
+    )
+  )
+}
+export async function transaction<T>(
+  run: (tx: Tx) => Promise<T>,
+  existingTx?: Tx,
+  attempts = 3
+) {
+  if (existingTx) {
+    // A PostgreSQL savepoint gives each domain command a separate write XID.
+    // Its guards run before the next command changes the source graph.
+    await existingTx.$executeRawUnsafe("SAVEPOINT import_command")
+    await existingTx.$executeRawUnsafe(
+      'UPDATE vamotors."ImportCommandAnchor" SET id=id'
+    )
+    await existingTx.$executeRawUnsafe(
+      "SET LOCAL vamotors.import_command = 'on'"
+    )
+    const result = await run(existingTx)
+    await existingTx.$executeRawUnsafe("SET CONSTRAINTS ALL IMMEDIATE")
+    await existingTx.$executeRawUnsafe("SET CONSTRAINTS ALL DEFERRED")
+    await existingTx.$executeRawUnsafe("RELEASE SAVEPOINT import_command")
+    await existingTx.$executeRawUnsafe(
+      "SET LOCAL vamotors.import_command = 'off'"
+    )
+    return result
+  }
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       return await database().$transaction(
         async (tx) => {
@@ -45,20 +89,28 @@ export async function transaction<T>(run: (tx: Tx) => Promise<T>) {
         },
         {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-          maxWait: 2000,
-          timeout: 7000,
+          maxWait: attempts === 1 ? 1000 : 2000,
+          timeout: attempts === 1 ? 6000 : 7000,
         }
       )
     } catch (error) {
       const code = sqlCode(error)
       if (["P2034", "40001", "40P01"].includes(code ?? "")) {
-        if (attempt === 2)
+        if (attempt === attempts - 1)
           throw new CommandError("RETRYABLE_TRANSACTION", 503, true)
         await new Promise((resolve) =>
           setTimeout(resolve, 20 + Math.random() * 40)
         )
         continue
       }
+      if (attempts === 1 && (code === "P2028" || code === "57014"))
+        throw new CommandError(
+          "RETRYABLE_TRANSACTION",
+          503,
+          true,
+          undefined,
+          "Import timed out. Retry this request or split the batch."
+        )
       if (code === "55P03")
         throw new CommandError("COMMAND_IN_PROGRESS", 409, true)
       if (code === "P2002" || code === "23505")

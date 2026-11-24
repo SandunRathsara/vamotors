@@ -24,6 +24,7 @@ import type {
 } from "../../.planning/implementation/contracts/api"
 import { A, B, bounded, minor, parseMajor, sum, tierDays } from "../money"
 import { states } from "../state"
+import { brokerageInputs, financeInput, importTypes } from "./validators"
 import { canonical } from "./idempotency"
 import { validateXlsx } from "./private-files/xlsx-validation.mjs"
 
@@ -500,7 +501,34 @@ const PARTY_FLAT_CONTACT_ALIASES: readonly ImportColumnSpec[] = [
   },
 ]
 
+const extensionKey: ImportColumnSpec = {
+  name: "sourceKey", type: "string", required: true, description: "Unique source key",
+  example: "legacy-001",
+}
 export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
+  FINANCE_COMPANIES: {
+    version: 1, type: "FINANCE_COMPANIES", columns: [
+      extensionKey,
+      { name: "name", type: "string", required: true, description: "Finance company name", example: "Synthetic Finance" },
+      { name: "financePolicy", type: "json", required: true, description: "Company policy with money in minor units",
+        example: '{"path":"REFERRAL","commission":{"basis":"FIXED","fixed":"0","rateBps":0},"processingFee":"0","reconciliationMethod":"PER_DEAL"}' },
+      { name: "financeContacts", type: "json", required: true, description: "Company contacts",
+        example: '[{"name":"Finance Desk","phone":"0771234567","role":"Loan officer","primary":true}]' },
+      ...LEGACY_METADATA_COLUMNS,
+    ],
+  },
+  BROKERAGE: {
+    version: 1, type: "BROKERAGE", columns: [
+      extensionKey,
+      { name: "customerSourceKey", type: "string", required: false, description: "Customer source key", example: "cust-001" },
+      { name: "customerExistingId", type: "uuid", required: false, description: "Existing customer UUID", example: "" },
+      { name: "quoteId", type: "uuid", required: true, description: "Existing, currently usable quote UUID",
+        example: "11111111-1111-4111-8111-111111111111" },
+      { name: "guarantors", type: "json", required: true, description: "Guarantor information",
+        example: '[{"name":"Synthetic Guarantor","identity":"812345678V","address":"10 Park Lane","phone":"0776543210"}]' },
+      ...LEGACY_METADATA_COLUMNS,
+    ],
+  },
   SUPPLIERS: {
     version: 1,
     type: "SUPPLIERS",
@@ -1502,17 +1530,20 @@ function escapeCsvCell(value: string): string {
   return value
 }
 
-/** Generate a deterministic UTF-8 CSV template with canonical headers + 1 valid synthetic row. */
-export function generateImportTemplateCsv(kind: ImportType): string {
-  const schema = IMPORT_SCHEMAS[kind]
+export function importTemplateColumns(kind: ImportType) {
   // Exclude flat convenience-only columns from generated CSV template so the
   // template displays canonical JSON columns without redundant empty columns.
-  const cols = schema.columns.filter(
+  return IMPORT_SCHEMAS[kind].columns.filter(
     (c) =>
       !c.name.startsWith("contact") &&
       !c.name.startsWith("initialMileage") &&
       c.name !== "policySnapshot"
   )
+}
+
+/** Deterministic UTF-8 CSV with canonical headers and a synthetic row. */
+export function generateImportTemplateCsv(kind: ImportType): string {
+  const cols = importTemplateColumns(kind)
   const headerLine = cols.map((c) => escapeCsvCell(c.name)).join(",")
   const exampleLine = cols.map((c) => escapeCsvCell(c.example)).join(",")
   return `${headerLine}\n${exampleLine}\n`
@@ -5073,7 +5104,7 @@ export function computeControlTotals(
   }
 
   const byType: { type: ImportType; rows: number }[] = []
-  for (const t of IMPORT_TYPES) {
+  for (const t of importTypes) {
     const count = counts.get(t)
     if (count !== undefined && count > 0) {
       byType.push({ type: t, rows: count })
@@ -5168,6 +5199,10 @@ function collectDistinctKeys(
   for (const row of rows) {
     sourceKeys.add(row.sourceKey)
     switch (row.type) {
+      case "BROKERAGE":
+        addRef(row.payload.customer)
+        referencedExistingIds.add(row.payload.quoteId)
+        break
       case "CUSTOMERS":
         customerIdentities.add(
           normalizeCustomerIdentity(row.payload.nicOrPassport)
@@ -5497,6 +5532,29 @@ export async function parseImportBuffer<K extends ImportType>(
 
     let payload: ImportPayloads[K] | null = null
     switch (kind) {
+      case "FINANCE_COMPANIES": {
+        const company = financeInput.safeParse({
+          name: reader.reqString("name", 200),
+          policy: reader.optJson("financePolicy"),
+          contacts: reader.optJson("financeContacts"),
+        })
+        if (company.success) payload = company.data as ImportPayloads[K]
+        else for (const issue of company.error.issues)
+          addError(rowErrors, row.rowNumber, issue.path.join("."), "INVALID_INPUT", issue.message, sourceKey)
+        break
+      }
+      case "BROKERAGE": {
+        const customer = parseLegacyRefPair(reader, "customer", "CUSTOMERS", namespace, true)
+        const quoteId = reader.optUuid("quoteId")
+        const guarantors = brokerageInputs.openBrokerage.shape.guarantors.safeParse(reader.optJson("guarantors"))
+        if (!quoteId) addError(rowErrors, row.rowNumber, "quoteId", "REQUIRED", "Quote UUID is required", sourceKey)
+        if (!guarantors.success)
+          for (const issue of guarantors.error.issues)
+            addError(rowErrors, row.rowNumber, ["guarantors", ...issue.path].join("."), "INVALID_INPUT", issue.message, sourceKey)
+        if (customer && quoteId && guarantors.success)
+          payload = { customer, quoteId, guarantors: guarantors.data } as ImportPayloads[K]
+        break
+      }
       case "SUPPLIERS":
       case "REPAIR_VENDORS":
         payload = parseDirectoryRow(kind, reader) as ImportPayloads[K] | null

@@ -125,3 +125,8 @@ GRANT UPDATE ("doAttachmentId","issueDate") ON vamotors."InventoryLease" TO vamo
 GRANT UPDATE (status,"startedAt","finishedAt","nextCursor",outcome) ON vamotors."JobRun" TO vamotors_runtime;
 GRANT UPDATE (state,kind) ON vamotors."SaleCase" TO vamotors_runtime;
 GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."Attachment", vamotors."UploadIntent" TO vamotors_runtime;
+
+GRANT UPDATE ("workflowCommandId", validation, state) ON vamotors."ImportBatch" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."ImportedFile", vamotors."ImportSourceRow" TO vamotors_runtime;
+GRANT SELECT, UPDATE (id) ON vamotors."ImportCommandAnchor" TO vamotors_runtime;
+GRANT EXECUTE ON FUNCTION vamotors.command_write_xid() TO vamotors_runtime;

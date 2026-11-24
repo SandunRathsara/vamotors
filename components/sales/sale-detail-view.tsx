@@ -1,4 +1,5 @@
 "use client"
+import { ImportedBadge } from "@/components/imports/imported-badge"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -346,6 +347,7 @@ export function SaleDetailView({ id }: { id: string }) {
     <section className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Sale {sale.id}</h1>
+        <ImportedBadge provenance={sale.provenance} />
         <Link prefetch={false} className="underline" href="/sales">
           Back to sales
         </Link>

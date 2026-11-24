@@ -20,6 +20,7 @@ import { partiesQuery, partyQuery } from "./parties"
 import { settingsQuery } from "./settings"
 import { purchaseQuery } from "./purchases"
 import { rateQuery } from "./rates"
+import { withImportProvenance } from "./import-provenance"
 import { importQuery } from "./import-staging"
 import { downloadQuery } from "./attachments"
 import { approvalQuery, approvalReplay, approvalAudit } from "./approvals"
@@ -110,7 +111,7 @@ export async function securityQuery(
       if (name === "invoice") return invoiceQuery(tx, actor, args)
       if (name === "jobHealth") return expiryHealth(tx, actor)
       if (name === "sales") return commitmentList(tx, actor, args)
-      if (name === "sale") return saleQuery(tx, actor, args)
+      if (name === "sale") return withImportProvenance(tx, actor, "SaleCase", await saleQuery(tx, actor, args))
       if (
         name === "audit" &&
         ["ApprovalRequest", "Disposal"].includes(args.type)
@@ -204,7 +205,8 @@ export async function securityQuery(
         return downloadQuery(tx, actor, parsed.data.attachmentId)
       }
       if (name === "quote") return rateQuery(tx, actor, name, args)
-      if (["brokerage", "brokerageDeal", "dispatchPreview"].includes(name))
+      if (name === "brokerageDeal") return withImportProvenance(tx, actor, "BrokerageDeal", await brokerageQuery(tx, actor, name, args) as Record<string, unknown>)
+      if (["brokerage", "dispatchPreview"].includes(name))
         return brokerageQuery(tx, actor, name, args)
       if (
         name === "audit" &&
@@ -213,20 +215,24 @@ export async function securityQuery(
         )
       )
         return purchaseQuery(tx, actor, name, args)
+      if (name === "purchase" || name === "vehicle")
+        return withImportProvenance(tx, actor, name === "purchase" ? "PurchaseRecord" : "Vehicle", await purchaseQuery(tx, actor, name, args) as Record<string, unknown>)
       if (
         [
           "purchases",
-          "purchase",
           "inventory",
-          "vehicle",
           "vehicleIdentity",
         ].includes(name)
       )
         return purchaseQuery(tx, actor, name, args)
       if (name === "parties") return partiesQuery(tx, actor, args)
-      if (name === "party") return partyQuery(tx, actor, args)
+      if (name === "party") {
+        const type = args.type === "SUPPLIER" ? "Supplier" : args.type === "REPAIR_VENDOR" ? "RepairVendor" : "FinanceCompany"
+        return withImportProvenance(tx, actor, type, await partyQuery(tx, actor, args))
+      }
       if (name === "settings") return settingsQuery(tx, actor, args)
-      if (name === "customers" || name === "customer")
+      if (name === "customer") return withImportProvenance(tx, actor, "Customer", await customerQuery(tx, actor, name, args) as Record<string, unknown>)
+      if (name === "customers")
         return customerQuery(tx, actor, name, args)
       if (name === "currentActor") {
         if (params.size) fail("INVALID_INPUT", 422)

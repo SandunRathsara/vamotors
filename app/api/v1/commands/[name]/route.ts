@@ -45,6 +45,7 @@ import {
 } from "@/lib/server/validators"
 import { stockInputs, type StockCommand } from "@/lib/server/validators"
 import { executeRates } from "@/lib/server/rates"
+import { previewImport, confirmImport } from "@/lib/server/import-workflow"
 import { executeStageImport } from "@/lib/server/import-staging"
 import { initUpload, completeUpload } from "@/lib/server/attachments"
 import { attachmentCommands } from "@/lib/server/validators"
@@ -57,6 +58,7 @@ import {
   type CustomerCommandName,
 } from "@/lib/server/validators"
 export const runtime = "nodejs"
+export const maxDuration = 10
 export const dynamic = "force-dynamic"
 export async function POST(
   request: Request,
@@ -73,6 +75,10 @@ export async function POST(
     if (name === "runExpiry") return noStoreJSON(await executeExpiry(identity, await boundedJSON(request)))
     if (Object.hasOwn(commitmentInputs, name))
       return noStoreJSON(await executeCommitment(identity, name as CommitmentCommand, await boundedJSON(request)))
+    if (name === "previewImport" || name === "confirmImport") {
+      const command = name === "previewImport" ? previewImport : confirmImport
+      return noStoreJSON(await command(identity, await boundedJSON(request)))
+    }
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
     const rates = Object.hasOwn(rateCommands, name)

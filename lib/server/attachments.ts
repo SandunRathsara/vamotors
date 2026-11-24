@@ -334,7 +334,7 @@ function capturedTarget(target: UploadTarget, upload: Intent) {
       targetRef(target),
       uploadRef(upload),
     ])
-  if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
+  if (target.type === "IMPORT_BATCH" && target.row.state === "COMMITTED")
     fail("INVALID_STATE")
   if (target.type === "SALE_CASE" && target.row.state !== "FINANCE_PENDING")
     fail("INVALID_STATE")
@@ -477,7 +477,7 @@ export async function initUpload(
       return uploadReady(existing)
     }
     checkRefs(envelope.expected, [targetRef(target)])
-    if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
+    if (target.type === "IMPORT_BATCH" && target.row.state === "COMMITTED")
       fail("INVALID_STATE")
     if (target.type === "SALE_CASE" && target.row.state !== "FINANCE_PENDING") fail("INVALID_STATE")
     const now = new Date(),
@@ -967,7 +967,7 @@ export async function completeUpload(
       commandId,
       replayed: false,
       result,
-      affected: [uploadRef(final), targetRef(target)],
+      affected: [uploadRef(final), { ...targetRef(target), revision: owner.revision }],
       invalidate: ["documents"],
     }
   })

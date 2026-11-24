@@ -157,6 +157,7 @@ model BusinessSequence {
 }
 
 model CommandReceipt {
+  importWorkflow ImportBatch?
   id                    String              @id @db.Uuid
   environmentId         String              @db.Uuid
   actorKey              String
@@ -195,6 +196,7 @@ model CommandReceipt {
 }
 
 model EntityReadVersion {
+  importSource ImportSourceRow?
   id         String         @id @default(uuid()) @db.Uuid
   entityType String
   entityId   String         @db.Uuid
@@ -1148,6 +1150,11 @@ model CycleBasisVersion {
 
 // Staging metadata only. No preview, imported provenance or business graph exists yet.
 model ImportBatch {
+  workflowCommandId String? @unique @db.Uuid
+  workflowCommand CommandReceipt? @relation(fields: [workflowCommandId], references: [id], onDelete: Restrict)
+  validation Json?
+  importedRows ImportSourceRow[]
+  committedFiles ImportedFile[]
   id            String         @id @default(uuid()) @db.Uuid
   environmentId String         @db.Uuid
   createdBy     String         @db.Uuid
@@ -1231,6 +1238,7 @@ model Attachment {
   saleCaseId       String?         @db.Uuid
   saleCase         SaleCase?       @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
   deliveryOrderFor InventoryLease?
+  committedFile ImportedFile?
   id             String        @id @default(uuid()) @db.Uuid
   targetType     String        @default("IMPORT_BATCH")
   batchId        String?       @db.Uuid
@@ -1622,5 +1630,42 @@ model CommissionEntitlement {
   updatedAt       DateTime       @updatedAt
 
   @@index([companyId, state, sentDate, id])
+  @@schema("vamotors")
+}
+
+model ImportedFile {
+  sha256 String @id
+  attachmentId String @unique @db.Uuid
+  attachment Attachment @relation(fields: [attachmentId], references: [id], onDelete: Restrict)
+  batchId String @db.Uuid
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  rows ImportSourceRow[]
+
+  @@schema("vamotors")
+}
+
+model ImportSourceRow {
+  id String @id @default(uuid()) @db.Uuid
+  batchId String @db.Uuid
+  batch ImportBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  fileHash String
+  file ImportedFile @relation(fields: [fileHash], references: [sha256], onDelete: Restrict)
+  namespace String
+  sourceType String
+  sourceKey String
+  rowNumber Int
+  aliases String[] @default([])
+  metadata Json?
+  targetVersionId String @unique @db.Uuid
+  targetVersion EntityReadVersion @relation(fields: [targetVersionId], references: [id], onDelete: Restrict)
+
+  @@unique([namespace, sourceType, sourceKey])
+  @@index([batchId])
+  @@schema("vamotors")
+}
+
+model ImportCommandAnchor {
+  id Int @id
+
   @@schema("vamotors")
 }

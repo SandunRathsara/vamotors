@@ -842,6 +842,8 @@ export const importTypes = [
   "SALES",
   "REPAIRS",
   "ADVANCES",
+  "FINANCE_COMPANIES",
+  "BROKERAGE",
 ] as const
 const attachmentId = id.transform((value) => value.toLowerCase())
 export const photoCategory = z.enum([
@@ -887,7 +889,7 @@ export const attachmentCommands = {
       types: z
         .array(z.enum(importTypes))
         .min(1)
-        .max(7)
+        .max(importTypes.length)
         .refine((v) => new Set(v).size === v.length),
       namespace: name,
     })

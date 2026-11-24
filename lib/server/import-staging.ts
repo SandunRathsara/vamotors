@@ -394,6 +394,28 @@ export async function importQuery(
       })
     )
   })
+  if (row.state === "COMMITTED" && actor.administrator) {
+    const records = await tx.importSourceRow.findMany({
+      where: { batchId: row.id, sourceType: { not: "VEHICLE_IDENTITY" } },
+      include: { targetVersion: true, file: { include: { attachment: true } } },
+      orderBy: [{ sourceType: "asc" }, { rowNumber: "asc" }],
+    })
+    visible.importedRecords = records.flatMap((entry) => {
+      const attachment = subject("Document", documentSubject(entry.file.attachment))
+      if (!actor.ability.can("read", record, "uploads.attachmentId") ||
+          !actor.ability.can("read", attachment, "attachmentId")) return []
+      const { entityType: type, entityId: id } = entry.targetVersion
+      const paths: Record<string, string> = {
+        Customer: `/customers/${id}`, PurchaseRecord: `/purchases/${id}`,
+        SaleCase: `/sales/${id}`, RepairRecord: `/repairs/${id}`,
+        Supplier: `/third-parties/${id}?type=SUPPLIER`,
+        RepairVendor: `/third-parties/${id}?type=REPAIR_VENDOR`,
+        FinanceCompany: `/third-parties/${id}?type=FINANCE_COMPANY`,
+        BrokerageDeal: `/lease-deals/${id}`,
+      }
+      return paths[type] ? [{ type, row: entry.rowNumber, sourceKey: entry.sourceKey, href: paths[type] }] : []
+    })
+  }
   visible.redactedFields = [...new Set(visible.redactedFields)]
   return visible
 }

@@ -1,4 +1,5 @@
 import { ImportStaging } from "@/components/imports/import-staging"
+import { importAdapters } from "@/lib/server/import-adapters"
 import { pageActor } from "@/lib/server/pages"
 export const dynamic = "force-dynamic"
 export default async function ImportFilesPage({
@@ -6,6 +7,12 @@ export default async function ImportFilesPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await pageActor()
-  return <ImportStaging id={(await params).id} />
+  const { administrator } = await pageActor()
+  return (
+    <ImportStaging
+      supportedTypes={Object.keys(importAdapters)}
+      administrator={administrator}
+      id={(await params).id}
+    />
+  )
 }
