@@ -1,6 +1,7 @@
 import { headers } from "next/headers"
 import { authenticate } from "@/lib/server/actor"
 import { repairPagePurchase } from "@/lib/server/repair-detail"
+import { ImportedBadge } from "@/components/imports/imported-badge"
 import { RepairDetail } from "@/components/repairs/repair-workspace"
 
 export default async function RepairPage({
@@ -13,5 +14,10 @@ export default async function RepairPage({
     await authenticate(await headers()),
     id
   )
-  return <RepairDetail cycleId={String(cycle.id)} repairId={id} />
+  return (
+    <>
+      <ImportedBadge provenance={cycle.repairImport} />
+      <RepairDetail cycleId={String(cycle.id)} repairId={id} />
+    </>
+  )
 }

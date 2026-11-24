@@ -3,9 +3,10 @@
 export class RequestError extends Error {
   constructor(
     public code: string,
-    public status: number
+    public status: number,
+    message = code
   ) {
-    super(code)
+    super(message)
   }
 }
 
@@ -25,7 +26,8 @@ export async function privateRequest<T>(
     const body = await response.json().catch(() => null)
     throw new RequestError(
       body?.error?.code ?? "REQUEST_FAILED",
-      response.status
+      response.status,
+      body?.error?.message
     )
   }
   return response.json() as Promise<T>

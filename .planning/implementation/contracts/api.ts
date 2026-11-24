@@ -206,8 +206,8 @@ export interface Commands {
   continueReportExport: { exportId: Id }; // bounded resumable generation, never changes filter
   runExpiry: { through: Instant; cursor?: string; limit: number };
 }
-export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES";
-export type LegacyRef = { namespace: string; type: ImportType | "FINANCE_COMPANIES";
+export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES" | "FINANCE_COMPANIES" | "BROKERAGE";
+export type LegacyRef = { namespace: string; type: ImportType;
   sourceKey: string } | { existingId: Id };
 export type LegacyPayment = CashInput & { sourceKey: string; direction: "IN" | "OUT";
   category: string; reversalOfSourceKey?: string };
@@ -220,6 +220,12 @@ export type ApprovalProvenance =
   { kind: "IMPORTED"; batchId: Id; rowId: Id; initiatedByAdminId: Id;
     historicalApprovalBypass: true; legacy: LegacyApprovalEvidence };
 export type ImportPayloads = {
+  FINANCE_COMPANIES: Commands["createFinanceCompany"];
+  BROKERAGE: {
+    customer: LegacyRef;
+    quoteId: Id;
+    guarantors: Commands["openBrokerage"]["guarantors"];
+  };
   SUPPLIERS: DirectoryInput;
   CUSTOMERS: CustomerInput;
   REPAIR_VENDORS: DirectoryInput;
@@ -369,9 +375,9 @@ export type UploadReady = { ok: true; status: "UPLOAD_READY"; uploadId: Id; revi
 export type InvoicePending = { ok: true; status: "DOCUMENT_PENDING"; invoiceId: Id; version: number;
   state: "PENDING" | "FAILED"; retryable: boolean };
 export type ImportPreview = { ok: true; status: "IMPORT_PREVIEW"; batchId: Id; revision: Revision;
-  previewHash: string; valid: boolean; graph: ImportGraphManifest;
-  rows: { attachmentId: Id; sheetName?: string; row: number; sourceKey: string; type: ImportType;
-    normalized: ImportRowInput | null; errors: { field: string; code: string; message: string }[] }[];
+  previewHash: string; valid: boolean;
+  rows: { attachmentId: Id; row: number; sourceKey: string; type: ImportType; normalized: ImportRowInput }[];
+  errors: { attachmentId?: Id; rowNumber: number; field: string; code: string; message: string; sourceKey?: string }[];
   controlTotals: ControlTotals };
 export type JobResult = { ok: true; status: "JOB_RESULT"; runId: Id; cutoff: Instant;
   processed: number; expired: number; warned: number; skipped: number;
@@ -429,8 +435,10 @@ export interface Queries {
   jobHealth: Record<string, never>;
   commandStatus: { name: CommandName; idempotencyKey: Id };
 }
-export type Provenance = { imported: false } | { imported: true; batchId: Id; row: number; sourceKey: string;
-  contributingRows: { rowId: Id; type: ImportType; sourceKey: string }[] };
+export type Provenance = { imported: false } |
+  { imported: true; batchId?: never } |
+  { imported: true; batchId: Id; row: number; sourceKey: string;
+    contributingRows: { rowId: Id; type: ImportType; sourceKey: string }[] };
 export type PaymentDTO = CashInput & { id: Id; direction: "IN" | "OUT"; category: string;
   recordedAt: Instant; reversalOf?: Id };
 export type FinancialDTO = { currency: string; scale: 2; purchase: Money; repairs: Money;

@@ -9,12 +9,12 @@ import type {
   Dependency,
   DownloadDTO,
   ImportBatchSummaryDTO,
+  ImportPreview,
   ImportSourceUploadDTO,
   UploadReady,
 } from "@/.planning/implementation/contracts/api"
 import { useActor } from "@/components/providers/auth-boundary"
 import { abilityFor } from "@/lib/server/permissions"
-import { importTypes } from "@/lib/server/validators"
 import { privateRequest, RequestError } from "@/lib/security-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,9 +23,20 @@ import { Label } from "@/components/ui/label"
 type Batch = Partial<ImportBatchSummaryDTO> & {
   uploads?: Partial<ImportSourceUploadDTO>[]
   redactedFields?: string[]
+  importedRecords?: {
+    type: string
+    row: number
+    sourceKey: string
+    href: string
+  }[]
 }
 type Action = {
-  name: "stageImport" | "initUpload" | "completeUpload"
+  name:
+    | "stageImport"
+    | "initUpload"
+    | "completeUpload"
+    | "previewImport"
+    | "confirmImport"
   body: string
 }
 const mime = (file: File) =>
@@ -42,7 +53,15 @@ async function fileHash(file: File) {
     (b) => b.toString(16).padStart(2, "0")
   ).join("")
 }
-export function ImportStaging({ id }: { id?: string }) {
+export function ImportStaging({
+  id,
+  administrator,
+  supportedTypes,
+}: {
+  id?: string
+  administrator: boolean
+  supportedTypes: readonly string[]
+}) {
   const { actor } = useActor(),
     ability = abilityFor(actor.presentationGrants, actor.user.id)
   const params = useSearchParams(),
@@ -51,6 +70,8 @@ export function ImportStaging({ id }: { id?: string }) {
   const [namespace, setNamespace] = useState("")
   const [types, setTypes] = useState<string[]>(["SUPPLIERS"])
   const [file, setFile] = useState<File | null>(null)
+  const [selected, setSelected] = useState<Record<string, string>>({})
+  const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [action, setAction] = useState<Action | null>(null)
   const [pending, setPending] = useState(false),
     [stale, setStale] = useState(false)
@@ -80,17 +101,31 @@ export function ImportStaging({ id }: { id?: string }) {
         | undefined)
     : undefined
   const candidate = subject("ImportBatch", { createdBy: actor.user.id })
-  const canStage = ["types", "namespace"].every((f) =>
-    ability.can("create", candidate, f)
-  )
+  const canStage =
+    administrator &&
+    ["types", "namespace"].every((f) => ability.can("create", candidate, f))
   const canUpload =
     row?.id &&
     row.revision &&
-    row.state === "STAGED" &&
+    row.state !== "COMMITTED" &&
     row.uploads !== undefined &&
     ability.can("read", "ImportBatch", "uploads") &&
     ability.can("update", "ImportBatch", "uploads") &&
     ability.can("create", "Document")
+  const batchRef =
+    row?.id && row.revision
+      ? [{ type: "ImportBatch" as const, id: row.id, revision: row.revision }]
+      : []
+  const canValidate =
+    canStage &&
+    canUpload &&
+    row?.types?.every((type) => supportedTypes.includes(type))
+  const finalUploads =
+    row?.uploads?.filter(
+      (upload) => upload.state === "FINAL" && upload.attachmentId
+    ) ?? []
+  const sourceSelection =
+    row?.types?.map((type) => ({ type, attachmentId: selected[type] })) ?? []
   const makeAction = (
     name: Action["name"],
     input: unknown,
@@ -138,27 +173,38 @@ export function ImportStaging({ id }: { id?: string }) {
     setError("")
     setMessage("")
     try {
-      const result = await privateRequest<Applied | UploadReady>(
-        `/api/v1/commands/${next.name}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: next.body,
-        }
-      )
+      const result = await privateRequest<
+        Applied | UploadReady | ImportPreview
+      >(`/api/v1/commands/${next.name}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: next.body,
+      })
       if (result.status === "UPLOAD_READY") {
         if (!file)
           throw new Error(
             "Reselect the exact declared file, then retry unchanged."
           )
         await send(result.uploadId, file)
+      } else if (result.status === "IMPORT_PREVIEW") {
+        setPreview(result)
+        setMessage(
+          result.valid
+            ? "Validation passed. Review the totals before confirming."
+            : "Fix the listed errors and validate the replacement files."
+        )
+      } else if (next.name === "confirmImport") {
+        setPreview(null)
+        setMessage("Historical import committed.")
       } else if (next.name === "stageImport") {
         setAction(null)
         router.push(`/imports/${result.result.id}`)
-      } else
+      } else {
+        setPreview(null)
         setMessage(
-          "Verified bytes retained as a FINAL private attachment. The batch remains STAGED; nothing has been imported."
+          "Private source file finalized. Select it for validation below."
         )
+      }
       setAction(null)
       await refresh()
     } catch (cause) {
@@ -171,6 +217,7 @@ export function ImportStaging({ id }: { id?: string }) {
       setStale(
         [
           "STALE_REVISION",
+          "IMPORT_STALE",
           "REVISION_REQUIRED",
           "INVALID_STATE",
           "UPLOAD_EXPIRED",
@@ -178,7 +225,7 @@ export function ImportStaging({ id }: { id?: string }) {
         ].includes(code)
       )
       setError(
-        `${code}. Your inputs and exact request are retained. A network error may hide a committed result; retry the identical request first. Reload/reconfirm after stale or expired state; expired uploads need a new upload.`
+        `${code}${cause instanceof RequestError && cause.message !== code ? ` — ${cause.message}` : ""}. Your inputs and exact request are retained. A network error may hide a committed result; retry the identical request first. Reload/reconfirm after stale or expired state; expired uploads need a new upload.`
       )
     } finally {
       setPending(false)
@@ -222,7 +269,7 @@ export function ImportStaging({ id }: { id?: string }) {
     <section className="mx-auto w-full max-w-4xl space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
-          {id ? "Staged import files" : "Import staging"}
+          {id ? "Historical import batch" : "Historical imports"}
         </h1>
         {id && (
           <Link
@@ -230,14 +277,14 @@ export function ImportStaging({ id }: { id?: string }) {
             href="/imports"
             className="inline-flex min-h-11 items-center underline"
           >
-            Back to import staging
+            Back to historical imports
           </Link>
         )}
       </header>
       <p className="text-sm text-muted-foreground">
-        Private source-file retention only. No preview, validation of a business
-        graph, confirmation or business import is implemented. CSV uses the
-        supported strict ASCII subset; XLSX validation is bounded.
+        Upload one CSV or Excel file per record type and review validation
+        before committing. A batch accepts up to 24 rows and 1 MiB of source
+        files.
       </p>
       {error && (
         <p role="alert" className="break-words">
@@ -262,6 +309,7 @@ export function ImportStaging({ id }: { id?: string }) {
                 return
               }
               setAction(null)
+              setPreview(null)
               setStale(false)
               setError("")
               setMessage(
@@ -303,7 +351,7 @@ export function ImportStaging({ id }: { id?: string }) {
               Declared import types
             </legend>
             <div className="grid gap-2 sm:grid-cols-2">
-              {importTypes.map((type) => (
+              {supportedTypes.map((type) => (
                 <label key={type} className="flex min-h-11 items-center gap-3">
                   <input
                     type="checkbox"
@@ -316,11 +364,29 @@ export function ImportStaging({ id }: { id?: string }) {
                       )
                     }
                   />
-                  {type}
+                  {type.replaceAll("_", " ").toLowerCase()}
                 </label>
               ))}
             </div>
           </fieldset>
+          <ul className="space-y-2 text-sm">
+            {types.map((type) => (
+              <li key={type} className="flex flex-wrap items-center gap-x-3">
+                <span className="capitalize">
+                  {type.replaceAll("_", " ").toLowerCase()} template
+                </span>
+                {["csv", "xlsx"].map((format) => (
+                  <a
+                    key={format}
+                    className="inline-flex min-h-11 items-center underline"
+                    href={`/api/v1/import-template?type=${type}&format=${format}`}
+                  >
+                    Download {format === "xlsx" ? "Excel" : "CSV"}
+                  </a>
+                ))}
+              </li>
+            ))}
+          </ul>
           <Button disabled={pending || !!action || !types.length} type="submit">
             Create STAGED batch
           </Button>
@@ -481,6 +547,166 @@ export function ImportStaging({ id }: { id?: string }) {
                 Upload source bytes with new intent
               </Button>
             </div>
+          )}
+          {canValidate && (
+            <section className="space-y-4 rounded-lg border p-4">
+              <h2 className="font-semibold">Validate source files</h2>
+              {sourceSelection.map(({ type, attachmentId }) => (
+                <div key={type} className="space-y-2">
+                  <Label htmlFor={`import-source-${type}`}>
+                    {type.replaceAll("_", " ").toLowerCase()} source
+                  </Label>
+                  <select
+                    id={`import-source-${type}`}
+                    value={attachmentId ?? ""}
+                    disabled={pending || !!action}
+                    className="min-h-11 w-full rounded border bg-background px-3"
+                    onChange={(event) => {
+                      setSelected({ ...selected, [type]: event.target.value })
+                      setPreview(null)
+                    }}
+                  >
+                    <option value="">Choose a finalized file</option>
+                    {finalUploads.map((upload) => (
+                      <option
+                        key={upload.attachmentId}
+                        value={upload.attachmentId ?? ""}
+                      >
+                        {upload.filename} ({upload.attachmentId?.slice(0, 8)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+              <Button
+                disabled={
+                  pending ||
+                  !!action ||
+                  !sourceSelection.every((source) => source.attachmentId)
+                }
+                onClick={() =>
+                  void run(
+                    makeAction(
+                      "previewImport",
+                      {
+                        batchId: row.id,
+                        namespace: row.namespace,
+                        sources: sourceSelection,
+                        templateVersion: 1,
+                      },
+                      batchRef
+                    )
+                  )
+                }
+              >
+                Validate and preview
+              </Button>
+              {preview && (
+                <div className="space-y-3">
+                  <h3 className="font-semibold">
+                    {preview.valid ? "Validated preview" : "Validation errors"}
+                  </h3>
+                  {preview.errors.length > 0 && (
+                    <ul className="list-disc space-y-1 pl-5" role="alert">
+                      {preview.errors.map((error, index) => (
+                        <li key={index} className="break-words">
+                          {finalUploads.find(
+                            (upload) =>
+                              upload.attachmentId === error.attachmentId
+                          )?.filename ?? "Batch"}
+                          , row {error.rowNumber}, {error.field} —{" "}
+                          {error.message}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {preview.valid && (
+                    <>
+                      <dl className="grid gap-2 sm:grid-cols-3">
+                        {(
+                          [
+                            ["Rows", preview.controlTotals.rows],
+                            ["Purchases", preview.controlTotals.purchase],
+                            [
+                              "Repair and additional costs",
+                              preview.controlTotals.cost,
+                            ],
+                            [
+                              "Sale consideration",
+                              preview.controlTotals.consideration,
+                            ],
+                            ["Cash in", preview.controlTotals.cashIn],
+                            ["Cash out", preview.controlTotals.cashOut],
+                          ] as const
+                        ).map(([label, amount]) => (
+                          <div key={label}>
+                            <dt>{label}</dt>
+                            <dd className="font-medium">
+                              {label === "Rows"
+                                ? amount
+                                : (Number(amount) / 100).toLocaleString(
+                                    undefined,
+                                    { minimumFractionDigits: 2 }
+                                  )}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                      <ul
+                        className="max-h-64 space-y-1 overflow-auto text-sm"
+                        aria-label="Validated source rows"
+                      >
+                        {preview.rows.map((entry) => (
+                          <li key={`${entry.attachmentId}:${entry.row}`}>
+                            {entry.type} · row {entry.row} · {entry.sourceKey}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        disabled={
+                          pending ||
+                          !!action ||
+                          preview.revision !== row.revision
+                        }
+                        onClick={() =>
+                          void run(
+                            makeAction(
+                              "confirmImport",
+                              {
+                                batchId: row.id,
+                                previewHash: preview.previewHash,
+                                controlTotals: preview.controlTotals,
+                              },
+                              batchRef
+                            )
+                          )
+                        }
+                      >
+                        Commit entire batch
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+          {!!row.importedRecords?.length && (
+            <section className="space-y-2 rounded-lg border p-4">
+              <h2 className="font-semibold">Imported records</h2>
+              <ul className="space-y-2">
+                {row.importedRecords.map((record) => (
+                  <li key={record.href}>
+                    <Link
+                      prefetch={false}
+                      href={record.href}
+                      className="underline"
+                    >
+                      {record.type} · row {record.row} · {record.sourceKey}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
           <h2 className="font-semibold">Current authorized upload intents</h2>
           {row.uploads === undefined ? (

@@ -114,3 +114,8 @@ GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."ApprovalRequest"
 GRANT SELECT, INSERT ON vamotors."SaleCase", vamotors."SaleReceipt", vamotors."SaleCompletion", vamotors."SaleCorrection", vamotors."TradeInConsideration" TO vamotors_runtime;
 GRANT UPDATE ("customerId", "agreedPrice", reference, notes, revision) ON vamotors."SaleCase" TO vamotors_runtime;
 GRANT UPDATE ("customerId", description, value, "acquiredVehicleId", "acquiredPurchaseId", "intakeCommandId") ON vamotors."TradeInConsideration" TO vamotors_runtime;
+
+GRANT UPDATE ("workflowCommandId", validation, state) ON vamotors."ImportBatch" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."ImportedFile", vamotors."ImportSourceRow" TO vamotors_runtime;
+GRANT SELECT, UPDATE (id) ON vamotors."ImportCommandAnchor" TO vamotors_runtime;
+GRANT EXECUTE ON FUNCTION vamotors.command_write_xid() TO vamotors_runtime;

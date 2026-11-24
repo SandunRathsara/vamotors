@@ -1,4 +1,5 @@
 "use client"
+import { ImportedBadge } from "@/components/imports/imported-badge"
 
 import { CustomerForm } from "@/components/customers/customer-form"
 import { checklistItemKey } from "@/lib/brokerage-checklist"
@@ -544,6 +545,7 @@ export function BrokerageDetail({ dealId }: { dealId: string }) {
             {deal.vehicle?.make} {deal.vehicle?.model}{" "}
             <Status state={deal.state ?? "?"} />
           </h1>
+          <ImportedBadge provenance={deal.provenance} />
           <p className="text-muted-foreground text-sm">
             {deal.path} · revision {deal.revision} · approved loan{" "}
             {moneyText(deal.approvedLoan)} · processing fee{" "}

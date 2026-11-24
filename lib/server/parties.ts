@@ -159,7 +159,8 @@ function values(input: DirectoryInput) {
 export async function executeParty(
   identity: Identity,
   name: PartyCommandName,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
   if (
     name === "createFinanceCompany" ||
@@ -167,8 +168,8 @@ export async function executeParty(
     (name === "archiveParty" &&
       (raw as { input?: { type?: string } })?.input?.type === "FINANCE_COMPANY")
   )
-    return executeFinance(identity, name, raw)
-  await database().$transaction(async (tx) => {
+    return executeFinance(identity, name, raw, existingTx)
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -409,7 +410,7 @@ export async function executeParty(
       affected: [result],
       invalidate: ["parties"],
     }
-  })
+  }, existingTx)
 }
 
 const financeInclude = { ...include, currentPolicy: true }
@@ -462,9 +463,10 @@ const atPath = (row: unknown, path: string): unknown =>
 async function executeFinance(
   identity: Identity,
   name: PartyCommandName,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -748,7 +750,7 @@ async function executeFinance(
       affected: [result],
       invalidate: ["parties"],
     }
-  })
+  }, existingTx)
 }
 
 /** Singular typed identity: never scan a list, guess a table, or use a receipt. */

@@ -9,6 +9,7 @@ import {
 } from "./purchases"
 import { requireFields } from "./permissions"
 import { id } from "./validators"
+import { importProvenance } from "./import-provenance"
 import { fail } from "./errors"
 
 /** Exact persisted FK lookup and the SAME typed purchase projection; not a new
@@ -38,7 +39,11 @@ export async function repairPagePurchase(identity: Identity, repairId: string) {
       requireFields(actor.ability, "RepairRecord", "read", repairAuth(repair), [
         "id",
       ])
-      return visiblePurchase(actor, row)
+      return {
+        ...visiblePurchase(actor, row),
+        id: row.id,
+        repairImport: await importProvenance(tx, actor, "RepairRecord", repairId),
+      }
     },
     { isolationLevel: "RepeatableRead", timeout: 5000 }
   )

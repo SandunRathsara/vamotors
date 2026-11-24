@@ -36,6 +36,7 @@ export const persistedRatePages = ["/lease-comparison", "/lease-rate-sheets"]
 export const privateAttachmentAPIs = {
   "/api/v1/uploads/[uploadId]": "PUT",
   "/api/v1/attachments/[attachmentId]": "GET",
+  "/api/v1/import-template": "GET",
 } as const
 export const importStagingPages = ["/imports", "/imports/[id]"]
 export const persistedRepairPages = ["/repairs", "/repairs/[id]"]

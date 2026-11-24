@@ -323,7 +323,7 @@ function capturedTarget(target: UploadTarget, upload: Intent) {
       targetRef(target),
       uploadRef(upload),
     ])
-  if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
+  if (target.type === "IMPORT_BATCH" && target.row.state === "COMMITTED")
     fail("INVALID_STATE")
 }
 const uploadReady = (u: Intent): UploadReady => ({
@@ -464,7 +464,7 @@ export async function initUpload(
       return uploadReady(existing)
     }
     checkRefs(envelope.expected, [targetRef(target)])
-    if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
+    if (target.type === "IMPORT_BATCH" && target.row.state === "COMMITTED")
       fail("INVALID_STATE")
     const now = new Date(),
       commandId = randomUUID()
@@ -961,7 +961,7 @@ export async function completeUpload(
       commandId,
       replayed: false,
       result,
-      affected: [uploadRef(final), targetRef(target)],
+      affected: [uploadRef(final), { ...targetRef(target), revision: ownerChange.revision }],
       invalidate: ["documents"],
     }
   })

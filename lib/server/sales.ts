@@ -401,6 +401,7 @@ export async function completeImmediateInTx(
     approverId?: string
     dryRunOnly?: boolean
     saleCaseId?: string
+    historical?: { receiptReference?: string; notes?: string; closedAt?: string }
   }
 ) {
   const {
@@ -642,7 +643,9 @@ export async function completeImmediateInTx(
   if (row.revision === 2147483647 || row.vehicle.revision === 2147483647)
     fail("REVISION_EXHAUSTED")
 
-  const now = reviewedAt ?? new Date()
+  const now = reviewedAt ?? (params.historical?.closedAt ? new Date(params.historical.closedAt) : new Date())
+  if (params.historical?.closedAt && (now > new Date() || now < new Date(`${input.date}T00:00:00+05:30`)))
+    fail("INVALID_INPUT", 422)
   const settings = await currentSettings(tx)
   const latestBasis = row.basisVersions.at(-1)!
   const originalProfit = agreedPrice - latestBasis.total
@@ -659,6 +662,7 @@ export async function completeImmediateInTx(
       agreedPrice,
       listedSnapshot: row.listedPrice,
       reference: input.reference ?? null,
+      notes: params.historical?.notes,
       state: "COMPLETED",
       revision: 1,
       openedAt: now,
@@ -746,7 +750,7 @@ export async function completeImmediateInTx(
         method: input.method,
         currency: settings.currency,
         scale: settings.scale,
-        reference: input.reference ?? null,
+        reference: params.historical ? params.historical.receiptReference : input.reference ?? null,
         createdBy: actor.userId,
         commandId,
         lineKey: "sale",
@@ -979,9 +983,11 @@ export async function saleReplay(
 export async function executeSale(
   identity: Identity,
   name: SaleCommand,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx,
+  historical?: { receiptReference?: string; notes?: string; closedAt?: string }
 ): Promise<Applied> {
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -1031,6 +1037,7 @@ export async function executeSale(
         commandId,
         sequence,
         saleCaseId: saleId,
+        historical,
       })
       return {
         ok: true as const,
@@ -1271,7 +1278,7 @@ export async function executeSale(
       ],
       invalidate: ["sales", "purchases", "inventory", "customers", "reports", "dashboard"],
     }
-  })
+  }, existingTx)
 }
 
 export async function prepareDiscountApproval(

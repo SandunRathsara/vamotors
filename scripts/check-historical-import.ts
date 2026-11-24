@@ -1,0 +1,705 @@
+// Run only with a dedicated local cluster and test app. This check injects a temporary constraint.
+import assert from "node:assert/strict"
+import { createHash, randomUUID } from "node:crypto"
+import { dirname, join } from "node:path"
+import pg from "pg"
+import { chromium, expect } from "@playwright/test"
+import { authorizedMigration, privateEnvironment } from "./private-environment"
+import { importTemplateColumns } from "../lib/server/import-parsers"
+import { buildXlsx } from "../lib/server/import-template"
+import type { ImportType } from "../.planning/implementation/contracts/api"
+
+const origin = process.argv[2]!
+assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/)
+assert.notEqual(new URL(origin).port, "8000")
+const accounts = await privateEnvironment(process.argv[3]!)
+const migration = authorizedMigration(
+  await privateEnvironment(join(dirname(process.argv[3]!), "migration.env"))
+)
+const suffix = randomUUID().slice(0, 8)
+const types = [
+  "SUPPLIERS",
+  "CUSTOMERS",
+  "REPAIR_VENDORS",
+  "VEHICLES",
+  "REPAIRS",
+  "SALES",
+] as const
+const namespace = `integration-${suffix}`
+function csv(type: ImportType, ...rows: Record<string, string>[]) {
+  const columns = importTemplateColumns(type)
+  const encode = (data: string[]) =>
+    data.map((s) => `"${s.replace(/"/g, '""')}"`).join(",")
+  return Buffer.from(
+    [
+      encode(columns.map((c) => c.name)),
+      ...rows.map((row) =>
+        encode(columns.map((col) => row[col.name] ?? col.example))
+      ),
+      "",
+    ].join("\n")
+  )
+}
+async function login(prefix: string) {
+  const response = await fetch(`${origin}/api/auth/sign-in/email`, {
+    method: "POST",
+    headers: { origin, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: accounts[`BOOTSTRAP_${prefix}_EMAIL`],
+      password: accounts[`BOOTSTRAP_${prefix}_PASSWORD`],
+    }),
+  })
+  assert.equal(response.status, 200)
+  return response.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(";")[0])
+    .join("; ")
+}
+const cookie = await login("ADMIN")
+const staff = await login("STAFF")
+async function command(
+  name: string,
+  input: unknown,
+  expected: unknown[] = [],
+  status = 200,
+  as = cookie,
+  idempotencyKey = randomUUID()
+) {
+  const response = await fetch(`${origin}/api/v1/commands/${name}`, {
+    method: "POST",
+    headers: { origin, cookie: as, "Content-Type": "application/json" },
+    body: JSON.stringify({ schemaVersion: 1, idempotencyKey, expected, input }),
+  })
+  const body = await response.json()
+  assert.equal(response.status, status, JSON.stringify(body))
+  return body
+}
+async function query(name: string, params: Record<string, string>) {
+  const response = await fetch(
+    `${origin}/api/v1/queries/${name}?${new URLSearchParams(params)}`,
+    { headers: { cookie } }
+  )
+  assert.equal(response.status, 200)
+  return (await response.json()).data
+}
+const fixture = {
+  SUPPLIERS: csv("SUPPLIERS", {
+    name: `Historical supplier ${suffix}`,
+    nicOrRegNumber: suffix,
+  }),
+  CUSTOMERS: csv("CUSTOMERS", { nicOrPassport: `P${suffix}` }),
+  REPAIR_VENDORS: buildXlsx([
+    {
+      name: "REPAIR_VENDORS",
+      rows: [
+        importTemplateColumns("REPAIR_VENDORS").map((c) => c.name),
+        importTemplateColumns("REPAIR_VENDORS").map((c) =>
+          c.name === "nicOrRegNumber"
+            ? `V${suffix}`
+            : c.name === "sourceKey"
+              ? "vnd-001"
+              : c.example
+        ),
+      ],
+    },
+  ]),
+  VEHICLES: csv("VEHICLES", {
+    engineNumber: `ENG-${suffix}`,
+    chassisNumber: `CHS-${suffix}`,
+    status: "SOLD",
+    available: "false",
+    closedAt: "2026-01-20T12:00:00.000Z",
+  }),
+  REPAIRS: csv("REPAIRS", { legacyOriginalId: suffix }),
+  SALES: csv("SALES", {
+    legacyOriginalId: suffix,
+    completionBasisRepairs: '[{"sourceKey":"rep-001","amount":"45000.00"}]',
+  }),
+}
+const batch = (await command("stageImport", { types, namespace }, [], 201))
+  .result
+const refs = [batch]
+async function upload(
+  type: ImportType,
+  bytes: Buffer,
+  label = type.toLowerCase(),
+  target = batch
+) {
+  const xlsx = type === "REPAIR_VENDORS"
+  const contentType = xlsx
+    ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    : "text/csv"
+  const sha256 = createHash("sha256").update(bytes).digest("hex")
+  const ready = await command(
+    "initUpload",
+    {
+      target: { type: "IMPORT_BATCH", id: target.id },
+      purpose: "IMPORT_SOURCE",
+      filename: `${label}.${xlsx ? "xlsx" : "csv"}`,
+      contentType,
+      sha256,
+      size: bytes.length,
+    },
+    [target],
+    201
+  )
+  const response = await fetch(`${origin}${ready.putUrl}`, {
+    method: "PUT",
+    headers: { origin, cookie, ...ready.requiredHeaders },
+    body: new Uint8Array(bytes),
+  })
+  assert.ok(response.ok, `PUT ${response.status}`)
+  const result = await command("completeUpload", { uploadId: ready.uploadId }, [
+    target,
+    { type: "UploadIntent", id: ready.uploadId, revision: ready.revision },
+  ])
+  target.revision = result.affected.find(
+    (ref: { type: string }) => ref.type === "ImportBatch"
+  ).revision
+  return { type, attachmentId: result.result.id }
+}
+const sources = []
+for (const type of types)
+  sources.push(
+    await upload(
+      type,
+      type === "CUSTOMERS" ? csv(type, { phone: "bad" }) : fixture[type]
+    )
+  )
+const previewInput = {
+  batchId: batch.id,
+  namespace,
+  sources,
+  templateVersion: 1,
+}
+await command("previewImport", previewInput, refs, 404, staff)
+const invalid = await command("previewImport", previewInput, refs)
+assert.equal(invalid.valid, false)
+assert.ok(
+  invalid.errors.some(
+    (e: { rowNumber: number; field: string }) =>
+      e.rowNumber === 2 && e.field === "phone"
+  )
+)
+sources[1] = await upload("CUSTOMERS", fixture.CUSTOMERS, "fixed-customers")
+const preview = await command("previewImport", previewInput, refs)
+assert.equal(preview.valid, true, JSON.stringify(preview.errors))
+assert.equal(preview.controlTotals.purchase, "500000000")
+assert.equal(preview.controlTotals.cost, "7000000")
+assert.equal(preview.controlTotals.cashOut, "507000000")
+assert.equal(preview.controlTotals.cashIn, "580000000")
+batch.revision = preview.revision
+const confirmation = {
+  batchId: batch.id,
+  previewHash: preview.previewHash,
+  controlTotals: preview.controlTotals,
+}
+const key = randomUUID()
+const sql = new pg.Client({ connectionString: migration })
+await sql.connect()
+try {
+  const counts = () =>
+    sql.query(`SELECT
+    (SELECT count(*) FROM vamotors."Customer") AS customers,
+    (SELECT count(*) FROM vamotors."PurchaseRecord") AS cycles,
+    (SELECT count(*) FROM vamotors."CashMovement") AS movements,
+    (SELECT count(*) FROM vamotors."ImportSourceRow") AS provenance,
+    (SELECT value FROM vamotors."BusinessSequence" WHERE id=1) AS sequence`)
+  const before = (await counts()).rows[0]
+  // Fail the final sale command after the earlier domain commands have run.
+  await sql.query(`ALTER TABLE vamotors."SaleCase"
+    ADD CONSTRAINT t16_check_rollback CHECK (reference <> 'INV-HIST-001') NOT VALID`)
+  try {
+    const failed = await command("confirmImport", confirmation, refs, 422)
+    assert.equal(failed.error.code, "IMPORT_CONSTRAINT")
+    assert.match(failed.error.message, /SALES/)
+    assert.deepEqual((await counts()).rows[0], before)
+    assert.equal(
+      (await query("importBatchFiles", { id: batch.id })).state,
+      "VALIDATED"
+    )
+    console.log(
+      "PASS late sale failure rolled back earlier records, cash, sequence, and provenance"
+    )
+  } finally {
+    await sql.query(
+      'ALTER TABLE vamotors."SaleCase" DROP CONSTRAINT t16_check_rollback'
+    )
+  }
+} finally {
+  await sql.end()
+}
+const start = performance.now()
+const applied = await command(
+  "confirmImport",
+  confirmation,
+  refs,
+  200,
+  cookie,
+  key
+)
+assert.equal(applied.status, "APPLIED")
+console.log(`Commit finished in ${Math.round(performance.now() - start)} ms.`)
+assert.equal(
+  (await command("confirmImport", confirmation, refs, 200, cookie, key))
+    .replayed,
+  true
+)
+assert.equal(
+  (await command("confirmImport", confirmation, refs, 409)).error.code,
+  "IMPORT_DUPLICATE"
+)
+const committed = await query("importBatchFiles", { id: batch.id })
+assert.equal(committed.state, "COMMITTED")
+assert.equal(committed.importedRecords.length, types.length)
+const purchase = committed.importedRecords.find(
+  (record: { type: string }) => record.type === "PurchaseRecord"
+)
+const actual = await query("purchase", {
+  cycleId: purchase.href.split("/").at(-1),
+})
+assert.equal(actual.financial.basis, "507000000")
+assert.equal(actual.financial.net, "73000000")
+assert.equal(actual.provenance.imported, true)
+console.log(
+  "PASS six-type HTTP historical graph, CSV/XLSX, permissions, replacement, money, replay and provenance"
+)
+
+const duplicateBatch = (
+  await command(
+    "stageImport",
+    {
+      namespace: `duplicates-${suffix}`,
+      types: ["SUPPLIERS"],
+    },
+    [],
+    201
+  )
+).result
+for (const [bytes, field] of [
+  [fixture.SUPPLIERS, "file"],
+  [
+    csv("SUPPLIERS", {
+      name: `Historical supplier ${suffix}`,
+      nicOrRegNumber: suffix,
+      sourceKey: "different-key",
+    }),
+    "nicOrRegNumber",
+  ],
+] as const) {
+  const source = await upload(
+    "SUPPLIERS",
+    bytes,
+    `duplicate-${field}`,
+    duplicateBatch
+  )
+  const rejected = await command(
+    "previewImport",
+    {
+      batchId: duplicateBatch.id,
+      namespace: `duplicates-${suffix}`,
+      sources: [source],
+      templateVersion: 1,
+    },
+    [duplicateBatch]
+  )
+  assert.equal(rejected.valid, false)
+  assert.ok(
+    rejected.errors.some(
+      (error: { field: string; code: string }) =>
+        error.field === field && error.code === "IMPORT_DUPLICATE"
+    )
+  )
+}
+
+async function oneFile(type: ImportType, bytes: Buffer) {
+  const namespace = `${type.toLowerCase()}-${suffix}`
+  const target = (
+    await command("stageImport", { namespace, types: [type] }, [], 201)
+  ).result
+  const source = await upload(type, bytes, type.toLowerCase(), target)
+  const preview = await command(
+    "previewImport",
+    {
+      batchId: target.id,
+      namespace,
+      sources: [source],
+      templateVersion: 1,
+    },
+    [target]
+  )
+  assert.equal(preview.valid, true, JSON.stringify(preview.errors))
+  target.revision = preview.revision
+  await command(
+    "confirmImport",
+    {
+      batchId: target.id,
+      previewHash: preview.previewHash,
+      controlTotals: preview.controlTotals,
+    },
+    [target]
+  )
+  const { importedRecords } = await query("importBatchFiles", { id: target.id })
+  assert.equal(importedRecords.length, 1)
+  return importedRecords[0]
+}
+const finance = await oneFile(
+  "FINANCE_COMPANIES",
+  csv("FINANCE_COMPANIES", { name: `Import Finance ${suffix}` })
+)
+const financeId = new URL(finance.href, origin).pathname.split("/").at(-1)!
+const financeRef = { type: "FinanceCompany", id: financeId, revision: 1 }
+const settings = await query("settings", {})
+const model = `Historic ${suffix}`
+const sheet = (
+  await command(
+    "publishRates",
+    {
+      companyId: financeId,
+      make: "Synthetic",
+      model,
+      year: 2024,
+      validFrom: "2020-01-01",
+      validThrough: "2029-12-31",
+      maximum: "1200000",
+      cards: [{ principal: "1000000", months: 12, installment: "90000" }],
+    },
+    [financeRef],
+    201
+  )
+).result
+const quoteDb = new pg.Client({ connectionString: migration })
+await quoteDb.connect()
+let cardId: string
+try {
+  cardId = (
+    await quoteDb.query(
+      'SELECT id FROM vamotors."RateCardEntry" WHERE "sheetVersionId"=$1',
+      [sheet.id]
+    )
+  ).rows[0].id
+} finally {
+  await quoteDb.end()
+}
+const quote = (
+  await command(
+    "selectQuote",
+    {
+      sheetId: sheet.id,
+      cardId,
+      vehicle: {
+        make: "Synthetic",
+        model,
+        year: 2024,
+        description: "Historical external vehicle",
+      },
+      charges: [],
+    },
+    [
+      sheet,
+      financeRef,
+      { type: "Settings", id: settings.id, revision: settings.revision },
+    ],
+    201
+  )
+).result
+const customerRecord = committed.importedRecords.find(
+  (record: { type: string }) => record.type === "Customer"
+)
+const brokerage = await oneFile(
+  "BROKERAGE",
+  csv("BROKERAGE", {
+    customerSourceKey: "",
+    customerExistingId: customerRecord.href.split("/").at(-1),
+    quoteId: quote.id,
+  })
+)
+const importedDeal = await query("brokerageDeal", {
+  id: brokerage.href.split("/").at(-1),
+})
+assert.equal(importedDeal.provenance.imported, true)
+assert.equal(importedDeal.state, "INTAKE")
+console.log("PASS finance-company and quote-backed brokerage intake imports")
+
+const tradeNamespace = `trade-in-${suffix}`
+const trade = (
+  await command(
+    "stageImport",
+    {
+      namespace: tradeNamespace,
+      types: ["VEHICLES", "SALES"],
+    },
+    [],
+    201
+  )
+).result
+const supplierRecord = committed.importedRecords.find(
+  (record: { type: string }) => record.type === "Supplier"
+)
+const recordId = (href: string) =>
+  new URL(href, origin).pathname.split("/").at(-1)!
+const vehicleSource = await upload(
+  "VEHICLES",
+  csv(
+    "VEHICLES",
+    {
+      engineNumber: `SOLD-${suffix}`,
+      chassisNumber: `SOLD-CH-${suffix}`,
+      status: "SOLD",
+      available: "false",
+      closedAt: "2026-01-20T12:00:00.000Z",
+      supplierSourceKey: "",
+      supplierExistingId: recordId(supplierRecord.href),
+      additionalCosts: "[]",
+    },
+    {
+      sourceKey: "incoming",
+      cycleSourceKey: "incoming-cycle",
+      engineNumber: `INCOMING-${suffix}`,
+      chassisNumber: `INCOMING-CH-${suffix}`,
+      supplierSourceKey: "",
+      sellerCustomerExistingId: recordId(customerRecord.href),
+      tradeInSaleSourceKey: "case-001",
+      purchaseDate: "2026-01-20",
+      purchasePrice: "1000000.00",
+      listedPrice: "",
+      receivedDate: "2026-01-20",
+      mileage: '[{"reading":60000,"date":"2026-01-20"}]',
+      payments: "[]",
+      additionalCosts: "[]",
+      notes: "",
+    }
+  ),
+  "trade-vehicles",
+  trade
+)
+const tradeSource = await upload(
+  "SALES",
+  csv("SALES", {
+    kind: "TRADE_IN",
+    reference: `TRADE-${suffix}`,
+    customerSourceKey: "",
+    customerExistingId: recordId(customerRecord.href),
+    tradeInDescription: "Synthetic trade-in vehicle",
+    tradeInValue: "1000000.00",
+    tradeInAcquiredCycleSourceKey: "incoming-cycle",
+    completionBasisCosts: "[]",
+    payments:
+      '[{"sourceKey":"trade-residual","amount":"4800000.00","date":"2026-01-20","method":"BANK_TRANSFER","direction":"IN","category":"SALE"}]',
+  }),
+  "trade-sale",
+  trade
+)
+const tradePreview = await command(
+  "previewImport",
+  {
+    batchId: trade.id,
+    namespace: tradeNamespace,
+    sources: [vehicleSource, tradeSource],
+    templateVersion: 1,
+  },
+  [trade]
+)
+assert.equal(tradePreview.valid, true, JSON.stringify(tradePreview.errors))
+assert.equal(tradePreview.controlTotals.cashOut, "500000000")
+assert.equal(tradePreview.controlTotals.cashIn, "480000000")
+trade.revision = tradePreview.revision
+await command(
+  "confirmImport",
+  {
+    batchId: trade.id,
+    previewHash: tradePreview.previewHash,
+    controlTotals: tradePreview.controlTotals,
+  },
+  [trade]
+)
+const tradeBatch = await query("importBatchFiles", { id: trade.id })
+const intake = tradeBatch.importedRecords.find(
+  (record: { sourceKey: string }) => record.sourceKey === "incoming"
+)
+const intakePurchase = await query("purchase", {
+  cycleId: recordId(intake.href),
+})
+assert.equal(intakePurchase.acquisitionKind, "TRADE_IN")
+assert.equal(intakePurchase.financial.cashOut, "0")
+assert.equal(intakePurchase.financial.basis, "100000000")
+console.log(
+  "PASS immediate trade-in sale, linked intake, and noncash consideration"
+)
+
+if (process.argv.includes("--browser")) {
+  const browser = await chromium.launch({
+    executablePath: process.env.VAMOTORS_CHROMIUM ?? "/usr/bin/chromium",
+  })
+  try {
+    const context = await browser.newContext()
+    const status = await context.request.post(
+      `${origin}/api/auth/sign-in/email`,
+      {
+        headers: { origin },
+        data: {
+          email: accounts.BOOTSTRAP_ADMIN_EMAIL,
+          password: accounts.BOOTSTRAP_ADMIN_PASSWORD,
+        },
+      }
+    )
+    assert.equal(status.status(), 200)
+    const page = await context.newPage()
+    await page.goto(`${origin}/imports`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    })
+    await expect(
+      page.getByRole("heading", { name: "Historical imports", exact: true })
+    ).toBeVisible()
+    for (const label of ["Download CSV", "Download Excel"]) {
+      const download = page.waitForEvent("download")
+      await page.getByRole("link", { name: label, exact: true }).click()
+      assert.match(
+        (await download).suggestedFilename(),
+        /suppliers-template\.(csv|xlsx)$/
+      )
+    }
+    const browserFiles: [ImportType, string, Buffer][] = [
+      ["SUPPLIERS", "broken.csv", csv("SUPPLIERS", { name: "" })],
+      [
+        "CUSTOMERS",
+        "customers.csv",
+        csv("CUSTOMERS", { nicOrPassport: `BC${suffix}` }),
+      ],
+      [
+        "REPAIR_VENDORS",
+        "vendor.xlsx",
+        buildXlsx([
+          {
+            name: "REPAIR_VENDORS",
+            rows: [
+              importTemplateColumns("REPAIR_VENDORS").map((col) => col.name),
+              importTemplateColumns("REPAIR_VENDORS").map(
+                (col) =>
+                  (
+                    ({
+                      sourceKey: "vnd-001",
+                      nicOrRegNumber: `BV${suffix}`,
+                    }) as Record<string, string>
+                  )[col.name] ?? col.example
+              ),
+            ],
+          },
+        ]),
+      ],
+      [
+        "VEHICLES",
+        "vehicles.csv",
+        csv("VEHICLES", {
+          engineNumber: `B-ENG-${suffix}`,
+          chassisNumber: `B-CHS-${suffix}`,
+          status: "SOLD",
+          available: "false",
+          closedAt: "2026-01-20T12:00:00.000Z",
+        }),
+      ],
+      [
+        "REPAIRS",
+        "repairs.csv",
+        csv("REPAIRS", { legacyOriginalId: `browser-${suffix}` }),
+      ],
+      [
+        "SALES",
+        "sales.csv",
+        csv("SALES", {
+          legacyOriginalId: `browser-${suffix}`,
+          completionBasisRepairs:
+            '[{"sourceKey":"rep-001","amount":"45000.00"}]',
+        }),
+      ],
+      [
+        "FINANCE_COMPANIES",
+        "finance.csv",
+        csv("FINANCE_COMPANIES", { name: `Browser Finance ${suffix}` }),
+      ],
+      ["BROKERAGE", "brokerage.csv", csv("BROKERAGE", { quoteId: quote.id })],
+    ]
+    const display = (type: ImportType) =>
+      type.replaceAll("_", " ").toLowerCase()
+    await page
+      .getByLabel("Namespace", { exact: true })
+      .fill(`browser-${suffix}`)
+    for (const [type] of browserFiles)
+      await page
+        .getByRole("checkbox", { name: display(type), exact: true })
+        .check()
+    await page.getByRole("button", { name: "Create STAGED batch" }).click()
+    await expect(
+      page.getByRole("heading", { name: "Historical import batch" })
+    ).toBeVisible({ timeout: 15000 })
+    async function uploadInBrowser(
+      type: ImportType,
+      filename: string,
+      bytes: Buffer
+    ) {
+      const mimeType = filename.endsWith(".xlsx")
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv"
+      await page
+        .locator("#import-file")
+        .setInputFiles({ name: filename, mimeType, buffer: bytes })
+      await page
+        .getByRole("button", { name: "Upload source bytes with new intent" })
+        .click()
+      await page
+        .getByRole("listitem")
+        .filter({ hasText: filename })
+        .getByRole("button", { name: "Finalize retained bytes" })
+        .click()
+      const select = page.getByLabel(`${display(type)} source`)
+      const option = select.locator("option").filter({ hasText: filename })
+      await expect(option).toHaveCount(1, { timeout: 15000 })
+      await select.selectOption((await option.getAttribute("value"))!)
+    }
+    for (const [type, filename, bytes] of browserFiles)
+      await uploadInBrowser(type, filename, bytes)
+    await page.getByRole("button", { name: "Validate and preview" }).click()
+    await expect(
+      page.getByRole("heading", { name: "Validation errors" })
+    ).toBeVisible()
+    await expect(page.getByText(/broken.csv, row 2, name/)).toBeVisible()
+    await uploadInBrowser(
+      "SUPPLIERS",
+      "corrected.csv",
+      csv("SUPPLIERS", {
+        name: `Browser supplier ${suffix}`,
+        nicOrRegNumber: `B${suffix}`,
+      })
+    )
+    await page.getByRole("button", { name: "Validate and preview" }).click()
+    await expect(
+      page.getByRole("heading", { name: "Validated preview" })
+    ).toBeVisible()
+    await page.getByRole("button", { name: "Commit entire batch" }).click()
+    await expect(
+      page.getByText("Historical import committed.", { exact: true })
+    ).toBeVisible()
+    const recordLinks = page
+      .getByRole("list")
+      .filter({ has: page.getByRole("link", { name: /Supplier · row 2/ }) })
+      .getByRole("link")
+    await expect(recordLinks).toHaveCount(browserFiles.length)
+    const hrefs = await recordLinks.evaluateAll((links) =>
+      links.map((link) => link.getAttribute("href"))
+    )
+    for (const href of hrefs) {
+      assert.ok(href)
+      await page.goto(`${origin}${href}`)
+      await expect(
+        page.getByRole("link", { name: "Imported · source row 2" })
+      ).toBeVisible({ timeout: 15000 })
+    }
+    await context.close()
+    console.log(
+      "PASS Chromium downloads and eight-type CSV/XLSX stage, correction, preview, confirmation, and record provenance"
+    )
+  } finally {
+    await browser.close()
+  }
+}

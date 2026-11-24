@@ -327,9 +327,10 @@ export async function repairReplay(
 export async function executeRepair(
   identity: Identity,
   name: Name,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -734,5 +735,5 @@ export async function executeRepair(
       ],
       invalidate,
     }
-  })
+  }, existingTx)
 }

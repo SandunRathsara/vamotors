@@ -738,7 +738,8 @@ const expectedCommission = (policy: Record<string, unknown>, principal: bigint) 
 export async function executeBrokerage(
   identity: Identity,
   name: Name,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
   if (name === "dispatchBatch") return executeDispatch(identity, raw)
   const parsed =
@@ -756,7 +757,7 @@ export async function executeBrokerage(
     if (name === "reversePayment")
       return reverseBrokeragePayment(tx, actor, envelope, digest, raw)
     return handlers[name as BrokerageCommandName](tx, actor, envelope, digest)
-  })
+  }, existingTx)
 }
 
 type Handler = (

@@ -1,4 +1,5 @@
 "use client"
+import { ImportedBadge } from "@/components/imports/imported-badge"
 import Link from "next/link"
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -312,7 +313,7 @@ export function CustomerDirectory({ id }: { id?: string }) {
                 <dd>
                   {row.provenance.imported === false
                     ? "Created in this application (not imported)"
-                    : "Imported"}
+                    : <ImportedBadge provenance={row.provenance} />}
                 </dd>
               </div>
             )}

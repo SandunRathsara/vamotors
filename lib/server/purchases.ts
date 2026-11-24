@@ -1449,6 +1449,7 @@ export async function acquireVehicleCycle(
     listedPrice?: string
     mileage: Mileage
     paymentMethod?: "CASH" | "BANK_TRANSFER"
+    paymentReferences?: Record<string, string | undefined>
     settlement?: Settlement
     company?: { id: string; name: string } | null
     commandId: string
@@ -1694,6 +1695,7 @@ export async function acquireVehicleCycle(
             category,
             occurredDate: new Date(purchaseDate),
             method: paymentMethod!,
+            reference: params.paymentReferences?.[category],
             currency: settings.currency,
             scale: settings.scale,
           },
@@ -1801,9 +1803,11 @@ export async function acquireVehicleCycle(
 
 export async function recordPurchase(
   identity: Identity,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx,
+  paymentReferences?: Record<string, string | undefined>
 ): Promise<Applied> {
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -1992,6 +1996,7 @@ export async function recordPurchase(
       listedPrice: input.listedPrice,
       mileage: input.mileage,
       paymentMethod: input.paymentMethod,
+      paymentReferences,
       settlement: settlement ?? undefined,
       company,
       commandId,
@@ -2020,7 +2025,7 @@ export async function recordPurchase(
       ],
       invalidate: ["inventory", "purchases", "parties", "reports", "dashboard"],
     }
-  })
+  }, existingTx)
 }
 
 /** Business input paths only. No Vehicle write authority is consumed by a view change. */
@@ -2042,9 +2047,10 @@ export function stockCapability(name: StockCommand, held = false) {
 export async function executeStock(
   identity: Identity,
   name: StockCommand,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -2262,7 +2268,7 @@ export async function executeStock(
       affected: [result, affected()[1]],
       invalidate,
     }
-  })
+  }, existingTx)
 }
 
 type EditIntent = {
@@ -2396,9 +2402,10 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
 export async function executeCycleEdit(
   identity: Identity,
   name: CycleEditCommand,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -2698,7 +2705,7 @@ export async function executeCycleEdit(
       ],
       invalidate,
     }
-  })
+  }, existingTx)
 }
 
 type MoneyInput<N extends CycleMoneyCommand> = z.infer<
@@ -3110,9 +3117,10 @@ function availableMoneyActions(actor: Actor, row: Row): CycleMoneyCommand[] {
 export async function executeCycleMoney(
   identity: Identity,
   name: CycleMoneyCommand,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -3845,7 +3853,7 @@ export async function executeCycleMoney(
       ],
       invalidate,
     }
-  })
+  }, existingTx)
 }
 
 export async function purchaseQuery(

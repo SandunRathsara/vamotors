@@ -204,10 +204,11 @@ function values(input: z.infer<typeof customerInput>) {
 export async function executeCustomer(
   identity: Identity,
   name: CustomerCommandName,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
   // Authenticate before validation; neither this nor a client hint authorizes execution.
-  await database().$transaction(async (tx) => {
+  if (!existingTx) await database().$transaction(async (tx) => {
     await assertEnvironment(tx)
     await currentActor(tx, identity)
   })
@@ -411,7 +412,7 @@ export async function executeCustomer(
       affected: [result],
       invalidate: ["customers"],
     }
-  })
+  }, existingTx)
 }
 
 const date = z

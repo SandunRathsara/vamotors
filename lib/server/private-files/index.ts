@@ -340,6 +340,18 @@ export async function openPrivateFiles(config: PrivateFilesConfig) {
           return { ...token.metadata }
         })
       },
+      readImportSource(name: string, expected: FileMetadata): Promise<Buffer> {
+        return safe(async () => {
+          key(name, finalPattern)
+          if (
+            expected.mime !== "text/csv" &&
+            expected.mime !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ) fail("UPLOAD_MISMATCH")
+          // The attachment was validated on finalization. The reader verifies
+          // the retained bytes against its size and hash before import parsing.
+          return read(name, { ...expected })
+        })
+      },
       readFinal(name: string, expected: FileMetadata): Promise<Buffer> {
         return safe(async () => {
           key(name, finalPattern)

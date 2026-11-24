@@ -442,7 +442,16 @@ try {
       "SELECT migration_name,checksum FROM vamotors._prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name"
     )
   ).rows
-  assert.equal(migrations.length, 17)
+  const migrationFolders = await readdir("prisma/migrations", {
+    withFileTypes: true,
+  })
+  assert.deepEqual(
+    migrations.map((migration) => migration.migration_name),
+    migrationFolders
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort()
+  )
   for (const migration of migrations)
     assert.equal(
       migration.checksum,
@@ -459,7 +468,10 @@ try {
     )
   evidence.migrations = migrations
   await start()
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({
+    headless: true,
+    executablePath: process.env.VAMOTORS_CHROMIUM,
+  })
   a = await browser.newContext({
     baseURL: origin,
     viewport: { width: 1920, height: 1080 },
@@ -529,7 +541,12 @@ try {
       await page.keyboard.press("Space")
       await expect(page.getByRole("checkbox").first()).not.toBeChecked()
       await page.keyboard.press("Space")
-      for (let i = 0; i < 7; i++) await page.keyboard.press("Tab")
+      const tabs =
+        (await page.getByRole("checkbox").count()) +
+        (await page
+          .getByRole("link", { name: /^Download (CSV|Excel)$/ })
+          .count())
+      for (let i = 0; i < tabs; i++) await page.keyboard.press("Tab")
       await expect(
         page.getByRole("button", { name: "Create STAGED batch", exact: true })
       ).toBeFocused()
