@@ -707,17 +707,16 @@ if (process.argv.includes("--browser")) {
   })
   try {
     const context = await browser.newContext()
-    const status = await context.request.post(
-      `${origin}/api/auth/sign-in/email`,
-      {
-        headers: { origin },
-        data: {
-          email: accounts.BOOTSTRAP_ADMIN_EMAIL,
-          password: accounts.BOOTSTRAP_ADMIN_PASSWORD,
-        },
-      }
+    await context.addCookies(
+      cookie.split("; ").map((pair) => {
+        const separator = pair.indexOf("=")
+        return {
+          name: pair.slice(0, separator),
+          value: pair.slice(separator + 1),
+          url: origin,
+        }
+      })
     )
-    assert.equal(status.status(), 200)
     const page = await context.newPage()
     await page.goto(`${origin}/imports`, {
       waitUntil: "domcontentloaded",
