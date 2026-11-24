@@ -88,6 +88,7 @@ export function SaleDetailView({ id }: { id: string }) {
   const [intakeListed, setIntakeListed] = useState("")
   const [intakeMsg, setIntakeMsg] = useState("")
   const [intakePending, setIntakePending] = useState(false)
+  const [intakeBody, setIntakeBody] = useState<string | null>(null)
 
   // Request SALE_EDIT form state
   const [editOpen, setEditOpen] = useState(false)
@@ -101,6 +102,7 @@ export function SaleDetailView({ id }: { id: string }) {
   const [editMsg, setEditMsg] = useState("")
   const [editApprovalId, setEditApprovalId] = useState<string | null>(null)
   const [editPending, setEditPending] = useState(false)
+  const [editBody, setEditBody] = useState<string | null>(null)
 
   async function submitIntake(e: React.FormEvent) {
     e.preventDefault()
@@ -109,61 +111,77 @@ export function SaleDetailView({ id }: { id: string }) {
     setIntakePending(true)
     setIntakeMsg("")
     try {
-      const identity = await privateRequest<{
-        data: { id: string; revision: number } | null
-      }>(
-        `/api/v1/queries/vehicleIdentity?engineNumber=${encodeURIComponent(intakeVehicle.engineNumber)}&chassisNumber=${encodeURIComponent(intakeVehicle.chassisNumber)}`
-      )
-      const expected: Dependency[] = [
-        { type: "SaleCase", id: sale.id, revision: sale.revision },
-        { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
-        ...(identity.data
-          ? [{ type: "Vehicle" as const, id: identity.data.id, revision: identity.data.revision }]
-          : []),
-      ]
-      const env = saleEnvelope("intakeTradeIn").parse({
-        schemaVersion: 1,
-        idempotencyKey: crypto.randomUUID(),
-        expected,
-        input: {
-          saleId: sale.id,
-          vehicle: {
-            engineNumber: intakeVehicle.engineNumber,
-            chassisNumber: intakeVehicle.chassisNumber,
-            make: intakeVehicle.make,
-            model: intakeVehicle.model,
-            year: Number(intakeVehicle.year),
-            colour: intakeVehicle.colour,
-            fuelType: intakeVehicle.fuelType,
-            transmission: intakeVehicle.transmission,
-            ...(intakeVehicle.vin.trim() ? { vin: intakeVehicle.vin.trim() } : {}),
-            ...(intakeVehicle.crNumber.trim()
-              ? { crNumber: intakeVehicle.crNumber.trim() }
-              : {}),
-            ...(intakeVehicle.notes.trim()
-              ? { notes: intakeVehicle.notes.trim() }
-              : {}),
+      let submitted = intakeBody
+      if (!submitted) {
+        const identity = await privateRequest<{
+          data: { id: string; revision: number } | null
+        }>(
+          `/api/v1/queries/vehicleIdentity?engineNumber=${encodeURIComponent(intakeVehicle.engineNumber)}&chassisNumber=${encodeURIComponent(intakeVehicle.chassisNumber)}`
+        )
+        const expected: Dependency[] = [
+          { type: "SaleCase", id: sale.id, revision: sale.revision },
+          { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
+          ...(identity.data
+            ? [{ type: "Vehicle" as const, id: identity.data.id, revision: identity.data.revision }]
+            : []),
+        ]
+        const env = saleEnvelope("intakeTradeIn").parse({
+          schemaVersion: 1,
+          idempotencyKey: crypto.randomUUID(),
+          expected,
+          input: {
+            saleId: sale.id,
+            vehicle: {
+              engineNumber: intakeVehicle.engineNumber,
+              chassisNumber: intakeVehicle.chassisNumber,
+              make: intakeVehicle.make,
+              model: intakeVehicle.model,
+              year: Number(intakeVehicle.year),
+              colour: intakeVehicle.colour,
+              fuelType: intakeVehicle.fuelType,
+              transmission: intakeVehicle.transmission,
+              ...(intakeVehicle.vin.trim() ? { vin: intakeVehicle.vin.trim() } : {}),
+              ...(intakeVehicle.crNumber.trim()
+                ? { crNumber: intakeVehicle.crNumber.trim() }
+                : {}),
+              ...(intakeVehicle.notes.trim()
+                ? { notes: intakeVehicle.notes.trim() }
+                : {}),
+            },
+            mileage: {
+              reading: Number(intakeReading),
+              date: sale.completion?.date ?? "",
+            },
+            ...(intakeListed.trim() ? { listedPrice: parseMajor(intakeListed) } : {}),
           },
-          mileage: {
-            reading: Number(intakeReading),
-            date: sale.completion?.date ?? "",
-          },
-          ...(intakeListed.trim() ? { listedPrice: parseMajor(intakeListed) } : {}),
-        },
-      })
+        })
+        submitted = JSON.stringify(env)
+        setIntakeBody(submitted)
+      }
       const res = await privateRequest<Applied>("/api/v1/commands/intakeTradeIn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(env),
+        body: submitted,
       })
+      setIntakeBody(null)
       setIntakeMsg(`Trade-in intake completed (${res.commandId}).`)
       setIntakeOpen(false)
       for (const k of res.invalidate)
         void queries.invalidateQueries({ queryKey: [k] })
     } catch (err) {
-      setIntakeMsg(
-        err instanceof RequestError ? err.code : err instanceof Error ? err.message : "ERROR"
+      const code =
+        err instanceof RequestError
+          ? err.code
+          : err instanceof Error
+            ? err.message
+            : "ERROR"
+      if (
+        err instanceof RequestError &&
+        err.status < 500 &&
+        code !== "IDEMPOTENCY_MISMATCH"
       )
+        setIntakeBody(null)
+      setIntakeMsg(code)
     } finally {
       setIntakePending(false)
     }
@@ -177,6 +195,8 @@ export function SaleDetailView({ id }: { id: string }) {
     setEditMsg("")
     setEditApprovalId(null)
     try {
+      let submitted = editBody
+      if (!submitted) {
       const expected: Dependency[] = [
         { type: "SaleCase", id: sale.id, revision: sale.revision },
         { type: "PurchaseRecord", id: cycle.id, revision: cycle.revision },
@@ -187,6 +207,12 @@ export function SaleDetailView({ id }: { id: string }) {
         )
         if (!acq.data.id || !acq.data.revision) throw Error("Acquired trade-in revision unavailable")
         expected.push({ type: "PurchaseRecord", id: acq.data.id, revision: acq.data.revision })
+        if (acq.data.vehicleId && acq.data.identityRevision)
+          expected.push({
+            type: "Vehicle",
+            id: acq.data.vehicleId,
+            revision: acq.data.identityRevision,
+          })
       }
       const patch: Record<string, unknown> = {}
       if (editPrice.trim()) patch.price = parseMajor(editPrice)
@@ -198,6 +224,65 @@ export function SaleDetailView({ id }: { id: string }) {
           description: editTradeDesc.trim() || sale.tradeIn?.description || "",
           value: editTradeVal.trim() ? parseMajor(editTradeVal) : sale.tradeIn?.value,
         }
+      }
+      if (!sale.price) throw Error("Current agreed price is unavailable.")
+      const oldPrice = BigInt(sale.price)
+      const oldTrade =
+        sale.kind === "TRADE_IN" && sale.tradeIn?.value
+          ? BigInt(sale.tradeIn.value)
+          : 0n
+      const newPrice = patch.price ? BigInt(patch.price as string) : oldPrice
+      const newTrade = patch.tradeIn
+        ? BigInt((patch.tradeIn as { value: string }).value)
+        : oldTrade
+      const cashCorrections: {
+        paymentId: string
+        reason: string
+        replacement?: {
+          amount: string
+          date: string
+          method: "CASH" | "BANK_TRANSFER"
+          reference?: string
+        }
+      }[] = []
+      if (newPrice - newTrade !== oldPrice - oldTrade) {
+        const receipts = sale.payments ?? []
+        const openReceipts = receipts.filter(
+          (p) =>
+            p.direction === "IN" &&
+            !p.reversalOf &&
+            !receipts.some((r) => r.reversalOf === p.id)
+        )
+        const amount = (p: (typeof receipts)[number]) => {
+          if (p.amount === undefined) throw Error("Receipt amount is unavailable.")
+          return BigInt(p.amount)
+        }
+        const currentNet = receipts.reduce(
+          (total, p) =>
+            total + (p.direction === "IN" ? amount(p) : -amount(p)),
+          0n
+        )
+        if (openReceipts.length !== 1 || currentNet !== oldPrice - oldTrade)
+          throw Error(
+            "This edit changes the receivable balance. Exactly one unreversed original receipt is required for the automatic cash correction."
+          )
+        const original = openReceipts[0]
+        if (
+          !original.id ||
+          !original.date ||
+          !original.method
+        )
+          throw Error("Original receipt facts are unavailable.")
+        cashCorrections.push({
+          paymentId: original.id,
+          reason: editReason,
+          replacement: {
+            amount: (newPrice - newTrade).toString(),
+            date: original.date,
+            method: original.method,
+            ...(original.reference ? { reference: original.reference } : {}),
+          },
+        })
       }
       const env = approvalEnvelope("requestApproval").parse({
         schemaVersion: 1,
@@ -211,24 +296,38 @@ export function SaleDetailView({ id }: { id: string }) {
               saleId: sale.id,
               reason: editReason,
               patch,
-              cashCorrections: [],
+              cashCorrections,
             },
           },
           reason: editReason,
         },
       })
+      submitted = JSON.stringify(env)
+      setEditBody(submitted)
+      }
       const res = await privateRequest<Pending>("/api/v1/commands/requestApproval", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(env),
+        body: submitted,
       })
+      setEditBody(null)
       setEditApprovalId(res.approvalId)
       setEditMsg(`Sale edit approval requested (${res.approvalId}).`)
       void queries.invalidateQueries({ queryKey: ["approvals"] })
     } catch (err) {
-      setEditMsg(
-        err instanceof RequestError ? err.code : err instanceof Error ? err.message : "ERROR"
+      const code =
+        err instanceof RequestError
+          ? err.code
+          : err instanceof Error
+            ? err.message
+            : "ERROR"
+      if (
+        err instanceof RequestError &&
+        err.status < 500 &&
+        code !== "IDEMPOTENCY_MISMATCH"
       )
+        setEditBody(null)
+      setEditMsg(code)
     } finally {
       setEditPending(false)
     }
@@ -258,6 +357,12 @@ export function SaleDetailView({ id }: { id: string }) {
           <dt className="text-xs text-muted-foreground">Agreed Price</dt>
           <dd>{moneyStr(sale.price)}</dd>
         </div>
+        {sale.reference && (
+          <div>
+            <dt className="text-xs text-muted-foreground">Third-party Reference</dt>
+            <dd className="break-words">{sale.reference}</dd>
+          </div>
+        )}
         <div>
           <dt className="text-xs text-muted-foreground">Revision</dt>
           <dd>{sale.revision ?? "Unavailable"}</dd>
@@ -352,6 +457,31 @@ export function SaleDetailView({ id }: { id: string }) {
           </Button>
         </form>
       )}
+
+      <div className="rounded-lg border p-4 space-y-2 text-sm">
+        <h2 className="font-semibold">Completion</h2>
+        {sale.completion ? (
+          <p>
+            Completed {sale.completion.date ?? "Unavailable"} · handover{" "}
+            {sale.completion.mileage ?? "Unavailable"} km · basis{" "}
+            {sale.completion.basisVersionId ?? "Unavailable"}
+          </p>
+        ) : (
+          <p>Completion unavailable</p>
+        )}
+        <h3 className="font-semibold">Timeline</h3>
+        {sale.timeline?.length ? (
+          <ol className="space-y-1">
+            {sale.timeline.map((event, index) => (
+              <li key={`${event.at}:${event.action}:${index}`}>
+                {event.at} · {event.action} · {event.actorName}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>Timeline unavailable</p>
+        )}
+      </div>
 
       <div className="rounded-lg border p-4 space-y-2 text-sm">
         <h2 className="font-semibold">Receipts</h2>

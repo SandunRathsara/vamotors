@@ -47,6 +47,7 @@ import {
 } from "./disposals"
 import {
   completeImmediateInTx,
+  immediateCreateFields,
   prepareDiscountApproval,
   prepareSaleEditApproval,
   applySaleEditApproval,
@@ -172,13 +173,44 @@ async function domainAuthority(
       "revision",
       "active",
     ])
+    const command = proposal.command.input
     requireFields(
       actor.ability,
       "SaleCase",
       "create",
       { createdBy: a.requestedBy, customerId: customer.id },
-      ["cycleId", "customerId", "kind", "price", "date", "mileage", "method"]
+      immediateCreateFields(command)
     )
+    const residual =
+      BigInt(command.price) -
+      (command.kind === "TRADE_IN" ? BigInt(command.tradeIn.value) : 0n)
+    if (residual > 0n)
+      requireFields(
+        actor.ability,
+        "SaleCase",
+        "pay",
+        { createdBy: a.requestedBy, customerId: customer.id },
+        [
+          "amount",
+          "date",
+          "method",
+          ...(command.reference !== undefined ? ["reference"] : []),
+        ]
+      )
+    if (command.kind === "TRADE_IN" && command.tradeIn.intake)
+      requireFields(
+        actor.ability,
+        "PurchaseRecord",
+        "create",
+        { createdBy: actor.userId, status: "PURCHASED" },
+        [
+          "vehicle",
+          "purchaseDate",
+          "purchasePrice",
+          "mileage",
+          ...(command.tradeIn.intake.listedPrice !== undefined ? ["listedPrice"] : []),
+        ]
+      )
     return
   }
   const sale = await loadSale(tx, proposal.input.saleId)
@@ -206,6 +238,15 @@ async function domainAuthority(
       "active",
     ])
   }
+  const patchKeys = Object.entries(proposal.input.patch)
+    .filter(([, v]) => v !== undefined)
+    .map(([k]) => (k === "tradeIn" ? "patch.tradeIn" : `patch.${k}`))
+  requireFields(actor.ability, "SaleCase", "update", saleAuth(sale), [
+    "saleId",
+    "reason",
+    ...patchKeys,
+    ...(proposal.input.cashCorrections.length ? ["cashCorrections"] : []),
+  ])
 }
 /** Caller holds the auth guard. No requester session or old business/CAS checks. */
 async function currentRequesterAuthority(
@@ -216,6 +257,10 @@ async function currentRequesterAuthority(
   const requester = await userAuthority(tx, a.requestedBy)
   if (!requester?.user.active) fail("APPROVAL_STALE")
   try {
+    requireFields(requester.ability, "ApprovalRequest", "create", rowSubject(a), [
+      "proposal",
+      "proposal.kind",
+    ])
     await domainAuthority(tx, requester, row, a)
   } catch (e) {
     if (e instanceof CommandError) fail("APPROVAL_STALE")
@@ -472,11 +517,8 @@ export async function approvalDetail(
   let canReview = false
   try {
     await reviewAuthority(tx, actor, row, a, false)
-    const requester = await userAuthority(tx, a.requestedBy)
-    if (requester?.user.active)
-      await domainAuthority(tx, requester, row, a)
+    await currentRequesterAuthority(tx, row, a)
     canReview =
-      !!requester?.user.active &&
       a.requestedBy !== actor.userId &&
       a.state === "PENDING" &&
       (a.kind !== "WRITE_OFF" ||

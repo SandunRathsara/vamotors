@@ -5,14 +5,25 @@ import { fieldsFor, type EnabledSubject } from "./permissions"
 import { canonical } from "./idempotency"
 import { fail } from "./errors"
 
+const saleCompletionFields = [
+  "id",
+  "saleCaseId",
+  "purchaseRecordId",
+  "date",
+  "handoverMileage",
+  "agreedPrice",
+  "basisVersionId",
+  "originalProfit",
+] as const
+
 /** Audit only DTO fields; credentials/hashes/tokens can never be named. */
-export function fieldDiff(
-  type: EnabledSubject,
+function diffFields(
+  fields: readonly string[],
   before: Record<string, unknown> | null,
   after: Record<string, unknown>
 ) {
   const diff: Record<string, { before: unknown; after: unknown }> = {}
-  for (const key of fieldsFor(type, "read")) {
+  for (const key of fields) {
     const value = (row: Record<string, unknown> | null) =>
       key
         .split(".")
@@ -30,12 +41,19 @@ export function fieldDiff(
   }
   return diff as Prisma.InputJsonObject
 }
+export function fieldDiff(
+  type: EnabledSubject,
+  before: Record<string, unknown> | null,
+  after: Record<string, unknown>
+) {
+  return diffFields(fieldsFor(type, "read"), before, after)
+}
 export async function audit(
   tx: Tx,
   input: {
     commandId: string
     userId: string
-    entityType: EnabledSubject
+    entityType: EnabledSubject | "SaleCompletion"
     entityId: string
     action: string
     reason?: string
@@ -56,7 +74,14 @@ export async function audit(
       reason: input.reason,
       initiatedBy: input.initiatedBy,
       approverId: input.approverId,
-      fieldDiff: fieldDiff(input.entityType, input.before, input.after),
+      fieldDiff:
+        input.entityType === "SaleCompletion"
+          ? diffFields(
+              saleCompletionFields,
+              input.before,
+              input.after
+            )
+          : fieldDiff(input.entityType, input.before, input.after),
     },
   })
 }

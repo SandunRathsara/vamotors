@@ -31,7 +31,7 @@ import {
 import { project, readScope, requireFields } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { currentSettings } from "./settings"
-import { A, C } from "../money"
+import { A, C, tradeInResidual } from "../money"
 import {
   acquireVehicleCycle,
   checkMoneyInput,
@@ -64,6 +64,7 @@ export const saleInclude = {
       acquiredPurchase: {
         select: { id: true, revision: true, status: true, closedAt: true },
       },
+      acquiredVehicle: { select: { id: true, revision: true } },
     },
   },
 } satisfies Prisma.SaleCaseInclude
@@ -76,11 +77,21 @@ export function loadSale(tx: Tx, saleId: string) {
 
 async function resolveActorNames(
   tx: Tx,
-  rows: readonly { createdBy: string; corrections: { createdBy: string }[] }[]
+  rows: readonly {
+    createdBy: string
+    completion?: { createdBy: string } | null
+    corrections: { createdBy: string }[]
+    receipts?: { createdBy: string }[]
+  }[]
 ) {
   const ids = [
     ...new Set(
-      rows.flatMap((r) => [r.createdBy, ...r.corrections.map((c) => c.createdBy)])
+      rows.flatMap((r) => [
+        r.createdBy,
+        ...(r.completion ? [r.completion.createdBy] : []),
+        ...r.corrections.map((c) => c.createdBy),
+        ...(r.receipts ?? []).map((p) => p.createdBy),
+      ])
     ),
   ]
   if (!ids.length) return new Map<string, string>()
@@ -99,14 +110,22 @@ export function saleDTO(
     {
       at: row.openedAt.toISOString(),
       action: row.approvalId ? "DISCOUNT_APPROVED_SALE" : "COMPLETED",
-      actorName: actorNames.get(row.createdBy) ?? "System",
+      actorName:
+        actorNames.get(row.completion?.createdBy ?? row.createdBy) ?? "System",
     },
+    ...row.receipts.map((r) => ({
+      at: r.recordedAt.toISOString(),
+      action: `SALE_RECEIPT_${r.direction}${r.reversalOf ? "_REVERSAL" : ""}`,
+      actorName: actorNames.get(r.createdBy) ?? "System",
+    })),
     ...row.corrections.map((c) => ({
       at: c.recordedAt.toISOString(),
       action: `SALE_EDIT_V${c.version}`,
       actorName: actorNames.get(c.createdBy) ?? "System",
     })),
-  ]
+  ].sort(
+    (a, b) => a.at.localeCompare(b.at) || a.action.localeCompare(b.action)
+  )
   const latestCorrection = row.corrections.at(-1)
   const correctedSnap = latestCorrection?.correctedSnapshot as
     | { saleDate?: string; handoverMileage?: number }
@@ -339,7 +358,7 @@ async function assertTradeInEligibility(
   return { existingVehicle: existing }
 }
 
-function immediateCreateFields(input: ImmediateSale) {
+export function immediateCreateFields(input: ImmediateSale) {
   return [
     "cycleId",
     "customerId",
@@ -533,7 +552,10 @@ export async function completeImmediateInTx(
   if (
     input.date > today ||
     input.date < formatDate(row.purchaseDate) ||
-    (row.receivedDate && input.date < formatDate(row.receivedDate))
+    (row.receivedDate && input.date < formatDate(row.receivedDate)) ||
+    row.repairs.some(
+      (r) => r.returnedDate && formatDate(r.returnedDate) > input.date
+    )
   )
     fail("INVALID_INPUT", 422)
 
@@ -548,8 +570,10 @@ export async function completeImmediateInTx(
   const afterMileage = priorMileages.find(
     (m) => formatDate(m.recordedDate) > input.date
   )
+  const mileageDecrease =
+    Boolean(beforeMileage) && input.mileage < beforeMileage!.reading
   if (
-    (beforeMileage && input.mileage < beforeMileage.reading) ||
+    (mileageDecrease && !input.reason) ||
     (afterMileage && afterMileage.reading < input.mileage)
   )
     fail("INVALID_INPUT", 422)
@@ -571,6 +595,20 @@ export async function completeImmediateInTx(
     if (tradeInValue <= 0n) fail("INVALID_INPUT", 422)
     if (tradeInValue > agreedPrice) fail("OVERALLOWANCE", 422)
   }
+  const netCash = tradeInResidual(agreedPrice, tradeInValue)
+  if (netCash > 0n)
+    requireFields(
+      actor.ability,
+      "SaleCase",
+      "pay",
+      { createdBy: initiatedBy, customerId: customer.id },
+      [
+        "amount",
+        "date",
+        "method",
+        ...(input.reference !== undefined ? ["reference"] : []),
+      ]
+    )
 
   const requiredDeps: Dependency[] = [
     { type: "PurchaseRecord", id: row.id, revision: row.revision },
@@ -610,7 +648,6 @@ export async function completeImmediateInTx(
   const originalProfit = agreedPrice - latestBasis.total
   const saleCaseId = params.saleCaseId ?? randomUUID()
   const completionId = randomUUID()
-  const netCash = agreedPrice - tradeInValue
   const actionName = approvalId ? "approvedDiscount" : "completeImmediate"
 
   await tx.saleCase.create({
@@ -692,6 +729,7 @@ export async function completeImmediateInTx(
       reading: input.mileage,
       recordedDate: new Date(input.date),
       remark: "Handover odometer reading",
+      ...(mileageDecrease ? { decreaseReason: input.reason } : {}),
       sourceSaleCompletionId: completionId,
       commandId,
     },
@@ -809,22 +847,35 @@ export async function completeImmediateInTx(
       payload: after,
     })
   }
+  const completionAfter = {
+    id: completionId,
+    saleCaseId,
+    purchaseRecordId: row.id,
+    date: input.date,
+    handoverMileage: input.mileage,
+    agreedPrice: agreedPrice.toString(),
+    basisVersionId: latestBasis.id,
+    originalProfit: originalProfit.toString(),
+  }
+  await audit(tx, {
+    commandId,
+    userId: actor.userId,
+    initiatedBy,
+    ...(approverId ? { approverId } : {}),
+    entityType: "SaleCompletion",
+    entityId: completionId,
+    action: actionName,
+    ...(input.reason ? { reason: input.reason } : {}),
+    before: null,
+    after: completionAfter,
+  })
   await writeReadVersion(tx, {
     commandId,
     sequence,
     entityType: "SaleCompletion",
     entityId: completionId,
     revision: 1,
-    payload: {
-      id: completionId,
-      saleCaseId,
-      purchaseRecordId: row.id,
-      date: input.date,
-      handoverMileage: input.mileage,
-      agreedPrice: agreedPrice.toString(),
-      basisVersionId: latestBasis.id,
-      originalProfit: originalProfit.toString(),
-    },
+    payload: completionAfter,
   })
 
   return {
@@ -883,22 +934,27 @@ export async function saleReplay(
       saleAuth(sale, names),
       ["vehicle", "mileage"]
     )
-    if (sale.tradeIn?.acquiredPurchaseId) {
-      const acq = await loadPurchase(tx, sale.tradeIn.acquiredPurchaseId)
-      if (!acq) fail("NOT_FOUND", 404)
-      requireFields(actor.ability, "PurchaseRecord", "read", purchaseAuth(acq), [
-        "id",
-        "revision",
-      ])
-      requireFields(actor.ability, "Vehicle", "read", purchaseVehicleAuth(acq), [
-        "id",
-        "identityRevision",
-      ])
-    }
+    const seller = await tx.customer.findUnique({
+      where: { id: sale.customerId },
+      select: { id: true, active: true, createdBy: true },
+    })
+    if (!seller) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "Customer", "read", seller, ["id", "active"])
   }
-  const acq = sale.tradeIn?.acquiredPurchaseId
-    ? await loadPurchase(tx, sale.tradeIn.acquiredPurchaseId)
-    : null
+  const acq =
+    sale.tradeIn?.intakeCommandId === receipt.id && sale.tradeIn.acquiredPurchaseId
+      ? await loadPurchase(tx, sale.tradeIn.acquiredPurchaseId)
+      : null
+  if (acq) {
+    requireFields(actor.ability, "PurchaseRecord", "read", purchaseAuth(acq), [
+      "id",
+      "revision",
+    ])
+    requireFields(actor.ability, "Vehicle", "read", purchaseVehicleAuth(acq), [
+      "id",
+      "identityRevision",
+    ])
+  }
   return {
     ok: true,
     status: "APPLIED",
@@ -1011,6 +1067,11 @@ export async function executeSale(
     const sale = await loadSale(tx, input.saleId)
     if (!sale) fail("NOT_FOUND", 404)
     const cycle = sale.purchaseRecord
+    const seller = await tx.customer.findUnique({
+      where: { id: sale.customerId },
+    })
+    if (!seller) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "Customer", "read", seller, ["id", "active"])
     const names = await resolveActorNames(tx, [sale])
     requireFields(actor.ability, "SaleCase", "read", saleAuth(sale, names), [
       "id",
@@ -1083,7 +1144,8 @@ export async function executeSale(
       revision: cycle.revision,
     })
     void check
-    if (sale.revision === 2147483647) fail("REVISION_EXHAUSTED")
+    if (sale.revision === 2147483647 || cycle.revision === 2147483647)
+      fail("REVISION_EXHAUSTED")
 
     const settings = await currentSettings(tx)
     const settingsRow = await tx.settings.findUniqueOrThrow({
@@ -1139,9 +1201,32 @@ export async function executeSale(
         intakeCommandId: commandId,
       },
     })
+    const beforeCycle = purchaseDTO(cycle)
+    await tx.purchaseRecord.update({
+      where: { id: cycle.id },
+      data: { revision: { increment: 1 } },
+    })
     await tx.saleCase.update({
       where: { id: sale.id },
       data: { revision: { increment: 1 } },
+    })
+    const afterCycle = (await loadPurchase(tx, cycle.id))!
+    await audit(tx, {
+      commandId,
+      userId: actor.userId,
+      entityType: "PurchaseRecord",
+      entityId: cycle.id,
+      action: "intakeTradeIn",
+      before: beforeCycle,
+      after: purchaseDTO(afterCycle),
+    })
+    await writeReadVersion(tx, {
+      commandId,
+      sequence,
+      entityType: "PurchaseRecord",
+      entityId: cycle.id,
+      revision: afterCycle.revision,
+      payload: purchaseDTO(afterCycle),
     })
     const afterSale = (await loadSale(tx, sale.id))!
     const afterNames = await resolveActorNames(tx, [afterSale])
@@ -1172,6 +1257,11 @@ export async function executeSale(
       result,
       affected: [
         result,
+        {
+          type: "PurchaseRecord",
+          id: cycle.id,
+          revision: afterCycle.revision,
+        },
         { type: "PurchaseRecord", id: intakeResult.cycleId, revision: 1 },
         {
           type: "Vehicle",
@@ -1377,7 +1467,12 @@ export async function prepareSaleEditApproval(
     (acc, r) => acc + (r.direction === "IN" ? r.amount : -r.amount),
     0n
   )
-  if (currentNet + cashDelta < 0n) fail("BALANCE_MISMATCH", 422)
+  const projectedNet = currentNet + cashDelta
+  if (
+    projectedNet < 0n ||
+    projectedNet !== nextPrice - nextTradeInVal
+  )
+    fail("BALANCE_MISMATCH", 422)
 
   const acquiredRef =
     sale.tradeIn?.acquiredPurchase && (tradeInValueChanged || customerChanged)
@@ -1387,6 +1482,15 @@ export async function prepareSaleEditApproval(
             id: sale.tradeIn.acquiredPurchase.id,
             revision: sale.tradeIn.acquiredPurchase.revision,
           },
+          ...(sale.tradeIn.acquiredVehicle
+            ? [
+                {
+                  type: "Vehicle" as const,
+                  id: sale.tradeIn.acquiredVehicle.id,
+                  revision: sale.tradeIn.acquiredVehicle.revision,
+                },
+              ]
+            : []),
         ]
       : []
   const deps: Dependency[] = [
@@ -1470,10 +1574,7 @@ export async function applySaleEditApproval(
   })
 
   const latestBasis = cycle.basisVersions.at(-1)!
-  const prevTrackedBasisId =
-    sale.corrections.at(-1)?.basisVersionId ?? sale.completion!.basisVersionId
-  const priorVersionId =
-    prevTrackedBasisId !== latestBasis.id ? prevTrackedBasisId : null
+  const priorVersionId = sale.corrections.at(-1)?.id ?? null
 
   await tx.saleCorrection.create({
     data: {
@@ -1768,7 +1869,32 @@ export async function saleAudit(
   }
   if (!sale) fail("NOT_FOUND", 404)
   const names = await resolveActorNames(tx, [sale])
-  const visible = visibleSale(actor, sale, names)
+  const auth = saleAuth(sale, names)
+  requireFields(actor.ability, "SaleCase", "read", auth, [
+    input.type === "SaleCompletion" ? "completion.id" : "id",
+  ])
+  const saleSubject = subject("SaleCase", auth)
+  const completionPaths: Record<string, string> = {
+    id: "completion.id",
+    saleCaseId: "id",
+    purchaseRecordId: "cycleId",
+    date: "completion.date",
+    handoverMileage: "completion.mileage",
+    agreedPrice: "price",
+    basisVersionId: "completion.basisVersionId",
+  }
+  const canReadDiff = (path: string) => {
+    if (input.type === "SaleCase")
+      return actor.ability.can("read", saleSubject, path)
+    if (path === "originalProfit")
+      return actor.ability.can(
+        "read",
+        subject("PurchaseRecord", purchaseAuth(sale.purchaseRecord)),
+        "financial.originalProfit"
+      ) && actor.ability.can("read", saleSubject, "price")
+    const field = completionPaths[path]
+    return !!field && actor.ability.can("read", saleSubject, field)
+  }
   const where = {
     AND: [
       { entityType: input.type, entityId: input.id },
@@ -1793,20 +1919,13 @@ export async function saleAudit(
     const fields = Object.entries(
       (entry.fieldDiff ?? {}) as Record<string, { before: unknown; after: unknown }>
     )
-      .filter(
-        ([path]) =>
-          !path
-            .split(".")
-            .some((_, i, parts) =>
-              visible.redactedFields.includes(parts.slice(0, i + 1).join("."))
-            )
-      )
+      .filter(([path]) => canReadDiff(path))
       .map(([path, change]) => ({
         path,
         before: change.before,
         after: change.after,
       }))
-    return {
+    return project(actor.ability, "AuditLog", {
       id: entry.id,
       entityType: entry.entityType,
       entityId: entry.entityId,
@@ -1818,7 +1937,7 @@ export async function saleAudit(
       },
       ...(entry.reason ? { reason: entry.reason } : {}),
       fields,
-    }
+    })
   })
   return {
     ok: true,

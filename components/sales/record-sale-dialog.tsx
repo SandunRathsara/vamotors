@@ -46,7 +46,8 @@ export function RecordSaleDialog({
     else setUncontrolledOpen(resolved)
   }
   const [cycleId, setCycleId] = useState(fixedCycle?.id ?? "")
-  const [customerId, setCustomerId] = useState("")
+  const [customerSearch, setCustomerSearch] = useState("")
+  const [buyer, setBuyer] = useState<VisibleCustomer>()
   const [kind, setKind] = useState<"CASH" | "TRADE_IN">("CASH")
   const [price, setPrice] = useState("")
   const [date, setDate] = useState("")
@@ -115,12 +116,13 @@ export function RecordSaleDialog({
       ),
   })
   const customersQuery = useQuery({
-    queryKey: ["sales", "customers-select"],
+    queryKey: ["sales", "customers-select", customerSearch.trim()],
     enabled: open,
     retry: false,
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       privateRequest<{ data: { data: VisibleCustomer[] } }>(
-        "/api/v1/queries/customers?page=1&pageSize=100"
+        `/api/v1/queries/customers?page=1&pageSize=100&q=${encodeURIComponent(customerSearch.trim())}`,
+        { signal }
       ),
   })
 
@@ -132,7 +134,12 @@ export function RecordSaleDialog({
   const customers = (customersQuery.data?.data.data ?? []).filter(
     (c) => c.active !== false
   )
-  const selectedCustomer = customers.find((c) => c.id === customerId)
+  const selectedCustomer =
+    customers.find((c) => c.id === buyer?.id) ?? buyer
+  const customerOptions =
+    buyer && !customers.some((c) => c.id === buyer.id)
+      ? [buyer, ...customers]
+      : customers
 
   async function submitInlineCustomer() {
     if (inlineCustPending) return
@@ -169,10 +176,13 @@ export function RecordSaleDialog({
           body: payload,
         }
       )
+      const { data: customer } = await privateRequest<{ data: VisibleCustomer }>(
+        `/api/v1/queries/customer?id=${encodeURIComponent(res.result.id)}`
+      )
       setInlineCustBody(null)
+      setBuyer(customer)
       await queries.invalidateQueries({ queryKey: ["sales", "customers-select"] })
       await queries.invalidateQueries({ queryKey: ["customers"] })
-      setCustomerId(res.result.id)
       setInlineCustomerOpen(false)
       setInlineCustDraft({
         fullName: "",
@@ -195,7 +205,7 @@ export function RecordSaleDialog({
   async function buildSaleEnvelope() {
     if (!selectedCycle?.id || !selectedCycle.revision)
       throw Error("Select an available IN_STOCK purchase cycle")
-    if (!selectedCustomer?.id || !selectedCustomer.revision)
+    if (!selectedCustomer?.id || !selectedCustomer.revision || selectedCustomer.active === false)
       throw Error("Select an active customer")
     const priceMinor = parseMajor(price)
     const expected: Dependency[] = [
@@ -439,6 +449,19 @@ export function RecordSaleDialog({
           )}
 
           <div className="space-y-2">
+            <Label htmlFor="sale-customer-search">Search customers</Label>
+            <Input
+              id="sale-customer-search"
+              type="search"
+              maxLength={200}
+              placeholder="Name, NIC or passport, or phone"
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+            />
+            {customersQuery.isError && <p role="status">Customer search is unavailable.</p>}
+            {customersQuery.isSuccess && customers.length === 0 && (
+              <p role="status">No matching active customers.</p>
+            )}
             <div className="flex items-center justify-between">
               <Label htmlFor="sale-customer">Buyer Customer</Label>
               <Button
@@ -452,12 +475,12 @@ export function RecordSaleDialog({
             <select
               id="sale-customer"
               className="h-11 w-full rounded-md border bg-background px-3"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
+              value={buyer?.id ?? ""}
+              onChange={(e) => setBuyer(customerOptions.find((c) => c.id === e.target.value))}
               required
             >
               <option value="">Select active customer…</option>
-              {customers.map((c) => (
+              {customerOptions.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.fullName} ({c.nicOrPassport})
                 </option>
@@ -740,6 +763,16 @@ export function RecordSaleDialog({
           )}
 
           {statusMsg && <p role="status" className="text-sm">{statusMsg}</p>}
+          {(approvalLink || discountMode) && (
+            <p
+              role="status"
+              className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+            >
+              {approvalLink
+                ? "Pending manager approval."
+                : "Manager approval is required before recording the sale and payment."}
+            </p>
+          )}
           {saleLink && (
             <Link prefetch={false} className="inline-block underline" href={saleLink}>
               Open completed sale detail

@@ -657,6 +657,7 @@ export const registry = {
     ],
     create: [...immediateSaleWriteFields],
     update: [...saleEditWriteFields, "vehicle", "mileage", "listedPrice"],
+    pay: ["amount", "date", "method", "reference"],
   },
   Disposal: {
     read: [

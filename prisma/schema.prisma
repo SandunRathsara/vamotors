@@ -843,7 +843,8 @@ model SaleCorrection {
   basisVersionId    String             @db.Uuid
   basis             CycleBasisVersion  @relation("saleCorrectionBasis", fields: [basisVersionId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
   priorVersionId    String?            @unique @db.Uuid
-  priorBasis        CycleBasisVersion? @relation("saleCorrectionPriorBasis", fields: [priorVersionId, purchaseRecordId], references: [id, cycleId], onDelete: Restrict)
+  priorVersion      SaleCorrection?    @relation("saleCorrectionPrior", fields: [priorVersionId], references: [id], onDelete: Restrict)
+  nextVersion       SaleCorrection?    @relation("saleCorrectionPrior")
   restatedProfit    BigInt
   createdBy         String             @db.Uuid
   commandId         String             @unique @db.Uuid
@@ -1017,7 +1018,6 @@ model CycleBasisVersion {
   disposals            Disposal[]
   saleCompletions      SaleCompletion[]
   saleCorrections      SaleCorrection[]   @relation("saleCorrectionBasis")
-  saleCorrectionPriors SaleCorrection[]   @relation("saleCorrectionPriorBasis")
   version              Int
   purchase     BigInt
   components   Json

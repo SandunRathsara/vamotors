@@ -849,10 +849,30 @@ export function visiblePurchase(actor: Actor, row: Row) {
       )
     )
     if (row.saleCompletion && !salePriceReadable) {
-      for (const f of ["salePrice", "originalProfit", "restatedProfit"]) {
+      for (const f of [
+        "originalBasis",
+        "salePrice",
+        "originalProfit",
+        "restatedProfit",
+      ]) {
         delete (result.financial as Record<string, unknown>)[f]
         result.redactedFields.push(`financial.${f}`)
       }
+    }
+    const salesReadable = (row.sales ?? []).every((s) =>
+      actor.ability.can(
+        "read",
+        subject("SaleCase", {
+          id: s.id,
+          customerId: s.customerId,
+          createdBy: s.createdBy,
+        }),
+        "id"
+      )
+    )
+    if (!salesReadable) {
+      delete result.sales
+      result.redactedFields.push("sales")
     }
   }
   if (

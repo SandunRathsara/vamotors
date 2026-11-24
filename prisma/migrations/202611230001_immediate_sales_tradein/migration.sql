@@ -148,8 +148,7 @@ CREATE TABLE vamotors."SaleCorrection" (
   "correctedSnapshot" jsonb NOT NULL,
   "basisVersionId" uuid NOT NULL,
   FOREIGN KEY ("basisVersionId", "purchaseRecordId") REFERENCES vamotors."CycleBasisVersion"(id, "cycleId") ON DELETE RESTRICT,
-  "priorVersionId" uuid UNIQUE,
-  FOREIGN KEY ("priorVersionId", "purchaseRecordId") REFERENCES vamotors."CycleBasisVersion"(id, "cycleId") ON DELETE RESTRICT,
+  "priorVersionId" uuid UNIQUE REFERENCES vamotors."SaleCorrection"(id) ON DELETE RESTRICT,
   "restatedProfit" bigint NOT NULL,
   "createdBy" uuid NOT NULL,
   "commandId" uuid NOT NULL UNIQUE REFERENCES vamotors."CommandReceipt"(id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
@@ -778,6 +777,26 @@ BEGIN
 
   SELECT * INTO v FROM vamotors."Vehicle" WHERE id = NEW."vehicleId";
   SELECT r.* INTO c FROM vamotors."CommandReceipt" r JOIN vamotors."EntityReadVersion" e ON e."commandId" = r.id AND e."entityType" = 'PurchaseRecord' AND e."entityId" = NEW.id AND e.revision = NEW.revision WHERE r.xmin = pg_current_xact_id()::xid AND e.xmin = pg_current_xact_id()::xid;
+  -- Late intake updates the sale summary on its closed source cycle.
+  IF c."commandName" = 'intakeTradeIn' AND OLD.status = 'SOLD'
+     AND NEW.revision::bigint = OLD.revision::bigint + 1
+     AND (to_jsonb(NEW) - ARRAY['revision','updatedAt']) = (to_jsonb(OLD) - ARRAY['revision','updatedAt'])
+     AND EXISTS (
+       SELECT 1 FROM vamotors."TradeInConsideration" t
+       JOIN vamotors."SaleCase" s ON s.id = t."saleCaseId"
+       WHERE t."purchaseRecordId" = NEW.id AND t."intakeCommandId" = c.id
+         AND t."acquiredPurchaseId" IS NOT NULL
+         AND t.xmin = pg_current_xact_id()::xid AND s.xmin = pg_current_xact_id()::xid
+         AND c.result = jsonb_build_object('type', 'SaleCase', 'id', s.id, 'revision', s.revision)
+     )
+     AND EXISTS (
+       SELECT 1 FROM vamotors."AuditEntry" a
+       WHERE a."commandId" = c.id AND a."entityType" = 'PurchaseRecord'
+         AND a."entityId" = NEW.id AND a.action = c."commandName"
+         AND c."actorKey" = 'USER:' || a."userId"::text AND a.xmin = pg_current_xact_id()::xid
+     ) THEN
+    RETURN NULL;
+  END IF;
   IF OLD.status IN ('WRITTEN_OFF', 'SOLD') THEN
     PERFORM vamotors.check_closed_financial(OLD, NEW);
     IF c.id IS NOT NULL AND c."commandName" = 'payRepair' AND c.result->>'type' = 'RepairRecord' THEN
@@ -976,6 +995,17 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM vamotors."MileageReading" m WHERE m."sourceSaleCompletionId" = sc.id AND m."cycleId" = p.id AND m."vehicleId" = p."vehicleId" AND m.reading = sc."handoverMileage" AND m."recordedDate" = sc."saleDate" AND m."commandId" = sc."commandId") THEN
     RAISE EXCEPTION 'INVALID_SALE_MILEAGE' USING ERRCODE = '23514';
   END IF;
+  IF TG_TABLE_NAME = 'SaleReceipt' THEN
+    IF NOT EXISTS (SELECT 1 FROM vamotors."SaleCase" x WHERE x.id = sid AND x.xmin = pg_current_xact_id()::xid)
+       OR NOT EXISTS (SELECT 1 FROM vamotors."CommandReceipt" x WHERE x.id = NEW."commandId" AND x.xmin = pg_current_xact_id()::xid)
+       OR (NEW."commandId" <> s."commandId" AND NOT EXISTS (
+         SELECT 1 FROM vamotors."SaleCorrection" x
+         WHERE x."saleCaseId" = sid AND x."commandId" = NEW."commandId"
+           AND x.xmin = pg_current_xact_id()::xid
+       )) THEN
+      RAISE EXCEPTION 'SALE_RECEIPT_COMMAND_REQUIRED' USING ERRCODE = '23514';
+    END IF;
+  END IF;
   IF s."listedSnapshot" IS NOT NULL AND sc."agreedPrice" < s."listedSnapshot" THEN
     SELECT * INTO a FROM vamotors."ApprovalRequest" WHERE id = s."approvalId";
     IF a.id IS NULL OR a.kind <> 'DISCOUNT' OR a.state <> 'APPROVED' OR a."cycleId" <> p.id
@@ -1045,10 +1075,14 @@ BEGIN
     END IF;
   END IF;
 
-  -- Check SaleReceipt consistency (reversals cannot go negative, net collected <= agreedPrice - tradeIn.value or consistent with reversals)
-  IF EXISTS (SELECT 1 FROM vamotors."SaleReceipt" r WHERE r."saleCaseId" = sid AND r.xmin = pg_current_xact_id()::xid) THEN
+  -- Completed sale cash must always equal agreedPrice - tradeIn.value, including
+  -- after approved append-only receipt reversals/replacements.
+  IF s.state = 'COMPLETED' THEN
     SELECT coalesce(sum(CASE direction WHEN 'IN' THEN amount::numeric ELSE -amount::numeric END), 0) INTO r_in FROM vamotors."SaleReceipt" WHERE "saleCaseId" = sid;
     IF r_in < 0 THEN RAISE EXCEPTION 'NEGATIVE_SALE_RECEIPTS' USING ERRCODE = '23514'; END IF;
+    IF r_in <> s."agreedPrice"::numeric - coalesce(t.value::numeric, 0) THEN
+      RAISE EXCEPTION 'SALE_BALANCE_MISMATCH' USING ERRCODE = '23514';
+    END IF;
   END IF;
   RETURN NULL;
 END $$;
@@ -1072,6 +1106,11 @@ BEGIN
   IF EXISTS (SELECT 1 FROM vamotors."RepairRecord" r WHERE r."cycleId" = p.id AND (NOT vamotors.approval_fields(uid, 'PurchaseRecord', 'read', cycle_data, ARRAY['repairs']) OR NOT vamotors.approval_fields(uid, 'RepairRecord', 'read', to_jsonb(r), ARRAY['id','returnedDate','invoiceAmount','payments.amount','payments.direction']))) THEN
     RETURN false;
   END IF;
+  -- A pending proposal continues to require the requester's current ApprovalRequest.create
+  -- authority; the reviewer path keeps its separate approve grant.
+  IF NOT reviewing AND NOT vamotors.approval_fields(uid, 'ApprovalRequest', 'create', jsonb_build_object('createdBy', a."requestedBy"), ARRAY['proposal','proposal.kind']) THEN
+    RETURN false;
+  END IF;
 
   IF a.kind = 'WRITE_OFF' THEN
     IF EXISTS (SELECT 1 FROM vamotors."SaleCase" s WHERE s."purchaseRecordId" = p.id AND s.state <> 'CANCELLED') THEN
@@ -1089,17 +1128,41 @@ BEGIN
 
   ELSIF a.kind = 'DISCOUNT' THEN
     cust_id := (a.proposal#>>'{command,input,customerId}')::uuid;
+    IF NOT vamotors.approval_fields(uid, 'PurchaseRecord', 'read', cycle_data, ARRAY['listedPrice','purchasePrice','financial.basis']) THEN
+      RETURN false;
+    END IF;
     SELECT to_jsonb(cu) INTO cust_data FROM vamotors."Customer" cu WHERE cu.id = cust_id;
     IF cust_data IS NULL OR NOT vamotors.approval_fields(uid, 'Customer', 'read', cust_data, ARRAY['id','revision','active']) THEN
       RETURN false;
     END IF;
-    IF NOT vamotors.approval_fields(uid, 'PurchaseRecord', 'read', cycle_data, ARRAY['listedPrice','purchasePrice','financial.basis']) THEN
+    cycle_data := jsonb_build_object('createdBy', CASE WHEN reviewing THEN a."requestedBy" ELSE uid END, 'customerId', cust_id);
+    IF NOT vamotors.approval_fields(uid, 'SaleCase', 'create', cycle_data,
+      ARRAY['cycleId','customerId','kind','price','date','mileage','method']
+      || CASE WHEN (a.proposal#>'{command,input}') ? 'reference' THEN ARRAY['reference'] ELSE ARRAY[]::text[] END
+      || CASE WHEN (a.proposal#>'{command,input}') ? 'reason' THEN ARRAY['reason'] ELSE ARRAY[]::text[] END
+      || CASE WHEN (a.proposal#>>'{command,input,kind}') = 'TRADE_IN' THEN
+           ARRAY['tradeIn.description','tradeIn.value']
+           || CASE WHEN (a.proposal#>'{command,input,tradeIn}') ? 'intake' THEN
+                ARRAY['tradeIn.intake.vehicle','tradeIn.intake.mileage']
+                || CASE WHEN (a.proposal#>'{command,input,tradeIn,intake}') ? 'listedPrice' THEN ARRAY['tradeIn.intake.listedPrice'] ELSE ARRAY[]::text[] END
+              ELSE ARRAY[]::text[] END
+         ELSE ARRAY[]::text[] END) THEN
       RETURN false;
     END IF;
-    IF reviewing THEN
-      RETURN vamotors.approval_fields(uid, 'SaleCase', 'create', jsonb_build_object('createdBy', a."requestedBy", 'customerId', cust_id), ARRAY['cycleId','customerId','kind','price','date','mileage','method']);
+    IF ((a.proposal#>>'{command,input,price}')::numeric - coalesce((a.proposal#>>'{command,input,tradeIn,value}')::numeric, 0)) <> 0
+       AND NOT vamotors.approval_fields(uid, 'SaleCase', 'pay', cycle_data,
+         ARRAY['amount','date','method']
+         || CASE WHEN (a.proposal#>'{command,input}') ? 'reference' THEN ARRAY['reference'] ELSE ARRAY[]::text[] END) THEN
+      RETURN false;
     END IF;
-    RETURN vamotors.approval_fields(uid, 'SaleCase', 'create', jsonb_build_object('createdBy', uid, 'customerId', cust_id), ARRAY['cycleId','customerId','kind','price','date','mileage','method']);
+    IF (a.proposal#>'{command,input,tradeIn}') ? 'intake'
+       AND NOT vamotors.approval_fields(uid, 'PurchaseRecord', 'create',
+         jsonb_build_object('createdBy', uid, 'status', 'PURCHASED'),
+         ARRAY['vehicle','purchaseDate','purchasePrice','mileage']
+         || CASE WHEN (a.proposal#>'{command,input,tradeIn,intake}') ? 'listedPrice' THEN ARRAY['listedPrice'] ELSE ARRAY[]::text[] END) THEN
+      RETURN false;
+    END IF;
+    RETURN true;
 
   ELSIF a.kind = 'SALE_EDIT' THEN
     SELECT * INTO sale_row FROM vamotors."SaleCase" WHERE id = a."saleCaseId";
@@ -1344,7 +1407,8 @@ BEGIN
       SELECT value FROM jsonb_array_elements('[
         {"subject":"SaleCase","action":"read","fields":["*"]},
         {"subject":"SaleCase","action":"create","fields":["*"]},
-        {"subject":"SaleCase","action":"update","fields":["*"]}
+        {"subject":"SaleCase","action":"update","fields":["*"]},
+        {"subject":"SaleCase","action":"pay","fields":["*"]}
       ]'::jsonb)
     LOOP
       next_hash := encode(sha256(convert_to(vamotors.sale_canonical(new_rule), 'UTF8')), 'hex');

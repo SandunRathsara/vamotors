@@ -74,6 +74,13 @@ export const A = 99999999999999n
 export const C = 9999999999999999n
 export const B = 9223372036854775807n
 
+/** Cash residual after a trade-in consideration. Overallowance is invalid. */
+export function tradeInResidual(price: bigint, value: bigint): bigint {
+  if (price <= 0n || price > A || value < 0n || value > price)
+    throw new RangeError(value > price ? "OVERALLOWANCE" : "MONEY_OVERFLOW")
+  return price - value
+}
+
 export function bounded(value: bigint, bound = B): bigint {
   if (typeof value !== "bigint" || value > bound || value < -bound)
     throw new RangeError("MONEY_OVERFLOW")
