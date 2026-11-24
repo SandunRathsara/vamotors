@@ -161,7 +161,7 @@ async function processReservation(
         )
       )
         continue
-      await notify(tx, {
+      await notify(tx, { commandId, userId }, {
         recipientUserId: recipient.id,
         eventKey,
         kind,

@@ -18,6 +18,22 @@ Stop the foreground app with Ctrl+C and stop PostgreSQL with `pnpm local:stop`. 
 
 The installable PWA registers its service worker in a production build on a secure origin, including loopback. Use your browser’s install menu when offered. The app needs a connection to its local server for all business records and files.
 
+## Operate the systemd-managed local app
+
+On the managed Linux installation, `vamotors-local.service` starts the loopback app and requires `vamotors-postgres.service`. PostgreSQL runs in the foreground with the existing cluster configuration. Both services restart on failure. `vamotors-expiry.timer` runs the expiry sweep every five minutes.
+
+```sh
+systemctl --user start vamotors-local.service vamotors-expiry.timer
+systemctl --user status vamotors-postgres.service vamotors-local.service vamotors-expiry.timer
+systemctl --user restart vamotors-postgres.service vamotors-local.service vamotors-expiry.timer
+systemctl --user stop vamotors-expiry.timer vamotors-expiry.service vamotors-local.service vamotors-postgres.service
+journalctl --user -u vamotors-postgres.service -u vamotors-local.service -u vamotors-expiry.service
+```
+
+The installed `~/.local/state/vamotors/start-local.sh` starts the app and timer through systemd. Use `systemctl --user` to manage the running stack. Use `pnpm local:setup` to apply forward migrations while PostgreSQL is ready and the app and expiry sweep are stopped. The setup tooling defaults to the main checkout’s live cluster on this installation. Set `VAMOTORS_LOCAL_DIR` explicitly for tests.
+
+For a consistent backup, stop `vamotors-expiry.timer`, `vamotors-expiry.service` and `vamotors-local.service` and leave `vamotors-postgres.service` running.
+
 ## Test in an isolated cluster
 
 Choose a new private directory outside the checkout. The browser harness starts its own production app on a free loopback port. The API and browser tests create synthetic data through authenticated services.

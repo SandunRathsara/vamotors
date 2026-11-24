@@ -23,16 +23,130 @@ import { purchaseQuery } from "./purchases"
 import { rateQuery } from "./rates"
 import { withImportProvenance } from "./import-provenance"
 import { importQuery } from "./import-staging"
-import { downloadQuery } from "./attachments"
+import { downloadQuery, loadTarget, type UploadTarget } from "./attachments"
 import { approvalQuery, approvalReplay, approvalAudit } from "./approvals"
-import { notificationQuery, notificationReplay } from "./notifications"
+import { notificationQuery, notificationReplay, visibleTargets } from "./notifications"
 import { repairReplay } from "./repairs"
 import { brokerageQuery, brokerageAudit, brokerageReplay } from "./brokerage"
 import { invoiceQuery, invoiceReplay } from "./invoices"
 import { commitmentReplay } from "./reservation-sales"
 import { expiryHealth } from "./reservation-expiry"
-import { saleQuery, saleReplay, saleAudit, commitmentList } from "./sales"
+import { saleQuery, saleReplay, saleAudit, commitmentList, loadSale } from "./sales"
 import { runtimeConfig } from "./config"
+
+import { auditFilterInputs, auditScope, joinAuditFields } from "./audit"
+import { authorizeInvoice, snapshotOf } from "./invoice-data"
+import { documentSubject } from "./import-staging"
+import { fieldsFor } from "./permissions"
+import type { Prisma } from "@prisma/client"
+
+const simpleAuditTypes = [
+  "User", "Role", "Customer", "Supplier", "RepairVendor", "FinanceCompany", "Settings",
+  "Document", "ImportBatch", "Quote", "RateSheet", "Reservation", "Notification",
+  "Remittance", "CommissionEntitlement", "ReconciliationRun", "DispatchBatch",
+  "InvoiceVersion", "UserRole", "RolePermission",
+] as const
+export const auditRecordTypes = [
+  "PurchaseRecord", "Vehicle", "VehicleCost", "RepairRecord", "SaleCase", "SaleCompletion",
+  "ApprovalRequest", "Disposal", "BrokerageDeal", "CashFacility", ...simpleAuditTypes,
+] as const
+type SimpleAuditType = (typeof simpleAuditTypes)[number]
+
+async function auditRecord(tx: Tx, actor: Actor, type: SimpleAuditType, id: string) {
+  const where = { id }
+  const record = <T>(value: T | null): T => value ?? fail("NOT_FOUND", 404)
+  const can = (subjectType: EnabledSubject, row: Record<string, unknown>, field: string) =>
+    actor.ability.can("read", subject(subjectType, { ...row }), field)
+
+  switch (type) {
+    case "UserRole":
+    case "User":
+      return { type: "User", row: record(await tx.user.findUnique({ where, include: userInclude })) } as const
+    case "RolePermission":
+    case "Role":
+      return { type: "Role", row: record(await tx.role.findUnique({ where, include: roleInclude })) } as const
+    case "Customer":
+      return { type, row: record(await tx.customer.findUnique({ where })) }
+    case "Supplier":
+      return { type, row: record(await tx.supplier.findUnique({ where })) }
+    case "RepairVendor":
+      return { type, row: record(await tx.repairVendor.findUnique({ where })) }
+    case "FinanceCompany":
+      return { type, row: record(await tx.financeCompany.findUnique({ where })) }
+    case "Settings":
+      return { type, row: record(await tx.settings.findUnique({ where })) }
+    case "ImportBatch":
+      return { type, row: record(await tx.importBatch.findUnique({ where })) }
+    case "RateSheet":
+    case "Quote": {
+      const row = record(type === "RateSheet" ? await tx.rateSheetVersion.findUnique({ where }) : await tx.quote.findUnique({ where }))
+      const company = record(await tx.financeCompany.findUnique({ where: { id: row.companyId } }))
+      requireFields(actor.ability, "FinanceCompany", "read", company, ["id"])
+      return { type, row: { ...row, financeCompanyId: row.companyId } }
+    }
+    case "Document": {
+      // Both intent and finalized attachment IDs have retained audit entries.
+      const upload = await tx.uploadIntent.findUnique({ where })
+      const row = record(upload ?? await tx.attachment.findUnique({ where }))
+      const target = row.batchId ?? row.saleCaseId ?? row.brokerageDealId ?? row.remittanceId
+      if (!target) fail("NOT_FOUND", 404)
+      const key = upload ? "uploadId" : "attachmentId"
+      const auth = documentSubject(row)
+      requireFields(actor.ability, type, "read", auth, [key])
+      await loadTarget(tx, actor, row.targetType as UploadTarget["type"], target, false)
+      return { type, row: auth, key }
+    }
+    case "Reservation": {
+      const row = record(await tx.reservation.findUnique({ where, include: { saleCase: true } }))
+      requireFields(actor.ability, "SaleCase", "read", row.saleCase, ["id", "reservation.id"])
+      return { type, row, allows: (path: string) => can("SaleCase", row.saleCase, `reservation.${path}`) }
+    }
+    case "Notification": {
+      const row = record(await tx.notification.findUnique({ where }))
+      if (row.recipientUserId !== actor.userId) fail("NOT_FOUND", 404)
+      const targets = await visibleTargets(tx, actor, [row])
+      return { type, row, allows: (path: string) => path !== "target" || targets.has(`${row.targetType}:${row.targetId}`) }
+    }
+    case "InvoiceVersion": {
+      const row = record(await tx.invoiceVersion.findUnique({ where, include: { completion: true } }))
+      const sale = record(await loadSale(tx, row.completion.saleCaseId))
+      await authorizeInvoice(tx, actor, sale, "read", snapshotOf(row))
+      return { type: "SaleCase", row: sale, allows: () => true } as const
+    }
+    case "DispatchBatch": {
+      const row = record(await tx.dispatchBatch.findUnique({
+        where, include: { items: { include: { brokerageDeal: true } } },
+      }))
+      const visibleItems = row.items.every((item) =>
+        item.brokerageDeal && can("BrokerageDeal", { ...item.brokerageDeal, financeCompanyId: item.brokerageDeal.companyId }, "id")
+      )
+      return {
+        type, row,
+        allows: (path: string) => path !== "items" || (
+          visibleItems && fieldsFor(type, "read").filter((field) => field.startsWith("items.")).every((field) => can(type, row, field))
+        ),
+      }
+    }
+    case "Remittance":
+    case "CommissionEntitlement":
+    case "ReconciliationRun": {
+      const row = record(
+        type === "Remittance" ? await tx.remittance.findUnique({ where })
+          : type === "CommissionEntitlement" ? await tx.commissionEntitlement.findUnique({ where })
+            : await tx.reconciliationRun.findUnique({ where })
+      )
+      const scope = { financeCompanyId: row.companyId }
+      requireFields(actor.ability, "ReconciliationRun", "read", scope, ["id", "company"])
+      const canReadLedger = fieldsFor("Remittance", "read").every((f) => can("Remittance", scope, f)) &&
+        fieldsFor("CommissionEntitlement", "read").every((f) => can("CommissionEntitlement", scope, f))
+      return {
+        type, row: { ...row, ...scope },
+        allows: (path: string) =>
+          !["snapshot", "allocations", "discrepancies", "balance"].includes(path) || canReadLedger,
+      }
+    }
+  }
+}
 
 const canAdminister = (actor: Actor) =>
   ["create", "update"].some((a) => actor.ability.can(a, subject("User", {})))
@@ -329,55 +443,37 @@ export async function securityQuery(
         requireFields(actor.ability, "AuditLog", "read", {}, [])
         const parsed = listParams
           .extend({
-            type: z.enum([
-              "User",
-              "Role",
-              "Customer",
-              "Supplier",
-              "RepairVendor",
-              "FinanceCompany",
-              "Settings",
-            ]),
+            ...auditFilterInputs,
+            type: z.enum(simpleAuditTypes),
             id,
+            relatedId: id.optional(),
           })
           .strict()
           .safeParse(args)
         if (!parsed.success) fail("INVALID_INPUT", 422)
-        const { type: entityType, id: entityId, page, pageSize } = parsed.data
-        const row =
-          entityType === "User"
-            ? await tx.user.findUnique({
-                where: { id: entityId },
-                include: userInclude,
-              })
-            : entityType === "Settings"
-              ? await tx.settings.findUnique({ where: { id: entityId } })
-              : entityType === "FinanceCompany"
-                ? await tx.financeCompany.findUnique({
-                    where: { id: entityId },
-                  })
-                : entityType === "Supplier"
-                  ? await tx.supplier.findUnique({ where: { id: entityId } })
-                  : entityType === "RepairVendor"
-                    ? await tx.repairVendor.findUnique({
-                        where: { id: entityId },
-                      })
-                    : entityType === "Customer"
-                      ? await tx.customer.findUnique({
-                          where: { id: entityId },
-                        })
-                      : await tx.role.findUnique({
-                          where: { id: entityId },
-                          include: roleInclude,
-                        })
-        if (!row) fail("NOT_FOUND", 404)
-        requireFields(actor.ability, entityType, "read", row, ["id"])
-        // at is recordedAt in SQL; both ordering fields need unconditional read.
-        const scope = readScope(actor.grants, actor.userId, "AuditLog", [
-          "id",
-          "at",
-        ])
-        const where = { AND: [{ entityType, entityId }, scope] }
+        const { type: entityType, id: entityId, page, pageSize, relatedId } = parsed.data
+        const scope = auditScope(actor, parsed.data)
+        const isJoin = entityType === "UserRole" || entityType === "RolePermission"
+        if (isJoin !== !!relatedId) fail("INVALID_INPUT", 422)
+        const target = await auditRecord(tx, actor, entityType, entityId)
+        const { type, row } = target
+        const key = target.key ?? "id"
+        requireFields(actor.ability, type, "read", row, [key])
+        const can = (field: string) => actor.ability.can("read", subject(type, row), field)
+        const pairFilter: Prisma.AuditEntryWhereInput[] = []
+        if (entityType === "UserRole" || entityType === "RolePermission") {
+          requireFields(actor.ability, type, "read", row, [entityType === "UserRole" ? "roles" : "grants"])
+          if (entityType === "UserRole") {
+            const role = await tx.role.findUnique({ where: { id: relatedId } })
+            if (!role) fail("NOT_FOUND", 404)
+            requireFields(actor.ability, "Role", "read", role, ["id"])
+          }
+          const key = entityType === "UserRole" ? "roleId" : "permissionId"
+          pairFilter.push({ OR: ["before", "after"].map((side) => ({
+            fieldDiff: { path: [key, side], equals: relatedId! },
+          })) })
+        }
+        const where = { AND: [{ entityType, entityId }, scope, ...pairFilter] }
         const [entries, total] = await Promise.all([
           tx.auditEntry.findMany({
             where,
@@ -393,19 +489,16 @@ export async function securityQuery(
             const redactions: string[] = []
             const diff = Object.entries(fields)
               .filter(([key]) => {
-                try {
-                  requireFields(
-                    actor.ability,
-                    entityType as EnabledSubject,
-                    "read",
-                    row,
-                    [key]
-                  )
-                  return true
-                } catch {
-                  redactions.push(`fields.${key}`)
-                  return false
-                }
+                const allowed =
+                  entityType === "InvoiceVersion"
+                    ? true
+                    : entityType === "UserRole" || entityType === "RolePermission"
+                      ? joinAuditFields[entityType].some((field) => field === key)
+                      : entityType === "FinanceCompany" && key === "reconciliationWatermark"
+                        ? actor.ability.can("read", subject("ReconciliationRun", { financeCompanyId: entityId }), "newWatermarkDate")
+                        : fieldsFor(type, "read").includes(key) && can(key) && (target.allows?.(key) ?? true)
+                if (!allowed) redactions.push(`fields.${key}`)
+                return allowed
               })
               .map(([path, value]) => ({
                 path,
@@ -463,7 +556,7 @@ export async function securityQuery(
                 kind: entry.actorKind,
                 ...(visibleActor ? { userId: entry.userId } : {}),
               },
-              reason: entry.reason,
+              ...(redactions.some((field) => field.startsWith("fields.")) ? {} : { reason: entry.reason }),
               fields: diff,
             })
             projected.redactedFields.push(...redactions)

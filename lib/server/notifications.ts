@@ -55,7 +55,7 @@ const canRead = (
 ) =>
   fields.every((field) => actor.ability.can("read", subject(type, row), field))
 
-async function visibleTargets(tx: Tx, actor: Authority, rows: Notification[]) {
+export async function visibleTargets(tx: Tx, actor: Authority, rows: Notification[]) {
   const keys = new Set<string>()
   const ids = (kind: Target) => [
     ...new Set(

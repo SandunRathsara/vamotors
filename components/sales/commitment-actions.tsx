@@ -74,6 +74,7 @@ export function CommitmentActions({
   const currency = useCurrencyLabel()
   const [active, setActive] = useState<Action>()
   const [company, setCompany] = useState<CompanyOption>()
+  const [saleReference, setSaleReference] = useState<string>()
   const [hold, setHold] = useState(false)
   const [pending, setPending] = useState(false)
   const [problem, setProblem] = useState("")
@@ -234,7 +235,8 @@ export function CommitmentActions({
               financeAmount: (remaining - BigInt(down.amount)).toString(),
               termMonths: Number(text("termMonths")),
               downPayment: down,
-              reference: text("reference") || undefined,
+              reference: text("saleReference") || undefined,
+              reason: reason || undefined,
             }
             break
           }
@@ -430,6 +432,23 @@ export function CommitmentActions({
                     onChange={setCompany}
                   />
                   <FinancePaymentFields />
+                  <Label className="grid gap-2">
+                    Sale reference
+                    <Input
+                      name="saleReference"
+                      maxLength={200}
+                      value={saleReference ?? sale.reference ?? ""}
+                      onChange={(event) => setSaleReference(event.target.value)}
+                    />
+                  </Label>
+                  <Label className="grid gap-2">
+                    Reason for changing the sale reference
+                    <Input
+                      name="reason"
+                      maxLength={2000}
+                      required={!!saleReference?.trim() && saleReference.trim() !== sale.reference}
+                    />
+                  </Label>
                   <p className="self-end pb-2">
                     Balance before down payment {money(remaining.toString())}
                   </p>

@@ -144,7 +144,7 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
               ? {
                   cycleId: snapshot.id,
                   amount: parseMajor(draft.amount ?? ""),
-                  ...(draft.reason?.trim() ? { reason: draft.reason } : {}),
+                  reason: draft.reason ?? "",
                 }
               : {
                   cycleId: snapshot.id,
@@ -294,7 +294,7 @@ export function CycleEdits({ cycle }: { cycle: Cycle }) {
             {name === "setListedPrice" && (
               <>
                 {field("amount", "Asking price (major units)")}
-                {field("reason", "Asking price reason", "text", false)}
+                {field("reason", "Asking price reason")}
               </>
             )}
             {name === "editVehicle" && (

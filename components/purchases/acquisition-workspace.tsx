@@ -1066,6 +1066,19 @@ function StockControls({ cycle }: { cycle: Cycle }) {
   )
 }
 
+const statusLabels: Record<NonNullable<Cycle["status"]>, string> = {
+  PURCHASED: "Purchased",
+  IN_STOCK: "In Stock",
+  IN_REPAIR: "In Repair",
+  ADVANCE_PLACED: "Advance Placed",
+  ADVANCE_EXPIRED: "Advance Expired",
+  FINANCE_PENDING: "Finance Pending",
+  DO_RECEIVED: "DO Received",
+  DELIVERED: "Delivered",
+  SOLD: "Sold",
+  WRITTEN_OFF: "Written Off",
+}
+
 function CycleDetail({ cycle }: { cycle: Cycle }) {
   return (
     <section className="space-y-4 rounded-lg border p-4">
@@ -1213,6 +1226,22 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           Version {b.version}: {amount(b.total)} · {b.reason} · {b.id}
         </p>
       )) ?? <p>Unavailable</p>}
+      {cycle.statusHistory && (
+        <div className="space-y-1">
+          <h3 className="font-semibold">Vehicle status history</h3>
+          {cycle.historicalStatus && <p>Historical status · {statusLabels[cycle.historicalStatus]}</p>}
+          {cycle.statusHistory.length > 0 ? (
+            <ol className="space-y-1">
+              {cycle.statusHistory.map((event) => (
+                <li key={event.id}>
+                  {event.at?.slice(0, 10)} · {event.from && `${statusLabels[event.from]} → `}
+                  {event.to && statusLabels[event.to]}
+                </li>
+              ))}
+            </ol>
+          ) : <p>No recorded status changes.</p>}
+        </div>
+      )}
       <DisposalHistory cycle={cycle} />
       {cycle.tradeInSourceSaleId && (
         <p>
@@ -1258,7 +1287,7 @@ export function AcquisitionDetail({
     queryKey: [vehicle ? "inventory" : "purchases", "detail", id],
     retry: false,
     queryFn: () =>
-      privateRequest<{ data: Cycle & Vehicle & { cycles?: Cycle[] } }>(
+      privateRequest<{ data: Cycle & Vehicle & { cycles?: Cycle[]; repairs?: Cycle["repairs"] } }>(
         `/api/v1/queries/${name}?${vehicle ? "id" : "cycleId"}=${encodeURIComponent(id)}`
       ),
   })
@@ -1329,21 +1358,23 @@ export function AcquisitionDetail({
             ))}
           </dl>
           {vehicle ? (
-            row.cycles?.map((cycle, i) => (
-              <div key={cycle.id ?? i} className="space-y-4">
-                <CycleDetail cycle={cycle} />
-                <RepairHistory cycle={cycle} />
-                {cycle.id && (
-                  <Link
-                    prefetch={false}
-                    className="underline"
-                    href={`/purchases/${cycle.id}`}
-                  >
-                    Manage repairs with current purchase detail
-                  </Link>
-                )}
-              </div>
-            ))
+            <>
+              <RepairHistory cycle={row} vehicle />
+              {row.cycles?.map((cycle, i) => (
+                <div key={cycle.id ?? i} className="space-y-4">
+                  <CycleDetail cycle={cycle} />
+                  {cycle.id && (
+                    <Link
+                      prefetch={false}
+                      className="underline"
+                      href={`/purchases/${cycle.id}`}
+                    >
+                      Manage repairs with current purchase detail
+                    </Link>
+                  )}
+                </div>
+                ))}
+            </>
           ) : (
             <>
               <CycleDetail cycle={row} />

@@ -260,7 +260,7 @@ try {
       await page
         .getByLabel("Actual return summary", { exact: true })
         .fill("Completed actual mechanical repair")
-      await submit(page, "returnRepair")
+      const returned = await submit(page, "returnRepair")
       row = await current(admin)
       assert.equal(row.status, "IN_STOCK")
       assert.equal(row.available, false)
@@ -284,6 +284,13 @@ try {
             n.eventKey === `repair:returned:${repairId}:2`
         )
       )
+      const audit = (await f.db.query(
+        `SELECT "fieldDiff" FROM vamotors."AuditEntry" WHERE "commandId"=$1 AND "entityType"='Notification' AND action='createNotification'`,
+        [returned.commandId]
+      )).rows
+      assert.equal(audit.length, notifications.length)
+      for (const entry of audit)
+        assert.deepEqual(entry.fieldDiff.kind, { before: null, after: "REPAIR_RETURNED" })
       const party = await f.query<PartyDetailDTO>(
         admin,
         "party",
@@ -453,7 +460,7 @@ try {
       ).toBeVisible()
       await page
         .getByRole("link", {
-          name: "Repair vendor and retained history",
+          name: `Repair vendor ${suffix}`,
           exact: true,
         })
         .click()
@@ -473,6 +480,12 @@ try {
           exact: true,
         })
       ).toBeVisible()
+      await page.goto(`/vehicles/${(await current(admin)).vehicleId}`)
+      await expect(page.getByRole("heading", { name: "Repair history for this vehicle" })).toBeVisible()
+      await expect(page.getByRole("link", { name: `Repair vendor ${suffix}`, exact: true })).toBeVisible()
+      await expect(page.getByRole("heading", { name: "Vehicle status history" })).toBeVisible()
+      await expect(page.getByText(/In Stock → In Repair/)).toBeVisible()
+      await expect(page.getByText(/In Repair → In Stock/)).toBeVisible()
       await page.screenshot({
         path: join(root, `repair-${suffix}-history1920.png`),
         fullPage: true,

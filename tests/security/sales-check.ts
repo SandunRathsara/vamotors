@@ -468,6 +468,19 @@ try {
           assert.equal(resp?.status(), 200, `${path} returned ${resp?.status()}`)
           await page.getByText(text).first().waitFor({ timeout: 10000 })
         }
+        await page.goto(`${f.origin}/reports/audit`)
+        await page.getByLabel("Record type").selectOption("SaleCase")
+        await page.getByLabel("Record ID").fill(sale1Id)
+        await page.getByLabel("Action", { exact: true }).fill("completeImmediate")
+        await page.getByRole("button", { name: "View history" }).click()
+        await page.getByText("1 audit entry", { exact: true }).waitFor()
+        await page.getByLabel("Through date (UTC)").fill("2000-01-01")
+        await page.getByRole("button", { name: "View history" }).click()
+        await page.getByText("0 audit entries", { exact: true }).waitFor()
+        const staff = await f.login("STAFF")
+        const denied = await staff.get(`/api/reports/audit?type=SaleCase&id=${sale1Id}`)
+        assert.ok([403, 404].includes(denied.status()))
+        await staff.dispose()
       } finally {
         await page.close()
       }
@@ -1146,6 +1159,18 @@ try {
       )
 
       s4 = await currentSale(admin, sale4Id)
+      const correctedCustomer = await currentCustomer(admin, s4.customerId)
+      assert.equal(correctedCustomer.links.find((link) => link.type === "SALE" && link.id === s4.id)?.date, "2026-10-06")
+      const historyContext = await browser.newContext({ baseURL: f.origin, storageState: await admin.storageState() })
+      try {
+        const historyPage = await historyContext.newPage()
+        await historyPage.goto(`/customers/${s4.customerId}`)
+        const link = historyPage.getByRole("link", { name: `SALE · ${s4.id}` })
+        await link.waitFor()
+        assert.match(await link.locator("..").innerText(), /2026-10-06/)
+      } finally {
+        await historyContext.close()
+      }
       assert.equal(s4.price, "42000")
       assert.equal(s4.reference, `INLINE-TI-EDITED-${suffix}`)
       assert.equal(s4.payments?.length, 3)

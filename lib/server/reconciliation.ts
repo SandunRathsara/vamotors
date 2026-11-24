@@ -871,8 +871,14 @@ async function publish(
     ctx,
     "FinanceCompany",
     company.id,
-    { revision: company.revision },
-    { revision: updatedCompany.revision },
+    {
+      revision: company.revision,
+      reconciliationWatermark: nullableDate(company.reconciliationWatermark),
+    },
+    {
+      revision: updatedCompany.revision,
+      reconciliationWatermark: nullableDate(updatedCompany.reconciliationWatermark),
+    },
     reason
   )
   const affected = [ref("FinanceCompany", updatedCompany)]

@@ -4,6 +4,8 @@ Implementation-owner evidence, **not independent verification or T03/G1 acceptan
 
 ## Reproduce
 
+For the systemd-managed Linux installation, see [Operate the systemd-managed local app](../../README.md#operate-the-systemd-managed-local-app). The commands below describe an isolated checkout.
+
 Prerequisites: Node 22.16+ (Node `24.16.0` tested), pnpm, PostgreSQL 18 binaries. Application/library pins and lockfile are unchanged. On this machine only libpq client tools were initially installed; `brew install postgresql@18` installed PostgreSQL `18.6` (`18.6_1` bottle). Homebrew also updated its required openssl/libunistring dependencies and initialized an unused default cluster; **no brew service was started**. This application does not use that default cluster or an existing database service.
 
 ```sh

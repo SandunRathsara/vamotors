@@ -296,7 +296,7 @@ export const mileageInput = z
 export const cycleEditInputs = {
   addMileage: z.object({ cycleId: id, mileage: mileageInput }).strict(),
   setListedPrice: z
-    .object({ cycleId: id, amount: moneyInput, reason: text.optional() })
+    .object({ cycleId: id, amount: moneyInput, reason: text })
     .strict(),
   editVehicle: z
     .object({ vehicleId: id, values: vehicleInput, reason: text })

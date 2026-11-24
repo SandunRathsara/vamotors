@@ -80,16 +80,20 @@ export function authorizedRepairBalance(repair: Repair) {
 export function RepairHistory({
   cycle,
   only,
+  vehicle = false,
 }: {
   cycle: Cycle
   only?: string
+  vehicle?: boolean
 }) {
   return (
     <section
       className="space-y-3 rounded-lg border p-4"
       aria-label="Persisted repair history"
     >
-      <h2 className="text-lg font-semibold">Repair history for this cycle</h2>
+      <h2 className="text-lg font-semibold">
+        Repair history for this {vehicle ? "vehicle" : "cycle"}
+      </h2>
       {cycle.repairs === undefined ? (
         <p>Repair history unavailable under current permissions.</p>
       ) : cycle.repairs.length === 0 ? (
@@ -125,7 +129,7 @@ export function RepairHistory({
                     className="underline"
                     href={`/third-parties/${r.vendorId}?type=REPAIR_VENDOR`}
                   >
-                    Repair vendor and retained history
+                    {r.vendorName ?? "Repair vendor"}
                   </Link>
                 </p>
               )}

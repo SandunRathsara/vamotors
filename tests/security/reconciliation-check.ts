@@ -693,6 +693,20 @@ try {
     assert.equal(saved.brokerage.discrepancy, "-100")
     assert.equal(saved.brokerage.state, "RESOLVED")
     assert.equal((await sale(saleId)).finance?.lenderOutstanding, "0")
+    const auditView = await get<{ data: { fields: { path: string; before: unknown; after: unknown }[] }[] }>(
+      "audit", `?type=FinanceCompany&id=${companyId}&action=reconcile`
+    )
+    assert.ok(auditView.data.some((entry) =>
+      entry.fields.some((field) => field.path === "reconciliationWatermark" &&
+        field.before === null && field.after === ids.olderDate)))
+    for (const [type, id] of [
+      ["ReconciliationRun", winner.result.id],
+      ["CommissionEntitlement", pending.vehicle.entitlementId],
+      ["Remittance", last.id],
+    ]) {
+      const result = await get<{ total: number }>("audit", `?type=${type}&id=${id}`)
+      assert.ok(result.total > 0, type)
+    }
     assert.equal((await live()).watermarkDate, ids.olderDate)
     assert.deepEqual(
       items(

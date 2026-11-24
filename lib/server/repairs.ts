@@ -173,7 +173,12 @@ function authority(
 }
 
 /** Use the accepted transactional notification reader and exact typed target. */
-async function returnedNotifications(tx: Tx, row: Row, repair: Repair) {
+async function returnedNotifications(
+  tx: Tx,
+  context: { commandId: string; userId: string },
+  row: Row,
+  repair: Repair
+) {
   const users = await tx.user.findMany({
     where: { active: true },
     include: {
@@ -212,7 +217,7 @@ async function returnedNotifications(tx: Tx, row: Row, repair: Repair) {
       )
     )
       continue
-    await notify(tx, {
+    await notify(tx, context, {
       recipientUserId: user.id,
       kind: "REPAIR_RETURNED",
       eventKey: `repair:returned:${repair.id}:2`,
@@ -661,7 +666,7 @@ export async function executeRepair(
       })
       after = (await loadPurchase(tx, row.id))!
       updated = after.repairs.find((r) => r.id === id)!
-      await returnedNotifications(tx, after, updated)
+      await returnedNotifications(tx, { commandId, userId: actor.userId }, after, updated)
     }
     if (intent.name === "sendRepair" || intent.name === "returnRepair")
       await tx.statusEvent.create({
