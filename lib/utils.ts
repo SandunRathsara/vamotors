@@ -5,15 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// ── Latency injection for mock API route handlers ─────────────────────────────
-
-export async function injectLatency(): Promise<void> {
-  const min = parseInt(process.env.MOCK_LATENCY_MS_MIN ?? "200", 10)
-  const max = parseInt(process.env.MOCK_LATENCY_MS_MAX ?? "600", 10)
-  const ms = min + Math.random() * (max - min)
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 // ── Currency formatting (LKR, stored as integer cents) ───────────────────────
 
 /**

@@ -1,6 +1,6 @@
 /* Public assets only. Never add runtime pages, bundles, data or credentials here. */
 const CACHE_PREFIX = "vamotors-public-shell-"
-const CACHE_NAME = `${CACHE_PREFIX}v1`
+const CACHE_NAME = `${CACHE_PREFIX}v2`
 const OFFLINE_URL = "/offline.html"
 const PUBLIC_ASSETS = new Map([
   [OFFLINE_URL, "text/html"],
@@ -72,6 +72,7 @@ self.addEventListener("fetch", (event) => {
         if (
           request.mode !== "navigate" ||
           request.headers.has("RSC") ||
+          request.headers.has("Authorization") ||
           url.pathname === "/api" ||
           url.pathname.startsWith("/api/") ||
           /\.[^/]+$/.test(url.pathname)

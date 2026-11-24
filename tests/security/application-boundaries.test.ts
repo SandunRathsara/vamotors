@@ -32,6 +32,15 @@ function files(root: string): string[] {
   )
 }
 describe("global entry-point inventory", () => {
+  it("keeps prototype and mock data imports out of runtime source", () => {
+    for (const path of ["app", "components", "lib", "hooks"].flatMap(files)) {
+      if (!/\.[cm]?[jt]sx?$/.test(path) || /\.test\.[jt]sx?$/.test(path))
+        continue
+      expect(readFileSync(path, "utf8"), path).not.toMatch(
+        /["'`](?:[^"'`\n]*\/)?(?:mock-data(?:\/[^"'`\n]*)?|mock-store|prototype)(?:\.[cm]?[jt]sx?)?["'`]/
+      )
+    }
+  })
   it("covers every API route and method, with no reachable mock imports", () => {
     const actual = files("app/api")
       .filter((p) => p.endsWith("/route.ts"))
@@ -51,7 +60,6 @@ describe("global entry-point inventory", () => {
         "/api/auth/[...all]",
         "/api/v1/commands/[name]",
         "/api/v1/queries/[name]",
-        "/api/test/reset",
       ].sort()
     )
     for (const route of legacyAPIs) {

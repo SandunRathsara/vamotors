@@ -6,6 +6,9 @@ import { checklistItemKey } from "@/lib/brokerage-checklist"
 
 import * as React from "react"
 import Link from "next/link"
+import { parseAsBoolean, parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs"
+import { useActor } from "@/components/providers/auth-boundary"
+import { abilityFor } from "@/lib/server/permissions"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   Applied,
@@ -186,14 +189,24 @@ function Status({ state }: { state: string }) {
 
 // ── List ─────────────────────────────────────────────────────────────────────
 export function BrokerageList({ initialQuoteId }: { initialQuoteId?: string }) {
-  const [includeRejected, setIncludeRejected] = React.useState(false)
-  const [status, setStatus] = React.useState("")
+  const { actor } = useActor()
+  const ability = abilityFor(actor.presentationGrants, actor.user.id)
+  const canRead = ["id", "state"].every((field) => ability.can("read", "BrokerageDeal", field))
+  const canOpen = ["customerId", "guarantors", "quoteId", "facility"].every((field) => ability.can("create", "BrokerageDeal", field))
+  const [{ page: pageParam, includeRejected, status }, setFilters] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    includeRejected: parseAsBoolean.withDefault(false),
+    status: parseAsString.withDefault(""),
+  })
+  const page = Math.max(1, pageParam)
+  const pageSize = 20
   const [showIntake, setShowIntake] = React.useState(Boolean(initialQuoteId))
   const deals = useQuery({
-    queryKey: ["brokerage", "list", includeRejected, status],
+    queryKey: ["brokerage", "list", includeRejected, status, page],
+    enabled: canRead,
     queryFn: () =>
       fetchQuery<{ data: Deal[]; total: number }>(
-        `/api/v1/queries/brokerage?page=1&pageSize=50&includeRejected=${includeRejected}${status ? `&status=${status}` : ""}`
+        `/api/v1/queries/brokerage?page=${page}&pageSize=${pageSize}&includeRejected=${includeRejected}${status ? `&status=${encodeURIComponent(status)}` : ""}`
       ),
   })
   return (
@@ -206,92 +219,107 @@ export function BrokerageList({ initialQuoteId }: { initialQuoteId?: string }) {
             facility and dispatch history.
           </p>
         </div>
-        <Button onClick={() => setShowIntake((v) => !v)}>
+        {canOpen && <Button onClick={() => setShowIntake((v) => !v)}>
           {showIntake ? "Close intake" : "New brokerage deal"}
-        </Button>
+        </Button>}
       </div>
-      {showIntake && <IntakeForm initialQuoteId={initialQuoteId} onDone={() => setShowIntake(false)} />}
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={includeRejected}
-            onChange={(e) => setIncludeRejected(e.target.checked)}
-          />
-          Include rejected deals
-        </label>
-        <div className="space-y-1">
-          <Label htmlFor="status-filter">Status filter</Label>
-          <select
-            id="status-filter"
-            className="border-input h-9 rounded border bg-transparent px-2 text-sm"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">All visible</option>
-            {[
-              "INTAKE",
-              "ELIGIBILITY_PENDING",
-              "ELIGIBLE",
-              "INSPECTED",
-              "DOCUMENTS_READY",
-              "DISPATCHED",
-              "REFERRED",
-              "COMPLETED",
-              "REJECTED",
-            ].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </div>
-        <Button variant="outline" onClick={() => deals.refetch()}>
-          Reload
-        </Button>
-      </div>
-      {deals.isLoading ? (
-        <p>Loading persisted deals…</p>
-      ) : deals.error ? (
-        <p role="alert">{problem(deals.error)}</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Path</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Approved loan</TableHead>
-              <TableHead>Updated</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(deals.data?.data ?? []).map((deal) => (
-              <TableRow key={deal.id}>
-                <TableCell>
-                  {deal.id && (
-                    <Link className="underline" href={`/lease-deals/${deal.id}`}>
-                      {deal.vehicle?.make ?? "Unavailable"} {deal.vehicle?.model ?? ""}
-                    </Link>
-                  )}
-                </TableCell>
-                <TableCell>{deal.path ?? "Unavailable"}</TableCell>
-                <TableCell>
-                  <Status state={deal.state ?? "Unavailable"} />
-                </TableCell>
-                <TableCell>{moneyText(deal.approvedLoan)}</TableCell>
-                <TableCell>revision {deal.revision ?? "?"}</TableCell>
-              </TableRow>
-            ))}
-            {!deals.data?.data.length && (
-              <TableRow>
-                <TableCell colSpan={5}>
-                  No persisted deals match. Rejected deals are hidden by default.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+      {canOpen && showIntake && <IntakeForm initialQuoteId={initialQuoteId} onDone={() => setShowIntake(false)} />}
+      {canRead && (
+        <>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeRejected}
+                onChange={(e) => void setFilters({ includeRejected: e.target.checked, page: 1 })}
+              />
+              Include rejected deals
+            </label>
+            <div className="space-y-1">
+              <Label htmlFor="status-filter">Status filter</Label>
+              <select
+                id="status-filter"
+                className="border-input h-9 rounded border bg-transparent px-2 text-sm"
+                value={status}
+                onChange={(e) => void setFilters({ status: e.target.value, page: 1 })}
+              >
+                <option value="">All visible</option>
+                {[
+                  "INTAKE",
+                  "ELIGIBILITY_PENDING",
+                  "ELIGIBLE",
+                  "INSPECTED",
+                  "DOCUMENTS_READY",
+                  "DISPATCHED",
+                  "REFERRED",
+                  "COMPLETED",
+                  "REJECTED",
+                ].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button variant="outline" onClick={() => deals.refetch()}>
+              Reload
+            </Button>
+          </div>
+          {deals.isLoading ? (
+            <p role="status">Loading brokerage deals…</p>
+          ) : deals.error ? (
+            <p role="alert">{problem(deals.error)}</p>
+          ) : (
+            <Table aria-label="Brokerage deals">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Path</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Approved loan</TableHead>
+                  <TableHead>Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(deals.data?.data ?? []).map((deal) => (
+                  <TableRow key={deal.id}>
+                    <TableCell>
+                      {deal.id && (
+                        <Link className="underline" href={`/lease-deals/${deal.id}`}>
+                          {deal.vehicle?.make ?? "Unavailable"} {deal.vehicle?.model ?? ""}
+                        </Link>
+                      )}
+                    </TableCell>
+                    <TableCell>{deal.path ?? "Unavailable"}</TableCell>
+                    <TableCell>
+                      <Status state={deal.state ?? "Unavailable"} />
+                    </TableCell>
+                    <TableCell>{moneyText(deal.approvedLoan)}</TableCell>
+                    <TableCell>revision {deal.revision ?? "?"}</TableCell>
+                  </TableRow>
+                ))}
+                {!deals.data?.data.length && (
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      No persisted deals match. Rejected deals are hidden by default.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+          {deals.data && (page > 1 || deals.data.total > pageSize) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" disabled={page === 1} onClick={() => void setFilters({ page: page - 1 })}>
+                Previous
+              </Button>
+              <span>Page {page} · {deals.data.total} deals</span>
+              <Button variant="outline" disabled={page * pageSize >= deals.data.total} onClick={() => void setFilters({ page: page + 1 })}>
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </section>
   )
@@ -2151,8 +2179,17 @@ function DealClosure({ deal }: { deal: Deal }) {
 
 // ── Dispatch ────────────────────────────────────────────────────────────────
 export function BrokerageDispatch() {
+  const [pageParam, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
+  const page = Math.max(1, pageParam)
+  return <DispatchPage key={page} page={page} changePage={(next) => void setPage(next)} />
+}
+
+function DispatchPage({ page, changePage }: { page: number; changePage: (page: number) => void }) {
   const queries = useQueryClient()
-  const [page, setPage] = React.useState(1)
+  const { actor } = useActor()
+  const ability = abilityFor(actor.presentationGrants, actor.user.id)
+  const canDispatch = ["sourceIds", "handedOverAt", "courier"].every((field) => ability.can("create", "DispatchBatch", field)) &&
+    ability.can("dispatch", "BrokerageDeal", "dealId")
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
   const [message, setMessage] = React.useState("")
   const [pending, setPending] = React.useState(false)
@@ -2261,7 +2298,7 @@ export function BrokerageDispatch() {
                     <input
                       type="checkbox"
                       aria-label={`Select ${deal.id}`}
-                      disabled={!preview?.ready}
+                      disabled={!canDispatch || !preview?.ready}
                       checked={selected.has(deal.id ?? "")}
                       onChange={(e) =>
                         setSelected((set) => {
@@ -2295,16 +2332,16 @@ export function BrokerageDispatch() {
         </Table>
       )}
       {previews.error && <p role="alert">{problem(previews.error)}</p>}
-      {(list.data?.total ?? 0) > 50 && (
+      {(page > 1 || (list.data?.total ?? 0) > 50) && (
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" disabled={page === 1 || pending}
-            onClick={() => { setSelected(new Set()); setPage(page - 1) }}>Previous</Button>
+            onClick={() => changePage(page - 1)}>Previous</Button>
           <span>Page {page}</span>
           <Button type="button" variant="outline" disabled={page * 50 >= (list.data?.total ?? 0) || pending}
-            onClick={() => { setSelected(new Set()); setPage(page + 1) }}>Next</Button>
+            onClick={() => changePage(page + 1)}>Next</Button>
         </div>
       )}
-      <form className="space-y-2" onSubmit={submit}>
+      {canDispatch && <form className="space-y-2" onSubmit={submit}>
         <div className="grid gap-2 sm:grid-cols-3">
           <div className="space-y-1">
             <Label htmlFor="dispatch-at">Handed over at</Label>
@@ -2329,7 +2366,7 @@ export function BrokerageDispatch() {
           Dispatch selected deals
         </Button>
         {message && <p role="alert">{message}</p>}
-      </form>
+      </form>}
     </section>
   )
 }

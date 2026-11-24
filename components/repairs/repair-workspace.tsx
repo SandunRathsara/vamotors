@@ -1,6 +1,7 @@
 "use client"
 import { useRef, useState } from "react"
 import Link from "next/link"
+import { parseAsInteger, useQueryState } from "nuqs"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   Applied,
@@ -607,7 +608,7 @@ export function RepairCommands({
                     type="button"
                     variant="outline"
                     disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
+                    onClick={() => void setPage(page - 1)}
                   >
                     Previous vendors
                   </Button>
@@ -617,7 +618,7 @@ export function RepairCommands({
                     disabled={
                       !vendors.data || page * 20 >= vendors.data.data.total
                     }
-                    onClick={() => setPage(page + 1)}
+                    onClick={() => void setPage(page + 1)}
                   >
                     More vendors
                   </Button>
@@ -859,7 +860,8 @@ export function RepairDetail({
 }
 
 export function RepairsList() {
-  const [page, setPage] = useState(1)
+  const [pageParam, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
+  const page = Math.max(1, pageParam)
   const query = useQuery({
     queryKey: ["purchases", "repairs-list", page],
     retry: false,
@@ -916,14 +918,14 @@ export function RepairsList() {
             <Button
               variant="outline"
               disabled={page === 1}
-              onClick={() => setPage(page - 1)}
+              onClick={() => void setPage(page - 1)}
             >
               Previous cycles
             </Button>
             <Button
               variant="outline"
               disabled={page * 20 >= query.data.data.total}
-              onClick={() => setPage(page + 1)}
+              onClick={() => void setPage(page + 1)}
             >
               More cycles
             </Button>

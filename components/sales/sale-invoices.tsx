@@ -156,6 +156,7 @@ export function SaleInvoices({
               {row.state === "READY" && (
                 <a
                   className="underline"
+                  download
                   href={`/api/v1/sales/${sale.id}/invoices/${row.version}`}
                 >
                   Download version {row.version}

@@ -5,11 +5,10 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 interface ErrorProps {
-  error: Error & { digest?: string }
   reset: () => void
 }
 
-export default function Error({ error: _error, reset }: ErrorProps) {
+export default function Error({ reset }: ErrorProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-6 text-center">

@@ -24,7 +24,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['lib/**', 'components/**', 'hooks/**'],
-      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts', 'lib/mock-data/**'],
+      exclude: ['**/*.test.{ts,tsx}', '**/*.d.ts'],
     },
   },
 });

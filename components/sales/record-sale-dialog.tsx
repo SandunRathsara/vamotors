@@ -11,6 +11,8 @@ import type {
   PurchaseCycleDTO,
   Visible,
 } from "@/.planning/implementation/contracts/api"
+import { useActor } from "@/components/providers/auth-boundary"
+import { abilityFor } from "@/lib/server/permissions"
 import { privateRequest, RequestError } from "@/lib/security-client"
 import { parseMajor, major } from "@/lib/money"
 import {
@@ -27,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { currentSettingsRef, FinanceCompanyField, FinancePaymentFields, useCurrencyLabel, type CompanyOption } from "./commitment-fields"
 
 type VisibleCycle = Visible<PurchaseCycleDTO>
+
 type VisibleCustomer = Visible<CustomerDTO>
 
 export function RecordSaleDialog({
@@ -42,6 +45,17 @@ export function RecordSaleDialog({
 }) {
   const queries = useQueryClient()
   const currency = useCurrencyLabel()
+  const { actor } = useActor()
+  const ability = abilityFor(actor.presentationGrants, actor.user.id)
+  const canCreate = (action: string) => {
+    if (fixedCycle) return fixedCycle.nextActions?.includes(action as never)
+    const fields = ["cycleId", "customerId", "price",
+      ...(action === "completeImmediate" ? ["kind", "date", "mileage", "method"] : [action])]
+    return ability.can("read", "PurchaseRecord", "status") &&
+      ability.can("read", "Customer", "id") &&
+      fields.every((field) => ability.can("create", "SaleCase", field))
+  }
+  const canRecord = canCreate("completeImmediate") || canCreate("placeReservation") || canCreate("startFinance")
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen ?? uncontrolledOpen
   const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
@@ -52,14 +66,11 @@ export function RecordSaleDialog({
   const [cycleId, setCycleId] = useState(fixedCycle?.id ?? "")
   const [customerSearch, setCustomerSearch] = useState("")
   const [buyer, setBuyer] = useState<VisibleCustomer>()
-  const [kind, setKind] = useState(fixedCycle && !fixedCycle.nextActions?.includes("completeImmediate")
-    ? fixedCycle.nextActions?.includes("placeReservation") ? "ADVANCE" : "LEASE"
-    : "CASH")
+  const [kind, setKind] = useState(canCreate("completeImmediate") ? "CASH" : canCreate("placeReservation") ? "ADVANCE" : "LEASE")
   const [company, setCompany] = useState<CompanyOption>()
   const immediate = kind === "CASH" || kind === "TRADE_IN"
   const command = kind === "ADVANCE" ? "placeReservation" : kind === "LEASE" ? "startFinance" : "completeImmediate"
   const actionLabel = kind === "ADVANCE" ? "Place advance" : kind === "LEASE" ? "Start lease sale" : "Complete Immediate Sale"
-  const can = (action: string) => !fixedCycle || fixedCycle.nextActions?.includes(action as never)
   const [price, setPrice] = useState("")
   const [date, setDate] = useState("")
   const [mileage, setMileage] = useState("")
@@ -119,7 +130,7 @@ export function RecordSaleDialog({
 
   const stockQuery = useQuery({
     queryKey: ["sales", "available-stock"],
-    enabled: open && !fixedCycle,
+    enabled: canRecord && open && !fixedCycle,
     retry: false,
     queryFn: () =>
       privateRequest<{ data: { data: VisibleCycle[] } }>(
@@ -128,7 +139,7 @@ export function RecordSaleDialog({
   })
   const customersQuery = useQuery({
     queryKey: ["sales", "customers-select", customerSearch.trim()],
-    enabled: open,
+    enabled: canRecord && open,
     retry: false,
     queryFn: ({ signal }) =>
       privateRequest<{ data: { data: VisibleCustomer[] } }>(
@@ -446,17 +457,18 @@ export function RecordSaleDialog({
     netPreview = ""
   }
 
+  if (!canRecord) return null
   return (
     <div className="space-y-4">
       <Button type="button" onClick={() => setOpen((v) => !v)}>
-        {open ? "Close Immediate Sale Form" : "Complete Immediate Sale"}
+        {open ? "Close sale form" : canCreate("completeImmediate") ? "Complete Immediate Sale" : "New reservation or lease sale"}
       </Button>
       {open && (
         <form
           onSubmit={discountMode ? submitDiscountApproval : submitSale}
           className="space-y-4 rounded-lg border p-4"
         >
-          <h2 className="text-lg font-semibold">Complete Immediate Sale</h2>
+          <h2 className="text-lg font-semibold">{actionLabel}</h2>
 
           {!fixedCycle && (
             <div className="space-y-1">
@@ -493,15 +505,15 @@ export function RecordSaleDialog({
             {customersQuery.isSuccess && customers.length === 0 && (
               <p role="status">No matching active customers.</p>
             )}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label htmlFor="sale-customer">Buyer Customer</Label>
-              <Button
+              {ability.can("create", "Customer") && <Button
                 type="button"
                 variant="outline"
                 onClick={() => setInlineCustomerOpen((v) => !v)}
               >
                 {inlineCustomerOpen ? "Cancel inline customer" : "New customer inline"}
-              </Button>
+              </Button>}
             </div>
             <select
               id="sale-customer"
@@ -518,7 +530,7 @@ export function RecordSaleDialog({
               ))}
             </select>
 
-            {inlineCustomerOpen && (
+            {ability.can("create", "Customer") && inlineCustomerOpen && (
               <div className="space-y-3 rounded-md border bg-muted/30 p-3">
                 <h3 className="text-sm font-medium">Create Customer Inline</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -593,10 +605,10 @@ export function RecordSaleDialog({
                   setDiscountMode(false)
                 }}
               >
-                {can("completeImmediate") && <option value="CASH">CASH</option>}
-                {can("completeImmediate") && <option value="TRADE_IN">TRADE_IN</option>}
-                {can("placeReservation") && <option value="ADVANCE">Advance reservation</option>}
-                {can("startFinance") && <option value="LEASE">Inventory lease</option>}
+                {canCreate("completeImmediate") && <option value="CASH">CASH</option>}
+                {canCreate("completeImmediate") && <option value="TRADE_IN">TRADE_IN</option>}
+                {canCreate("placeReservation") && <option value="ADVANCE">Advance reservation</option>}
+                {canCreate("startFinance") && <option value="LEASE">Inventory lease</option>}
               </select>
             </div>
             <div>

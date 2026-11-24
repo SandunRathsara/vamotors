@@ -1,77 +1,187 @@
 import {
-  LayoutDashboard,
-  Car,
-  ShoppingCart,
-  DollarSign,
-  Wrench,
-  Users,
-  Building2,
-  FileText,
-  CheckSquare,
   ArrowLeftRight,
-  Wallet,
-  Handshake,
-  BarChart3,
+  Banknote,
   BookOpen,
-  Truck,
+  Building2,
+  Calculator,
+  Car,
+  ClipboardCheck,
+  FileText,
+  FileUp,
+  Handshake,
+  History,
+  LayoutDashboard,
   Settings,
+  ShoppingCart,
+  Truck,
   UserCog,
+  Users,
+  Wrench,
+  type LucideIcon,
 } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { subject } from "@casl/ability"
+import { reportKinds } from "@/lib/report-kinds"
+import type { Ability } from "@/lib/server/permissions"
 
-export type NavItem = {
+type NavItem = {
   title: string
   href: string
   icon: LucideIcon
-  badge?: boolean
+  visible?: (ability: Ability) => boolean
 }
 
-export type NavSection = {
-  label: string
-  items: NavItem[]
-}
-
-export const NAV_SECTIONS: NavSection[] = [
+export const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
   {
-    label: "Main",
+    label: "Operations",
     items: [
-      { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { title: "Vehicles", href: "/vehicles", icon: Car },
-      { title: "Purchases", href: "/purchases", icon: ShoppingCart },
-      { title: "Sales", href: "/sales", icon: DollarSign },
-      { title: "Repairs", href: "/repairs", icon: Wrench },
-    ],
-  },
-  {
-    label: "Management",
-    items: [
-      { title: "Customers", href: "/customers", icon: Users },
-      { title: "Third Parties", href: "/third-parties", icon: Building2 },
-      { title: "Reports", href: "/reports", icon: FileText },
-      { title: "Approvals", href: "/approvals", icon: CheckSquare, badge: true },
-    ],
-  },
-  {
-    label: "Finance",
-    items: [
-      { title: "Reconciliation", href: "/lease-reconciliation", icon: ArrowLeftRight },
-      { title: "Cash Flow", href: "/cash-flow", icon: Wallet },
+      { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
+      {
+        title: "Vehicles",
+        href: "/vehicles",
+        icon: Car,
+        visible: (a) =>
+          a.can("read", "Vehicle") && a.can("read", "PurchaseRecord"),
+      },
+      {
+        title: "Purchases",
+        href: "/purchases",
+        icon: ShoppingCart,
+        visible: (a) =>
+          a.can("read", "PurchaseRecord") || a.can("create", "PurchaseRecord"),
+      },
+      {
+        title: "Repairs",
+        href: "/repairs",
+        icon: Wrench,
+        visible: (a) =>
+          a.can("read", "PurchaseRecord", "status") &&
+          a.can("read", "RepairRecord", "id"),
+      },
+      {
+        title: "Sales & invoices",
+        href: "/sales",
+        icon: Banknote,
+        visible: (a) =>
+          a.can("read", "SaleCase") ||
+          (a.can("read", "PurchaseRecord") &&
+            a.can("create", "SaleCase", "price")) ||
+          a.can("run", "ReservationExpiryJob", "through"),
+      },
+      {
+        title: "Approvals",
+        href: "/approvals",
+        icon: ClipboardCheck,
+        visible: (a) => a.can("read", "ApprovalRequest"),
+      },
     ],
   },
   {
     label: "Brokerage",
     items: [
-      { title: "Lease Deals", href: "/lease-deals", icon: Handshake },
-      { title: "Comparison Tool", href: "/lease-comparison", icon: BarChart3 },
-      { title: "Rate Sheets", href: "/lease-rate-sheets", icon: BookOpen },
-      { title: "Dispatch", href: "/lease-dispatch", icon: Truck },
+      {
+        title: "Lease deals",
+        href: "/lease-deals",
+        icon: Handshake,
+        visible: (a) =>
+          (a.can("read", "BrokerageDeal", "id") &&
+            a.can("read", "BrokerageDeal", "state")) ||
+          a.can("create", "BrokerageDeal", "customerId"),
+      },
+      {
+        title: "Dispatch",
+        href: "/lease-dispatch",
+        icon: Truck,
+        visible: (a) =>
+          a.can("read", "BrokerageDeal", "id") &&
+          a.can("read", "BrokerageDeal", "state") &&
+          a.can("create", "DispatchBatch", "sourceIds") &&
+          a.can("dispatch", "BrokerageDeal", "dealId"),
+      },
+      {
+        title: "Lease comparison",
+        href: "/lease-comparison",
+        icon: Calculator,
+        visible: (a) =>
+          a.can("read", "RateSheet") && a.can("read", "FinanceCompany"),
+      },
+      {
+        title: "Rate sheets",
+        href: "/lease-rate-sheets",
+        icon: BookOpen,
+        visible: (a) =>
+          a.can("read", "FinanceCompany") &&
+          (a.can("read", "RateSheet") || a.can("create", "RateSheet")),
+      },
     ],
   },
   {
-    label: "System",
+    label: "Finance",
     items: [
-      { title: "Settings", href: "/settings", icon: Settings },
-      { title: "Users & Roles", href: "/users", icon: UserCog },
+      {
+        title: "Reconciliation",
+        href: "/lease-reconciliation",
+        icon: ArrowLeftRight,
+        visible: (a) =>
+          a.can("read", "ReconciliationRun") &&
+          a.can("read", "CommissionEntitlement"),
+      },
+      {
+        title: "Reports",
+        href: "/reports",
+        icon: FileText,
+        visible: (a) =>
+          reportKinds.some((kind) => a.can("read", "Report", kind)),
+      },
+      {
+        title: "Audit history",
+        href: "/reports/audit",
+        icon: History,
+        visible: (a) => a.can("read", "AuditLog"),
+      },
+    ],
+  },
+  {
+    label: "Administration",
+    items: [
+      {
+        title: "Customers",
+        href: "/customers",
+        icon: Users,
+        visible: (a) =>
+          a.can("read", "Customer") || a.can("create", "Customer"),
+      },
+      {
+        title: "Third parties",
+        href: "/third-parties",
+        icon: Building2,
+        visible: (a) =>
+          ["Supplier", "RepairVendor", "FinanceCompany"].some((type) =>
+            a.can("read", type)
+          ),
+      },
+      {
+        title: "Import staging",
+        href: "/imports",
+        icon: FileUp,
+        visible: (a) => a.can("read", "ImportBatch"),
+      },
+      {
+        title: "Settings",
+        href: "/settings",
+        icon: Settings,
+        visible: (a) => a.can("read", "Settings"),
+      },
+      {
+        title: "Users & roles",
+        href: "/users",
+        icon: UserCog,
+        visible: (a) =>
+          ["User", "Role"].some((type) =>
+            ["read", "create", "update", "archive"].some((action) =>
+              a.can(action, subject(type, {}))
+            )
+          ),
+      },
     ],
   },
 ]

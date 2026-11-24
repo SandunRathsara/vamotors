@@ -14,7 +14,7 @@
     "test": "just test",
     "test:unit": "vitest run",
     "test:api": "playwright test --project=api",
-    "test:e2e": "playwright test --project=e2e",
+    "test:e2e": "playwright test --project=e2e-360 --project=e2e-1920",
     "coverage": "vitest run --coverage",
     "db:generate": "prisma generate",
     "local:setup": "node --import tsx scripts/local-postgres.ts setup",

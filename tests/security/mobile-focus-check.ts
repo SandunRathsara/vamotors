@@ -99,7 +99,7 @@ async function login(page: typeof a, who: string) {
   await page.getByRole("button", { name: "Sign In", exact: true }).click()
   await page.waitForURL("**/dashboard")
   await expect(
-    page.getByRole("heading", { name: "Unavailable", exact: true })
+    page.getByRole("heading", { name: "Dashboard", exact: true })
   ).toBeVisible()
 }
 async function query(client: typeof admin, name: string, params = "") {

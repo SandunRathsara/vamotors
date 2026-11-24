@@ -707,7 +707,7 @@ try {
   await expect(
     page.getByRole("heading", { name: "Complete Immediate Sale" })
   ).toBeVisible()
-  await page.getByRole("button", { name: "Close Immediate Sale Form" }).click()
+  await page.getByRole("button", { name: "Close sale form" }).click()
   await page.getByLabel("Sales from").fill("2026-10-06")
   await page.getByLabel("Through").fill("2026-10-06")
   await page.getByRole("button", { name: "Apply dates" }).click()

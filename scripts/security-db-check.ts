@@ -12,7 +12,6 @@ import { audit, notify } from "../lib/server/audit"
 import { seedIds } from "./bootstrap-security"
 import { POST as authPOST } from "../app/api/auth/[...all]/route"
 import { POST as commandPOST } from "../app/api/v1/commands/[name]/route"
-import { POST as resetPOST } from "../app/api/test/reset/route"
 import { CommandError } from "../lib/server/errors"
 import { runtimeConfig } from "../lib/server/config"
 import { z } from "zod"
@@ -119,7 +118,7 @@ async function main() {
       accounts.BOOTSTRAP_STAFF_PASSWORD
     )
     await check(
-      "real credentials/session cookies; no public signup/bootstrap/reset",
+      "real credentials/session cookies; no public signup/bootstrap/password reset",
       async () => {
         for (const path of [
           "/api/auth/sign-up/email",
@@ -127,10 +126,6 @@ async function main() {
           "/api/auth/reset-password",
         ])
           assert.equal((await authPOST(request(path, {}))).status, 404)
-        assert.equal(
-          (await resetPOST(request("/api/test/reset", {}))).status,
-          404
-        )
         const self = await securityQuery(
           staff.identity,
           "currentActor",

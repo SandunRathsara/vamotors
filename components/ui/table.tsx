@@ -8,6 +8,9 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
+      tabIndex={props["aria-label"] ? 0 : undefined}
+      role={props["aria-label"] ? "region" : undefined}
+      aria-label={props["aria-label"]}
       className="relative w-full overflow-x-auto"
     >
       <table

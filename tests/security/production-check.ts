@@ -139,7 +139,7 @@ async function main() {
     }
     await page.waitForURL("**/dashboard")
     await expect(
-      page.getByRole("heading", { name: "Unavailable", exact: true })
+      page.getByRole("heading", { name: "Dashboard", exact: true })
     ).toBeVisible()
   }
   async function logout(page: Page) {
@@ -1307,7 +1307,7 @@ async function main() {
           1
         )
         await expect(
-          b.getByRole("heading", { name: "Unavailable", exact: true })
+          b.getByRole("heading", { name: "Dashboard", exact: true })
         ).toBeVisible()
         await a.getByRole("button", { name: "Users", exact: true }).click()
         await a
