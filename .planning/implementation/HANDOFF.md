@@ -1,6 +1,18 @@
 # Full-v1 execution handoff — LOCAL implementation; deployment deferred
 
-## Current f37 REJECTED / T08-P2-001 OPEN — original author correcting
+## Current T08 Repairs PASS & nemeton foundation integration
+
+- **T08 Repairs (`2901cb896c88fc246124275ec7409c52fcfc4e91`) independently verified `PASS`:** `T08-P2-001` is CLOSED; `REPR-01`, `REPR-02`, `REPR-03`, `REPR-05`, and `TPRT-05` promoted to `LOCAL PASS` → **36 / 134** locally accepted, **98 `U`** ([requirements-matrix.md](requirements-matrix.md)).
+- **Standalone foundation modules integrated on `integration/full-v1`:**
+  - PDF 1.4 engine (`feat/pdf14-engine`: `lib/server/pdf.ts` + `.test.ts`)
+  - T16 CSV/XLSX parsers (`feat/t16-import-parsers`: `lib/server/import-parsers.ts` + `.test.ts`)
+  - T10/T12/T13 domain math (`feat/domain-math`: `lib/server/domain-math.ts` + `.test.ts`)
+  - T15 report export helpers (`feat/t15-report-export`: `lib/server/report-export.ts` + `.test.ts`)
+  - T18 backup/restore tool (`feat/local-backup-restore`: `scripts/local-backup-restore.ts` + `.test.ts`)
+  - T10/T18 local expiry scheduler (`feat/local-expiry-scheduler`: `scripts/local-expiry-scheduler.ts` + `.test.ts`)
+- **Primary development transferred:** Now active on `nemeton` (`/home/omega/Developer/personal/vamotors`) on `gemini-4-hydrogen`.
+
+## Historical f37 REJECTED / T08-P2-001 OPEN — resolved by 2901cb89 above
 
 **Parent REJECTS EXACT f37a336c3e8aeb85b9082547eae3d3004a9c8f6e/tree79485bf5819c245447e35216bb1510891685231a.** Distinct ses_e734bc50bffeWMSjm7Ed2xdxA2 **COMPLETED REQUEST_CHANGES**, one reproduced **P2 T08-P2-001 / R022-R023 FAIL**, stopped/retained/not running. [Attributed rejection, both-root SEND-only receipt-oracle proof, safe seals and unreached scope](evidence/T08-f37a336-rejection-attributed.md). No acceptance/promotion; this docs descendant is not corrected source or a review target.
 
