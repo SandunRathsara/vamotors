@@ -994,7 +994,7 @@ try {
   await expect(
     page.getByRole("heading", { name: "Purchases per period" })
   ).toBeVisible()
-  await expect(page.getByRole("link", { name: /export csv/i })).toBeVisible()
+  await expect(page.getByRole("button", { name: /export csv/i })).toBeVisible()
   await page.goto(`${origin}/reports/audit?type=SaleCase&id=${current.id}`)
   await expect(
     page.getByRole("heading", { name: "Record audit history" })

@@ -138,3 +138,7 @@ GRANT UPDATE (revision, state, "noticeAttachmentId") ON vamotors."Remittance" TO
 GRANT UPDATE (revision, state, "updatedAt") ON vamotors."CommissionEntitlement" TO vamotors_runtime;
 GRANT UPDATE ("reconciliationWatermark") ON vamotors."FinanceCompany" TO vamotors_runtime;
 GRANT SELECT ("remittanceId"), INSERT ("remittanceId") ON vamotors."Attachment", vamotors."UploadIntent" TO vamotors_runtime;
+
+-- Retained report projections and generated parts are append-only.
+GRANT SELECT, INSERT ON vamotors."ExportJob", vamotors."ExportRowSnapshot", vamotors."ExportPart" TO vamotors_runtime;
+GRANT UPDATE (revision, "renderedRows", state) ON vamotors."ExportJob" TO vamotors_runtime;

@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
-import { currentSettingsRef, FinanceCompanyField, FinancePaymentFields, type CompanyOption } from "./commitment-fields"
+import { currentSettingsRef, FinanceCompanyField, FinancePaymentFields, useCurrencyLabel, type CompanyOption } from "./commitment-fields"
 
 type VisibleCycle = Visible<PurchaseCycleDTO>
 type VisibleCustomer = Visible<CustomerDTO>
@@ -41,6 +41,7 @@ export function RecordSaleDialog({
   onOpenChange?: (open: boolean) => void
 }) {
   const queries = useQueryClient()
+  const currency = useCurrencyLabel()
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen ?? uncontrolledOpen
   const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
@@ -656,7 +657,7 @@ export function RecordSaleDialog({
             </div>
           </div>
 
-          {kind === "ADVANCE" && <Label className="grid gap-2">Advance amount (LKR)<Input name="advance" inputMode="decimal" required /></Label>}
+          {kind === "ADVANCE" && <Label className="grid gap-2">Advance amount{currency}<Input name="advance" inputMode="decimal" required /></Label>}
           {kind === "LEASE" && <div className="grid gap-3 sm:grid-cols-3">
             <FinanceCompanyField value={company?.id ?? ""} onChange={setCompany} />
             <FinancePaymentFields />

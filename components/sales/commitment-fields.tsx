@@ -50,11 +50,22 @@ export function FinanceCompanyField({
   )
 }
 
+export function useCurrencyLabel(enabled = true) {
+  const { data } = useQuery({
+    queryKey: ["settings", "currency-label"],
+    queryFn: () => privateRequest<{ data: { currency?: string } }>("/api/v1/queries/settings"),
+    enabled,
+    retry: false,
+  })
+  return data?.data.currency ? ` (${data.data.currency})` : ""
+}
+
 export function FinancePaymentFields() {
+  const currency = useCurrencyLabel()
   return (
     <>
       <Label className="grid gap-2">
-        Down payment (LKR)
+        Down payment{currency}
         <Input inputMode="decimal" name="downPayment" required />
       </Label>
       <Label className="grid gap-2">

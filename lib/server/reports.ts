@@ -13,6 +13,7 @@ import { states } from "../state"
 import type { Actor } from "./actor"
 import type { Tx } from "./db"
 import { reservationDTO } from "./sales"
+import { currentSettings } from "./settings"
 import { CommandError, fail } from "./errors"
 import { readScope, type EnabledSubject } from "./permissions"
 import {
@@ -97,6 +98,8 @@ type ReportData = {
   total: number
   totals: Record<string, string>
   notice?: string
+  nonCashOffsets?: ReportRecord[]
+  nonCashCount?: number
 }
 type ReadReport = (
   tx: Tx,
@@ -198,7 +201,8 @@ async function completedSales(
   actor: Actor,
   filter: Partial<Filter>,
   asOf: string,
-  take?: number
+  take?: number,
+  includeOffsets = false
 ) {
   const bounds = dates(filter, asOf)
   const eligible = await tx.$queryRaw<{ id: string }[]>`
@@ -229,6 +233,7 @@ async function completedSales(
       purchaseRecord: scope(actor, "PurchaseRecord", ["id"]),
     },
     include: {
+      tradeIn: includeOffsets ? { select: { id: true, value: true } } : false,
       completion: { select: { saleDate: true } },
       corrections: {
         orderBy: { version: "desc" },
@@ -630,7 +635,7 @@ const purchases: ReadReport = async (tx, actor, filter, asOf) => {
 }
 
 const cashNotice =
-  "Cash totals include posted sale, advance, refund, facility, brokerage, purchase, cost, repair and disposal and reconciliation payments. Retained advances remain counted on their original receipt date."
+  "Cash totals include posted sale, advance, refund, facility, brokerage, purchase, cost, repair and disposal and reconciliation payments. Retained advances remain counted on their original receipt date. Trade-in offsets are excluded from cash totals."
 
 function outstandingAdvanceWhere(
   actor: Actor,
@@ -807,7 +812,8 @@ function cashScope(
   [alias, type, fields]: CashSource["requirements"][number]
 ) {
   // Existing report grants retain their prior coverage when remittances are added.
-  if (type === "Remittance" && !actor.ability.can("read", type)) return Prisma.sql`false`
+  if (type === "Remittance" && !actor.ability.can("read", type))
+    return Prisma.sql`false`
   const conditions = scope(actor, type, fields).OR
   if (!conditions) return Prisma.sql`true`
   // Alias and column names come from the hardcoded source list and registry.
@@ -849,7 +855,7 @@ async function cashFlow(
     ),
     " UNION ALL "
   )
-  const [totals, records] = await Promise.all([
+  const [totals, records, tradeIns] = await Promise.all([
     tx.$queryRaw<{ total: number; cashIn: string; cashOut: string }[]>`
       SELECT count(*)::int AS total,
              coalesce(sum(amount) FILTER (WHERE direction = 'IN'), 0)::text AS "cashIn",
@@ -862,11 +868,41 @@ async function cashFlow(
       ORDER BY movements.date DESC, "sourceType", "paymentId"
       ${full ? Prisma.empty : Prisma.sql`LIMIT ${filter.pageSize} OFFSET ${(filter.page - 1) * filter.pageSize}`}
     `,
+    filter.method || !actor.ability.can("read", "SaleCase", "tradeIn.value")
+      ? []
+      : completedSales(
+          tx,
+          actor,
+          { ...filter, saleType: "TRADE_IN" },
+          asOf,
+          undefined,
+          true
+        ),
   ])
+  const offsets: ReportRecord[] = tradeIns.flatMap(({ sale, date }) => {
+    if (!sale.tradeIn || !canRead(actor, "SaleCase", sale, ["tradeIn.value"]))
+      return []
+    return [
+      {
+        paymentId: sale.tradeIn.id,
+        sourceType: "SALE",
+        sourceId: sale.id,
+        date,
+        category: "TRADE_IN_OFFSET",
+        method: "NON_CASH",
+        amount: sale.tradeIn.value.toString(),
+      },
+    ]
+  })
+  const offset = (filter.page - 1) * filter.pageSize
   const { total, cashIn, cashOut } = totals[0]
   return {
-    data: records,
-    total,
+    data: full ? [...records, ...offsets] : records,
+    total: total + (full ? offsets.length : 0),
+    nonCashOffsets: full
+      ? undefined
+      : offsets.slice(offset, offset + filter.pageSize),
+    nonCashCount: offsets.length,
     notice: cashNotice,
     totals: {
       cashIn: moneyTotal(BigInt(cashIn)),
@@ -924,7 +960,15 @@ export async function reportQuery(
             totals,
           }
         })()
-  return { ...result, kind, page, pageSize, asOf, redactedFields: [] }
+  return {
+    ...result,
+    kind,
+    page,
+    pageSize,
+    asOf,
+    currency: (await currentSettings(tx)).currency,
+    redactedFields: [],
+  }
 }
 
 export async function dashboardQuery(
@@ -989,6 +1033,7 @@ export async function dashboardQuery(
     stock,
     held,
     inRepair,
+    currency: (await currentSettings(tx)).currency,
     completedSales: sales?.length ?? null,
     advances: advanceCounts?.[0] ?? null,
     expiredAdvances: advanceCounts?.[1] ?? null,

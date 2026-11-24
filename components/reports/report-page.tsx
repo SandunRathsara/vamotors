@@ -13,6 +13,7 @@ import {
   getReportColumns,
   reportCellValue,
 } from "@/lib/server/report-export"
+import { ReportExportControls } from "./report-export-controls"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { readScope } from "@/lib/server/permissions"
@@ -100,7 +101,12 @@ async function load(kind: ReportKind, params: URLSearchParams) {
             throw error
         }
       }
-      return { result, exportAllowed, vendors }
+      return {
+        result,
+        exportAllowed:
+          exportAllowed && actor.ability.can("read", "Document", "bytes"),
+        vendors,
+      }
     },
     { isolationLevel: "RepeatableRead", timeout: 9000 }
   )
@@ -131,6 +137,7 @@ export async function ReportPage({
 
   const columns = getReportColumns(kind)
   const result = loaded?.result
+  const pageTotal = Math.max(result?.total ?? 0, result?.nonCashCount ?? 0)
   const visibleColumns = columns.filter(
     (column) =>
       !result?.data.length ||
@@ -277,21 +284,14 @@ export async function ReportPage({
             <p className="text-sm text-muted-foreground">
               {result.total} matching{" "}
               {result.total === 1 ? "record" : "records"} · As of {result.asOf}{" "}
-              · LKR
+              · {result.currency}
             </p>
             {loaded?.exportAllowed && (
-              <div className="flex flex-wrap gap-2">
-                {["csv", "pdf"].map((format) => (
-                  <Button key={format} variant="outline" asChild>
-                    <a
-                      href={`/api/v1/queries/report?${exportParams}&format=${format}`}
-                      download
-                    >
-                      Export {format.toUpperCase()}
-                    </a>
-                  </Button>
-                ))}
-              </div>
+              <ReportExportControls
+                key={exportParams.toString()}
+                query={exportParams.toString()}
+                kind={kind}
+              />
             )}
           </div>
           {Object.keys(result.totals).length > 0 && (
@@ -308,11 +308,35 @@ export async function ReportPage({
                       key}
                   </dt>
                   <dd className="text-lg font-semibold tabular-nums">
-                    {formatReportCell(amount, "money", true)}
+                    {formatReportCell(amount, "money", true, result.currency)}
                   </dd>
                 </div>
               ))}
             </dl>
+          )}
+          {Boolean(result.nonCashCount) && (
+            <section
+              aria-label="Non-cash trade-in offsets"
+              className="space-y-2 rounded-md border p-3"
+            >
+              <h2 className="font-semibold">Non-cash trade-in offsets</h2>
+              <p className="text-sm text-muted-foreground">
+                {result.nonCashCount} offsets excluded from cash totals.
+              </p>
+              <ul className="space-y-1 text-sm">
+                {result.nonCashOffsets?.map((row) => (
+                  <li key={reportCellValue(kind, row, "paymentId") as string}>
+                    {String(reportCellValue(kind, row, "date"))} ·{" "}
+                    {formatReportCell(
+                      reportCellValue(kind, row, "amount"),
+                      "money",
+                      false,
+                      result.currency
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
           {result.data.length ? (
             <div
@@ -337,7 +361,8 @@ export async function ReportPage({
                         const value = formatReportCell(
                           reportCellValue(kind, row, column.key),
                           column.format,
-                          column.signed
+                          column.signed,
+                          result.currency
                         )
                         const href =
                           column.key === "cycleId"
@@ -374,8 +399,7 @@ export async function ReportPage({
           ) : !result.notice || result.total > 0 ? (
             <p>No records match these filters.</p>
           ) : null}
-          {(result.page > 1 ||
-            result.page * result.pageSize < result.total) && (
+          {(result.page > 1 || result.page * result.pageSize < pageTotal) && (
             <nav aria-label="Report pages" className="flex items-center gap-3">
               {result.page > 1 && (
                 <Button variant="outline" asChild>
@@ -385,7 +409,7 @@ export async function ReportPage({
                 </Button>
               )}
               <span>Page {result.page}</span>
-              {result.page * result.pageSize < result.total && (
+              {result.page * result.pageSize < pageTotal && (
                 <Button variant="outline" asChild>
                   <Link prefetch={false} href={pageHref(result.page + 1)}>
                     Next page

@@ -5,6 +5,7 @@ import type { Authority as Actor } from "./actor"
 import type { Tx } from "./db"
 import { runtimeConfig } from "./config"
 import { CommandError, fail } from "./errors"
+import { canonical } from "./idempotency"
 import { audit } from "./audit"
 import { requireFields } from "./permissions"
 import { formatDate, purchaseAuth, purchaseVehicleAuth } from "./purchases"
@@ -18,9 +19,10 @@ import { lenderPaid, type SaleRow } from "./sales"
 import type { currentSettings } from "./settings"
 
 type InvoiceSnapshot = {
-  templateVersion: 1
+  templateVersion: 1 | 2
   settingsVersion: number
   scale: 2
+  remittanceIds?: string[]
   customerId: string
   saleFields: string[]
   pdf: Omit<
@@ -68,6 +70,54 @@ function singlePayment(sale: SaleRow, category = "SALE") {
   const lines = paymentLines(sale, category)
   if (lines.length > 1) fail("INVALID_STATE")
   return lines[0] ?? null
+}
+
+async function lenderRemittances(tx: Tx, sale: SaleRow) {
+  if (!sale.inventoryLease || !sale.entitlement?.allocations.length) return []
+  const allocations = await tx.commissionAllocation.findMany({
+    where: {
+      entitlement: { saleCaseId: sale.id },
+      reversalOf: null,
+      reversal: null,
+    },
+    include: {
+      discrepancies: { where: { resolution: "CARRY_CREDIT" } },
+      remittance: {
+        include: {
+          payments: {
+            where: {
+              category: "REMITTANCE_RECEIPT",
+              reversalOf: null,
+              reversal: null,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ recordedAt: "asc" }, { id: "asc" }],
+  })
+  return allocations.flatMap(({ amount, discrepancies, remittance }) => {
+    const payment = remittance.payments[0]
+    const applied = discrepancies.reduce(
+      (total, discrepancy) => total + discrepancy.expectedMinusAllocated,
+      amount
+    )
+    if (!payment || applied <= 0n) return []
+    if (payment.method !== "CASH" && payment.method !== "BANK_TRANSFER")
+      fail("INVALID_STATE")
+    return [
+      {
+        id: remittance.id,
+        line: {
+          amount: applied.toString(),
+          date: formatDate(payment.occurredDate),
+          method: payment.method,
+          reference: payment.reference,
+          label: "Lender Remittance Allocation",
+        } satisfies InvoicePaymentLine,
+      },
+    ]
+  })
 }
 
 const adapters: Partial<Record<string, SaleTypeAdapter>> = {
@@ -157,6 +207,34 @@ const adapters: Partial<Record<string, SaleTypeAdapter>> = {
   },
 }
 
+async function invoiceTransaction(
+  tx: Tx,
+  sale: SaleRow,
+  adapter: SaleTypeAdapter
+) {
+  const transaction = adapter.transaction(sale)
+  const remittances =
+    transaction.kind === "LEASE" ? await lenderRemittances(tx, sale) : []
+  if (transaction.kind === "LEASE") {
+    transaction.lenderReceipts = [
+      ...(transaction.lenderReceipts ?? []),
+      ...remittances.map(({ line }) => line),
+    ].sort((a, b) => a.date.localeCompare(b.date))
+  }
+  return { transaction, remittances }
+}
+
+export async function pendingInvoiceCurrent(
+  tx: Tx,
+  sale: SaleRow,
+  row: InvoiceVersion
+) {
+  if (sale.kind !== "LEASE" || row.generationAt) return true
+  const snapshot = snapshotOf(row)
+  const { transaction } = await invoiceTransaction(tx, sale, adapters.LEASE!)
+  return canonical(snapshot.pdf.transaction) === canonical(transaction)
+}
+
 const vehicleFields = [
   "make",
   "model",
@@ -230,6 +308,30 @@ export async function authorizeInvoice(
       purchaseAuth(sale.purchaseRecord),
       ["id", "revision"]
     )
+  }
+  const remittanceIds = snapshot
+    ? (snapshot.remittanceIds ?? [])
+    : (await lenderRemittances(tx, sale)).map(({ id }) => id)
+  if (remittanceIds.length) {
+    const rows = await tx.remittance.findMany({
+      where: { id: { in: remittanceIds } },
+      select: { companyId: true },
+    })
+    if (rows.length !== new Set(remittanceIds).size) fail("NOT_FOUND", 404)
+    for (const row of rows)
+      requireFields(
+        actor.ability,
+        "Remittance",
+        "read",
+        { financeCompanyId: row.companyId },
+        [
+          "id",
+          "allocations",
+          "payments.date",
+          "payments.method",
+          "payments.reference",
+        ]
+      )
   }
   const buyerId = snapshot?.customerId ?? sale.customerId
   requireFields(
@@ -335,10 +437,18 @@ export async function queueInvoice(
   const numberRoot =
     prior?.number.replace(/-v\d+$/, "") ??
     `DEV-${saleDate.slice(0, 4)}-${sequence.toString().padStart(6, "0")}`
+  const { transaction, remittances } = await invoiceTransaction(
+    tx,
+    sale,
+    adapter
+  )
   const snapshot: InvoiceSnapshot = {
-    templateVersion: 1,
+    templateVersion: 2,
     settingsVersion: settings.policyVersion,
     scale: settings.scale,
+    ...(remittances.length
+      ? { remittanceIds: [...new Set(remittances.map(({ id }) => id))] }
+      : {}),
     customerId: sale.customerId,
     saleFields: sourceFields(sale),
     pdf: {
@@ -352,7 +462,7 @@ export async function queueInvoice(
         handoverMileage:
           corrected?.handoverMileage ?? completion.handoverMileage,
       },
-      transaction: adapter.transaction(sale),
+      transaction,
       declarations: [
         ...declarations,
         ...settings.declarations.map((line) => line.replace(/\s+/g, " ")),

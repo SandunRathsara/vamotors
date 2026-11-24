@@ -1,5 +1,6 @@
 /** Seed and exercise reconciliation through production HTTP against isolated PostgreSQL. */
 import assert from "node:assert/strict"
+import { execFileSync } from "node:child_process"
 import { createHash, randomUUID } from "node:crypto"
 import { readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
@@ -548,6 +549,26 @@ try {
     const firstReceipt = partial.remittances[0]
     assert.equal(firstReceipt.unallocated, "0")
     assert.equal((await remittance(firstReceipt.id)).allocations.length, 2)
+    const leaseForInvoice = await sale(saleId)
+    const cycleForInvoice = await get<{ id: string; revision: number }>("purchase", `?cycleId=${leaseForInvoice.cycleId}`)
+    const pendingInvoice = leaseForInvoice.invoices.find((row) => row.saleRevision === leaseForInvoice.revision && row.state !== "READY")
+    const issued = await admin.post("/api/v1/commands/issueInvoice", {
+      headers: { Origin: f.origin },
+      data: envelope({ saleId, saleRevision: leaseForInvoice.revision, regenerate: false }, [
+        ref(leaseForInvoice, "SaleCase"),
+        ref(cycleForInvoice),
+        ...(pendingInvoice ? [ref(pendingInvoice, "InvoiceVersion")] : []),
+      ]),
+    })
+    assert.equal(issued.status(), 200, await issued.text())
+    const invoice = (await sale(saleId)).invoices.find((row) => row.state === "READY")!
+    const invoiceResponse = await admin.get(`/api/v1/sales/${saleId}/invoices/${invoice.version}`)
+    assert.equal(invoiceResponse.status(), 200)
+    const invoiceText = execFileSync("pdftotext", ["-layout", "-", "-"], { input: await invoiceResponse.body(), encoding: "utf8" })
+    assert.match(invoiceText, /Lender Remittance Allocation/)
+    assert.ok(invoiceText.includes(firstReceipt.reference))
+    console.log("PASS lease invoice itemizes the mixed remittance receipt")
+
 
     const bankRef = `T13 final ${suffix}`
     const staged = (

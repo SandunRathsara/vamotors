@@ -1832,3 +1832,56 @@ model CommissionDiscrepancy {
   @@index([remittanceId, id])
   @@schema("vamotors")
 }
+
+model ExportJob {
+  id               String              @id @db.Uuid
+  ownerUserId      String              @db.Uuid
+  kind             String
+  format           String
+  filters          Json
+  inputHash        String
+  authzFingerprint String
+  scopeGuard       Boolean
+  cutoffSequence   BigInt
+  snapshotAt       DateTime            @default(now())
+  asOf             String
+  currency         String
+  notice           String?
+  rowCount         Int
+  totals           Json
+  digest           String
+  revision         Int                 @default(1)
+  renderedRows     Int                 @default(0)
+  state            String              @default("RENDERING")
+  rows             ExportRowSnapshot[]
+  parts            ExportPart[]
+
+  @@index([ownerUserId, kind, snapshotAt, id])
+  @@schema("vamotors")
+}
+
+model ExportRowSnapshot {
+  exportId String    @db.Uuid
+  job      ExportJob @relation(fields: [exportId], references: [id], onDelete: Restrict)
+  ordinal  Int
+  payload  Json
+
+  @@id([exportId, ordinal])
+  @@schema("vamotors")
+}
+
+model ExportPart {
+  id        String    @id @db.Uuid
+  exportId  String    @db.Uuid
+  job       ExportJob @relation(fields: [exportId], references: [id], onDelete: Restrict)
+  ordinal   Int
+  firstRow  Int
+  lastRow   Int
+  filename  String
+  finalKey  String    @unique
+  sha256    String
+  size      Int
+
+  @@unique([exportId, ordinal])
+  @@schema("vamotors")
+}

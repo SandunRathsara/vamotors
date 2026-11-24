@@ -7,7 +7,15 @@ import type {
   ReportRow,
   Visible,
 } from "../../.planning/implementation/contracts/api"
-import { B, bounded, cashTotals, major, minor, sum } from "../money"
+import {
+  B,
+  bounded,
+  cashTotals,
+  formatCurrency,
+  major,
+  minor,
+  sum,
+} from "../money"
 
 export type ReportColumnFormat =
   | "text"
@@ -889,13 +897,18 @@ export function reportCellValue(
 export function formatReportCell(
   value: unknown,
   format: ReportColumnFormat,
-  signed = false
+  signed = false,
+  currency?: string
 ): string {
   if (value === undefined || value === null) return ""
   switch (format) {
     case "money": {
       if (typeof value !== "string" || value.length === 0) return ""
-      return major(minor(value, B, signed))
+      return formatCurrency(
+        minor(value, B, signed),
+        currency ?? "",
+        currency ? "display" : "decimal"
+      )
     }
     case "number": {
       if (typeof value === "number") {
@@ -1189,13 +1202,24 @@ export function buildReportCsv<K extends ReportKind>({
   filters,
   redactedFields = [],
   includeTotals = true,
+  currency,
 }: BuildReportCsvInput<K>): BuildReportCsvResult {
   assertReportKind(kind)
   const visibleColumns = getReportColumns(kind, redactedFields)
   const lines: string[] = []
 
   if (visibleColumns.length > 0) {
-    lines.push(visibleColumns.map((col) => quoteCsvField(col.label)).join(","))
+    lines.push(
+      visibleColumns
+        .map((col) =>
+          quoteCsvField(
+            currency && col.format === "money"
+              ? `${col.label} (${currency})`
+              : col.label
+          )
+        )
+        .join(",")
+    )
 
     for (const row of rows) {
       const cells = visibleColumns.map((col) => {

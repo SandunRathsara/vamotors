@@ -17,6 +17,7 @@ import {
   authorizeInvoice,
   invoiceSummary,
   invoiceSupported,
+  pendingInvoiceCurrent,
   queueInvoice,
   snapshotOf,
 } from "./invoice-data"
@@ -165,14 +166,15 @@ export async function issueInvoice(identity: Identity, raw: unknown) {
     checkSaleRevision(expected, sale)
     const latest = await latestInvoice(tx, sale)
     const sameRevision = latest?.saleRevision === sale.revision
-    const resume = sameRevision && latest.state !== "READY"
+    const pending = sameRevision && latest.state !== "READY"
+    const resume = pending && (await pendingInvoiceCurrent(tx, sale, latest))
     if (resume)
       requireRef(expected, {
         type: "InvoiceVersion",
         id: latest.id,
         revision: latest.revision,
       })
-    const create = !sameRevision || (!resume && input.regenerate)
+    const create = !sameRevision || (pending ? !resume : input.regenerate)
     const sequence = await nextBusinessSequence(tx)
     const commandId = randomUUID()
     // A legacy completion gets its first snapshot on demand. Newly completed
@@ -228,13 +230,16 @@ export async function issueInvoice(identity: Identity, raw: unknown) {
   const snapshot = snapshotOf(invoice)
   const metadata = await fileIO(async () => {
     const store = await privateStorage()
-    const bytes = renderSaleInvoicePdf({
-      ...snapshot.pdf,
-      invoiceNumber: invoice.number,
-      version: invoice.version,
-      issuedDate: invoice.generationAt!.toISOString(),
-      issuedBy: invoice.generatorName!,
-    })
+    const bytes = renderSaleInvoicePdf(
+      {
+        ...snapshot.pdf,
+        invoiceNumber: invoice.number,
+        version: invoice.version,
+        issuedDate: invoice.generationAt!.toISOString(),
+        issuedBy: invoice.generatorName!,
+      },
+      snapshot.templateVersion
+    )
     return store.writeGeneratedPdf(invoice.finalKey, bytes)
   }).catch(() => null)
 

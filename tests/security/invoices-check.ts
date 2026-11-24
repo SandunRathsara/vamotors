@@ -14,9 +14,9 @@ import type {
 } from "../../.planning/implementation/contracts/api"
 import { envelope, fixture, purchaseInput, ref } from "./cycle-edits-fixture"
 
-const [root, mode = "fresh"] = process.argv.slice(2)
+const [root, mode = "fresh", source] = process.argv.slice(2)
 assert.ok(root && ["fresh", "prepare", "verify"].includes(mode))
-const f = await fixture(root)
+const f = await fixture(root, source)
 const marker = join(root, "invoice-upgrade.json")
 const sha = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex")
 
@@ -73,23 +73,49 @@ try {
     const before = JSON.parse(await readFile(marker, "utf8")) as {
       id: string
       rows: string
+      invoices: string
+      hash: string
     }
     assert.equal(
       await f.snapshot(["SaleCase", "SaleCompletion", "SaleReceipt"]),
       before.rows
     )
-    const sale = await details(before.id)
-    const response = await send(await issue(sale))
-    assert.equal(response.status(), 200, await response.text())
-    assert.match(text(await bytes(sale.id, 1)), /Bank Transfer/)
-    assert.equal(
-      await f.snapshot(["SaleCase", "SaleCompletion", "SaleReceipt"]),
-      before.rows
-    )
+    assert.equal(await f.snapshot(["InvoiceVersion"]), before.invoices)
+    assert.equal(sha(await bytes(before.id, 1)), before.hash)
     console.log(
-      "Populated a1afc81 upgrade retained sale facts and issued a PDF for a preexisting sale."
+      "PASS populated c2b19ed upgrade retained the invoice row and preserved identical PDF bytes."
     )
   } else {
+    if (mode === "fresh" && process.env.VAMOTORS_TEST_CURRENCY) {
+      const {
+        id,
+        revision,
+        redactedFields: _redacted,
+        policyVersion: _version,
+        ...settings
+      } = await f.query<
+        import("../../.planning/implementation/contracts/api").SettingsInput & {
+          id: string
+          revision: number
+          redactedFields: string[]
+          policyVersion: number
+        }
+      >(admin, "settings")
+      void _redacted
+      void _version
+      await f.command(
+        admin,
+        "updateSettings",
+        envelope(
+          {
+            ...settings,
+            currency: process.env.VAMOTORS_TEST_CURRENCY,
+            reason: "Test configured output currency",
+          },
+          [ref({ id, revision }, "Settings")]
+        )
+      )
+    }
     const suffix = randomUUID().slice(0, 8)
     const supplier = await f.command(
       admin,
@@ -108,7 +134,8 @@ try {
       admin,
       "createCustomer",
       envelope({
-        fullName: `Invoice buyer ${suffix}`,
+        fullName:
+          mode === "fresh" ? "නිමල් පෙරේරා குமார்" : `Invoice buyer ${suffix}`,
         callingName: "Buyer",
         nicOrPassport: `TEST-${suffix}`,
         phone: "0771234567",
@@ -171,10 +198,15 @@ try {
       201
     )
     if (mode === "prepare") {
+      const sale = await details(cash.result.id)
+      const response = await send(await issue(sale))
+      assert.equal(response.status(), 200, await response.text())
       await writeFile(
         marker,
         JSON.stringify({
           id: cash.result.id,
+          hash: sha(await bytes(sale.id, 1)),
+          invoices: await f.snapshot(["InvoiceVersion"]),
           rows: await f.snapshot(["SaleCase", "SaleCompletion", "SaleReceipt"]),
         }),
         { mode: 0o600 }
@@ -219,7 +251,27 @@ try {
       assert.ok(elapsed < 10000, `Generating the PDF took ${elapsed}ms`)
       assert.equal((await details(cashSale.id)).invoices.length, 1)
       assert.deepEqual(await cashFacts(), purchaseFacts)
-      const cashPdf = text(await bytes(cashSale.id, 1))
+      const file = await bytes(cashSale.id, 1)
+      const cashPdf = text(file)
+      assert.match(cashPdf, /නිමල් පෙරේරා குமார்/u)
+      execFileSync(
+        "pdftoppm",
+        [
+          "-f",
+          "1",
+          "-l",
+          "1",
+          "-r",
+          "120",
+          "-png",
+          "-",
+          join(root, "unicode-invoice"),
+        ],
+        { input: file }
+      )
+      console.log(
+        `PASS rendered and extracted Sinhala and Tamil from the invoice in ${elapsed}ms`
+      )
       for (const fact of [
         "Bank Transfer",
         "TRANSFER-123",
@@ -236,7 +288,7 @@ try {
         "Seller / Authorized Signatory",
         "DEV / DRAFT",
         "Synthetic Administrator A",
-        "160.00",
+        `${process.env.VAMOTORS_TEST_CURRENCY ?? "LKR"} 160.00`,
       ]) {
         assert.ok(cashPdf.includes(fact), `Missing PDF text: ${fact}`)
       }
@@ -322,6 +374,26 @@ try {
         )
         const first = await download(1)
         assert.match(text(first), /Synthetic trade-in/)
+        assert.match(text(first), /Trade-In Consideration \(Non-Cash\)/)
+        const flow = await f.query<{
+          currency: string
+          data: { sourceId: string; amount: string }[]
+          nonCashOffsets: { sourceId: string; amount: string }[]
+        }>(
+          admin,
+          "report",
+          "?kind=CASH_FLOW&from=2026-10-05&through=2026-10-05"
+        )
+        assert.equal(flow.currency, process.env.VAMOTORS_TEST_CURRENCY ?? "LKR")
+        assert.equal(
+          flow.data.find(({ sourceId }) => sourceId === saleId)?.amount,
+          "10000"
+        )
+        assert.equal(
+          flow.nonCashOffsets.find(({ sourceId }) => sourceId === saleId)
+            ?.amount,
+          "5000"
+        )
         assert.match(text(first), /Net Cash \/ Transfer Balance/)
         await page
           .getByRole("button", { name: "Request Sale Edit Approval" })
