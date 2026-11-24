@@ -38,6 +38,8 @@ import { executeRates } from "@/lib/server/rates"
 import { executeStageImport } from "@/lib/server/import-staging"
 import { initUpload, completeUpload } from "@/lib/server/attachments"
 import { attachmentCommands } from "@/lib/server/validators"
+import { executeBrokerage } from "@/lib/server/brokerage"
+import { brokerageInputs, type BrokerageCommandName } from "@/lib/server/validators"
 import { rateCommands, type RateCommandName } from "@/lib/server/validators"
 import { partyCommands, type PartyCommandName } from "@/lib/server/validators"
 import {
@@ -57,6 +59,8 @@ export async function POST(
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
     const rates = Object.hasOwn(rateCommands, name)
+    const brokerage =
+      Object.hasOwn(brokerageInputs, name) || name === "dispatchBatch"
     if (
       name !== "updateSettings" &&
       name !== "recordPurchase" &&
@@ -69,17 +73,29 @@ export async function POST(
       !customer &&
       !party &&
       !rates &&
+      !brokerage &&
       !Object.hasOwn(attachmentCommands, name) &&
       !Object.hasOwn(commandInputs, name)
     )
       fail("NOT_FOUND", 404)
     const raw = await boundedJSON(request)
+    const brokerageReversal =
+      name === "reversePayment" &&
+      ["FACILITY", "BROKERAGE_FEE"].includes(
+        (raw as { input?: { sourceType?: string } })?.input?.sourceType ?? ""
+      )
     const directory =
       party &&
       (name !== "archiveParty" ||
         (raw as { input?: { type?: string } })?.input?.type !== "CUSTOMER")
     const result =
-      Object.hasOwn(repairInputs, name) ||
+      brokerageReversal || brokerage
+        ? await executeBrokerage(
+            identity,
+            name as BrokerageCommandName | "dispatchBatch" | "reversePayment",
+            raw
+          )
+        : Object.hasOwn(repairInputs, name) ||
       (name === "reversePayment" &&
         (raw as { input?: { sourceType?: string } })?.input?.sourceType ===
           "REPAIR")
@@ -147,6 +163,8 @@ export async function POST(
     if (result.status === "PENDING_APPROVAL") return noStoreJSON(result, 202)
     const created =
       name === "stageImport" ||
+      name === "dispatchBatch" ||
+      name === "openBrokerage" ||
       name === "createUser" ||
       name === "recordPurchase" ||
       name === "addCost" ||

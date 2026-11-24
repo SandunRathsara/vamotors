@@ -90,7 +90,7 @@ describe("party boundary primitives", () => {
       },
     ]
     const ability = abilityFor(grants, "a")
-    expect(registryVersion).toBe(14)
+    expect(registryVersion).toBe(15)
     expect(ability.can("read", "Supplier", "directory.contacts")).toBe(false)
     expect(ability.can("read", "Supplier", "contacts")).toBe(true)
     expect(

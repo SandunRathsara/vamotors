@@ -73,7 +73,7 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
       },
       orderBy: [{ purchaseDate: "asc" }, { id: "asc" }],
     })
-    visible.links = purchases.flatMap((p) => {
+    const links: CustomerDTO["links"] = purchases.flatMap((p) => {
       if (
         !["id", "purchaseDate", "status"].every((f) =>
           actor.ability.can("read", subject("PurchaseRecord", p), f)
@@ -98,6 +98,44 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
         },
       ]
     })
+    const deals = await tx.brokerageDeal.findMany({
+      where: {
+        AND: [
+          { customerId: row.id },
+          readScope(actor.grants, actor.userId, "BrokerageDeal"),
+        ],
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        state: true,
+        approvedLoan: true,
+        createdBy: true,
+        companyId: true,
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    })
+    for (const deal of deals) {
+      const record = subject("BrokerageDeal", deal)
+      if (
+        !["id", "state", "createdAt"].every((f) =>
+          actor.ability.can("read", record, f)
+        )
+      ) {
+        visible.redactedFields.push("links")
+        continue
+      }
+      const amount = actor.ability.can("read", record, "approvedLoan")
+      if (!amount) visible.redactedFields.push("links.amount")
+      links.push({
+        type: "BROKERAGE",
+        id: deal.id,
+        date: deal.createdAt.toISOString().slice(0, 10),
+        status: deal.state,
+        ...(amount ? { amount: deal.approvedLoan.toString() } : {}),
+      })
+    }
+    visible.links = links
   }
   return visible
 }

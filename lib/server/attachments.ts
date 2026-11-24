@@ -3,7 +3,7 @@ import { constants } from "node:fs"
 import { open, statfs } from "node:fs/promises"
 import { isAbsolute, join } from "node:path"
 import { randomUUID } from "node:crypto"
-import type { ImportBatch } from "@prisma/client"
+import type { ImportBatch, BrokerageDeal } from "@prisma/client"
 import type {
   Applied,
   Dependency,
@@ -205,11 +205,58 @@ const declaration = (u: Intent): Declaration => ({
   mime: u.contentType,
   filename: u.filename,
 })
-const batchRef = (b: ImportBatch): Dependency => ({
-  type: "ImportBatch",
-  id: b.id,
-  revision: b.revision,
+export type UploadTarget =
+  | { type: "IMPORT_BATCH"; row: ImportBatch }
+  | { type: "BROKERAGE_DEAL"; row: BrokerageDeal }
+const targetRef = (target: UploadTarget): Dependency =>
+  target.type === "IMPORT_BATCH"
+    ? { type: "ImportBatch", id: target.row.id, revision: target.row.revision }
+    : {
+        type: "BrokerageDeal",
+        id: target.row.id,
+        revision: target.row.revision,
+      }
+const dealReadPayload = (row: BrokerageDeal) => ({
+  id: row.id,
+  revision: row.revision,
+  customerId: row.customerId,
+  companyId: row.companyId,
+  path: row.path,
+  state: row.state,
+  originalQuoteId: row.originalQuoteId,
+  quoteStatus: row.quoteStatus,
+  approvedLoan: row.approvedLoan.toString(),
+  processingFee: row.processingFee.toString(),
 })
+const dealSubject = (row: BrokerageDeal) => ({
+  ...row,
+  financeCompanyId: row.companyId,
+})
+async function loadTarget(
+  tx: Tx,
+  actor: Actor,
+  type: "IMPORT_BATCH" | "BROKERAGE_DEAL",
+  id: string,
+  write: boolean
+): Promise<UploadTarget> {
+  if (type === "IMPORT_BATCH")
+    return { type, row: await loadBatch(tx, actor, id, write) }
+  await tx.$queryRaw`SELECT id FROM vamotors."BrokerageDeal" WHERE id=${id}::uuid FOR UPDATE`
+  const row = await tx.brokerageDeal.findUnique({ where: { id } })
+  if (!row) fail("NOT_FOUND", 404)
+  requireFields(actor.ability, "BrokerageDeal", "read", dealSubject(row), [
+    "id",
+    "revision",
+  ])
+  if (write) {
+    if (row.state === "REJECTED" || row.state === "COMPLETED")
+      fail("INVALID_STATE")
+    requireFields(actor.ability, "BrokerageDeal", "update", dealSubject(row), [
+      "dealId",
+    ])
+  }
+  return { type, row }
+}
 const uploadRef = (u: Intent): Dependency => ({
   type: "UploadIntent",
   id: u.id,
@@ -244,7 +291,13 @@ function authorizeDocument(
 async function loadIntent(tx: Tx, actor: Actor, uploadId: string) {
   const source = await tx.uploadIntent.findUnique({ where: { id: uploadId } })
   if (!source) fail("NOT_FOUND", 404)
-  const batch = await loadBatch(tx, actor, source.batchId, true)
+  const target = await loadTarget(
+    tx,
+    actor,
+    source.targetType as "IMPORT_BATCH" | "BROKERAGE_DEAL",
+    (source.batchId ?? source.brokerageDealId)!,
+    true
+  )
   await tx.$queryRaw`SELECT id FROM vamotors."UploadIntent" WHERE id=${uploadId}::uuid FOR UPDATE`
   const upload = await tx.uploadIntent.findUniqueOrThrow({
     where: { id: uploadId },
@@ -252,18 +305,26 @@ async function loadIntent(tx: Tx, actor: Actor, uploadId: string) {
   })
   if (
     upload.environmentId !== runtimeConfig().ENVIRONMENT_ID ||
-    upload.purpose !== "IMPORT_SOURCE"
+    (upload.targetType === "IMPORT_BATCH"
+      ? upload.purpose !== "IMPORT_SOURCE"
+      : ![
+          "INSPECTION",
+          "PARTICIPANT_DOCUMENT",
+          "VEHICLE_DOCUMENT",
+          "PROCESSING_DOCUMENT",
+        ].includes(upload.purpose))
   )
     fail("NOT_FOUND", 404)
-  return { batch, upload }
+  return { target, upload }
 }
-function capturedTarget(batch: ImportBatch, upload: Intent) {
-  if (batch.revision !== upload.capturedTargetRevision)
+function capturedTarget(target: UploadTarget, upload: Intent) {
+  if (target.row.revision !== upload.capturedTargetRevision)
     throw new CommandError("STALE_REVISION", 409, false, [
-      batchRef(batch),
+      targetRef(target),
       uploadRef(upload),
     ])
-  if (batch.state !== "STAGED") fail("INVALID_STATE")
+  if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
+    fail("INVALID_STATE")
 }
 const uploadReady = (u: Intent): UploadReady => ({
   ok: true,
@@ -359,13 +420,18 @@ export async function initUpload(
   const digest = inputDigest(envelope, config.BETTER_AUTH_SECRET)
   return transaction(async (tx) => {
     const actor = await lockImportActor(tx, identity),
-      batch = await loadBatch(tx, actor, input.target.id, true)
+      target = await loadTarget(tx, actor, input.target.type, input.target.id, true)
+    if (
+      target.type === "BROKERAGE_DEAL" &&
+      target.row.path !== "APPLICATION"
+    )
+      fail("PATH_MISMATCH")
     requireFields(
       actor.ability,
       "Document",
       "create",
       { ...input, createdBy: actor.userId },
-      Object.keys(input)
+      Object.keys(input).filter((key) => key !== "category")
     )
     const scope = receiptScope(
       actor.userId,
@@ -382,23 +448,36 @@ export async function initUpload(
         where: { id: result.id },
         include: intentInclude,
       })
-      if (!existing || existing.batchId !== batch.id)
+      if (
+        !existing ||
+        existing.targetType !== target.type ||
+        (target.type === "IMPORT_BATCH"
+          ? existing.batchId !== target.row.id
+          : existing.brokerageDealId !== target.row.id)
+      )
         fail("IDEMPOTENCY_MISMATCH")
       authorizeDocument(actor, existing, "put")
       if (prior.inputHash !== digest) fail("IDEMPOTENCY_MISMATCH")
       if (existing.expiresAt <= new Date()) fail("UPLOAD_EXPIRED")
       if (existing.state !== "INIT") fail("INVALID_STATE")
-      capturedTarget(batch, existing)
+      capturedTarget(target, existing)
       return uploadReady(existing)
     }
-    checkRefs(envelope.expected, [batchRef(batch)])
-    if (batch.state !== "STAGED") fail("INVALID_STATE")
+    checkRefs(envelope.expected, [targetRef(target)])
+    if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
+      fail("INVALID_STATE")
     const now = new Date(),
       commandId = randomUUID()
     const upload = await tx.uploadIntent.create({
       data: {
         id: uploadId,
-        batchId: batch.id,
+        targetType: target.type,
+        batchId: target.type === "IMPORT_BATCH" ? target.row.id : null,
+        brokerageDealId: target.type === "BROKERAGE_DEAL" ? target.row.id : null,
+        photoCategory:
+          target.type === "BROKERAGE_DEAL"
+            ? (input.category ?? null)
+            : null,
         environmentId: config.ENVIRONMENT_ID,
         createdBy: actor.userId,
         createdAt: now,
@@ -408,7 +487,7 @@ export async function initUpload(
         size: input.size,
         sha256: input.sha256,
         stagingKey,
-        capturedTargetRevision: batch.revision,
+        capturedTargetRevision: target.row.revision,
         expiresAt: new Date(now.valueOf() + fiveMinutes),
         initCommandId: commandId,
       },
@@ -428,9 +507,9 @@ export async function putUpload(
   if (!id.safeParse(uploadId).success) fail("INVALID_INPUT", 422)
   const snapshot = await transaction(async (tx) => {
     const actor = await lockImportActor(tx, identity),
-      { batch, upload } = await loadIntent(tx, actor, uploadId)
+      { target, upload } = await loadIntent(tx, actor, uploadId)
     authorizeDocument(actor, upload, "put")
-    capturedTarget(batch, upload)
+    capturedTarget(target, upload)
     if (upload.state !== "INIT") fail("INVALID_STATE")
     if (upload.expiresAt <= new Date()) fail("UPLOAD_EXPIRED")
     return upload
@@ -485,9 +564,9 @@ export async function putUpload(
   }
   await transaction(async (tx) => {
     const actor = await lockImportActor(tx, identity),
-      { batch, upload } = await loadIntent(tx, actor, uploadId)
+      { target, upload } = await loadIntent(tx, actor, uploadId)
     authorizeDocument(actor, upload, "put")
-    capturedTarget(batch, upload)
+    capturedTarget(target, upload)
     if (upload.state !== "INIT" || upload.revision !== snapshot.revision)
       fail("INVALID_STATE")
     if (upload.expiresAt <= new Date()) fail("UPLOAD_EXPIRED")
@@ -510,7 +589,7 @@ export async function completeUpload(
     finalKey = store.newFinalKey(input.uploadId, attemptId)
   const claim = await transaction(async (tx) => {
     const actor = await lockImportActor(tx, identity),
-      { batch, upload } = await loadIntent(tx, actor, input.uploadId)
+      { target, upload } = await loadIntent(tx, actor, input.uploadId)
     authorizeDocument(actor, upload, "complete")
     const scope = receiptScope(
       actor.userId,
@@ -543,13 +622,13 @@ export async function completeUpload(
           commandId: prior.id,
           replayed: true,
           result,
-          affected: [uploadRef(upload), batchRef(batch)],
+          affected: [uploadRef(upload), targetRef(target)],
           invalidate: ["documents"],
         } as Applied,
       }
     }
     if (upload.state === "FINAL") {
-      checkRefs(envelope.expected, [uploadRef(upload), batchRef(batch)])
+      checkRefs(envelope.expected, [uploadRef(upload), targetRef(target)])
       requireFields(
         actor.ability,
         "Document",
@@ -571,12 +650,12 @@ export async function completeUpload(
           commandId,
           replayed: false,
           result,
-          affected: [uploadRef(upload), batchRef(batch)],
+          affected: [uploadRef(upload), targetRef(target)],
           invalidate: ["documents"],
         } as Applied,
       }
     }
-    capturedTarget(batch, upload)
+    capturedTarget(target, upload)
     const existingKey = await tx.uploadAttempt.findUnique({
       where: {
         environmentId_createdBy_idempotencyKey: {
@@ -609,13 +688,19 @@ export async function completeUpload(
               id: upload.id,
               revision: upload.currentAttempt!.uploadRevision,
             },
-            {
-              type: "ImportBatch",
-              id: batch.id,
-              revision: upload.currentAttempt!.targetRevision,
-            },
+            target.type === "IMPORT_BATCH"
+              ? {
+                  type: "ImportBatch" as const,
+                  id: target.row.id,
+                  revision: upload.currentAttempt!.targetRevision,
+                }
+              : {
+                  type: "BrokerageDeal" as const,
+                  id: target.row.id,
+                  revision: upload.currentAttempt!.targetRevision,
+                },
           ]
-        : [uploadRef(upload), batchRef(batch)]
+        : [uploadRef(upload), targetRef(target)]
     )
     const now = new Date(),
       recovery = upload.state === "FINALIZING"
@@ -634,7 +719,7 @@ export async function completeUpload(
             idempotencyKey: envelope.idempotencyKey,
             inputHash: digest,
             uploadRevision: upload.revision,
-            targetRevision: batch.revision,
+            targetRevision: target.row.revision,
             finalKey,
             size: upload.size,
             sha256: upload.sha256,
@@ -665,7 +750,7 @@ export async function completeUpload(
       ),
       digest
     )
-    return { upload: claimed, batch, attempt, recovery, scope }
+    return { upload: claimed, target, attempt, recovery, scope }
   })
   if (claim.replay) return claim.replay
   const { upload: claimed, attempt } = claim
@@ -692,9 +777,9 @@ export async function completeUpload(
       // Failure evidence is best effort only; a lost authority leaves a durable claim/orphan.
       await transaction(async (tx) => {
         const actor = await lockImportActor(tx, identity),
-          { batch, upload } = await loadIntent(tx, actor, claimed.id)
+          { target, upload } = await loadIntent(tx, actor, claimed.id)
         authorizeDocument(actor, upload, "complete")
-        capturedTarget(batch, upload)
+        capturedTarget(target, upload)
         if (
           upload.revision !== claimed.revision ||
           upload.currentAttemptId !== attempt.id ||
@@ -727,9 +812,9 @@ export async function completeUpload(
   }
   return transaction(async (tx) => {
     const actor = await lockImportActor(tx, identity),
-      { batch, upload } = await loadIntent(tx, actor, claimed.id)
+      { target, upload } = await loadIntent(tx, actor, claimed.id)
     authorizeDocument(actor, upload, "complete")
-    capturedTarget(batch, upload)
+    capturedTarget(target, upload)
     if (
       upload.state !== "FINALIZING" ||
       upload.currentAttemptId !== attempt.id ||
@@ -743,7 +828,12 @@ export async function completeUpload(
     const attachment = await tx.attachment.create({
       data: {
         id: attachmentId,
-        batchId: batch.id,
+        targetType: target.type,
+        batchId: target.type === "IMPORT_BATCH" ? target.row.id : null,
+        brokerageDealId:
+          target.type === "BROKERAGE_DEAL" ? target.row.id : null,
+        photoCategory:
+          target.type === "BROKERAGE_DEAL" ? upload.photoCategory : null,
         uploadIntentId: upload.id,
         attemptId: attempt.id,
         environmentId: upload.environmentId,
@@ -767,10 +857,32 @@ export async function completeUpload(
       },
       include: intentInclude,
     })
-    const owner = await tx.importBatch.update({
-      where: { id: batch.id },
-      data: { revision: bump(batch.revision) },
-    })
+    const owner =
+      target.type === "IMPORT_BATCH"
+        ? await tx.importBatch.update({
+            where: { id: target.row.id },
+            data: { revision: bump(target.row.revision) },
+          })
+        : await tx.brokerageDeal.update({
+            where: { id: target.row.id },
+            data: { revision: bump(target.row.revision) },
+          })
+    const ownerChange =
+      target.type === "IMPORT_BATCH"
+        ? {
+            entityType: "ImportBatch" as const,
+            entityId: target.row.id,
+            revision: owner.revision,
+            before: batchDTO(target.row),
+            after: batchDTO(owner as ImportBatch),
+          }
+        : {
+            entityType: "BrokerageDeal" as const,
+            entityId: target.row.id,
+            revision: owner.revision,
+            before: dealReadPayload(target.row),
+            after: dealReadPayload(owner as BrokerageDeal),
+          }
     const result = { type: "Document", id: attachmentId, revision: 1 }
     await tx.commandReceipt.create({
       data: {
@@ -812,13 +924,7 @@ export async function completeUpload(
         before: uploadDTO(upload),
         after: uploadDTO(final),
       },
-      {
-        entityType: "ImportBatch" as const,
-        entityId: batch.id,
-        revision: owner.revision,
-        before: batchDTO(batch),
-        after: batchDTO(owner),
-      },
+      ownerChange,
     ]) {
       await audit(tx, {
         ...change,
@@ -855,7 +961,7 @@ export async function completeUpload(
       commandId,
       replayed: false,
       result,
-      affected: [uploadRef(final), batchRef(owner)],
+      affected: [uploadRef(final), targetRef(target)],
       invalidate: ["documents"],
     }
   })
@@ -868,12 +974,25 @@ export async function authorizedAttachment(
 ) {
   const row = await tx.attachment.findUnique({ where: { id: attachmentId } })
   if (!row) fail("NOT_FOUND", 404)
-  const target = await tx.importBatch.findUnique({ where: { id: row.batchId } })
-  if (!target) fail("NOT_FOUND", 404)
-  requireFields(actor.ability, "ImportBatch", "read", batchSubject(target), [
-    "id",
-    "uploads.attachmentId",
-  ])
+  if (row.targetType === "BROKERAGE_DEAL") {
+    const deal = row.brokerageDealId
+      ? await tx.brokerageDeal.findUnique({ where: { id: row.brokerageDealId } })
+      : null
+    if (!deal) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "BrokerageDeal", "read", dealSubject(deal), [
+      "id",
+      "revision",
+    ])
+  } else {
+    const target = row.batchId
+      ? await tx.importBatch.findUnique({ where: { id: row.batchId } })
+      : null
+    if (!target) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "ImportBatch", "read", batchSubject(target), [
+      "id",
+      "uploads.attachmentId",
+    ])
+  }
   requireFields(actor.ability, "Document", "read", documentSubject(row), [
     "attachmentId",
     "filename",

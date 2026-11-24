@@ -25,6 +25,11 @@ import { downloadQuery } from "./attachments"
 import { approvalQuery, approvalReplay, approvalAudit } from "./approvals"
 import { notificationQuery, notificationReplay } from "./notifications"
 import { repairReplay } from "./repairs"
+import {
+  brokerageQuery,
+  brokerageAudit,
+  brokerageReplay,
+} from "./brokerage"
 import { runtimeConfig } from "./config"
 
 const canAdminister = (actor: Actor) =>
@@ -107,7 +112,14 @@ export async function securityQuery(
         ["ApprovalRequest", "Disposal"].includes(args.type)
       )
         return approvalAudit(tx, actor, args)
-      if (name === "commandStatus") {
+      if (
+        name === "audit" &&
+        ["BrokerageDeal", "CashFacility"].includes(args.type)
+      )
+        return brokerageAudit(tx, actor, args)
+      if (
+        name === "commandStatus"
+      ) {
         const parsed = z
           .object({
             name: z.enum([
@@ -119,6 +131,25 @@ export async function securityQuery(
               "returnRepair",
               "payRepair",
               "reversePayment",
+              "openBrokerage",
+              "recordEligibility",
+              "recordInspection",
+              "adjustLoan",
+              "replaceDealQuote",
+              "setChecklist",
+              "verifyDocuments",
+              "setProcessingFee",
+              "informCompany",
+              "dispatchBatch",
+              "referDeal",
+              "rejectDeal",
+              "completeBrokerage",
+              "openIssue",
+              "recordIssueFeedback",
+              "requestFacility",
+              "disburseFacility",
+              "recoverFacility",
+              "recordBrokerageFee",
             ]),
             idempotencyKey: id,
           })
@@ -136,6 +167,9 @@ export async function securityQuery(
           },
         })
         if (!receipt) return { ok: true, status: "NOT_COMMITTED" }
+        const resultType = (receipt.result as { type?: string }).type
+        if (resultType === "BrokerageDeal" || resultType === "DispatchBatch")
+          return brokerageReplay(tx, actor, receipt)
         return ["requestApproval", "reviewApproval"].includes(parsed.data.name)
           ? approvalReplay(tx, actor, receipt)
           : ["markNotificationRead", "markAllNotificationsRead"].includes(
@@ -152,6 +186,8 @@ export async function securityQuery(
         return downloadQuery(tx, actor, parsed.data.attachmentId)
       }
       if (name === "quote") return rateQuery(tx, actor, name, args)
+      if (["brokerage", "brokerageDeal", "dispatchPreview"].includes(name))
+        return brokerageQuery(tx, actor, name, args)
       if (
         name === "audit" &&
         ["Vehicle", "PurchaseRecord", "VehicleCost", "RepairRecord"].includes(

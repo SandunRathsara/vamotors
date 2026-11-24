@@ -1,5 +1,6 @@
 diff --git a/dist/index.js b/dist/index.js
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -9,0 +10,1 @@
+@@ -1,1 +1,2 @@
+ // @bun
 +export { Qt as BitReader, Gn as decodeLosslessImage, nr as parseLossyHeader, Fr as parseIntraMode, Z2 as tokenPartitions, $2 as decodeMacroblock, Zt as defaultIntraMode };

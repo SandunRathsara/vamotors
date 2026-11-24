@@ -136,7 +136,7 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
     // Independently extracted from EXACTc462, receipt accepted-c462-registry-digest.
     const old = Object.fromEntries(
       Object.entries(registry)
-        .filter(([s]) => s !== "RepairRecord")
+        .filter(([s]) => !["RepairRecord", "BrokerageDeal", "CashFacility", "DispatchBatch", "CommissionEntitlement"].includes(s))
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([s, actions]) => [
           s,
@@ -152,7 +152,7 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
       "77f34c8fd645130a890ad8424a0e69e10eacf7a9362deea3ee95a54e7179d570"
     )
-    expect(registryVersion).toBe(14)
+    expect(registryVersion).toBe(15)
     expect(
       attenuation(
         [{ subject: "PurchaseRecord", action: "read", fields: ["repairs"] }],

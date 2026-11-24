@@ -511,17 +511,13 @@ export function LeaseComparisonView({
               </Link>
             </>
           )}
-          <Button
-            disabled
-            className="h-auto min-h-11 max-w-full whitespace-normal"
-          >
-            Open brokerage intake — not implemented
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            Snapshot/handoff only. No brokerage deal, purchase or owned
-            inventory was created. The quote link provides context for a later
-            explicit intake implementation.
-          </p>
+          {quote.data?.data.id && ability.can("create", "BrokerageDeal") && (
+            <Button asChild>
+              <Link href={`/lease-deals?quote=${encodeURIComponent(quoteId)}`}>
+                Open brokerage intake
+              </Link>
+            </Button>
+          )}
         </article>
       )}
     </section>

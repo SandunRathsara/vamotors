@@ -40,12 +40,10 @@ export const privateAttachmentAPIs = {
 export const importStagingPages = ["/imports", "/imports/[id]"]
 export const persistedRepairPages = ["/repairs", "/repairs/[id]"]
 export const approvalPages = ["/approvals", "/approvals/[id]"]
+export const brokeragePages = ["/lease-deals", "/lease-deals/[id]", "/lease-dispatch"]
 export const unavailablePages = [
   "/cash-flow",
   "/dashboard",
-  "/lease-deals",
-  "/lease-deals/[id]",
-  "/lease-dispatch",
   "/lease-reconciliation",
   "/reports",
   "/reports/advances",
