@@ -7,6 +7,7 @@ import { chromium, expect } from "@playwright/test"
 import { authorizedMigration, privateEnvironment } from "./private-environment"
 import { importTemplateColumns } from "../lib/server/import-parsers"
 import { buildXlsx } from "../lib/server/import-template"
+import { historicalCommitmentRows } from "../tests/fixtures/historical-commitments"
 import type { ImportType } from "../.planning/implementation/contracts/api"
 
 const origin = process.argv[2]!
@@ -345,7 +346,11 @@ async function oneFile(type: ImportType, bytes: Buffer) {
 }
 const finance = await oneFile(
   "FINANCE_COMPANIES",
-  csv("FINANCE_COMPANIES", { name: `Import Finance ${suffix}` })
+  csv("FINANCE_COMPANIES", {
+    name: `Import Finance ${suffix}`,
+    financePolicy:
+      '{"path":"REFERRAL","commission":{"basis":"FIXED","fixed":"10000","rateBps":0},"processingFee":"0","reconciliationMethod":"PER_DEAL"}',
+  })
 )
 const financeId = new URL(finance.href, origin).pathname.split("/").at(-1)!
 const financeRef = { type: "FinanceCompany", id: financeId, revision: 1 }
@@ -701,6 +706,196 @@ console.log(
   "PASS an imported available cycle accepts a reservation and becomes unavailable"
 )
 
+const commitmentRows = historicalCommitmentRows({
+  prefix: `historical-${suffix}`,
+  companyId: financeId,
+  customerId: recordId(customerRecord.href),
+  supplierId: recordId(
+    committed.importedRecords
+      .find((record: { type: string }) => record.type === "Supplier")
+      .href.split("?")[0]
+  ),
+})
+async function commitHistory(
+  name: string,
+  files: Partial<Record<ImportType, Record<string, string>[]>>,
+  cashIn: string,
+  cashOut: string,
+  namespace = `${name}-${suffix}`
+) {
+  const types = Object.keys(files) as ImportType[]
+  const batch = (await command("stageImport", { namespace, types }, [], 201))
+    .result
+  const sources = []
+  for (const type of types)
+    sources.push(
+      await upload(type, csv(type, ...files[type]!), type.toLowerCase(), batch)
+    )
+  const preview = await command(
+    "previewImport",
+    {
+      batchId: batch.id,
+      namespace,
+      sources,
+      templateVersion: 1,
+    },
+    [batch]
+  )
+  assert.equal(preview.valid, true, JSON.stringify(preview.errors))
+  assert.equal(preview.controlTotals.cashIn, cashIn)
+  assert.equal(preview.controlTotals.cashOut, cashOut)
+  batch.revision = preview.revision
+  const start = performance.now()
+  await command(
+    "confirmImport",
+    {
+      batchId: batch.id,
+      previewHash: preview.previewHash,
+      controlTotals: preview.controlTotals,
+    },
+    [batch]
+  )
+  const ms = performance.now() - start
+  assert.ok(ms < 10000)
+  console.log(`PASS ${name} import in ${Math.round(ms)} ms`)
+  return (await query("importBatchFiles", { id: batch.id })).importedRecords
+}
+const leaseNamespace = `lease-and-remittance-${suffix}`
+const commitmentRecords = await commitHistory(
+  "historical-lease",
+  {
+    VEHICLES: commitmentRows.VEHICLES.slice(0, 1),
+    ADVANCES: commitmentRows.ADVANCES.slice(0, 1),
+    SALES: commitmentRows.SALES,
+  },
+  "200000000",
+  "500000000",
+  leaseNamespace
+)
+await commitHistory(
+  "historical-remittance",
+  {
+    REMITTANCES: commitmentRows.REMITTANCES,
+  },
+  "50000000",
+  "0",
+  leaseNamespace
+)
+const leaseRecord = commitmentRecords.find(
+  (row: { type: string }) => row.type === "SaleCase"
+)
+const lease = await query("sale", { id: recordId(leaseRecord.href) })
+assert.equal(lease.provenance.imported, true)
+assert.equal(lease.state, "COMPLETED")
+assert.equal(lease.reservation.effectiveStatus, "CONVERTED")
+assert.equal(lease.finance.lenderOutstanding, "300000000")
+const leaseCycle = await query("purchase", { cycleId: lease.cycleId })
+assert.equal(leaseCycle.financial.net, "-300000000")
+const leaseReport = await fetch(
+  `${origin}/api/reports/sales?from=2026-01-20&through=2026-01-20`,
+  { headers: { cookie } }
+)
+assert.equal(leaseReport.status, 200)
+const leaseReportRow = (await leaseReport.json()).data.data.find(
+  (row: { saleId: string }) => row.saleId === lease.id
+)
+assert.equal(leaseReportRow?.financial.restatedProfit, "50000000")
+const leaseInvoice = lease.invoices[0]
+const issuedLeaseInvoice = await command(
+  "issueInvoice",
+  {
+    saleId: lease.id,
+    saleRevision: lease.revision,
+    regenerate: false,
+  },
+  [
+    ref("SaleCase", lease),
+    ref("PurchaseRecord", leaseCycle),
+    ref("InvoiceVersion", leaseInvoice),
+  ]
+)
+assert.equal(issuedLeaseInvoice.status, "APPLIED")
+const historicalSaleIds = [lease.id]
+const historicalCycleIds = [lease.cycleId]
+for (const [i, outcome] of [
+  [1, "REFUNDED"],
+  [2, "CANCELLED"],
+  [3, "EXPIRED"],
+] as const) {
+  const records = await commitHistory(
+    `advance-${outcome.toLowerCase()}`,
+    {
+      VEHICLES: [commitmentRows.VEHICLES[i]],
+      ADVANCES: [commitmentRows.ADVANCES[i]],
+    },
+    "50000000",
+    i === 1 ? "540000000" : "500000000"
+  )
+  const record = records.find(
+    (row: { sourceKey: string }) => row.sourceKey === `deposit-${i}`
+  )
+  const sale = await query("sale", { id: recordId(record.href) })
+  historicalSaleIds.push(sale.id)
+  historicalCycleIds.push(sale.cycleId)
+  assert.equal(sale.reservation.effectiveStatus, outcome)
+  assert.equal(sale.provenance.imported, true)
+}
+const totalsDB = new pg.Client({ connectionString: migration })
+await totalsDB.connect()
+try {
+  const ledger = await totalsDB.query(
+    `SELECT
+    (SELECT sum(a.amount)::text FROM vamotors."CommissionAllocation" a
+      JOIN vamotors."CommissionEntitlement" e ON a."entitlementId"=e.id WHERE e."saleCaseId"=$1) AS allocated,
+    (SELECT "expectedAmount"::text FROM vamotors."CommissionEntitlement" WHERE "saleCaseId"=$1) AS commission`,
+    [lease.id]
+  )
+  assert.deepEqual(ledger.rows[0], {
+    allocated: "50000000",
+    commission: "10000",
+  })
+  const evidence = await totalsDB.query(
+    `SELECT s."legacyApproval" AS approval, r.metadata->>'historicalStatus' AS status
+     FROM vamotors."SaleCase" s
+     JOIN vamotors."EntityReadVersion" v ON v."entityId"=s."purchaseRecordId"
+     JOIN vamotors."ImportSourceRow" r ON v.id=r."targetVersionId"
+     WHERE s.id=$1 AND r."sourceType"='VEHICLES'`,
+    [lease.id]
+  )
+  assert.deepEqual(evidence.rows, [
+    {
+      approval: {
+        approverName: "Historical Sales Manager",
+        approvalReference: "DISCOUNT-42",
+      },
+      status: "DELIVERED",
+    },
+  ])
+  const cash = await totalsDB.query(
+    `SELECT direction, sum(amount)::text AS total FROM vamotors."CashMovement"
+     WHERE ("sourceType"='SALE' AND "sourceId"=ANY($1::uuid[]))
+        OR ("sourceType"='PURCHASE' AND "sourceId"=ANY($2::uuid[]))
+        OR ("sourceType"='REMITTANCE' AND "sourceId"=(
+          SELECT id FROM vamotors."Remittance" WHERE "companyId"=$3 AND reference=$4
+        )) GROUP BY direction ORDER BY direction`,
+    [
+      historicalSaleIds,
+      historicalCycleIds,
+      financeId,
+      commitmentRows.REMITTANCES[0].reference,
+    ]
+  )
+  assert.deepEqual(cash.rows, [
+    { direction: "IN", total: "400000000" },
+    { direction: "OUT", total: "2040000000" },
+  ])
+} finally {
+  await totalsDB.end()
+}
+console.log(
+  "PASS historical advances, lease handover, invoice and remittance allocation"
+)
+
 if (process.argv.includes("--browser")) {
   const browser = await chromium.launch({
     executablePath: process.env.VAMOTORS_CHROMIUM ?? "/usr/bin/chromium",
@@ -869,9 +1064,53 @@ if (process.argv.includes("--browser")) {
         page.getByRole("link", { name: "Imported · source row 2" })
       ).toBeVisible({ timeout: 15000 })
     }
+    await page.goto(`${origin}/imports`)
+    await page
+      .getByLabel("Namespace", { exact: true })
+      .fill(`browser-lease-${suffix}`)
+    const browserHistory = historicalCommitmentRows({
+      prefix: `browser-lease-${suffix}`,
+      companyId: financeId,
+      customerId: recordId(customerRecord.href),
+      supplierId: recordId(
+        committed.importedRecords
+          .find((record: { type: string }) => record.type === "Supplier")
+          .href.split("?")[0]
+      ),
+    })
+    const newTypes = ["VEHICLES", "ADVANCES", "SALES", "REMITTANCES"] as const
+    await page.getByRole("checkbox", { name: "suppliers", exact: true }).uncheck()
+    for (const type of newTypes)
+      await page
+        .getByRole("checkbox", { name: display(type), exact: true })
+        .check()
+    await page.getByRole("button", { name: "Create STAGED batch" }).click()
+    await expect(
+      page.getByRole("heading", { name: "Historical import batch" })
+    ).toBeVisible({ timeout: 30000 })
+    for (const type of newTypes)
+      await uploadInBrowser(
+        type,
+        `lease-${type.toLowerCase()}.csv`,
+        csv(type, browserHistory[type][0])
+      )
+    await page.getByRole("button", { name: "Validate and preview" }).click()
+    await expect(
+      page.getByRole("heading", { name: "Validated preview" })
+    ).toBeVisible({ timeout: 15000 })
+    await page.getByRole("button", { name: "Commit entire batch" }).click()
+    await expect(
+      page.getByText("Historical import committed.", { exact: true })
+    ).toBeVisible({ timeout: 15000 })
+    await expect(
+      page.getByRole("link", { name: /Reservation · row 2/ })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: /Remittance · row 2/ })
+    ).toBeVisible()
     await context.close()
     console.log(
-      "PASS Chromium downloads and eight-type CSV/XLSX stage, correction, preview, confirmation, and record provenance"
+      "PASS Chromium historical advances, lease and remittance imports, plus eight-type CSV/XLSX stage, correction, preview, confirmation, and record provenance"
     )
   } finally {
     await browser.close()

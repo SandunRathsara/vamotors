@@ -267,7 +267,11 @@ function order(rows: Row[], namespace: string, errors: Issue[]) {
         if (dependency) deps.add(dependency)
       }
     }
-    if (data.type === "SALES" || data.type === "REPAIRS") {
+    if (
+      data.type === "SALES" ||
+      data.type === "REPAIRS" ||
+      data.type === "ADVANCES"
+    ) {
       for (const repair of rows) {
         if (
           repair.data.type !== "REPAIRS" ||
@@ -277,7 +281,7 @@ function order(rows: Row[], namespace: string, errors: Issue[]) {
         )
           continue
         if (
-          data.type === "SALES" ||
+          data.type !== "REPAIRS" ||
           repair.data.payload.sentDate < data.payload.sentDate
         )
           deps.add(repair)
@@ -357,6 +361,13 @@ async function runGraph(
     identity,
     key: getKey,
     costIds,
+    commitmentCycles: new Set(
+      rows.flatMap(({ data }) =>
+        data.type === "ADVANCES" && !("existingId" in data.payload.cycle)
+          ? [data.payload.cycle.sourceKey]
+          : []
+      )
+    ),
     cycleCloseDates: new Map(),
     releaseAfterRepair: new Set(),
     async resolve(ref, field) {
@@ -464,8 +475,33 @@ async function runGraph(
       const cycle = await tx.purchaseRecord.findUniqueOrThrow({
         where: { id: targetId },
       })
+      if (expected.status === "DELIVERED") {
+        const supported =
+          cycle.status === "SOLD" &&
+          imported.some(
+            (candidate) =>
+              candidate.row.data.type === "SALES" &&
+              candidate.row.data.payload.completion &&
+              referenceKey(candidate.row.data.payload.cycle) ===
+                referenceKey({
+                  type: "VEHICLES",
+                  namespace: batch.namespace,
+                  sourceKey: expected.cycleSourceKey,
+                })
+          )
+        if (!supported)
+          errors.push(
+            rowIssue(
+              row,
+              "status",
+              "DELIVERED_WITHOUT_COMPLETION",
+              "Historical Delivered requires a completed companion sale with handover and financial evidence"
+            )
+          )
+      }
       if (
-        cycle.status !== expected.status ||
+        cycle.status !==
+          (expected.status === "DELIVERED" ? "SOLD" : expected.status) ||
         cycle.available !== expected.available
       )
         errors.push(
@@ -476,6 +512,44 @@ async function runGraph(
             "Companion repair or sale rows do not produce the declared cycle state"
           )
         )
+    } else if (row.data.type === "ADVANCES") {
+      const p = row.data.payload
+      const reservation = await tx.reservation.findUniqueOrThrow({
+        where: { id: targetId },
+      })
+      try {
+        need(
+          reservation.state === p.state,
+          "state",
+          "Companion sale does not produce the declared reservation state"
+        )
+        if (p.state === "CONVERTED") {
+          need(
+            p.completedSale &&
+              (await ctx.resolve(p.completedSale, "completedSale")) ===
+                reservation.saleCaseId &&
+              (await ctx.resolve(
+                {
+                  type: "SALES",
+                  namespace: batch.namespace,
+                  sourceKey: p.saleCaseSourceKey,
+                },
+                "saleCaseSourceKey"
+              )) === reservation.saleCaseId,
+            "completedSale",
+            "Converted advance must refer to its companion sale and share its sale case key"
+          )
+          need(
+            reservation.resolvedAt?.toISOString().slice(0, 10) ===
+              p.resolutionDate,
+            "resolutionDate",
+            "Advance must resolve on the completion date"
+          )
+        }
+      } catch (error) {
+        if (!(error instanceof ImportRowError)) throw error
+        errors.push(rowIssue(row, error.field, error.code, error.safeMessage!))
+      }
     } else if (
       row.data.type === "SALES" &&
       row.data.payload.tradeIn?.acquiredCycle
@@ -527,7 +601,11 @@ async function runGraph(
         sourceKey: keys[0],
         aliases: keys.slice(1),
         rowNumber: row.rowNumber,
-        metadata: row.data.legacy ?? undefined,
+        metadata:
+          row.data.type === "VEHICLES" &&
+          row.data.payload.status === "DELIVERED"
+            ? { ...row.data.legacy, historicalStatus: "DELIVERED" }
+            : (row.data.legacy ?? undefined),
         targetVersionId: versionId,
       },
     })

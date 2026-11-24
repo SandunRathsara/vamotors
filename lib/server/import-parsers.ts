@@ -1,3 +1,4 @@
+import { z } from "zod"
 import { createHash } from "node:crypto"
 import readExcelFile from "read-excel-file/node"
 import type {
@@ -24,7 +25,7 @@ import type {
 } from "../../.planning/implementation/contracts/api"
 import { A, B, bounded, minor, parseMajor, sum, tierDays } from "../money"
 import { states } from "../state"
-import { brokerageInputs, financeInput, importTypes } from "./validators"
+import { brokerageInputs, financeInput, importTypes, reconciliationInputs } from "./validators"
 import { canonical } from "./idempotency"
 import { validateXlsx } from "./private-files/xlsx-validation.mjs"
 
@@ -506,6 +507,21 @@ const extensionKey: ImportColumnSpec = {
   example: "legacy-001",
 }
 export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
+  REMITTANCES: {
+    version: 1, type: "REMITTANCES", columns: [
+      extensionKey,
+      { name: "companySourceKey", type: "string", required: false, description: "Finance company source key", example: "finance-001" },
+      { name: "companyExistingId", type: "uuid", required: false, description: "Existing finance company UUID", example: "" },
+      { name: "reference", type: "string", required: true, description: "Unique bank transfer reference", example: "BANK-001" },
+      { name: "amount", type: "money", required: true, description: "Received amount in major currency units", example: "10000.00" },
+      { name: "date", type: "date", required: true, description: "Date of receipt", example: "2026-01-30" },
+      { name: "asOfDate", type: "date", required: true, description: "Historical reconciliation cutoff", example: "2026-01-30" },
+      { name: "allocations", type: "json", required: false,
+        description: "Array of allocations with type SALES/BROKERAGE, sourceKey or existingId, and amount in major currency units",
+        example: '[{"type":"SALES","sourceKey":"sale-001","amount":"10000.00"}]' },
+      ...LEGACY_METADATA_COLUMNS,
+    ],
+  },
   FINANCE_COMPANIES: {
     version: 1, type: "FINANCE_COMPANIES", columns: [
       extensionKey,
@@ -1450,7 +1466,7 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         type: "enum",
         required: true,
         description: "ACTIVE | EXPIRED | CONVERTED | REFUNDED | CANCELLED",
-        example: "ACTIVE",
+        example: "EXPIRED",
       },
       {
         name: "completedSaleSourceKey",
@@ -4277,13 +4293,13 @@ function parseSaleRow(
     namespace,
     kind === "ADVANCE"
   )
-  if (kind && kind !== "ADVANCE" && resRef) {
+  if (kind && kind !== "ADVANCE" && kind !== "LEASE" && resRef) {
     addError(
       r.errors,
       r.rowNumber,
       "reservationSourceKey",
       "UNEXPECTED_RESERVATION",
-      "reservation reference is only allowed when kind is ADVANCE",
+      "reservation reference is only allowed when kind is ADVANCE or LEASE",
       r.sourceKey
     )
   }
@@ -4304,7 +4320,7 @@ function parseSaleRow(
     const fDoAtt = r.optUuid("doAttachmentId")
     const fDoDate = r.optDate("doIssueDate")
     if (reqDown !== undefined && reqAmt !== undefined && price !== undefined) {
-      if (bounded(minor(reqDown) + minor(reqAmt), A) !== minor(price)) {
+      if (!resRef && minor(reqDown) + minor(reqAmt) !== minor(price)) {
         addError(
           r.errors,
           r.rowNumber,
@@ -4837,6 +4853,42 @@ function parsePolicySnapshot(
   return { timezone, tiers, leadDays, days }
 }
 
+function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["REMITTANCES"] | null {
+  const company = parseLegacyRefPair(r, "company", "FINANCE_COMPANIES", namespace, true)
+  const reference = r.reqString("reference", 200)
+  const amount = r.reqMoney("amount", { positive: true })
+  const date = r.reqDate("date")
+  const asOfDate = r.reqDate("asOfDate")
+  const raw = r.optJson("allocations") ?? []
+  const rows = z.array(z.object({
+    type: z.enum(["SALES", "BROKERAGE"]),
+    sourceKey: z.string().trim().min(1).max(200).optional(),
+    existingId: z.string().uuid().optional(),
+    amount: z.string(),
+  }).strict().refine((row) => !!row.sourceKey !== !!row.existingId)).max(100).safeParse(raw)
+  if (!rows.success) {
+    addError(r.errors, r.rowNumber, "allocations", "INVALID_JSON", "Expected allocation type, source key or UUID, and amount", r.sourceKey)
+    return null
+  }
+  if (!company || !reference || !amount || !date || !asOfDate) return null
+  const payment = reconciliationInputs.recordRemittance.shape.payment.safeParse({ amount, date, reference, method: "BANK_TRANSFER" })
+  if (!payment.success || asOfDate < date) {
+    addError(r.errors, r.rowNumber, "asOfDate", "INVALID_INPUT", "A valid bank payment must precede or match the reconciliation cutoff", r.sourceKey)
+    return null
+  }
+  const allocations = rows.data.flatMap((row, index) => {
+    const value = parseImportMoney(row.amount)
+    if (!value.ok || value.value === "0") {
+      addError(r.errors, r.rowNumber, `allocations[${index}].amount`, "INVALID_MONEY", "Allocation must be positive money in major units", r.sourceKey)
+      return []
+    }
+    const source = row.existingId ? { existingId: row.existingId.toLowerCase() }
+      : { namespace, type: row.type, sourceKey: row.sourceKey! }
+    return [{ source, sourceType: row.type, amount: value.value }]
+  })
+  return { company, payment: payment.data, asOfDate, allocations }
+}
+
 function parseAdvanceRow(
   r: RowReader,
   namespace: string
@@ -5092,6 +5144,9 @@ export function computeControlTotals(
         collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)
         break
       }
+      case "REMITTANCES":
+        cashInAmounts.push(minor(row.payload.payment.amount))
+        break
       case "ADVANCES": {
         collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)
         break
@@ -5199,6 +5254,10 @@ function collectDistinctKeys(
   for (const row of rows) {
     sourceKeys.add(row.sourceKey)
     switch (row.type) {
+      case "REMITTANCES":
+        addRef(row.payload.company)
+        for (const allocation of row.payload.allocations) addRef(allocation.source)
+        break
       case "BROKERAGE":
         addRef(row.payload.customer)
         referencedExistingIds.add(row.payload.quoteId)
@@ -5572,6 +5631,9 @@ export async function parseImportBuffer<K extends ImportType>(
         break
       case "REPAIRS":
         payload = parseRepairRow(reader, namespace) as ImportPayloads[K] | null
+        break
+      case "REMITTANCES":
+        payload = parseRemittanceRow(reader, namespace) as ImportPayloads[K] | null
         break
       case "ADVANCES":
         payload = parseAdvanceRow(reader, namespace) as

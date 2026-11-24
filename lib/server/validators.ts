@@ -863,6 +863,7 @@ export const importTypes = [
   "ADVANCES",
   "FINANCE_COMPANIES",
   "BROKERAGE",
+  "REMITTANCES",
 ] as const
 const attachmentId = id.transform((value) => value.toLowerCase())
 export const photoCategory = z.enum([

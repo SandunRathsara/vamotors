@@ -206,7 +206,7 @@ export interface Commands {
   continueReportExport: { exportId: Id }; // bounded resumable generation, never changes filter
   runExpiry: { through?: Instant; cursor?: string; limit: number };
 }
-export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES" | "FINANCE_COMPANIES" | "BROKERAGE";
+export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES" | "FINANCE_COMPANIES" | "BROKERAGE" | "REMITTANCES";
 export type LegacyRef = { namespace: string; type: ImportType;
   sourceKey: string } | { existingId: Id };
 export type LegacyPayment = CashInput & { sourceKey: string; direction: "IN" | "OUT";
@@ -220,6 +220,12 @@ export type ApprovalProvenance =
   { kind: "IMPORTED"; batchId: Id; rowId: Id; initiatedByAdminId: Id;
     historicalApprovalBypass: true; legacy: LegacyApprovalEvidence };
 export type ImportPayloads = {
+  REMITTANCES: {
+    company: LegacyRef;
+    payment: CashInput & { method: "BANK_TRANSFER"; reference: string };
+    asOfDate: DateOnly;
+    allocations: { source: LegacyRef; sourceType: "SALES" | "BROKERAGE"; amount: Money }[];
+  };
   FINANCE_COMPANIES: Commands["createFinanceCompany"];
   BROKERAGE: {
     customer: LegacyRef;

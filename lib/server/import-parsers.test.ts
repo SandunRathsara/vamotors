@@ -902,3 +902,18 @@ describe("T16 import parsers, templates & canonical validator", () => {
     expect(computeImportDigest(res.validRows)).toBe(res.digest)
   })
 })
+
+it("parses a lease sale that converts a historical advance", async () => {
+  const columns = getImportTemplateSchema("SALES").columns
+  const values: Record<string, string> = {
+    kind: "LEASE", price: "5500000.00", reservationSourceKey: "adv-001",
+    financeCompanySourceKey: "lender-001", downPayment: "500000.00",
+    financeAmount: "4500000.00", termMonths: "36", doIssueDate: "2026-01-19",
+    payments: "[]",
+  }
+  const result = await parseImportBuffer("SALES", "XLSX", buildXlsx([{
+    name: "SALES",
+    rows: [columns.map((c) => c.name), columns.map((c) => values[c.name] ?? c.example)],
+  }]), { namespace: "synthetic" })
+  expect(result.validRows).toHaveLength(1)
+})

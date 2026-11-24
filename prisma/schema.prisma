@@ -758,6 +758,7 @@ model SaleCase {
   kind             String
   agreedPrice      BigInt
   listedSnapshot   BigInt?
+  legacyApproval   Json?
   reference        String?
   notes            String?
   state            String

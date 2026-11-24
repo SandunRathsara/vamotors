@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { AlertCircle, Banknote, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ImportedBadge } from "@/components/imports/imported-badge"
 import { Input } from "@/components/ui/input"
 import { major, parseMajor } from "@/lib/money"
 import { privateRequest, RequestError } from "@/lib/security-client"
@@ -535,6 +536,7 @@ export function FinanceReconciliation() {
                 </Field>
                 {detail && (
                   <div className="space-y-4">
+                    <ImportedBadge provenance={detail.provenance} />
                     <p className="text-sm">
                       {methods[detail.method]} · {detail.currency} ·{" "}
                       {states[detail.state]}

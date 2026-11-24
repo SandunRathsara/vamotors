@@ -14,8 +14,29 @@ export async function importProvenance(
   type: string,
   entityId: string
 ): Promise<Provenance> {
+  const reservation =
+    type === "SaleCase"
+      ? await tx.reservation.findUnique({
+          where: { saleCaseId: entityId },
+          select: { id: true },
+        })
+      : null
   const row = await tx.importSourceRow.findFirst({
-    where: { targetVersion: { entityType: type, entityId } },
+    where: {
+      OR: [
+        { targetVersion: { entityType: type, entityId } },
+        ...(reservation
+          ? [
+              {
+                targetVersion: {
+                  entityType: "Reservation",
+                  entityId: reservation.id,
+                },
+              },
+            ]
+          : []),
+      ],
+    },
     include: { batch: true, file: { include: { attachment: true } } },
     orderBy: [{ batch: { createdAt: "asc" } }, { rowNumber: "asc" }],
   })
