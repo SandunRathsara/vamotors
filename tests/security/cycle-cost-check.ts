@@ -669,7 +669,12 @@ try {
         ),
         428
       )
-      for (const sourceType of ["SALE", "REPAIR", "FACILITY", "REMITTANCE"])
+      for (const [sourceType, status] of [
+        ["SALE", 422],
+        ["REPAIR", 422],
+        ["FACILITY", 404],
+        ["REMITTANCE", 404],
+      ] as const)
         await command(
           a.request,
           "reversePayment",
@@ -678,11 +683,11 @@ try {
               sourceType,
               sourceId: row.id,
               paymentId: row.payments[0].id,
-              reason: "Unsupported source",
+              reason: "Payment does not belong to this source",
             },
             refs(row)
           ),
-          422
+          status
         )
       await command(
         a.request,
