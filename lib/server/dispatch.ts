@@ -13,6 +13,7 @@ import { readScope, requireFields } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { commission } from "../money"
 import {
+  commonEligible,
   dealChecklistHash,
   dealDTO,
   dealInclude,
@@ -120,6 +121,13 @@ function readiness(row: DealRow) {
       message: `Deal is ${row.state}`,
     })
   }
+  if (row.path === "APPLICATION" && (!commonEligible(row) || row.photos.length !== 9)) {
+    blockers.push({
+      code: "CHECKLIST_INCOMPLETE",
+      field: "photos",
+      message: "Eligibility and all nine inspection photos are required",
+    })
+  }
   if (row.quoteStatus !== "SUPPORTED") {
     blockers.push({
       code: "UNSUPPORTED_RATE",
@@ -157,7 +165,7 @@ function readiness(row: DealRow) {
       blockers.push({
         code: "OBLIGATION_OPEN",
         field: "issues",
-        message: issue.text,
+        message: "An unresolved processing issue blocks dispatch",
       })
     }
   }
@@ -205,6 +213,10 @@ export async function executeDispatch(
         envelope.input.sourceIds.some((row) => row.type !== "BROKERAGE")
       )
         fail("INVALID_INPUT", 422)
+      requireFields(actor.ability, "DispatchBatch", "create", {
+        ...envelope.input,
+        createdBy: actor.userId,
+      }, Object.keys(envelope.input))
       const ids = [...new Set(envelope.input.sourceIds.map((s) => s.id))].sort()
       const deals: DealRow[] = []
       for (const id of ids) {
@@ -219,7 +231,7 @@ export async function executeDispatch(
           "BrokerageDeal",
           "read",
           { ...dealDTO(row), createdBy: row.createdBy },
-          ["id", "revision", "state", "path"]
+          ["id", "revision", "state", "path", "photos", "eligibility", "checklist", "verification", "fileReference", "quoteStatus", "issues"]
         )
         requireFields(
           actor.ability,
@@ -511,7 +523,7 @@ export async function dispatchPreviewQuery(
       "BrokerageDeal",
       "read",
       { ...dealDTO(row), createdBy: row.createdBy },
-      ["id", "revision", "state", "path"]
+      ["id", "revision", "state", "path", "photos", "eligibility", "checklist", "verification", "fileReference", "quoteStatus", "issues"]
     )
     const state = readiness(row)
     result.push({

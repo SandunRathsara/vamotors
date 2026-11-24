@@ -1,3 +1,4 @@
+import { checklistItemKey } from "../brokerage-checklist"
 import { z } from "zod"
 import { grantSchema } from "./permissions"
 export const id = z.string().uuid()
@@ -922,7 +923,7 @@ export const brokerageInputs = {
         .refine(
           (rows) =>
             new Set(
-              rows.map((r) => `${r.kind}:${r.participantId ?? ""}`)
+              rows.map(checklistItemKey)
             ).size === rows.length
         ),
     })

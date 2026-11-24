@@ -1,8 +1,11 @@
 "use client"
 
+import { CustomerForm } from "@/components/customers/customer-form"
+import { checklistItemKey } from "@/lib/brokerage-checklist"
+
 import * as React from "react"
 import Link from "next/link"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   Applied,
   BrokerageDTO,
@@ -13,7 +16,6 @@ import type {
   QuoteDTO,
   Visible,
 } from "@/.planning/implementation/contracts/api"
-import { useActor } from "@/components/providers/auth-boundary"
 import { privateRequest, RequestError } from "@/lib/security-client"
 import { major, parseMajor } from "@/lib/money"
 import { Button } from "@/components/ui/button"
@@ -31,7 +33,6 @@ import {
 } from "@/components/ui/table"
 
 type Deal = Visible<BrokerageDTO>
-type DealState = NonNullable<Deal["state"]>
 type PhotoCategoryName = NonNullable<PhotoCategory>
 const categories: PhotoCategoryName[] = [
   "FRONT",
@@ -100,6 +101,13 @@ async function send(name: string, input: unknown, expected: Dependency[] = []) {
 async function fetchQuery<T>(path: string): Promise<T> {
   return (await privateRequest<{ data: T }>(path)).data
 }
+function localDateTime() {
+  const now = new Date()
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16)
+}
+
 async function sha256(file: File) {
   const bytes = new Uint8Array(await file.arrayBuffer())
   const digest = await crypto.subtle.digest("SHA-256", bytes)
@@ -159,10 +167,15 @@ async function uploadDocument(
   })
   return done.result.id
 }
-function ref(deal: Deal): Dependency[] {
-  return deal.id && deal.revision
-    ? [{ type: "BrokerageDeal", id: deal.id, revision: deal.revision }]
-    : []
+function ref(deal: Deal, company?: Company, facility = false): Dependency[] {
+  const refs: Dependency[] = []
+  if (deal.id && deal.revision)
+    refs.push({ type: "BrokerageDeal", id: deal.id, revision: deal.revision })
+  if (company?.id && company.revision)
+    refs.push({ type: "FinanceCompany", id: company.id, revision: company.revision })
+  if (facility && deal.facility?.id && deal.facility.revision)
+    refs.push({ type: "CashFacility", id: deal.facility.id, revision: deal.facility.revision })
+  return refs
 }
 function Status({ state }: { state: string }) {
   return (
@@ -171,10 +184,10 @@ function Status({ state }: { state: string }) {
 }
 
 // ── List ─────────────────────────────────────────────────────────────────────
-export function BrokerageList() {
+export function BrokerageList({ initialQuoteId }: { initialQuoteId?: string }) {
   const [includeRejected, setIncludeRejected] = React.useState(false)
   const [status, setStatus] = React.useState("")
-  const [showIntake, setShowIntake] = React.useState(false)
+  const [showIntake, setShowIntake] = React.useState(Boolean(initialQuoteId))
   const deals = useQuery({
     queryKey: ["brokerage", "list", includeRejected, status],
     queryFn: () =>
@@ -196,7 +209,7 @@ export function BrokerageList() {
           {showIntake ? "Close intake" : "New brokerage deal"}
         </Button>
       </div>
-      {showIntake && <IntakeForm onDone={() => setShowIntake(false)} />}
+      {showIntake && <IntakeForm initialQuoteId={initialQuoteId} onDone={() => setShowIntake(false)} />}
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -283,15 +296,16 @@ export function BrokerageList() {
   )
 }
 
-function IntakeForm({ onDone }: { onDone: () => void }) {
+function IntakeForm({ initialQuoteId, onDone }: { initialQuoteId?: string; onDone: () => void }) {
   const queries = useQueryClient()
   const customers = useQuery({
     queryKey: ["customers", "brokerage-picker"],
     queryFn: () =>
       fetchQuery<{ data: CustomerDTO[] }>("/api/v1/queries/customers?page=1&pageSize=100"),
   })
-  const [quoteId, setQuoteId] = React.useState("")
+  const [quoteId, setQuoteId] = React.useState(initialQuoteId ?? "")
   const [quote, setQuote] = React.useState<Visible<QuoteDTO> | null>(null)
+  const [showCustomerForm, setShowCustomerForm] = React.useState(false)
   const [customerId, setCustomerId] = React.useState("")
   const [guarantors, setGuarantors] = React.useState([
     { name: "", identity: "", address: "", phone: "" },
@@ -313,32 +327,22 @@ function IntakeForm({ onDone }: { onDone: () => void }) {
     if (!quote?.id || !customerId || pending) return
     setPending(true)
     try {
-      await privateRequest<Applied>("/api/v1/commands/openBrokerage", {
-        method: "POST",
-        headers: { "content-type": "application/json", Origin: location.origin },
-        body: JSON.stringify(
-          envelope(
-            {
-              customerId,
-              guarantors: guarantors.filter((g) => g.name.trim()),
-              quoteId: quote.id,
-            },
-            [
-              { type: "Customer", id: customerId, revision: 1 },
-              { type: "Quote", id: quote.id, revision: 1 },
-              ...(quote.companyId
-                ? [
-                    {
-                      type: "FinanceCompany" as const,
-                      id: quote.companyId,
-                      revision: quote.companyRevision ?? 1,
-                    },
-                  ]
-                : []),
-            ]
-          )
-        ),
-      })
+      const [customer, settings] = await Promise.all([
+        fetchQuery<Visible<CustomerDTO>>(`/api/v1/queries/customer?id=${customerId}`),
+        fetchQuery<{ id: string; revision: number }>("/api/v1/queries/settings"),
+      ])
+      if (!customer.revision || !quote.companyId || !quote.companyRevision)
+        throw new Error("The customer and quote company must be readable.")
+      await send("openBrokerage", {
+        customerId,
+        guarantors: guarantors.filter((g) => g.name.trim()),
+        quoteId: quote.id,
+      }, [
+        { type: "Customer", id: customerId, revision: customer.revision },
+        { type: "Quote", id: quote.id, revision: 1 },
+        { type: "FinanceCompany", id: quote.companyId, revision: quote.companyRevision },
+        { type: "Settings", id: settings.id, revision: settings.revision },
+      ])
       await queries.invalidateQueries({ queryKey: ["brokerage"] })
       onDone()
     } catch (error) {
@@ -353,6 +357,16 @@ function IntakeForm({ onDone }: { onDone: () => void }) {
         <CardTitle>Open brokerage from a published quote</CardTitle>
       </CardHeader>
       <CardContent>
+        <Button type="button" variant="outline" onClick={() => setShowCustomerForm((open) => !open)}>
+          {showCustomerForm ? "Close customer form" : "New customer"}
+        </Button>
+        {showCustomerForm && (
+          <CustomerForm onSaved={async ({ result }) => {
+            await queries.invalidateQueries({ queryKey: ["customers"] })
+            setCustomerId(result.id)
+            setShowCustomerForm(false)
+          }} />
+        )}
         <form className="space-y-4" onSubmit={submit}>
           <div className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
@@ -360,7 +374,7 @@ function IntakeForm({ onDone }: { onDone: () => void }) {
               <Input
                 id="quote-id"
                 value={quoteId}
-                onChange={(e) => setQuoteId(e.target.value)}
+                onChange={(e) => { setQuoteId(e.target.value); setQuote(null) }}
                 required
               />
             </div>
@@ -385,7 +399,7 @@ function IntakeForm({ onDone }: { onDone: () => void }) {
               onChange={(e) => setCustomerId(e.target.value)}
             >
               <option value="">Select active customer</option>
-              {(customers.data?.data ?? []).map((c) => (
+              {(customers.data?.data ?? []).filter((c) => c.active).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.fullName} · {c.nicOrPassport}
                 </option>
@@ -541,27 +555,43 @@ export function BrokerageDetail({ dealId }: { dealId: string }) {
         </Link>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <EligibilityPanel deal={deal} contacts={contacts} refresh={refresh} />
+        <EligibilityPanel deal={deal} company={company.data} contacts={contacts} refresh={refresh} />
         {deal.path === "APPLICATION" ? (
           <InspectionPanel deal={deal} refresh={refresh} />
         ) : (
-          <ReferralPanel deal={deal} contacts={contacts} refresh={refresh} />
+          <ReferralPanel deal={deal} company={company.data} contacts={contacts} refresh={refresh} />
         )}
         {deal.path === "APPLICATION" && (
           <ChecklistPanel
             deal={deal}
             checklistHash={checklistHash}
+            company={company.data}
             contacts={contacts}
             refresh={refresh}
           />
         )}
-        <FinancialPanel deal={deal} contacts={contacts} refresh={refresh} />
+        <FinancialPanel deal={deal} company={company.data} contacts={contacts} refresh={refresh} />
         <FacilityPanel deal={deal} refresh={refresh} />
-        <IssuesPanel deal={deal} contacts={contacts} refresh={refresh} />
+        <IssuesPanel deal={deal} company={company.data} contacts={contacts} refresh={refresh} />
         <TimelinePanel deal={deal} />
       </div>
     </section>
   )
+}
+
+function EvidenceLink({ id, label }: { id: string; label: string }) {
+  const [error, setError] = React.useState("")
+  return <span>
+    <Button type="button" variant="link" onClick={async () => {
+      try {
+        const { url } = await fetchQuery<{ url: string }>(`/api/v1/queries/download?attachmentId=${id}`)
+        window.location.assign(url)
+      } catch (cause) {
+        setError(problem(cause))
+      }
+    }}>{label}</Button>
+    {error && <span role="alert">{error}</span>}
+  </span>
 }
 
 function Panel({
@@ -630,10 +660,12 @@ function ContactSelect({
 
 function EligibilityPanel({
   deal,
+  company,
   contacts,
   refresh,
 }: {
   deal: Deal
+  company?: Company
   contacts: NonNullable<Company["contacts"]>
   refresh: () => Promise<void>
 }) {
@@ -644,12 +676,12 @@ function EligibilityPanel({
       <ul className="space-y-1">
         {(deal.eligibility ?? []).map((row, index) => (
           <li key={index}>
-            {row.target} {row.outcome} · {row.at} · {row.feedback}
+            {row.target} {deal.guarantors?.find((g) => g.id === row.guarantorId)?.name} {row.outcome} · {row.at} · {contacts.find((c) => c.id === row.contactId)?.name ?? row.contactId} · {row.feedback}
           </li>
         ))}
         {!deal.eligibility?.length && <li>No eligibility checks yet.</li>}
       </ul>
-      {["INTAKE", "ELIGIBILITY_PENDING", "ELIGIBLE"].includes(deal.state ?? "") && (
+      {deal.nextActions?.includes("recordEligibility") && (
         <form
           className="space-y-2 border-t pt-3"
           onSubmit={(event) => {
@@ -669,7 +701,7 @@ function EligibilityPanel({
                     ? { guarantorId: data.get("guarantorId") }
                     : {}),
                 },
-                ref(deal)
+                ref(deal, company)
               )
             )
           }}
@@ -727,7 +759,7 @@ function EligibilityPanel({
                 name="checkedAt"
                 type="datetime-local"
                 required
-                defaultValue={new Date().toISOString().slice(0, 16)}
+                defaultValue={localDateTime()}
               />
             </div>
           </div>
@@ -782,22 +814,14 @@ function InspectionPanel({
     const current = await fetchQuery<Deal>(
       `/api/v1/queries/brokerageDeal?id=${deal.id}`
     )
-    const photos = [
-      ...(current.photos ?? []).map((p) => ({
-        category: p.category,
-        attachmentId: p.attachmentId,
-      })),
-      ...Object.entries(files).map(([category, attachmentId]) => ({
-        category,
-        attachmentId,
-      })),
-    ]
-    const unique = [
-      ...new Map(photos.map((p) => [p.category, p])).values(),
-    ]
+    const photos = Object.entries(files).map(([category, attachmentId]) => ({
+      category,
+      attachmentId,
+    }))
     try {
-      await send("recordInspection", { dealId: deal.id!, photos: unique }, ref(current))
+      await send("recordInspection", { dealId: deal.id!, photos }, ref(current))
       await refresh()
+      setFiles({})
       setMessage("Inspection recorded")
     } catch (error) {
       setMessage(problem(error))
@@ -814,6 +838,7 @@ function InspectionPanel({
             <Input
               id={`photo-${category}`}
               type="file"
+              disabled={pending || !["ELIGIBLE", "INSPECTED", "DOCUMENTS_READY"].includes(deal.state ?? "")}
               accept="image/jpeg,image/png,image/webp"
               onChange={(e) => {
                 const file = e.target.files?.[0]
@@ -825,12 +850,14 @@ function InspectionPanel({
                 ? "Persisted"
                 : "Missing"}
             </span>
+            {(deal.photos ?? []).filter((photo) => photo.category === category && photo.attachmentId)
+              .map((photo) => <EvidenceLink key={photo.attachmentId} id={photo.attachmentId!} label="Download photo" />)}
           </li>
         ))}
       </ul>
       <Button
         type="button"
-        disabled={pending || !existing.size}
+        disabled={pending || !Object.keys(files).length || !categories.every((category) => files[category] || existing.has(category))}
         onClick={() => void record()}
       >
         Record inspection evidence
@@ -842,10 +869,12 @@ function InspectionPanel({
 
 function ReferralPanel({
   deal,
+  company,
   contacts,
   refresh,
 }: {
   deal: Deal
+  company?: Company
   contacts: NonNullable<Company["contacts"]>
   refresh: () => Promise<void>
 }) {
@@ -874,7 +903,7 @@ function ReferralPanel({
                 },
                 feedback: data.get("feedback"),
               },
-              ref(deal)
+              ref(deal, company)
             )
           )
         }}
@@ -897,14 +926,14 @@ function ReferralPanel({
             name="referredAt"
             type="datetime-local"
             required
-            defaultValue={new Date().toISOString().slice(0, 16)}
+            defaultValue={localDateTime()}
           />
         </div>
         <div className="space-y-1">
           <Label htmlFor="referral-feedback">Feedback</Label>
           <Textarea id="referral-feedback" name="feedback" required />
         </div>
-        <Button type="submit" disabled={pending || deal.state !== "ELIGIBLE"}>
+        <Button type="submit" disabled={pending || !deal.nextActions?.includes("referDeal")}>
           Refer deal
         </Button>
         {message && <p role="alert">{message}</p>}
@@ -916,11 +945,13 @@ function ReferralPanel({
 function ChecklistPanel({
   deal,
   checklistHash,
+  company,
   contacts,
   refresh,
 }: {
   deal: Deal
   checklistHash?: string
+  company?: Company
   contacts: NonNullable<Company["contacts"]>
   refresh: () => Promise<void>
 }) {
@@ -942,11 +973,19 @@ function ChecklistPanel({
         item,
       ])
     )
-    return checklistKinds.map((kind) => {
-      const item = current.get(`${kind}:`)
+    const entries: { kind: ChecklistKindName; participantId: string }[] = checklistKinds
+      .filter((kind) => kind !== "GUARANTOR_ID" && kind !== "PROCESSING_DOCUMENT")
+      .map((kind) => ({ kind, participantId: "" }))
+    for (const guarantor of deal.guarantors ?? []) {
+      if (guarantor.id)
+        entries.push({ kind: "GUARANTOR_ID", participantId: guarantor.id })
+    }
+    return [
+      ...entries.map(({ kind, participantId }) => {
+      const item = current.get(`${kind}:${participantId}`)
       return {
         kind,
-        participantId: "",
+        participantId,
         applicability:
           (item?.applicability as ChecklistRow["applicability"]) ??
           (["RELATIONSHIP_PROOF", "DELETION_LETTER", "AFFIDAVIT"].includes(kind)
@@ -958,10 +997,25 @@ function ChecklistPanel({
         attachmentIds: item?.attachmentIds ?? [],
         label: (item as { label?: string } | undefined)?.label ?? "",
       }
-    })
+      }),
+      ...(deal.checklist ?? []).filter((item) => item.kind === "PROCESSING_DOCUMENT").map((item) => ({
+        kind: "PROCESSING_DOCUMENT" as const,
+        participantId: "",
+        applicability: item.applicability ?? "REQUIRED",
+        reason: item.reason ?? "",
+        collected: item.collected ?? false,
+        quantity: item.quantity ?? 0,
+        attachmentIds: item.attachmentIds ?? [],
+        label: item.label ?? "",
+      })),
+    ]
   })
   const [uploadMessage, setUploadMessage] = React.useState("")
-  async function attach(kind: ChecklistKindName, file: File) {
+  const [uploading, setUploading] = React.useState(false)
+  async function attach(index: number, file: File) {
+    const { kind } = rows[index]!
+    setUploading(true)
+    try {
     const current = await fetchQuery<Deal>(
       `/api/v1/queries/brokerageDeal?id=${deal.id}`
     )
@@ -970,11 +1024,10 @@ function ChecklistPanel({
       : vehicleKinds.includes(kind)
         ? "VEHICLE_DOCUMENT"
         : "PROCESSING_DOCUMENT"
-    try {
       const id = await uploadDocument(deal.id!, current.revision!, purpose, file)
       setRows((all) =>
-        all.map((row) =>
-          row.kind === kind
+        all.map((row, i) =>
+          i === index
             ? { ...row, attachmentIds: [...row.attachmentIds, id], collected: true }
             : row
         )
@@ -983,6 +1036,8 @@ function ChecklistPanel({
       await refresh()
     } catch (error) {
       setUploadMessage(problem(error))
+    } finally {
+      setUploading(false)
     }
   }
   function submit(event: React.FormEvent) {
@@ -992,8 +1047,9 @@ function ChecklistPanel({
         "setChecklist",
         {
           dealId: deal.id,
-          items: rows.map((row) => ({
+          items: rows.filter((row) => row.kind !== "PASSPORT_PHOTOS" || row.attachmentIds.length > 0).map((row) => ({
             kind: row.kind,
+            ...(row.participantId ? { participantId: row.participantId } : {}),
             ...(row.kind === "PROCESSING_DOCUMENT" ? { label: row.label } : {}),
             applicability: row.applicability,
             ...(row.reason ? { reason: row.reason } : {}),
@@ -1004,15 +1060,21 @@ function ChecklistPanel({
         },
         ref(deal)
       )
-    )
+    ).then((saved) => { if (saved) setUploadMessage("Saved") })
   }
+  const [outcome, setOutcome] = React.useState("CLEAN")
+  const lastVerification = deal.verification?.at(-1)
+  const outstanding = lastVerification?.outcome === "ISSUES" ? lastVerification.issues ?? [] : []
+  const editable = ["INSPECTED", "DOCUMENTS_READY"].includes(deal.state ?? "")
   return (
-    <Panel title="14-item checklist and verification">
+    <Panel title="Document checklist and verification">
       <form className="space-y-2" onSubmit={submit}>
         {rows.map((row, index) => (
-          <fieldset key={row.kind} className="space-y-1 rounded border p-2">
-            <legend className="text-xs font-medium">{row.kind}</legend>
-            <div className="flex flex-wrap items-center gap-2">
+          <fieldset key={index} className="space-y-1 rounded border p-2">
+            <legend className="text-xs font-medium">
+              {row.kind}{row.participantId && ` · ${deal.guarantors?.find((g) => g.id === row.participantId)?.name}`}
+            </legend>
+            <fieldset disabled={!editable || uploading || pending} className="flex flex-wrap items-center gap-2">
               <select
                 aria-label={`${row.kind} applicability`}
                 className="border-input h-8 rounded border bg-transparent text-xs"
@@ -1102,15 +1164,26 @@ function ChecklistPanel({
                   accept="application/pdf,image/jpeg,image/png,image/webp"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
-                    if (file) void attach(row.kind, file)
+                    if (file) void attach(index, file)
                   }}
                 />
               )}
-              <span className="text-xs">{row.attachmentIds.length} file(s)</span>
-            </div>
+            </fieldset>
+            <span className="text-xs">{row.attachmentIds.length} file(s)</span>
+            {row.attachmentIds.map((id, attachmentIndex) => (
+              <EvidenceLink key={id} id={id} label={`Download file ${attachmentIndex + 1}`} />
+            ))}
           </fieldset>
         ))}
-        <Button type="submit" disabled={pending}>
+        <Button type="button" variant="outline" disabled={!editable || uploading || pending} onClick={() =>
+          setRows((current) => [...current, {
+            kind: "PROCESSING_DOCUMENT", participantId: "", applicability: "REQUIRED",
+            reason: "", collected: false, quantity: 0, attachmentIds: [], label: "",
+          }])
+        }>
+          Add processing document
+        </Button>
+        <Button type="submit" disabled={!editable || uploading || pending}>
           Save checklist
         </Button>
       </form>
@@ -1122,18 +1195,17 @@ function ChecklistPanel({
           onSubmit={(event) => {
             event.preventDefault()
             const data = new FormData(event.currentTarget)
-            const outcome = String(data.get("outcome"))
-            const issues = String(data.get("issues") ?? "")
-              .split("\n")
-              .filter(Boolean)
-              .map((line) => {
-                const [itemKey, ...rest] = line.split(":")
-                return {
-                  itemKey: itemKey.trim(),
-                  description: rest.join(":").trim() || "Issue",
-                  resolved: outcome === "RESOLVED",
-                }
-              })
+            const issues = outcome === "RESOLVED"
+              ? outstanding.map((issue) => ({ ...issue, resolved: true }))
+              : outcome === "ISSUES"
+                ? (deal.checklist ?? []).flatMap((item, index) => {
+                    const description = String(data.get(`issue-${index}`) ?? "").trim()
+                    return description ? [{
+                      itemKey: checklistItemKey({ ...item, kind: item.kind ?? "" }),
+                      description, resolved: false,
+                    }] : []
+                  })
+                : []
             void run(() =>
               send(
                 "verifyDocuments",
@@ -1148,7 +1220,7 @@ function ChecklistPanel({
                   ).toISOString(),
                   feedback: data.get("feedback"),
                 },
-                ref(deal)
+                ref(deal, company)
               )
             )
           }}
@@ -1159,6 +1231,8 @@ function ChecklistPanel({
             <select
               id="verify-outcome"
               name="outcome"
+              value={outcome}
+              onChange={(event) => setOutcome(event.target.value)}
               className="border-input h-9 w-full rounded border bg-transparent px-2"
             >
               <option value="CLEAN">Clean</option>
@@ -1166,12 +1240,17 @@ function ChecklistPanel({
               <option value="RESOLVED">Resolved</option>
             </select>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="verify-issues">
-              Issues (one per line: checklist key: description)
-            </Label>
-            <Textarea id="verify-issues" name="issues" />
-          </div>
+          {outcome === "ISSUES" && (deal.checklist ?? []).map((item, index) => {
+            const key = checklistItemKey({ ...item, kind: item.kind ?? "" })
+            return <div key={key}>
+              <Label htmlFor={`verify-issue-${index}`}>{key}</Label>
+              <Input id={`verify-issue-${index}`} name={`issue-${index}`}
+                defaultValue={outstanding.find((issue) => issue.itemKey === key)?.description} />
+            </div>
+          })}
+          {outcome === "RESOLVED" && (
+            <ul>{outstanding.map((issue) => <li key={issue.itemKey}>{issue.itemKey} · {issue.description}</li>)}</ul>
+          )}
           <div className="space-y-1">
             <Label htmlFor="verify-at">Confirmed at</Label>
             <Input
@@ -1179,23 +1258,24 @@ function ChecklistPanel({
               name="confirmedAt"
               type="datetime-local"
               required
-              defaultValue={new Date().toISOString().slice(0, 16)}
+              defaultValue={localDateTime()}
             />
           </div>
           <div className="space-y-1">
             <Label htmlFor="verify-feedback">Feedback</Label>
             <Textarea id="verify-feedback" name="feedback" required />
           </div>
-          <Button type="submit" disabled={pending || !checklistHash}>
+          <Button type="submit" disabled={pending || uploading || !editable || !checklistHash || (outcome === "RESOLVED" && !outstanding.length)}>
             Verify documents
           </Button>
         </form>
       </div>
       <div className="space-y-1">
         {(deal.verification ?? []).map((v) => (
-          <p key={v.id}>
-            {v.outcome} · {v.confirmedAt} · {v.feedback}
-          </p>
+          <div key={v.id}>
+            <p>{v.outcome} · {v.confirmedAt} · {contacts.find((c) => c.id === v.contactId)?.name ?? v.contactId} · {v.feedback}</p>
+            <ul>{v.issues?.map((issue) => <li key={issue.itemKey}>{issue.itemKey} · {issue.description}{issue.resolved && " · resolved"}</li>)}</ul>
+          </div>
         ))}
       </div>
       {message && <p role="alert">{message}</p>}
@@ -1205,10 +1285,12 @@ function ChecklistPanel({
 
 function FinancialPanel({
   deal,
+  company,
   contacts,
   refresh,
 }: {
   deal: Deal
+  company?: Company
   contacts: NonNullable<Company["contacts"]>
   refresh: () => Promise<void>
 }) {
@@ -1245,7 +1327,7 @@ function FinancialPanel({
                     String(data.get("confirmedAt"))
                   ).toISOString(),
                 },
-                ref(deal)
+                ref(deal, company, true)
               )
             )
           }}
@@ -1268,14 +1350,14 @@ function FinancialPanel({
               name="confirmedAt"
               type="datetime-local"
               required
-              defaultValue={new Date().toISOString().slice(0, 16)}
+              defaultValue={localDateTime()}
             />
           </div>
           <div className="space-y-1">
             <Label htmlFor="adjust-feedback">Feedback</Label>
             <Textarea id="adjust-feedback" name="feedback" required />
           </div>
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending || !deal.nextActions?.includes("adjustLoan")}>
             Record loan adjustment
           </Button>
         </form>
@@ -1296,17 +1378,8 @@ function FinancialPanel({
                 confirmedAt: new Date(String(data.get("confirmedAt"))).toISOString(),
               },
               [
-                ...ref(deal),
+                ...ref(deal, company, true),
                 { type: "Quote", id: quoteId, revision: 1 },
-                ...(quote?.companyId
-                  ? [
-                      {
-                        type: "FinanceCompany" as const,
-                        id: quote.companyId,
-                        revision: quote.companyRevision ?? 1,
-                      },
-                    ]
-                  : []),
               ]
             )
           )
@@ -1318,7 +1391,7 @@ function FinancialPanel({
             <Input
               id="reselect-quote"
               value={quoteId}
-              onChange={(e) => setQuoteId(e.target.value)}
+              onChange={(e) => { setQuoteId(e.target.value); setQuote(null) }}
               required
             />
           </div>
@@ -1356,10 +1429,10 @@ function FinancialPanel({
             name="confirmedAt"
             type="datetime-local"
             required
-            defaultValue={new Date().toISOString().slice(0, 16)}
+            defaultValue={localDateTime()}
           />
         </div>
-        <Button type="submit" disabled={pending || !quoteId}>
+        <Button type="submit" disabled={pending || !deal.nextActions?.includes("replaceDealQuote") || !quote || quote.companyId !== company?.id}>
           Replace selected quote
         </Button>
       </form>
@@ -1395,7 +1468,7 @@ function FinancialPanel({
           <Label htmlFor="fee-reason">Override reason</Label>
           <Textarea id="fee-reason" name="reason" required />
         </div>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || !["INTAKE", "ELIGIBILITY_PENDING"].includes(deal.state ?? "") || deal.path !== "APPLICATION"}>
           Save fee override
         </Button>
       </form>
@@ -1415,7 +1488,7 @@ function FinancialPanel({
                   fileReference: data.get("fileReference"),
                   feedback: data.get("feedback"),
                 },
-                ref(deal)
+                ref(deal, company)
               )
             )
           }}
@@ -1436,7 +1509,7 @@ function FinancialPanel({
               name="informedAt"
               type="datetime-local"
               required
-              defaultValue={new Date().toISOString().slice(0, 16)}
+              defaultValue={localDateTime()}
             />
           </div>
           <div className="space-y-1">
@@ -1464,35 +1537,28 @@ function FacilityPanel({
   const facility = deal.facility
   const facilityState = (facility as unknown as { state?: string } | undefined)
     ?.state
+  const [deductionRows, setDeductionRows] = React.useState(() =>
+    facility?.terms?.deductions?.map((_, index) => index) ?? []
+  )
   async function requestFacility(event: React.FormEvent) {
     event.preventDefault()
     const data = new FormData(event.currentTarget as HTMLFormElement)
-    const deductionAmount = String(data.get("deductionAmount") ?? "")
-    const deductionLabel = String(data.get("deductionLabel") ?? "")
-    const deductions =
-      deductionAmount && deductionLabel
-        ? [
-            {
-              label: deductionLabel,
-              amount: parseMajor(deductionAmount),
-              recipient: String(data.get("deductionRecipient") ?? "Company"),
-              handling: "WITHHELD",
-            },
-          ]
-        : []
-    const terms = {
+    const terms = () => ({
       gross: parseMajor(String(data.get("gross"))),
-      deductions,
+      deductions: deductionRows.map((index) => ({
+        label: String(data.get(`deductionLabel-${index}`)),
+        amount: parseMajor(String(data.get(`deductionAmount-${index}`))),
+        recipient: String(data.get(`deductionRecipient-${index}`)),
+        handling: String(data.get(`deductionHandling-${index}`)),
+      })),
       fee: parseMajor(String(data.get("fee"))),
       feeMode: String(data.get("feeMode")),
-      separatelyRecoverableCharges: parseMajor(
-        String(data.get("separatelyRecoverableCharges") ?? "0")
-      ),
-    }
+      separatelyRecoverableCharges: parseMajor(String(data.get("separatelyRecoverableCharges"))),
+    })
     await run(() =>
       send(
         "requestFacility",
-        { dealId: deal.id, terms, reason: data.get("reason") },
+        { dealId: deal.id, terms: terms(), reason: data.get("reason") },
         [
           ...ref(deal),
           ...(facility?.id && facility.revision
@@ -1508,6 +1574,11 @@ function FacilityPanel({
       )
     )
   }
+  const paidDeductions = (facility?.terms?.deductions ?? []).flatMap((deduction, index) =>
+    deduction.handling === "PAID_BY_DEALERSHIP" && deduction.amount !== "0" ? [{ ...deduction, index }] : []
+  )
+  const canRequest = !["REJECTED", "COMPLETED"].includes(deal.state ?? "") &&
+    (!facility || facilityState === "REQUESTED")
   return (
     <Panel title="Cash facility">
       {facility ? (
@@ -1530,7 +1601,7 @@ function FacilityPanel({
       ) : (
         <p>No facility requested. A request never disburses cash.</p>
       )}
-      <form
+      {canRequest && <form
         className="space-y-2 border-t pt-2"
         onSubmit={requestFacility}
       >
@@ -1547,13 +1618,14 @@ function FacilityPanel({
           </div>
           <div className="space-y-1">
             <Label htmlFor="fac-fee">Fee</Label>
-            <Input id="fac-fee" name="fee" inputMode="decimal" defaultValue="0" required />
+            <Input id="fac-fee" name="fee" inputMode="decimal" defaultValue={facility?.terms?.fee ? major(BigInt(facility.terms.fee)) : "0"} required />
           </div>
           <div className="space-y-1">
             <Label htmlFor="fac-mode">Fee mode</Label>
             <select
               id="fac-mode"
               name="feeMode"
+              defaultValue={facility?.terms?.feeMode}
               className="border-input h-9 w-full rounded border bg-transparent px-2"
             >
               <option value="WITHHELD">Withheld</option>
@@ -1566,23 +1638,29 @@ function FacilityPanel({
               id="fac-charges"
               name="separatelyRecoverableCharges"
               inputMode="decimal"
-              defaultValue="0"
+              defaultValue={facility?.terms?.separatelyRecoverableCharges ? major(BigInt(facility.terms.separatelyRecoverableCharges)) : "0"}
               required
             />
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="fac-ded-label">Deduction label</Label>
-            <Input id="fac-ded-label" name="deductionLabel" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="fac-ded-amount">Deduction amount (withheld)</Label>
-            <Input id="fac-ded-amount" name="deductionAmount" inputMode="decimal" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="fac-ded-recipient">Deduction recipient</Label>
-            <Input id="fac-ded-recipient" name="deductionRecipient" />
-          </div>
         </div>
+        {deductionRows.map((index) => {
+          const deduction = facility?.terms?.deductions?.[index]
+          return <fieldset className="space-y-2 rounded border p-2" key={index}>
+            <legend>Deduction</legend>
+            <Input aria-label="Deduction label" name={`deductionLabel-${index}`} defaultValue={deduction?.label} required />
+            <Input aria-label="Deduction amount" name={`deductionAmount-${index}`} defaultValue={deduction?.amount ? major(BigInt(deduction.amount)) : ""} inputMode="decimal" required />
+            <Input aria-label="Deduction recipient" name={`deductionRecipient-${index}`} defaultValue={deduction?.recipient} required />
+            <select aria-label="Deduction handling" name={`deductionHandling-${index}`} defaultValue={deduction?.handling}>
+              <option value="WITHHELD">Withheld</option>
+              <option value="PAID_BY_DEALERSHIP">Paid by dealership</option>
+            </select>
+            <Button type="button" variant="outline" onClick={() => setDeductionRows((rows) => rows.filter((key) => key !== index))}>Remove deduction</Button>
+          </fieldset>
+        })}
+        <Button type="button" variant="outline" disabled={deductionRows.length >= 50}
+          onClick={() => setDeductionRows((rows) => [...rows, Math.max(-1, ...rows, (facility?.terms?.deductions?.length ?? 0) - 1) + 1])}>
+          Add deduction
+        </Button>
         <div className="space-y-1">
           <Label htmlFor="fac-reason">Reason</Label>
           <Textarea id="fac-reason" name="reason" required />
@@ -1590,31 +1668,28 @@ function FacilityPanel({
         <Button type="submit" disabled={pending}>
           {facility ? "Update requested facility" : "Request facility"}
         </Button>
-      </form>
+      </form>}
       {facilityState === "REQUESTED" && (
         <form
           className="space-y-2 border-t pt-2"
           onSubmit={(event) => {
             event.preventDefault()
             const data = new FormData(event.currentTarget)
-            const net = BigInt(String(data.get("netAmount") ?? "0"))
+            const cash = (amount: string, suffix = "") => ({
+              amount,
+              date: data.get(`date${suffix}`),
+              method: data.get(`method${suffix}`),
+              ...(data.get(`reference${suffix}`) ? { reference: data.get(`reference${suffix}`) } : {}),
+            })
             void run(() =>
               send(
                 "disburseFacility",
                 {
                   dealId: deal.id,
-                  payment:
-                    net > 0n
-                      ? {
-                          amount: String(net),
-                          date: data.get("date"),
-                          method: data.get("method"),
-                          ...(data.get("reference")
-                            ? { reference: data.get("reference") }
-                            : {}),
-                        }
-                      : null,
-                  separatelyPaidDeductions: [],
+                  payment: facility?.net === "0" ? null : cash(parseMajor(String(data.get("netAmount")))),
+                  separatelyPaidDeductions: paidDeductions.map(({ index, amount }) => ({
+                    index, payment: cash(amount!, `-${index}`),
+                  })),
                 },
                 [
                   ...ref(deal),
@@ -1646,7 +1721,7 @@ function FacilityPanel({
                 name="date"
                 type="date"
                 required
-                defaultValue={new Date().toISOString().slice(0, 10)}
+                defaultValue={localDateTime().slice(0, 10)}
               />
             </div>
             <div className="space-y-1">
@@ -1665,7 +1740,18 @@ function FacilityPanel({
               <Input id="disb-ref" name="reference" />
             </div>
           </div>
-          <Button type="submit" disabled={pending}>
+          {paidDeductions.map(({ index, label, recipient, amount }) => (
+            <fieldset key={index} className="space-y-2 rounded border p-2">
+              <legend>{label} · {recipient} · {moneyText(amount)}</legend>
+              <Input aria-label="Deduction payment date" name={`date-${index}`} type="date" required defaultValue={localDateTime().slice(0, 10)} />
+              <select aria-label="Deduction payment method" name={`method-${index}`}>
+                <option value="BANK_TRANSFER">Bank transfer</option>
+                <option value="CASH">Cash</option>
+              </select>
+              <Input aria-label="Deduction payment reference" name={`reference-${index}`} />
+            </fieldset>
+          ))}
+          <Button type="submit" disabled={pending || !deal.nextActions?.includes("disburseFacility")}>
             Disburse facility
           </Button>
         </form>
@@ -1732,7 +1818,7 @@ function FacilityPanel({
                 name="date"
                 type="date"
                 required
-                defaultValue={new Date().toISOString().slice(0, 10)}
+                defaultValue={localDateTime().slice(0, 10)}
               />
             </div>
             <div className="space-y-1">
@@ -1805,7 +1891,7 @@ function FacilityPanel({
               name="date"
               type="date"
               required
-              defaultValue={new Date().toISOString().slice(0, 10)}
+              defaultValue={localDateTime().slice(0, 10)}
             />
           </div>
           <div className="space-y-1">
@@ -1831,10 +1917,12 @@ function FacilityPanel({
 
 function IssuesPanel({
   deal,
+  company,
   contacts,
   refresh,
 }: {
   deal: Deal
+  company?: Company
   contacts: NonNullable<Company["contacts"]>
   refresh: () => Promise<void>
 }) {
@@ -1870,7 +1958,7 @@ function IssuesPanel({
                         feedback: data.get("feedback"),
                         resolve: data.get("resolve") === "on",
                       },
-                      ref(deal)
+                      ref(deal, company)
                     )
                   )
                 }}
@@ -1881,7 +1969,7 @@ function IssuesPanel({
                   name="at"
                   type="datetime-local"
                   required
-                  defaultValue={new Date().toISOString().slice(0, 16)}
+                  defaultValue={localDateTime()}
                 />
                 <Textarea aria-label="Feedback" name="feedback" required />
                 <label className="flex items-center gap-1 text-xs">
@@ -1940,7 +2028,7 @@ function IssuesPanel({
             name="blocksStep"
             className="border-input h-9 w-full rounded border bg-transparent px-2"
           >
-            <option value="DISPATCH">Dispatch</option>
+            {deal.path === "APPLICATION" && <option value="DISPATCH">Dispatch</option>}
             <option value="COMPLETE">Complete</option>
           </select>
         </div>
@@ -1950,9 +2038,9 @@ function IssuesPanel({
           name="at"
           type="datetime-local"
           required
-          defaultValue={new Date().toISOString().slice(0, 16)}
+          defaultValue={localDateTime()}
         />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || deal.state === "COMPLETED"}>
           Open issue
         </Button>
       </form>
@@ -2013,7 +2101,7 @@ function DealClosure({ deal }: { deal: Deal }) {
             ? { reason: data.get("text") }
             : { feedback: data.get("text") }),
         },
-        ref(deal)
+        ref(deal, party.data)
       )
       await queries.invalidateQueries({ queryKey: ["brokerage"] })
     } catch (error) {
@@ -2035,7 +2123,7 @@ function DealClosure({ deal }: { deal: Deal }) {
         <ContactSelect id="reject-contact" contacts={contacts} />
         <Input aria-label="Rejected at" name="at" type="datetime-local" required />
         <Textarea aria-label="Rejection reason" name="text" required />
-        <Button type="submit" variant="destructive" disabled={pending}>
+        <Button type="submit" variant="destructive" disabled={pending || !deal.nextActions?.includes("rejectDeal")}>
           Reject deal
         </Button>
       </form>
@@ -2050,7 +2138,7 @@ function DealClosure({ deal }: { deal: Deal }) {
         <ContactSelect id="complete-contact" contacts={contacts} />
         <Input aria-label="Completed at" name="at" type="datetime-local" required />
         <Textarea aria-label="Completion feedback" name="text" required />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || !deal.nextActions?.includes("completeBrokerage")}>
           Complete brokerage
         </Button>
       </form>
@@ -2062,14 +2150,15 @@ function DealClosure({ deal }: { deal: Deal }) {
 // ── Dispatch ────────────────────────────────────────────────────────────────
 export function BrokerageDispatch() {
   const queries = useQueryClient()
+  const [page, setPage] = React.useState(1)
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
   const [message, setMessage] = React.useState("")
   const [pending, setPending] = React.useState(false)
   const list = useQuery({
-    queryKey: ["brokerage", "dispatch-list"],
+    queryKey: ["brokerage", "dispatch-list", page],
     queryFn: () =>
       fetchQuery<{ data: Deal[]; total: number }>(
-        "/api/v1/queries/brokerage?page=1&pageSize=100&status=DOCUMENTS_READY"
+        `/api/v1/queries/brokerage?page=${page}&pageSize=50&status=DOCUMENTS_READY`
       ),
   })
   const deals = list.data?.data ?? []
@@ -2098,15 +2187,16 @@ export function BrokerageDispatch() {
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     const data = new FormData(event.currentTarget as HTMLFormElement)
-    const members = [...selected].map((id) => {
+    const members = [...selected].flatMap((id) => {
       const preview = previews.data?.get(id)
-      return {
-        type: "BROKERAGE" as const,
-        id,
-        revision: preview!.revision,
-        checklistHash: preview!.checklistHash,
-      }
+      if (!preview?.ready) return []
+      return [{ type: "BROKERAGE" as const, id, revision: preview.revision, checklistHash: preview.checklistHash }]
     })
+    if (members.length !== selected.size) {
+      setMessage("Review the batch again. A selected deal is no longer ready.")
+      setSelected(new Set())
+      return
+    }
     if (!members.length) {
       setMessage("Select at least one ready deal")
       return
@@ -2202,6 +2292,16 @@ export function BrokerageDispatch() {
           </TableBody>
         </Table>
       )}
+      {previews.error && <p role="alert">{problem(previews.error)}</p>}
+      {(list.data?.total ?? 0) > 50 && (
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" disabled={page === 1 || pending}
+            onClick={() => { setSelected(new Set()); setPage(page - 1) }}>Previous</Button>
+          <span>Page {page}</span>
+          <Button type="button" variant="outline" disabled={page * 50 >= (list.data?.total ?? 0) || pending}
+            onClick={() => { setSelected(new Set()); setPage(page + 1) }}>Next</Button>
+        </div>
+      )}
       <form className="space-y-2" onSubmit={submit}>
         <div className="grid gap-2 sm:grid-cols-3">
           <div className="space-y-1">
@@ -2211,7 +2311,7 @@ export function BrokerageDispatch() {
               name="handedOverAt"
               type="datetime-local"
               required
-              defaultValue={new Date().toISOString().slice(0, 16)}
+              defaultValue={localDateTime()}
             />
           </div>
           <div className="space-y-1">
@@ -2223,7 +2323,7 @@ export function BrokerageDispatch() {
             <Input id="dispatch-tracking" name="tracking" />
           </div>
         </div>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || !selected.size}>
           Dispatch selected deals
         </Button>
         {message && <p role="alert">{message}</p>}

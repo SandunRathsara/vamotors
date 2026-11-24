@@ -53,6 +53,7 @@ import {
   type FacilityObligationBuckets,
 } from "./domain-math"
 import { executeDispatch, dispatchPreviewQuery, dispatchReplay } from "./dispatch"
+import { checklistItemKey } from "../brokerage-checklist"
 import { checklistHashFor } from "./brokerage-math"
 
 type Name = BrokerageCommandName | "dispatchBatch" | "reversePayment"
@@ -106,6 +107,11 @@ const VEHICLE_KINDS = [
   "TRANSFER_PAPER",
   "PREVIOUS_OWNER_ID",
 ]
+const resetFileReference = {
+  fileReference: null,
+  informedContactId: null,
+  informedAt: null,
+} as const
 const invalidate: Applied["invalidate"] = [
   "brokerage",
   "parties",
@@ -339,11 +345,11 @@ export function dealDTO(row: DealRow): BrokerageDTO {
 }
 function nextActions(row: DealRow): BrokerageDTO["nextActions"] {
   const actions: BrokerageDTO["nextActions"] = []
-  if (["INTAKE", "ELIGIBILITY_PENDING"].includes(row.state)) {
+  if (["INTAKE", "ELIGIBILITY_PENDING", "ELIGIBLE"].includes(row.state) || (row.state === "REJECTED" && !row.events.some((event) => event.kind === "REJECTED"))) {
     actions.push("recordEligibility")
   }
   if (row.path === "APPLICATION") {
-    if (row.state === "ELIGIBLE") actions.push("recordInspection")
+    if (["ELIGIBLE", "INSPECTED", "DOCUMENTS_READY"].includes(row.state)) actions.push("recordInspection")
     if (["INSPECTED", "DOCUMENTS_READY"].includes(row.state)) {
       actions.push("adjustLoan", "replaceDealQuote", "setChecklist")
     }
@@ -353,11 +359,13 @@ function nextActions(row: DealRow): BrokerageDTO["nextActions"] {
     if (row.state === "DISPATCHED") actions.push("completeBrokerage")
   }
   if (row.path === "REFERRAL") {
-    if (row.state === "ELIGIBLE") actions.push("referDeal")
+    if (row.state === "ELIGIBLE") actions.push("referDeal", "replaceDealQuote")
     if (row.state === "REFERRED") actions.push("completeBrokerage")
   }
-  if (!["COMPLETED", "REJECTED"].includes(row.state)) actions.push("rejectDeal")
-  if (row.facility?.state === "REQUESTED") actions.push("disburseFacility")
+  if (!["INTAKE", "COMPLETED", "REJECTED"].includes(row.state)) actions.push("rejectDeal")
+  if (row.facility?.state === "REQUESTED" && !["REJECTED", "COMPLETED"].includes(row.state) &&
+    commonEligible(row) && row.facility.gross === row.approvedLoan)
+    actions.push("disburseFacility")
   if (["DISBURSED", "PARTIAL"].includes(row.facility?.state ?? ""))
     actions.push("recoverFacility")
   return [...new Set(actions)]
@@ -385,7 +393,7 @@ async function loadDeal(
   tx: Tx,
   actor: Actor,
   dealId: string,
-  write = false
+  write: boolean | string[] = false
 ): Promise<DealRow> {
   if (write)
     await tx.$queryRaw`SELECT id FROM vamotors."BrokerageDeal" WHERE id=${dealId}::uuid FOR UPDATE`
@@ -394,7 +402,9 @@ async function loadDeal(
     include: dealInclude,
   })
   if (!row) fail("NOT_FOUND", 404)
-  authorizeDeal(actor, row, write)
+  authorizeDeal(actor, row, Boolean(write))
+  if (Array.isArray(write))
+    requireFields(actor.ability, "BrokerageDeal", "update", dealSubject(row), write)
   return row
 }
 function requirePath(row: DealRow, path: "APPLICATION" | "REFERRAL") {
@@ -416,10 +426,10 @@ function latestFor(row: DealRow) {
     map.set(check.target === "GUARANTOR" ? `G:${check.guarantorId}` : check.target, check)
   return map
 }
-function commonEligible(row: DealRow) {
+export function commonEligible(row: DealRow) {
   const latest = latestFor(row)
   if (latest.get("CUSTOMER")?.outcome !== "CONFIRMED") return false
-  return row.guarantors.every(
+  return row.guarantors.length > 0 && row.guarantors.every(
     (g) => latest.get(`G:${g.id}`)?.outcome === "CONFIRMED"
   )
 }
@@ -470,17 +480,24 @@ export function missingChecklist(row: DealRow) {
       }
       continue
     }
-    if (kind === "EXTRA_KEY") continue
+    if (kind === "EXTRA_KEY" && !items.some((item) => item.collected))
+      missing.push("checklist.EXTRA_KEY.collected")
     for (const item of items) {
       if (item.applicability !== "REQUIRED") {
         missing.push(`checklist.${kind}.applicability`)
         continue
       }
       if (!item.collected) missing.push(`checklist.${kind}.collected`)
-      if (!item.documents.length) missing.push(`checklist.${kind}.attachments`)
+      if (kind !== "EXTRA_KEY" && !item.documents.length) missing.push(`checklist.${kind}.attachments`)
       if (kind === "PASSPORT_PHOTOS" && item.quantity < 4)
         missing.push(`checklist.PASSPORT_PHOTOS.quantity`)
     }
+  }
+  for (const kind of ["RELATIONSHIP_PROOF", "DELETION_LETTER"]) {
+    const item = byKind.get(kind)?.[0]
+    if (!item || (item.applicability !== "REQUIRED" &&
+      (item.applicability !== "NOT_REQUIRED" || !item.applicabilityReason)))
+      missing.push(`checklist.${kind}.applicability`)
   }
   for (const item of row.checklist) {
     if (item.applicability !== "REQUIRED") continue
@@ -568,7 +585,7 @@ async function commitDeal(
     digest: string
     scope: ReturnType<typeof receiptScope>
     sequence: bigint
-    before: DealRow
+    before: DealRow | null
     after: DealRow
     extra?: {
       entityType: "CashFacility" | "DispatchBatch" | "CommissionEntitlement"
@@ -584,9 +601,9 @@ async function commitDeal(
       text: string
     }[]
     result?: Applied["result"]
+    reason?: string
   }
 ) {
-  const payload = dealDTO(input.after)
   const result = input.result ?? {
     type: "BrokerageDeal" as const,
     id: input.after.id,
@@ -601,6 +618,18 @@ async function commitDeal(
       businessSequence: input.sequence,
     },
   })
+  for (const event of input.events ?? [])
+    input.after.events.push(await tx.dealEvent.create({
+      data: {
+        dealId: input.after.id,
+        kind: event.kind,
+        contactId: event.contactId ?? null,
+        at: event.at,
+        text: event.text,
+        commandId: input.commandId,
+      },
+    }))
+  const payload = dealDTO(input.after)
   await tx.auditEntry.create({
     data: {
       commandId: input.commandId,
@@ -609,7 +638,8 @@ async function commitDeal(
       entityId: input.after.id,
       actorKind: "USER",
       action: input.commandName,
-      fieldDiff: fieldDiff("BrokerageDeal", dealSubject(input.before), {
+      reason: input.reason,
+      fieldDiff: fieldDiff("BrokerageDeal", input.before ? dealSubject(input.before) : null, {
         ...payload,
         createdBy: input.after.createdBy,
       }),
@@ -623,17 +653,6 @@ async function commitDeal(
     revision: input.after.revision,
     payload,
   })
-  for (const event of input.events ?? [])
-    await tx.dealEvent.create({
-      data: {
-        dealId: input.after.id,
-        kind: event.kind,
-        contactId: event.contactId ?? null,
-        at: event.at,
-        text: event.text,
-        commandId: input.commandId,
-      },
-    })
   for (const extra of input.extra ?? []) {
     await tx.auditEntry.create({
       data: {
@@ -784,6 +803,8 @@ const handlers: Record<BrokerageCommandName, Handler> = {
       "quoteId",
       "facility",
     ])
+    if (input.facility)
+      requireFields(actor.ability, "CashFacility", "create", { createdBy: actor.userId }, ["dealId", "terms"])
     const { scope, prior } = await priorReceipt(
       tx,
       actor,
@@ -920,7 +941,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
       digest,
       scope,
       sequence,
-      before: after,
+      before: null,
       after,
       ...(facilityExtra ? { extra: [facilityExtra] } : {}),
     })
@@ -928,7 +949,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   recordEligibility: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.recordEligibility.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
     })
@@ -946,7 +967,9 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     )
     if (prior) return prior
     checkRefs(envelope.expected, [ref(deal), companyRef(company)])
-    if (["COMPLETED", "DISPATCHED", "REFERRED"].includes(deal.state))
+    if (!["INTAKE", "ELIGIBILITY_PENDING", "ELIGIBLE", "REJECTED"].includes(deal.state))
+      fail("INVALID_STATE")
+    if (deal.state === "REJECTED" && deal.events.some((event) => event.kind === "REJECTED"))
       fail("INVALID_STATE")
     await activeContact(tx, deal.companyId, input.contactId)
     if (input.target === "VEHICLE") requirePath(deal, "APPLICATION")
@@ -985,24 +1008,24 @@ const handlers: Record<BrokerageCommandName, Handler> = {
       )
       rejectedAt = new Date(input.checkedAt)
     } else {
-      if (state === "REJECTED" && rejectionReason?.includes("eligibility rejected")) {
-        state = "ELIGIBILITY_PENDING"
+      const all = new Map(latest)
+      all.delete(targetKey)
+      const remainingRejection = [...all.values()].reverse().find((check) => check.outcome === "REJECTED")
+      if (remainingRejection) {
+        state = "REJECTED"
+        rejectionReason = `${remainingRejection.target} eligibility rejected: ${remainingRejection.feedback}`.slice(0, 2000)
+        rejectedAt = remainingRejection.checkedAt
+      } else {
+        all.set(targetKey, { outcome: "CONFIRMED" } as EligibilityCheck)
+        const common =
+          all.get("CUSTOMER")?.outcome === "CONFIRMED" &&
+          deal.guarantors.every((g) => all.get(`G:${g.id}`)?.outcome === "CONFIRMED")
+        state = common && (deal.path === "REFERRAL" || all.get("VEHICLE")?.outcome === "CONFIRMED")
+          ? (deal.photos.length === PHOTO_CATEGORIES.length ? "INSPECTED" : "ELIGIBLE")
+          : "ELIGIBILITY_PENDING"
         rejectionReason = null
         rejectedAt = null
       }
-      const all = new Map(latest)
-      all.set(targetKey, {
-        outcome: "CONFIRMED",
-      } as EligibilityCheck)
-      const common =
-        all.get("CUSTOMER")?.outcome === "CONFIRMED" &&
-        deal.guarantors.every(
-          (g) => all.get(`G:${g.id}`)?.outcome === "CONFIRMED"
-        )
-      if (common && (deal.path === "REFERRAL" || all.get("VEHICLE")?.outcome === "CONFIRMED"))
-        state = "ELIGIBLE"
-      else if (!["INSPECTED", "DOCUMENTS_READY", "DISPATCHED", "REFERRED"].includes(state))
-        state = "ELIGIBILITY_PENDING"
     }
     await tx.brokerageDeal.update({
       where: { id: deal.id },
@@ -1028,7 +1051,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   recordInspection: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.recordInspection.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     requirePath(deal, "APPLICATION")
     const { scope, prior } = await priorReceipt(
       tx,
@@ -1092,7 +1115,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     }
     await tx.brokerageDeal.update({
       where: { id: deal.id },
-      data: { state: "INSPECTED", revision: deal.revision + 1, updatedAt: now },
+      data: { ...resetFileReference, state: "INSPECTED", revision: deal.revision + 1, updatedAt: now },
     })
     const after = await loadDeal(tx, actor, deal.id)
     return commitDeal(tx, actor, {
@@ -1108,7 +1131,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   adjustLoan: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.adjustLoan.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     requirePath(deal, "APPLICATION")
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
@@ -1155,6 +1178,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     await tx.brokerageDeal.update({
       where: { id: deal.id },
       data: {
+        ...resetFileReference,
         approvedLoan: amount,
         quoteStatus: BigInt(rate.principal) === amount ? "SUPPORTED" : "RESELECTION_REQUIRED",
         state: "INSPECTED",
@@ -1176,7 +1200,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
           kind: "LOAN_ADJUSTMENT",
           contactId: input.contactId,
           at: new Date(input.confirmedAt),
-          text: `Approved loan adjusted to ${input.amount}: ${input.feedback}`,
+          text: `Approved loan adjusted to ${input.amount}: ${input.feedback}`.slice(0, 2000).trimEnd(),
         },
       ],
     })
@@ -1184,7 +1208,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   replaceDealQuote: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.replaceDealQuote.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     const quote = await quoteForUse(tx, actor, input.quoteId)
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
@@ -1215,16 +1239,23 @@ const handlers: Record<BrokerageCommandName, Handler> = {
         revision: facility.revision,
       })
     checkRefs(envelope.expected, required)
-    if (["DISPATCHED", "REFERRED", "COMPLETED", "REJECTED"].includes(deal.state))
+    if (deal.path === "APPLICATION"
+      ? !["INSPECTED", "DOCUMENTS_READY"].includes(deal.state)
+      : deal.state !== "ELIGIBLE")
       fail("INVALID_STATE")
     await activeContact(tx, deal.companyId, input.contactId)
     const quotePolicy = quote.policySnapshot as { path: string }
     if (quote.companyId !== deal.companyId) fail("BALANCE_MISMATCH", 422)
     if (quotePolicy.path !== deal.path) fail("PATH_MISMATCH")
+    const previousVehicle = deal.externalVehicle as BrokerageDTO["vehicle"]
+    const candidateVehicle = quote.vehicle as BrokerageDTO["vehicle"]
+    if (["make", "model", "year"].some((key) =>
+      previousVehicle[key as "make" | "model" | "year"] !== candidateVehicle[key as "make" | "model" | "year"]
+    )) fail("BALANCE_MISMATCH", 422)
     if (quote.principal !== deal.approvedLoan) fail("BALANCE_MISMATCH", 422)
     if (canonical(quote.charges) !== canonical(deal.chargesSnapshot))
       fail("BALANCE_MISMATCH", 422)
-    if (facility && ["DISBURSED", "PARTIAL", "RECOVERED"].includes(facility.state) && quote.principal !== facility.gross)
+    if (facility && quote.principal !== facility.gross)
       fail("OBLIGATION_OPEN")
     const current = currentSelection(deal)
     const commandId = randomUUID(),
@@ -1259,6 +1290,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     await tx.brokerageDeal.update({
       where: { id: deal.id },
       data: {
+        ...resetFileReference,
         currentQuoteSelectionId: selection.id,
         quoteStatus: "SUPPORTED",
         state: deal.path === "APPLICATION" ? "INSPECTED" : "ELIGIBLE",
@@ -1280,7 +1312,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   setChecklist: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.setChecklist.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     requirePath(deal, "APPLICATION")
     const { scope, prior } = await priorReceipt(
       tx,
@@ -1292,7 +1324,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     )
     if (prior) return prior
     checkRefs(envelope.expected, [ref(deal)])
-    if (!["ELIGIBLE", "INSPECTED", "DOCUMENTS_READY"].includes(deal.state))
+    if (!["INSPECTED", "DOCUMENTS_READY"].includes(deal.state))
       fail("INVALID_STATE")
     const commandId = randomUUID(),
       sequence = await nextBusinessSequence(tx),
@@ -1300,7 +1332,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     const guarantorIds = new Set(deal.guarantors.map((g) => g.id))
     const attachments = new Map<string, Attachment>()
     for (const item of input.items) {
-      if (MANDATORY_BASE.includes(item.kind) && item.applicability === "NOT_REQUIRED")
+      if (MANDATORY_BASE.includes(item.kind) && item.applicability !== "REQUIRED")
         fail("CHECKLIST_INCOMPLETE", 422)
       if (
         ["RELATIONSHIP_PROOF", "DELETION_LETTER"].includes(item.kind) &&
@@ -1308,17 +1340,15 @@ const handlers: Record<BrokerageCommandName, Handler> = {
         !item.reason
       )
         fail("CHECKLIST_INCOMPLETE", 422)
-      if (item.kind === "GUARANTOR_ID" && !guarantorIds.has(item.participantId ?? ""))
+      if (item.kind === "GUARANTOR_ID"
+        ? !guarantorIds.has(item.participantId ?? "")
+        : item.participantId !== undefined)
         fail("INVALID_INPUT", 422)
-      if (item.kind === "PASSPORT_PHOTOS" && item.applicability === "REQUIRED") {
-        if (item.quantity < 4 || !item.attachmentIds.length)
-          fail("CHECKLIST_INCOMPLETE", 422)
-      }
+      if (item.kind === "PASSPORT_PHOTOS" && (item.quantity < 4 || !item.attachmentIds.length))
+        fail("CHECKLIST_INCOMPLETE", 422)
       if (item.kind === "PROCESSING_DOCUMENT" && !item.label)
         fail("INVALID_INPUT", 422)
       if (item.kind === "EXTRA_KEY" && item.attachmentIds.length)
-        fail("CHECKLIST_INCOMPLETE", 422)
-      if (item.applicability === "REQUIRED" && !item.collected)
         fail("CHECKLIST_INCOMPLETE", 422)
       const purpose = PARTICIPANT_KINDS.includes(item.kind)
         ? "PARTICIPANT_DOCUMENT"
@@ -1347,7 +1377,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
         }
       }
     }
-    const keys = new Set(input.items.map((i) => `${i.kind}:${i.participantId ?? ""}`))
+    const keys = new Set(input.items.map(checklistItemKey))
     for (const existing of deal.checklist) {
       if (keys.has(existing.uniqueKey)) continue
       await tx.checklistDocument.deleteMany({
@@ -1356,17 +1386,15 @@ const handlers: Record<BrokerageCommandName, Handler> = {
       await tx.checklistItem.delete({ where: { id: existing.id } })
     }
     for (const item of input.items) {
-      const key = `${item.kind}:${item.participantId ?? ""}`
+      const key = checklistItemKey(item)
       const existing = deal.checklist.find((i) => i.uniqueKey === key)
       const data = {
-        kind: item.kind,
         label: item.label ?? null,
         participantId: item.participantId ?? null,
         applicability: item.applicability,
         applicabilityReason: item.reason ?? null,
         collected: item.collected,
         quantity: item.quantity,
-        commandId,
         updatedAt: now,
       }
       const row = existing
@@ -1378,9 +1406,11 @@ const handlers: Record<BrokerageCommandName, Handler> = {
             data: {
               dealId: deal.id,
               uniqueKey: key,
+              kind: item.kind,
               ...data,
               revision: 1,
               createdAt: now,
+              commandId,
             },
           })
       if (existing)
@@ -1394,7 +1424,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     }
     await tx.brokerageDeal.update({
       where: { id: deal.id },
-      data: { state: "INSPECTED", revision: deal.revision + 1, updatedAt: now },
+      data: { ...resetFileReference, state: "INSPECTED", revision: deal.revision + 1, updatedAt: now },
     })
     const after = await loadDeal(tx, actor, deal.id)
     return commitDeal(tx, actor, {
@@ -1410,7 +1440,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   verifyDocuments: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.verifyDocuments.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     requirePath(deal, "APPLICATION")
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
@@ -1431,25 +1461,27 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     const hash = dealChecklistHash(deal)
     if (hash !== input.checklistHash) fail("VERIFICATION_STALE")
     const missing = missingChecklist(deal)
-    if (input.outcome === "CLEAN" && missing.length)
+    const previous = deal.verification.at(-1)
+    const outstanding = previous?.outcome === "ISSUES"
+      ? (previous.issues as Commands["verifyDocuments"]["issues"]).map((issue) => issue.itemKey)
+      : []
+    const incoming = new Set(input.issues.map((issue) => issue.itemKey))
+    if (input.outcome !== "ISSUES" && (missing.length || deal.quoteStatus !== "SUPPORTED"))
       fail("CHECKLIST_INCOMPLETE", 422)
-    if (input.outcome === "ISSUES") {
-      if (!input.issues.length || input.issues.some((i) => i.resolved))
-        fail("INVALID_INPUT", 422)
-    }
-    if (input.outcome === "RESOLVED") {
-      const previous = deal.verification.at(-1)
-      if (
-        !previous ||
-        previous.outcome !== "ISSUES" ||
-        !input.issues.length ||
-        input.issues.some((i) => !i.resolved) ||
-        missing.length
-      )
-        fail("CHECKLIST_INCOMPLETE", 422)
-    }
+    if (input.outcome === "CLEAN" && (incoming.size || outstanding.length))
+      fail("INVALID_INPUT", 422)
+    if (input.outcome === "ISSUES" && (
+      !incoming.size || input.issues.some((i) => i.resolved) ||
+      outstanding.some((key) => !incoming.has(key))
+    ))
+      fail("INVALID_INPUT", 422)
+    if (input.outcome === "RESOLVED" && (
+      !outstanding.length || incoming.size !== outstanding.length ||
+      outstanding.some((key) => !incoming.has(key)) || input.issues.some((i) => !i.resolved)
+    ))
+      fail("INVALID_INPUT", 422)
     const keys = new Set(deal.checklist.map((i) => i.uniqueKey))
-    if (input.issues.some((i) => !keys.has(i.itemKey)))
+    if (input.issues.some((i) => !keys.has(i.itemKey) && !outstanding.includes(i.itemKey)))
       fail("INVALID_INPUT", 422)
     const commandId = randomUUID(),
       sequence = await nextBusinessSequence(tx)
@@ -1470,6 +1502,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     await tx.brokerageDeal.update({
       where: { id: deal.id },
       data: {
+        ...(input.outcome === "ISSUES" ? resetFileReference : {}),
         state: input.outcome === "ISSUES" ? "INSPECTED" : "DOCUMENTS_READY",
         revision: deal.revision + 1,
         updatedAt: new Date(),
@@ -1489,7 +1522,8 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   setProcessingFee: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.setProcessingFee.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
+    requirePath(deal, "APPLICATION")
     requireFields(actor.ability, "BrokerageDeal", "update", dealSubject(deal), [
       "processingFee",
     ])
@@ -1525,12 +1559,13 @@ const handlers: Record<BrokerageCommandName, Handler> = {
       sequence,
       before: deal,
       after,
+      reason: input.reason,
     })
   },
 
   informCompany: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.informCompany.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     requirePath(deal, "APPLICATION")
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
@@ -1574,7 +1609,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
           kind: "COMPANY_INFORMED",
           contactId: input.contactId,
           at: new Date(input.informedAt),
-          text: `Company informed. File ${input.fileReference}. ${input.feedback}`,
+          text: `Company informed. File ${input.fileReference}. ${input.feedback}`.slice(0, 2000).trimEnd(),
         },
       ],
     })
@@ -1582,7 +1617,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   referDeal: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.referDeal.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     requirePath(deal, "REFERRAL")
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
@@ -1600,7 +1635,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     if (deal.state !== "ELIGIBLE") fail("INVALID_STATE")
     if (!commonEligible(deal)) fail("CHECKLIST_INCOMPLETE", 422)
     await activeContact(tx, deal.companyId, input.contactId)
-    if (deal.entitlement) fail("INVALID_STATE")
+    if (deal.entitlement || deal.quoteStatus !== "SUPPORTED") fail("INVALID_STATE")
     const commandId = randomUUID(),
       sequence = await nextBusinessSequence(tx),
       at = new Date(input.referredAt)
@@ -1672,7 +1707,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   rejectDeal: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.rejectDeal.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
     })
@@ -1724,7 +1759,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   completeBrokerage: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.completeBrokerage.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
     })
@@ -1776,7 +1811,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   openIssue: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.openIssue.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, Object.keys(input))
     const { scope, prior } = await priorReceipt(
       tx,
       actor,
@@ -1788,6 +1823,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     if (prior) return prior
     checkRefs(envelope.expected, [ref(deal)])
     if (input.kind === "NON_REMITTANCE") requirePath(deal, "REFERRAL")
+    if (input.blocksStep === "DISPATCH") requirePath(deal, "APPLICATION")
     if (["COMPLETED"].includes(deal.state)) fail("INVALID_STATE")
     if (input.contactId) await activeContact(tx, deal.companyId, input.contactId)
     const commandId = randomUUID(),
@@ -1839,6 +1875,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     })
     if (!issue) fail("NOT_FOUND", 404)
     const deal = await loadDeal(tx, actor, issue.dealId, true)
+    requireFields(actor.ability, "BrokerageDeal", "update", dealSubject(deal), Object.keys(input))
     const company = await tx.financeCompany.findUniqueOrThrow({
       where: { id: deal.companyId },
     })
@@ -1902,6 +1939,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     const input = brokerageInputs.requestFacility.parse(envelope.input)
     const deal = await loadDeal(tx, actor, input.dealId, true)
     const facility = deal.facility ? await lockFacility(tx, deal.id) : null
+    requireFields(actor.ability, "CashFacility", facility ? "update" : "create", facility ?? { createdBy: actor.userId }, Object.keys(input))
     const { scope, prior } = await priorReceipt(
       tx,
       actor,
@@ -1985,6 +2023,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     const deal = await loadDeal(tx, actor, input.dealId, true)
     const facility = await lockFacility(tx, deal.id)
     if (!facility) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "CashFacility", "pay", facility ?? { createdBy: actor.userId }, Object.keys(input))
     const { scope, prior } = await priorReceipt(
       tx,
       actor,
@@ -1999,20 +2038,23 @@ const handlers: Record<BrokerageCommandName, Handler> = {
       { type: "CashFacility", id: facility.id, revision: facility.revision },
     ])
     if (facility.state !== "REQUESTED") fail("INVALID_STATE")
-    if (!commonEligible(deal)) fail("INVALID_STATE")
+    if (["REJECTED", "COMPLETED"].includes(deal.state) || !commonEligible(deal)) fail("INVALID_STATE")
     if (facility.gross !== deal.approvedLoan) fail("BALANCE_MISMATCH", 422)
     const deductions = facility.deductions as FacilityTerms["deductions"]
-    const separate = deductions.filter((d) => d.handling === "PAID_BY_DEALERSHIP")
+    const separatelyPaid = deductions.flatMap((deduction, index) =>
+      deduction.handling === "PAID_BY_DEALERSHIP" && money(deduction.amount) > 0n
+        ? [{ deduction, index }]
+        : []
+    )
     const supplied = new Map(
       input.separatelyPaidDeductions.map((entry) => [entry.index, entry.payment])
     )
-    for (const [index, deduction] of deductions.entries()) {
-      if (deduction.handling !== "PAID_BY_DEALERSHIP") continue
+    for (const { deduction, index } of separatelyPaid) {
       const payment = supplied.get(index)
       if (!payment || money(payment.amount) !== money(deduction.amount))
         fail("BALANCE_MISMATCH", 422)
     }
-    if (input.separatelyPaidDeductions.length !== separate.length)
+    if (supplied.size !== separatelyPaid.length)
       fail("BALANCE_MISMATCH", 422)
     const net = facility.net
     if (net === 0n && input.payment) fail("BALANCE_MISMATCH", 422)
@@ -2038,32 +2080,30 @@ const handlers: Record<BrokerageCommandName, Handler> = {
               },
             ]
           : []),
-        ...deductions.flatMap((deduction, index) => {
-          if (deduction.handling !== "PAID_BY_DEALERSHIP") return []
-          const payment = input.separatelyPaidDeductions.find(
-            (entry) => entry.index === index
-          )!.payment
-          return [
-            {
-              facilityId: facility.id,
-              amount: money(deduction.amount),
-              direction: "OUT" as const,
-              component: "DEDUCTION" as const,
-              occurredDate: new Date(payment.date),
-              method: payment.method,
-              reference: payment.reference ?? null,
-              createdBy: actor.userId,
-              commandId,
-              lineKey: `deduction:${index}`,
-            },
-          ]
+        ...separatelyPaid.map(({ deduction, index }) => {
+          const payment = supplied.get(index)!
+          return {
+            facilityId: facility.id,
+            amount: money(deduction.amount),
+            direction: "OUT" as const,
+            component: "DEDUCTION" as const,
+            occurredDate: new Date(payment.date),
+            method: payment.method,
+            reference: payment.reference ?? null,
+            createdBy: actor.userId,
+            commandId,
+            lineKey: `deduction:${index}`,
+          }
         }),
       ],
     })
     const updated = await tx.cashFacility.update({
       where: { id: facility.id },
       data: {
-        state: "DISBURSED",
+        state: net === 0n && facility.separatelyRecoverableCharges === 0n &&
+          (facility.feeMode === "WITHHELD" || facility.fee === 0n)
+          ? "RECOVERED"
+          : "DISBURSED",
         revision: facility.revision + 1,
         updatedAt: new Date(),
       },
@@ -2099,6 +2139,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
     const deal = await loadDeal(tx, actor, input.dealId, true)
     const facility = await lockFacility(tx, deal.id)
     if (!facility) fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "CashFacility", "pay", facility ?? { createdBy: actor.userId }, Object.keys(input))
     const { scope, prior } = await priorReceipt(
       tx,
       actor,
@@ -2230,7 +2271,7 @@ const handlers: Record<BrokerageCommandName, Handler> = {
 
   recordBrokerageFee: async (tx, actor, envelope, digest) => {
     const input = brokerageInputs.recordBrokerageFee.parse(envelope.input)
-    const deal = await loadDeal(tx, actor, input.dealId, true)
+    const deal = await loadDeal(tx, actor, input.dealId, ["amount", "processingFee"])
     const { scope, prior } = await priorReceipt(
       tx,
       actor,
@@ -2303,6 +2344,10 @@ async function reverseBrokeragePayment(
   const deal = await loadDeal(tx, actor, dealId, true)
   const facility =
     input.sourceType === "FACILITY" ? await lockFacility(tx, deal.id) : null
+  if (facility)
+    requireFields(actor.ability, "CashFacility", "pay", facility, ["dealId", "payment", "reason"])
+  else
+    requireFields(actor.ability, "BrokerageDeal", "update", dealSubject(deal), ["amount", "processingFee", "reason"])
   const { scope, prior } = await priorReceipt(
     tx,
     actor,
@@ -2644,12 +2689,18 @@ export async function brokerageAudit(
     }),
     tx.auditEntry.count({ where }),
   ])
+  const deal = type === "BrokerageDeal"
+    ? await tx.brokerageDeal.findUniqueOrThrow({ where: { id: entityId }, include: dealInclude })
+    : null
+  const visible = deal ? await visibleDeal(tx, actor, deal) : null
   const redactedFields: string[] = []
   const data = entries.map((entry) => {
     const fields = entry.fieldDiff as Record<string, unknown>
     const diff = Object.entries(fields)
       .filter(([key]) => {
         try {
+          if ((key === "quote" || key === "quoteHistory") && visible?.redactedFields.includes(key))
+            fail("FIELD_FORBIDDEN", 403)
           requireFields(actor.ability, type, "read", row!, [key])
           return true
         } catch {

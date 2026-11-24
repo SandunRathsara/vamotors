@@ -423,7 +423,6 @@ export async function initUpload(
       target = await loadTarget(tx, actor, input.target.type, input.target.id, true)
     if (
       target.type === "BROKERAGE_DEAL" &&
-      input.purpose === "INSPECTION" &&
       target.row.path !== "APPLICATION"
     )
       fail("PATH_MISMATCH")

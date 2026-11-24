@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { randomUUID } from "node:crypto"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
-import type { APIRequestContext } from "@playwright/test"
+import { chromium, expect, type APIRequestContext } from "@playwright/test"
 import sharp from "sharp"
 import {
   fixture,
@@ -19,7 +19,7 @@ import type {
 process.umask(0o077)
 const root = process.argv[2]
 assert.ok(root)
-const f = await fixture(root)
+const f = await fixture(root, process.cwd(), process.env.BROKERAGE_UPGRADE_FROM)
 const suffix = randomUUID().slice(0, 8)
 const groups: string[] = []
 let stage = "initialize"
@@ -270,6 +270,129 @@ try {
     },
   ]
 
+  await group("Chromium intake, eligibility, inspection and guarantor documents", async () => {
+    const browser = await chromium.launch({
+      executablePath: process.env.BROKERAGE_CHROMIUM,
+    })
+    try {
+      const page = await browser.newPage({ storageState: await admin.storageState() })
+      page.setDefaultTimeout(15_000)
+      const visible = expect.configure({ timeout: 15_000 })
+      const browserCustomer = await customer(admin, "browser")
+      await page.goto(`${f.origin}/lease-comparison?quote=${applicationQuote.result.id}`)
+      await page.getByRole("link", { name: "Open brokerage intake" }).click()
+      await visible(page.getByLabel("Quote ID", { exact: true })).toHaveValue(applicationQuote.result.id)
+      await page.getByRole("button", { name: "Load live quote" }).click()
+      await page.getByLabel("Customer", { exact: true }).selectOption(browserCustomer.result.id)
+      for (const [key, value] of Object.entries(guarantors[0])) {
+        await page.getByLabel(`Guarantor 1 ${key}`).fill(value)
+      }
+      await visible(page.getByText(/12 months.*APPLICATION/)).toBeVisible()
+      const intake = page.waitForResponse((r) => r.url().endsWith("/commands/openBrokerage"))
+      await page.getByRole("button", { name: "Persist brokerage deal" }).click()
+      const opened = await intake
+      assert.equal(opened.status(), 201, await opened.text())
+      const { result } = await opened.json()
+      await page.goto(`${f.origin}/lease-deals/${result.id}`)
+      for (const target of ["CUSTOMER", "GUARANTOR", "VEHICLE"]) {
+        await page.getByLabel("Target", { exact: true }).selectOption(target)
+        const agent = contactId(await contacts(admin, applicationCompany.result.id))
+        await page.locator("#elig-contact").selectOption(agent)
+        await page.locator("#elig-feedback").fill(`${target} confirmed in Chromium`)
+        const eligibility = page.waitForResponse((r) => r.url().endsWith("/commands/recordEligibility"))
+        await page.getByRole("button", { name: "Record eligibility" }).click()
+        const recorded = await eligibility
+        assert.equal(recorded.status(), 200, await recorded.text())
+        await visible(page.getByRole("button", { name: "Record eligibility" })).toBeEnabled()
+      }
+      for (const [index, category] of categories.entries()) {
+        await page.locator(`#photo-${category}`).setInputFiles({
+          name: `${category}.png`,
+          mimeType: "image/png",
+          buffer: await image(photoColors[index]!),
+        })
+        await visible(page.locator(`#photo-${category}`).locator("..")).toContainText("Persisted")
+      }
+      await page.getByRole("button", { name: "Record inspection evidence" }).click()
+      await visible(page.getByRole("heading", { level: 1 })).toContainText("INSPECTED")
+      await page.getByLabel("Gross", { exact: true }).fill("100000.00")
+      await page.locator("#fac-fee").fill("200.00")
+      await page.locator("#fac-reason").fill("Customer requested funding")
+      await page.getByRole("button", { name: "Request facility" }).click()
+      const payout = page.getByRole("button", { name: "Disburse facility" })
+      await visible(payout).toBeEnabled()
+      await payout.click()
+      await visible(page.getByText(/DISBURSED.*principal outstanding/)).toBeVisible()
+      await page.locator("#rec-principal").fill("99800.00")
+      await page.getByRole("button", { name: "Record recovery" }).click()
+      await visible(page.getByText(/RECOVERED.*principal outstanding/)).toBeVisible()
+      const guarantorDocument = page.getByRole("group", { name: /GUARANTOR_ID.*Guarantor One/ })
+      await guarantorDocument.getByLabel(/attachment/).setInputFiles({
+        name: "guarantor.png",
+        mimeType: "image/png",
+        buffer: await image(photoColors[0]!),
+      })
+      await visible(guarantorDocument).toContainText("1 file(s)")
+      async function saveChecklist() {
+        const response = page.waitForResponse((r) => r.url().endsWith("/commands/setChecklist"))
+        await page.getByRole("button", { name: "Save checklist" }).click()
+        const saved = await response
+        assert.equal(saved.status(), 200, await saved.text())
+        await visible(page.getByText("Saved", { exact: true })).toBeVisible()
+      }
+      await saveChecklist()
+      const current = await dealOf(admin, result.id)
+      const guarantorId = current.guarantors?.[0]?.id
+      assert.equal(current.checklist?.find((item) => item.kind === "GUARANTOR_ID")?.participantId, guarantorId)
+      const verification = page.getByRole("button", { name: "Verify documents" })
+      const agent = contactId(await contacts(admin, applicationCompany.result.id))
+      await page.locator("#verify-contact").selectOption(agent)
+      await page.locator("#verify-feedback").fill("A replacement ID is needed")
+      await page.getByLabel("Verification outcome").selectOption("ISSUES")
+      await page.getByLabel(`GUARANTOR_ID:${guarantorId}`, { exact: true }).fill("ID unreadable")
+      await verification.click()
+      await visible(page.getByText(/ISSUES.*A replacement ID is needed/)).toBeVisible()
+      for (const kind of [
+        "CUSTOMER_ID", "PASSPORT_PHOTOS", "BANK_PASSBOOK", "ADDRESS_PROOF",
+        "REGISTRATION_BOOK", "REVENUE_LICENSE", "TRANSFER_PAPER", "PREVIOUS_OWNER_ID",
+      ]) {
+        const row = page.getByRole("group", { name: kind, exact: true })
+        await row.getByLabel(/attachment/).setInputFiles({
+          name: `${kind}.png`, mimeType: "image/png", buffer: await image(photoColors[1]!),
+        })
+        await visible(row).toContainText("1 file(s)")
+      }
+      for (const kind of ["RELATIONSHIP_PROOF", "DELETION_LETTER"]) {
+        await page.getByLabel(`${kind} applicability`).selectOption("NOT_REQUIRED")
+        await page.getByLabel(`${kind} not required reason`).fill("Finance company confirmed not needed")
+      }
+      await page.getByRole("group", { name: "EXTRA_KEY" }).getByLabel("collected").check()
+      await saveChecklist()
+      await page.getByLabel("Verification outcome").selectOption("RESOLVED")
+      await page.locator("#verify-feedback").fill("Finance company confirmed readable ID")
+      await verification.click()
+      await visible(page.getByRole("heading", { level: 1 })).toContainText("DOCUMENTS_READY")
+      await page.locator("#inform-contact").selectOption(agent)
+      await page.getByLabel("File reference", { exact: true }).fill("BROWSER-FILE")
+      await page.locator("#inform-feedback").fill("Finance company supplied file number")
+      await page.getByRole("button", { name: "Inform company" }).click()
+      await visible(page.getByText(/File reference: BROWSER-FILE/)).toBeVisible()
+      await page.goto(`${f.origin}/lease-dispatch`)
+      await page.getByRole("checkbox", { name: `Select ${result.id}` }).check()
+      await page.getByLabel("Courier", { exact: true }).fill("Chromium courier")
+      await page.getByRole("button", { name: "Dispatch selected deals" }).click()
+      await visible(page.getByRole("checkbox", { name: `Select ${result.id}` })).toHaveCount(0)
+      await page.goto(`${f.origin}/lease-deals/${result.id}`)
+      await visible(page.getByRole("heading", { level: 1 })).toContainText("DISPATCHED")
+      const download = page.waitForEvent("download")
+      await page.getByRole("group", { name: "CUSTOMER_ID", exact: true })
+        .getByRole("button", { name: "Download file 1" }).click()
+      assert.equal((await download).suggestedFilename(), "CUSTOMER_ID.png")
+    } finally {
+      await browser.close()
+    }
+  })
+
   await group("open APPLICATION deal from live quote with two guarantors", async () => {
     const before = await f.db.query('SELECT count(*) FROM vamotors."Customer"')
     const created = await f.command(
@@ -328,38 +451,32 @@ try {
     assert.equal((await f.db.query('SELECT count(*) FROM vamotors."BrokerageDeal"')).rows[0].count, before.rows[0].count)
   })
 
-  await group("eligibility customer, two guarantors and vehicle reaches ELIGIBLE", async () => {
-    const contact = contactId(await contacts(admin, applicationCompany.result.id))
+  await group("eligibility rechecks retain rejection until both guarantors clear", async () => {
+    const contactIdForCheck = contactId(await contacts(admin, applicationCompany.result.id))
     let deal = await dealOf(admin, applicationDealId)
-    for (const target of ["CUSTOMER", "GUARANTOR", "GUARANTOR", "VEHICLE"] as const) {
+    const [first, second] = deal.guarantors!.map((guarantor) => guarantor.id)
+    for (const [target, outcome, guarantorId, expectedState] of [
+      ["CUSTOMER", "CONFIRMED", undefined, "ELIGIBILITY_PENDING"],
+      ["GUARANTOR", "REJECTED", first, "REJECTED"],
+      ["GUARANTOR", "REJECTED", second, "REJECTED"],
+      ["GUARANTOR", "CONFIRMED", first, "REJECTED"],
+      ["GUARANTOR", "CONFIRMED", second, "ELIGIBILITY_PENDING"],
+      ["VEHICLE", "CONFIRMED", undefined, "ELIGIBLE"],
+    ] as const) {
+      await f.command(admin, "recordEligibility", envelope({
+        dealId: applicationDealId, target, outcome,
+        ...(guarantorId ? { guarantorId } : {}),
+        contactId: contactIdForCheck,
+        checkedAt: new Date().toISOString(),
+        feedback: `${target} ${outcome}`,
+      }, [ref(deal, "BrokerageDeal"), ref(applicationCompany.result, "FinanceCompany")]))
       deal = await dealOf(admin, applicationDealId)
-      await f.command(
-        admin,
-        "recordEligibility",
-        envelope(
-          {
-            dealId: applicationDealId,
-            target,
-            ...(target === "GUARANTOR"
-              ? {
-                  guarantorId:
-                    (deal.guarantors ?? [])[
-                      deal.eligibility?.length === 1 ? 1 : 0
-                    ]?.id,
-                }
-              : {}),
-            outcome: "CONFIRMED",
-            contactId: contact,
-            checkedAt: new Date().toISOString(),
-            feedback: `${target} confirmed`,
-          },
-          [ref(deal, "BrokerageDeal"), ref(applicationCompany.result, "FinanceCompany")]
-        )
-      )
+      assert.equal(deal.state, expectedState)
     }
-    deal = await dealOf(admin, applicationDealId)
-    assert.equal(deal.state, "ELIGIBLE")
-    assert.equal(deal.eligibility?.length, 4)
+    assert.equal(deal.eligibility?.length, 6)
+    await f.command(admin, "setChecklist", envelope({
+      dealId: applicationDealId, items: [],
+    }, [ref(deal, "BrokerageDeal")]), 409, "INVALID_STATE")
   })
 
   await group("nine real private inspection photos and evidence", async () => {
@@ -605,6 +722,38 @@ try {
     deal = await dealOf(admin, applicationDealId)
     assert.equal(deal.fileReference, `FILE-${suffix}`)
     assert.equal(deal.state, "DOCUMENTS_READY")
+  })
+
+  await group("dispatch blocker and delay inquiry retain finance feedback", async () => {
+    const contact = contactId(await contacts(admin, applicationCompany.result.id))
+    for (const kind of ["BLOCKER", "DELAY_INQUIRY"] as const) {
+      const deal = await dealOf(admin, applicationDealId)
+      await f.command(admin, "openIssue", envelope({
+        dealId: deal.id, kind, text: `${kind} reported`, at: new Date().toISOString(),
+        ...(kind === "BLOCKER" ? { blocksStep: "DISPATCH" } : {}),
+      }, [ref(deal, "BrokerageDeal")]))
+      const opened = await dealOf(admin, applicationDealId)
+      const issue = opened.issues?.find((item) => item.kind === kind)
+      assert.ok(issue?.id)
+      if (kind === "BLOCKER") {
+        const response = await admin.post("/api/v1/queries/dispatchPreview", {
+          headers: { Origin: f.origin },
+          data: { sourceIds: [{ type: "BROKERAGE", id: applicationDealId }] },
+        })
+        assert.equal(response.status(), 200)
+        const { data } = await response.json()
+        assert.equal(data[0].ready, false)
+        assert.ok(data[0].blockers.some((item: { code: string }) => item.code === "OBLIGATION_OPEN"))
+      }
+      await f.command(admin, "recordIssueFeedback", envelope({
+        issueId: issue.id, contactId: contact, at: new Date().toISOString(),
+        feedback: "Company resolved the report", resolve: true,
+      }, [ref(opened, "BrokerageDeal"), ref(applicationCompany.result, "FinanceCompany")]))
+      const after = await dealOf(admin, applicationDealId)
+      const resolved = after.issues?.find((item) => item.id === issue.id)
+      assert.ok(resolved?.resolvedAt)
+      assert.equal(resolved.feedback?.[0]?.contactId, contact)
+    }
   })
 
   let incompleteDealId = ""
@@ -889,12 +1038,20 @@ try {
         {
           dealId: referralDealId,
           kind: "NON_REMITTANCE",
-          text: "Commission not remitted by company",
+          text: "Customer reported that the lease amount was not remitted",
           at: new Date().toISOString(),
         },
         [ref(after, "BrokerageDeal")]
       )
     )
+    const complaint = await dealOf(admin, referralDealId)
+    const issue = complaint.issues?.find((item) => item.kind === "NON_REMITTANCE")
+    assert.ok(issue?.id)
+    await f.command(admin, "recordIssueFeedback", envelope({
+      issueId: issue.id, contactId: contact, at: new Date().toISOString(),
+      feedback: "Lender confirmed the customer payment date", resolve: true,
+    }, [ref(complaint, "BrokerageDeal"), ref(referralCompany.result, "FinanceCompany")]))
+    assert.ok((await dealOf(admin, referralDealId)).issues?.find((item) => item.id === issue.id)?.resolvedAt)
     const rejected = await admin.post("/api/v1/commands/openIssue", {
       headers: { Origin: f.origin },
       data: envelope(
@@ -909,6 +1066,37 @@ try {
     })
     assert.equal(rejected.status(), 409)
     assert.equal((await rejected.json()).error?.code, "PATH_MISMATCH")
+  })
+
+  await group("fully withheld facility settles without a fabricated payment", async () => {
+    const deal = await dealOf(admin, referralDealId)
+    const baseTerms = {
+      gross: deal.approvedLoan, fee: "0", feeMode: "WITHHELD", separatelyRecoverableCharges: "0",
+    }
+    await f.command(admin, "requestFacility", envelope({
+      dealId: deal.id, reason: "Initial request", terms: { ...baseTerms, deductions: [] },
+    }, [ref(deal, "BrokerageDeal")]))
+    const initial = await dealOf(admin, deal.id)
+    assert.ok(initial.facility)
+    await f.command(admin, "requestFacility", envelope({
+      dealId: deal.id,
+      reason: "Verify a valid zero payout after amending the request",
+      terms: {
+        ...baseTerms,
+        deductions: [
+          { label: "Settlement", amount: deal.approvedLoan, handling: "WITHHELD", recipient: "Lender" },
+          { label: "Waived charge", amount: "0", handling: "PAID_BY_DEALERSHIP", recipient: "Lender" },
+        ],
+      },
+    }, [ref(initial, "BrokerageDeal"), ref(initial.facility, "CashFacility")]))
+    const requested = await dealOf(admin, deal.id)
+    assert.ok(requested.facility)
+    await f.command(admin, "disburseFacility", envelope({
+      dealId: deal.id, payment: null, separatelyPaidDeductions: [],
+    }, [ref(requested, "BrokerageDeal"), ref(requested.facility, "CashFacility")]))
+    const settled = await dealOf(admin, deal.id)
+    assert.equal((settled.facility as { state?: string }).state, "RECOVERED")
+    assert.deepEqual(settled.facility?.payments, [])
   })
 
   await group("referral rejection is retained, hidden by default and direct next step fails", async () => {
@@ -1297,6 +1485,22 @@ try {
       [ref(target, "BrokerageDeal")]
     )
     await f.command(writer, "setProcessingFee", body)
+    const current = await dealOf(writer, incompleteDealId)
+    const restrictedRole = await f.command(admin, "saveRole", envelope({
+      id: writerRole.result.id,
+      name: `Brokerage writer ${suffix}`,
+      grants: [
+        { action: "read", subject: "BrokerageDeal", fields: ["*"] },
+        { action: "update", subject: "BrokerageDeal", fields: ["dealId"] },
+      ],
+      reason: "Limit the role to the deal identifier",
+    }, [ref(writerRole.result, "Role")]))
+    await f.command(writer, "openIssue", envelope({
+      dealId: current.id,
+      kind: "DELAY_INQUIRY",
+      text: "An unauthorized field change",
+      at: new Date().toISOString(),
+    }, [ref(current, "BrokerageDeal")]), 403, "FIELD_FORBIDDEN")
     const revoked = await f.command(
       admin,
       "saveRole",
@@ -1307,7 +1511,7 @@ try {
           grants: [],
           reason: "Revoke brokerage authority before replay",
         },
-        [ref(writerRole.result, "Role")]
+        [ref(restrictedRole.result, "Role")]
       )
     )
     assert.equal(revoked.result.type, "Role")

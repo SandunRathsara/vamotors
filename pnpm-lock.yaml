@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  '@stacksjs/ts-webp@0.1.7': 70c04a69f3785ac245ebad348a8c35479e1d7c0792852401d0f9cfcad2b79b52
+  '@stacksjs/ts-webp@0.1.7': d945f65b8ee41e1d63750b71eea748137c0117b92fe2aadc44274031293fb5a5
   pdfjs-dist@6.4.299: a1cd393ccf4272850dd7041b9bd101f8ebe5ffa77ce4c8d8d139ed16439fdb5d
 
 importers:
@@ -38,7 +38,7 @@ importers:
         version: 1.2.4(@types/react@19.2.14)(react@19.2.5)
       '@stacksjs/ts-webp':
         specifier: 0.1.7
-        version: 0.1.7(patch_hash=70c04a69f3785ac245ebad348a8c35479e1d7c0792852401d0f9cfcad2b79b52)
+        version: 0.1.7(patch_hash=d945f65b8ee41e1d63750b71eea748137c0117b92fe2aadc44274031293fb5a5)
       '@tanstack/react-form':
         specifier: 1.29.0
         version: 1.29.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -7527,7 +7527,7 @@ snapshots:
 
   '@sindresorhus/merge-streams@4.0.0': {}
 
-  '@stacksjs/ts-webp@0.1.7(patch_hash=70c04a69f3785ac245ebad348a8c35479e1d7c0792852401d0f9cfcad2b79b52)': {}
+  '@stacksjs/ts-webp@0.1.7(patch_hash=d945f65b8ee41e1d63750b71eea748137c0117b92fe2aadc44274031293fb5a5)': {}
 
   '@standard-schema/spec@1.0.0': {}
 

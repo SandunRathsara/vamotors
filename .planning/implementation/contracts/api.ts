@@ -164,7 +164,7 @@ export interface Commands {
   recordInspection: { dealId: Id; photos: { category: PhotoCategory; attachmentId: Id }[] };
   adjustLoan: { dealId: Id; amount: Money; contactId: Id; feedback: string; confirmedAt: Instant };
   replaceDealQuote: { dealId: Id; quoteId: Id; reason: string; contactId: Id; confirmedAt: Instant };
-  setChecklist: { dealId: Id; items: { kind: ChecklistKind; participantId?: Id;
+  setChecklist: { dealId: Id; items: { kind: ChecklistKind; label?: string; participantId?: Id;
     applicability: "REQUIRED" | "NOT_REQUIRED" | "OPTIONAL"; reason?: string;
     collected: boolean; quantity: number; attachmentIds: Id[] }[] };
   verifyDocuments: { dealId: Id; checklistHash: string; outcome: "CLEAN" | "ISSUES" | "RESOLVED";

@@ -27,7 +27,11 @@ export const ref = (
 const docker = (args: string[]) =>
   execFileSync("docker", args, { encoding: "utf8" }).trim()
 
-export async function fixture(root: string, source = process.cwd()) {
+export async function fixture(
+  root: string,
+  source = process.cwd(),
+  baseSource?: string
+) {
   process.umask(0o077)
   await mkdir(root, { recursive: true, mode: 0o700 })
   const runId = randomUUID().slice(0, 8)
@@ -164,16 +168,21 @@ export async function fixture(root: string, source = process.cwd()) {
   await writeEnv("runtime.env", runtime)
   await writeEnv("migration.env", migration)
   await writeEnv("accounts.env", accounts)
-  const script = (name: string, args: string[]) =>
+  const script = (name: string, args: string[], cwd = source) =>
     execFileSync(
       process.execPath,
       ["--conditions=react-server", "--import", "tsx", `scripts/${name}.ts`, ...args],
-      { cwd: source, env: { ...process.env, ...runtime }, encoding: "utf8" }
+      { cwd, env: { ...process.env, ...runtime }, encoding: "utf8" }
     )
   try {
-    script("migrate-disposable", [file("migration.env")])
-    script("initialize-test-environment", [file("migration.env"), file("accounts.env")])
-    script("bootstrap-security", [file("migration.env"), file("accounts.env")])
+    const initial = baseSource ?? source
+    script("migrate-disposable", [file("migration.env")], initial)
+    script("initialize-test-environment", [file("migration.env"), file("accounts.env")], initial)
+    script("bootstrap-security", [file("migration.env"), file("accounts.env")], initial)
+    if (baseSource) {
+      script("revalidate-permissions", [file("migration.env")], baseSource)
+      script("migrate-disposable", [file("migration.env")])
+    }
     script("revalidate-permissions", [file("migration.env")])
     execFileSync(
       "docker",
@@ -281,7 +290,8 @@ export async function fixture(root: string, source = process.cwd()) {
     client: APIRequestContext,
     name: string,
     body: unknown,
-    status = 200
+    status = 200,
+    errorCode?: string
   ) {
     const response = await client.post(`/api/v1/commands/${name}`, {
       data: body,
@@ -291,6 +301,7 @@ export async function fixture(root: string, source = process.cwd()) {
     transcript.push({ kind: "command", name, body, status: response.status(), value })
     assert.equal(response.status(), status, `${name}: ${JSON.stringify(value)}`)
     assert.match(response.headers()["cache-control"], /no-store/)
+    if (errorCode) assert.equal(value.error?.code, errorCode)
     return value as Applied
   }
   async function upload(
@@ -354,7 +365,12 @@ export async function fixture(root: string, source = process.cwd()) {
     assert.equal(done.status(), 200, JSON.stringify(attached))
     return { uploadId: ready.uploadId as string, attachmentId: attached.result.id as string }
   }
-  await start()
+  try {
+    await start()
+  } catch (error) {
+    await close()
+    throw error
+  }
   async function restart() {
     await stop()
     await start()

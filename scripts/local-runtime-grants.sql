@@ -102,7 +102,7 @@ GRANT SELECT, INSERT ON vamotors."ProcessingIssue" TO vamotors_runtime;
 GRANT UPDATE ("resolvedAt", resolution, revision, "updatedAt") ON vamotors."ProcessingIssue" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."ProcessingIssueFeedback" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."CashFacility" TO vamotors_runtime;
-GRANT UPDATE (deductions, net, "separatelyRecoverableCharges", state, revision, "updatedAt") ON vamotors."CashFacility" TO vamotors_runtime;
+GRANT UPDATE (gross, deductions, fee, "feeMode", net, "separatelyRecoverableCharges", reason, state, revision, "updatedAt") ON vamotors."CashFacility" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."FacilityPayment", vamotors."BrokerageFeeReceipt" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."DispatchBatch", vamotors."DispatchItem" TO vamotors_runtime;
 GRANT SELECT, INSERT ON vamotors."CommissionEntitlement" TO vamotors_runtime;
