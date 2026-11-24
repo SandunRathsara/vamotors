@@ -210,7 +210,8 @@ function directory<K extends "SUPPLIERS" | "REPAIR_VENDORS">(
       { tx, identity }: ImportContext,
       { payload }: { payload: ImportPayloads["SUPPLIERS"] }
     ) {
-      const { isActive: _isActive, ...values } = payload
+      const values = { ...payload }
+      delete values.isActive
       const where = payload.nicOrRegNumber
         ? {
             nicOrRegNumber: {
@@ -1345,10 +1346,11 @@ export const importAdapters = {
   SUPPLIERS: directory<"SUPPLIERS">("SUPPLIER"),
   CUSTOMERS: {
     work: ({ payload }) => (payload.isActive === false ? 2 : 1),
-    apply: (
-      { tx, identity },
-      { payload: { isActive: _isActive, ...values } }
-    ) => executeCustomer(identity, "createCustomer", env(values), tx),
+    apply({ tx, identity }, { payload }) {
+      const values = { ...payload }
+      delete values.isActive
+      return executeCustomer(identity, "createCustomer", env(values), tx)
+    },
   },
   REPAIR_VENDORS: directory<"REPAIR_VENDORS">("REPAIR_VENDOR"),
   VEHICLES: vehicles,

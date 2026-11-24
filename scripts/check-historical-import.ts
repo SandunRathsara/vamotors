@@ -1106,6 +1106,89 @@ console.log(
   "PASS historical advances, lease handover, invoice and remittance allocation"
 )
 
+const partialRecords = await commitHistory(
+  "partially-paid-acquisition",
+  {
+    SUPPLIERS: [
+      {
+        sourceKey: "archived-seller",
+        name: `Archived seller ${suffix}`,
+        nicOrRegNumber: `ARCH-${suffix}`,
+        isActive: "false",
+      },
+    ],
+    CUSTOMERS: [
+      {
+        sourceKey: "archived-customer",
+        nicOrPassport: `ARCH-${suffix}`,
+        isActive: "false",
+      },
+    ],
+    VEHICLES: [
+      {
+        ...commitmentRows.VEHICLES[1],
+        sourceKey: "partially-paid",
+        cycleSourceKey: "partially-paid-cycle",
+        engineNumber: `partial-engine-${suffix}`,
+        chassisNumber: `partial-chassis-${suffix}`,
+        supplierExistingId: "",
+        supplierSourceKey: "archived-seller",
+        payments: JSON.stringify([
+          {
+            sourceKey: "first",
+            amount: "2000000.00",
+            date: "2026-01-11",
+            direction: "OUT",
+            category: "SELLER",
+            method: "BANK_TRANSFER",
+            reference: `partial-first-${suffix}`,
+          },
+          {
+            sourceKey: "second",
+            amount: "1000000.00",
+            date: "2026-01-12",
+            direction: "OUT",
+            category: "SELLER",
+            method: "CASH",
+          },
+        ]),
+      },
+    ],
+  },
+  "0",
+  "300000000"
+)
+const inactiveSupplier = await query("party", {
+  type: "SUPPLIER",
+  id: recordId(
+    partialRecords
+      .find((record: { type: string }) => record.type === "Supplier")
+      .href.split("?")[0]
+  ),
+})
+const inactiveCustomer = await query("customer", {
+  id: recordId(
+    partialRecords.find(
+      (record: { type: string }) => record.type === "Customer"
+    ).href
+  ),
+})
+assert.equal(inactiveSupplier.active, false)
+assert.equal(inactiveCustomer.active, false)
+const partiallyPaid = await query("purchase", {
+  cycleId: recordId(
+    partialRecords.find(
+      (record: { type: string }) => record.type === "PurchaseRecord"
+    ).href
+  ),
+})
+assert.equal(partiallyPaid.outstanding.seller, "200000000")
+assert.equal(partiallyPaid.financial.cashOut, "300000000")
+assert.deepEqual(
+  partiallyPaid.payments.map((entry: { date: string }) => entry.date),
+  ["2026-01-11", "2026-01-12"]
+)
+
 const disposalRecords = await commitHistory(
   "historical-write-off",
   {

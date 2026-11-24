@@ -22,6 +22,6 @@ Confirmation links an immutable source row to a version from the domain command 
 
 ## Coverage gaps
 
-Acquisition, additional-cost and repair payments support reversals using `reversalOfSourceKey` within the payment array. The original and reversal must match the source owner, amount, date, method and reference. Sale and cash-facility reversals require their owner workflows. Complete brokerage applications need the original inspection and checklist evidence on the deal before dispatch. Batch confirmation and historical write-off audit entries identify the action as an import and retain the initiating administrator.
+Acquisition, additional-cost and repair payments support reversals using `reversalOfSourceKey` within the payment array. The original and reversal must match the source owner, amount, date, method and reference. Sale, brokerage-fee and cash-facility reversals require their owner workflows. Complete brokerage applications need the original inspection and checklist evidence on the deal before dispatch. Batch confirmation and historical write-off audit entries identify the action as an import and retain the initiating administrator.
 
 Adapters are registered in `lib/server/import-adapters.ts`. An adapter declares additional source keys, references, a work estimate and how it calls its domain commands inside the batch transaction. The workflow owns source validation, confirmation and provenance. Domain constraints run at each command savepoint. The outer transaction owns rollback for the entire batch.
