@@ -56,7 +56,7 @@ async function auditRecord(tx: Tx, actor: Actor, type: SimpleAuditType, id: stri
   const where = { id }
   const record = <T>(value: T | null): T => value ?? fail("NOT_FOUND", 404)
   const can = (subjectType: EnabledSubject, row: Record<string, unknown>, field: string) =>
-    actor.ability.can("read", subject(subjectType, row), field)
+    actor.ability.can("read", subject(subjectType, { ...row }), field)
 
   switch (type) {
     case "UserRole":
