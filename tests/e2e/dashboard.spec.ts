@@ -10,6 +10,7 @@ import { envelope, purchaseInput, ref } from "../security/cycle-edits-fixture"
 async function activate(page: Page, target: Locator) {
   await page.bringToFront()
   await expect(target).toBeVisible()
+  await expect(target).toBeEnabled()
   // Tab in document order. Wrapping through the browser chrome blurs the
   // window and correctly obscures the authenticated content.
   const direction = await target.evaluate((element) =>
@@ -210,9 +211,10 @@ test("permission-aware navigation and purchase to invoice, reports and reconcili
       page,
       page.getByRole("link", { name: "Vehicles sold per period" })
     )
+    await activate(page, page.getByRole("button", { name: "Export CSV" }))
     const [exportCsv] = await Promise.all([
       page.waitForEvent("download", { timeout: 30_000 }),
-      activate(page, page.getByRole("link", { name: "Export CSV" })),
+      activate(page, page.getByRole("link", { name: "Download CSV" })),
     ])
     expect(exportCsv.suggestedFilename()).toMatch(/\.csv$/i)
     await openNav()
