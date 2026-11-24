@@ -138,7 +138,8 @@ export async function ReportPage({
         (row) => reportCellValue(kind, row, column.key) !== undefined
       )
   )
-  const showVehicleFilters = kind === "INVENTORY" || kind === "PROFIT"
+  const showVehicleFilters =
+    kind === "INVENTORY" || kind === "PROFIT" || kind === "PURCHASES"
   const exportParams = new URLSearchParams(params)
   exportParams.delete("page")
   exportParams.delete("pageSize")
@@ -178,17 +179,18 @@ export async function ReportPage({
               options={states}
               params={params}
             />
-            {stockFilters.map(({ name, label }) => (
-              <label className="grid gap-1.5 text-sm" key={name}>
-                {label}
-                <Input
-                  className="h-10 w-32"
-                  name={name}
-                  maxLength={100}
-                  defaultValue={params.get(name) ?? ""}
-                />
-              </label>
-            ))}
+            {kind !== "PURCHASES" &&
+              stockFilters.map(({ name, label }) => (
+                <label className="grid gap-1.5 text-sm" key={name}>
+                  {label}
+                  <Input
+                    className="h-10 w-32"
+                    name={name}
+                    maxLength={100}
+                    defaultValue={params.get(name) ?? ""}
+                  />
+                </label>
+              ))}
           </>
         )}
         {kind === "INVENTORY" && (

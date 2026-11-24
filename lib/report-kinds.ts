@@ -8,6 +8,7 @@ export const reportKinds = [
   "REPAIRS",
   "CASH_FLOW",
   "DISPOSALS",
+  "PURCHASES",
 ] as const satisfies readonly ReportKind[]
 
 export const reportPages = {
@@ -20,5 +21,6 @@ export const reportPages = {
   },
   REPAIRS: { href: "/reports/repairs", label: "Vehicles currently in repair" },
   CASH_FLOW: { href: "/cash-flow", label: "Cash flow summary" },
+  PURCHASES: { href: "/reports/purchases", label: "Purchases per period" },
   DISPOSALS: { href: "/reports/disposals", label: "Write-off and disposal" },
 } as const satisfies Record<ReportKind, { href: string; label: string }>

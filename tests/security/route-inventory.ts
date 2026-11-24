@@ -10,8 +10,6 @@ export const legacyAPIs = [
   "/api/notifications",
   "/api/purchases",
   "/api/repairs",
-  "/api/reports/audit",
-  "/api/reports/purchases",
   "/api/sales",
   "/api/sales/[id]",
   "/api/settings",
@@ -26,7 +24,9 @@ export const reportingAPIs = [
   "/api/dashboard",
   "/api/reports/advances",
   "/api/reports/disposals",
+  "/api/reports/audit",
   "/api/reports/profit",
+  "/api/reports/purchases",
   "/api/reports/repairs",
   "/api/reports/sales",
   "/api/reports/stock",
@@ -55,16 +55,14 @@ export const reportingPages = [
   "/cash-flow",
   "/reports/advances",
   "/reports/disposals",
+  "/reports/audit",
   "/reports/profit",
+  "/reports/purchases",
   "/reports/repairs",
   "/reports/sales",
   "/reports/stock",
 ]
-export const unavailablePages = [
-  "/lease-reconciliation",
-  "/reports/audit",
-  "/reports/purchases",
-]
+export const unavailablePages = ["/lease-reconciliation"]
 export const methods = [
   "GET",
   "HEAD",

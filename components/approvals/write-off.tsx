@@ -771,6 +771,8 @@ export function ApprovalDetail({
     a.proposal.operation === "EDIT_COMPLETION"
       ? a.proposal.input
       : undefined
+  const financeError = a.proposal?.kind === "SALE_EDIT" &&
+    a.proposal.operation === "CANCEL_FINANCE_ERROR" ? a.proposal.input : undefined
   const canNote = abilityFor(actor.presentationGrants, actor.user.id).can(
     "approve",
     subject("ApprovalRequest", { createdBy: a.requestedBy }),
@@ -782,7 +784,7 @@ export function ApprovalDetail({
         {a.proposal?.kind === "DISCOUNT"
           ? "Saved discount approval request"
           : a.proposal?.kind === "SALE_EDIT"
-            ? "Saved sale edit approval request"
+            ? financeError ? "Saved finance error reversal request" : "Saved sale edit approval request"
             : refund ? "Saved refund request" : "Saved write-off request"}
       </h1>
       <dl className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
@@ -819,8 +821,18 @@ export function ApprovalDetail({
                 ["Edit reason", saleEdit.reason],
                 ["Patched price", saleEdit.patch?.price ? money(saleEdit.patch.price) : undefined],
                 ["Patched sale date", saleEdit.patch?.saleDate],
+                ["Patched reference", saleEdit.patch?.reference],
+                ["Patched handover mileage", saleEdit.patch?.handoverMileage],
+                ["Corrected down payment", saleEdit.patch?.finance?.downPayment ? money(saleEdit.patch.finance.downPayment) : undefined],
               ]
             : []),
+          ...(financeError ? [
+            ["Target sale", financeError.saleCaseId],
+            ["Accounting reversal reason", financeError.reason],
+            ["Down payment receipts to reverse", financeError.receiptReversals?.join(", ")],
+            ["Stock disposition", financeError.disposition?.kind],
+            ["Hold reason", financeError.disposition?.kind === "HOLD" ? financeError.disposition.reason : undefined],
+          ] : []),
           ...(refund ? [
             ["Refund amount", refund.refund?.amount ? money(refund.refund.amount) : undefined],
             ["Refund date", refund.refund?.date],

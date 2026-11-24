@@ -123,6 +123,7 @@ const saleEditWriteFields = [
   "patch.saleDate",
   "patch.handoverMileage",
   "patch.notes",
+  "patch.finance",
   "patch.tradeIn",
   "patch.tradeIn.description",
   "patch.tradeIn.value",
@@ -593,6 +594,7 @@ export const registry = {
       "proposal.input.saleCaseId",
       "proposal.input.disposition",
       "proposal.input.retainedAmount",
+      "proposal.input.receiptReversals",
       "proposal.command",
       "proposal.command.name",
       "proposal.command.input",
@@ -629,6 +631,7 @@ export const registry = {
       "proposal.input.saleCaseId",
       "proposal.input.disposition",
       "proposal.input.retainedAmount",
+      "proposal.input.receiptReversals",
       "proposal.command",
       "proposal.command.name",
       "proposal.command.input",
@@ -680,7 +683,7 @@ export const registry = {
       "provenance",
     ],
     create: [...immediateSaleWriteFields, "placeReservation", "startFinance"],
-    update: [...saleEditWriteFields, "vehicle", "mileage", "listedPrice", "startFinance", "convertReservation", "cancelRetained", "recordDO", "confirmDOAndHandover", "recordLenderReceipt", "refund"],
+    update: [...saleEditWriteFields, "vehicle", "mileage", "listedPrice", "startFinance", "convertReservation", "cancelRetained", "recordDO", "confirmDOAndHandover", "recordLenderReceipt", "refund", "cancelFinanceError"],
     pay: ["amount", "date", "method", "reference"],
   },
   Disposal: {
@@ -973,8 +976,8 @@ export const registry = {
     ],
   },
 } as const
-// Registry v18 combines reservations and expiry with reporting capabilities.
-export const registryVersion = 18
+// Registry v19 adds approved commitment corrections and purchase reporting.
+export const registryVersion = 19
 export type EnabledSubject = keyof typeof registry
 const conditionKeys: Record<EnabledSubject, readonly string[]> = {
   ApprovalRequest: ["createdBy"],

@@ -14,7 +14,7 @@ import type {
   SaleInvoicePdfInput,
   SaleInvoiceTransaction,
 } from "./pdf"
-import type { SaleRow } from "./sales"
+import { lenderPaid, type SaleRow } from "./sales"
 import type { currentSettings } from "./settings"
 
 type InvoiceSnapshot = {
@@ -41,34 +41,40 @@ const receiptFields = [
   "payments.reference",
 ]
 
-function immediateReceipt(sale: SaleRow): InvoicePaymentLine | null {
+function paymentLines(sale: SaleRow, category: string): InvoicePaymentLine[] {
   const reversed = new Set(sale.receipts.map((receipt) => receipt.reversalOf))
-  const active = sale.receipts.filter(
-    (receipt) =>
-      receipt.direction === "IN" &&
-      !receipt.reversalOf &&
-      !reversed.has(receipt.id)
-  )
-  if (active.length > 1) fail("INVALID_STATE")
-  const receipt = active[0]
-  if (!receipt) return null
-  if (receipt.method !== "CASH" && receipt.method !== "BANK_TRANSFER")
-    fail("INVALID_STATE")
-  return {
-    amount: receipt.amount.toString(),
-    date: formatDate(receipt.occurredDate),
-    method: receipt.method,
-    reference: receipt.reference,
-  }
+  return sale.receipts.flatMap((receipt) => {
+    if (
+      receipt.category !== category ||
+      receipt.direction !== "IN" ||
+      receipt.reversalOf ||
+      reversed.has(receipt.id)
+    )
+      return []
+    if (receipt.method !== "CASH" && receipt.method !== "BANK_TRANSFER")
+      fail("INVALID_STATE")
+    return [
+      {
+        amount: receipt.amount.toString(),
+        date: formatDate(receipt.occurredDate),
+        method: receipt.method,
+        reference: receipt.reference,
+      },
+    ]
+  })
 }
 
-// Register the reservation-conversion and inventory lease adapters here. Each
-// owns its transaction facts and the corresponding SaleCase read fields.
+function singlePayment(sale: SaleRow, category = "SALE") {
+  const lines = paymentLines(sale, category)
+  if (lines.length > 1) fail("INVALID_STATE")
+  return lines[0] ?? null
+}
+
 const adapters: Partial<Record<string, SaleTypeAdapter>> = {
   CASH: {
     fields: receiptFields,
     transaction(sale) {
-      const payment = immediateReceipt(sale)
+      const payment = singlePayment(sale)
       if (!payment) fail("INVALID_STATE")
       return {
         kind: "CASH",
@@ -78,11 +84,67 @@ const adapters: Partial<Record<string, SaleTypeAdapter>> = {
       }
     },
   },
+  ADVANCE: {
+    fields: [...receiptFields, "payments.category"],
+    transaction(sale) {
+      const advanceReceipts = paymentLines(sale, "ADVANCE")
+      const conversionBalance = singlePayment(sale, "BALANCE")
+      return {
+        kind: "ADVANCE",
+        agreedPrice: sale.agreedPrice.toString(),
+        advanceReceipts,
+        conversionBalance,
+        totalReceived: [
+          ...advanceReceipts,
+          ...(conversionBalance ? [conversionBalance] : []),
+        ]
+          .reduce((total, line) => total + BigInt(line.amount), 0n)
+          .toString(),
+      }
+    },
+  },
+  LEASE: {
+    fields: [
+      ...receiptFields,
+      "payments.category",
+      "finance.companyName",
+      "finance.principal",
+      "finance.termMonths",
+      "finance.issueDate",
+      "finance.lenderOutstanding",
+    ],
+    transaction(sale) {
+      const lease = sale.inventoryLease
+      const downPayment = singlePayment(sale, "DOWN_PAYMENT")
+      if (!lease?.issueDate || !downPayment) fail("INVALID_STATE")
+      const received = lenderPaid(sale)
+      const outstanding = lease.principal - received
+      return {
+        kind: "LEASE",
+        agreedPrice: sale.agreedPrice.toString(),
+        advanceReceipts: paymentLines(sale, "ADVANCE"),
+        downPayment,
+        financeCompanyName: lease.companyName,
+        financedAmount: lease.principal.toString(),
+        termMonths: lease.termMonths,
+        doIssueDate: formatDate(lease.issueDate),
+        lenderSettlementStatus:
+          outstanding === 0n
+            ? "Settled"
+            : received === 0n
+              ? "Pending"
+              : "Partially settled",
+        lenderReceived: received.toString(),
+        lenderOutstanding: outstanding.toString(),
+        lenderReceipts: paymentLines(sale, "LENDER"),
+      }
+    },
+  },
   TRADE_IN: {
     fields: [...receiptFields, "tradeIn.description", "tradeIn.value"],
     transaction(sale) {
       if (!sale.tradeIn) fail("INVALID_STATE")
-      const netBalance = immediateReceipt(sale)
+      const netBalance = singlePayment(sale)
       return {
         kind: "TRADE_IN",
         agreedPrice: sale.agreedPrice.toString(),

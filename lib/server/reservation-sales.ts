@@ -4,6 +4,7 @@ import type { VehicleStatus } from "@prisma/client"
 import type { z } from "zod"
 import type {
   Applied,
+  CancelFinanceError,
   CashInput,
   Dependency,
 } from "../../.planning/implementation/contracts/api"
@@ -44,6 +45,7 @@ import {
   type SaleRow,
 } from "./sales"
 import { authorizedAttachment } from "./attachments"
+import { queueInvoice } from "./invoice-data"
 
 type Cycle = SaleRow["purchaseRecord"]
 type Input<N extends CommitmentCommand> = z.infer<(typeof commitmentInputs)[N]>
@@ -501,6 +503,9 @@ async function complete(
       payload,
     })
   }
+  const completed = await loadSale(tx, sale.id)
+  if (!completed) fail("INTERNAL_ERROR", 500)
+  await queueInvoice(tx, completed, await currentSettings(tx), userId, context.commandId, context.sequence)
 }
 
 function requireHandoverBasis(row: Cycle) {
@@ -512,9 +517,9 @@ async function resolveCancellation(
   tx: Tx,
   context: Context,
   sale: SaleRow,
-  input: Input<"cancelRetained"> | Refund
+  input: Pick<Refund, "reason" | "disposition" | "retainedAmount"> & { refund?: CashInput }
 ) {
-  const refund = "refund" in input ? input.refund : null
+  const refund = input.refund
   if (refund) {
     const deposits = sale.receipts.filter(
       (receipt) =>
@@ -625,6 +630,79 @@ export async function applyRefund(
   input: Refund
 ) {
   await resolveCancellation(tx, context, sale, input)
+  return publishCommitment(tx, context, sale.purchaseRecord, sale.id, sale)
+}
+
+export function financeErrorAuthority(actor: Actor, sale: SaleRow) {
+  authorizeSale(actor, sale, "cancelFinanceError")
+  requireFields(actor.ability, "SaleCase", "read", saleAuth(sale), [
+    "payments.id", "payments.amount", "payments.direction", "payments.date",
+    "payments.method", "payments.category", "payments.reversalOf",
+  ])
+}
+
+export async function prepareFinanceError(
+  tx: Tx, actor: Actor, input: CancelFinanceError, expected: Dependency[], lock = true
+) {
+  const target = await findSaleTarget(tx, input)
+  if (lock) await lockCommitment(tx, target.purchaseRecordId, target.id)
+  const sale = (await loadSale(tx, target.id))!
+  financeErrorAuthority(actor, sale)
+  if (!sale.inventoryLease || !["FINANCE_PENDING", "DO_RECEIVED"].includes(sale.state) ||
+      sale.completion || await tx.commissionEntitlement.findUnique({ where: { saleCaseId: sale.id } }))
+    fail("INVALID_STATE")
+  // A converted advance was real customer credit. Resolve it through the refund path.
+  if (sale.reservation || sale.receipts.some((r) => r.category !== "DOWN_PAYMENT"))
+    fail("OBLIGATION_OPEN")
+  const reversed = new Set(sale.receipts.map((r) => r.reversalOf))
+  const receipts = sale.receipts.filter((r) => r.direction === "IN" && !reversed.has(r.id))
+  if (!receipts.length || input.receiptReversals.length !== receipts.length ||
+      new Set(input.receiptReversals).size !== receipts.length ||
+      receipts.some((r) => !input.receiptReversals.includes(r.id)))
+    fail("BALANCE_MISMATCH", 422)
+  const deps = [caseRef(sale), cycleRef(sale.purchaseRecord)]
+  for (const ref of deps) requireRef(expected, ref)
+  if (deps.length !== expected.length) fail("INVALID_INPUT", 422)
+  return {
+    sale,
+    cycle: sale.purchaseRecord,
+    deps,
+    snapshot: {
+      saleCaseId: sale.id,
+      state: sale.state,
+      downPayment: sale.inventoryLease.down.toString(),
+      receiptReversals: receipts.map(({ id }) => id).sort(),
+      doAttachmentId: sale.inventoryLease.doAttachmentId,
+    },
+  }
+}
+
+export async function applyFinanceError(
+  tx: Tx, context: Context, sale: SaleRow, input: CancelFinanceError
+) {
+  for (const id of input.receiptReversals) {
+    const original = sale.receipts.find((r) => r.id === id)!
+    await tx.saleReceipt.create({
+      data: {
+        saleCaseId: sale.id,
+        purchaseRecordId: sale.purchaseRecordId,
+        amount: original.amount,
+        direction: "OUT",
+        category: "DOWN_PAYMENT",
+        occurredDate: original.occurredDate,
+        method: original.method,
+        currency: original.currency,
+        scale: original.scale,
+        reference: original.reference,
+        reversalOf: original.id,
+        reason: input.reason,
+        commandId: context.commandId,
+        createdBy: ensureUser(context),
+        lineKey: `rev:${original.id}`,
+      },
+    })
+  }
+  await resolveCancellation(tx, context, sale, { ...input, retainedAmount: "0" })
   return publishCommitment(tx, context, sale.purchaseRecord, sale.id, sale)
 }
 

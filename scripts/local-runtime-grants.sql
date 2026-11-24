@@ -121,7 +121,7 @@ GRANT UPDATE (state, revision, "generationAt", "generatorId", "generatorName", s
 -- T10: reservation, inventory lease and persistence for expiry runs.
 GRANT SELECT, INSERT ON vamotors."Reservation", vamotors."InventoryLease", vamotors."JobRun" TO vamotors_runtime;
 GRANT UPDATE ("warnedAt","expiredAt",state,revision,"retainedAmount","resolvedAt","resolutionReason",disposition) ON vamotors."Reservation" TO vamotors_runtime;
-GRANT UPDATE ("doAttachmentId","issueDate") ON vamotors."InventoryLease" TO vamotors_runtime;
+GRANT UPDATE ("doAttachmentId","issueDate",down,"termMonths") ON vamotors."InventoryLease" TO vamotors_runtime;
 GRANT UPDATE (status,"startedAt","finishedAt","nextCursor",outcome) ON vamotors."JobRun" TO vamotors_runtime;
 GRANT UPDATE (state,kind) ON vamotors."SaleCase" TO vamotors_runtime;
 GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."Attachment", vamotors."UploadIntent" TO vamotors_runtime;

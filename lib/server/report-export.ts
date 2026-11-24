@@ -81,6 +81,7 @@ export const REPORT_TITLES: Readonly<Record<ReportKind, string>> = {
   REPAIRS: "Vehicles Currently in Repair Report",
   CASH_FLOW: "Cash Flow Summary Report",
   DISPOSALS: "Write-Off and Disposal Report",
+  PURCHASES: "Purchases per Period Report",
 }
 
 export const REPORT_COLUMNS: Readonly<
@@ -647,6 +648,51 @@ export const REPORT_COLUMNS: Readonly<
       permissionFields: ["amount"],
       totalKey: "net",
       signed: true,
+    },
+  ],
+  PURCHASES: [
+    {
+      key: "cycleId",
+      label: "Cycle ID",
+      format: "text",
+      permissionFields: ["cycleId"],
+    },
+    {
+      key: "date",
+      label: "Purchase date",
+      format: "date",
+      permissionFields: ["date"],
+    },
+    {
+      key: "vehicle",
+      label: "Vehicle",
+      format: "text",
+      permissionFields: ["vehicle"],
+    },
+    {
+      key: "seller",
+      label: "Seller",
+      format: "text",
+      permissionFields: ["seller"],
+    },
+    {
+      key: "purchaseType",
+      label: "Purchase type",
+      format: "text",
+      permissionFields: ["purchaseType"],
+    },
+    {
+      key: "status",
+      label: "Status",
+      format: "text",
+      permissionFields: ["status"],
+    },
+    {
+      key: "price",
+      label: "Purchase price",
+      format: "money",
+      permissionFields: ["price"],
+      totalKey: "purchasePrice",
     },
   ],
   DISPOSALS: [

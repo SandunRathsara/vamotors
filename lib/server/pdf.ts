@@ -63,6 +63,7 @@ export type SaleInvoiceTransaction =
   | {
       kind: "LEASE"
       agreedPrice: PdfMoney
+      advanceReceipts?: InvoicePaymentLine[]
       downPayment: InvoicePaymentLine
       financeCompanyName: string
       financedAmount: PdfMoney
@@ -883,6 +884,13 @@ function buildTransactionRows(
       break
     }
     case "LEASE": {
+      for (const receipt of tx.advanceReceipts ?? []) {
+        rows.push({
+          item: "Advance Credit",
+          detail: formatPaymentSummary(receipt),
+          amount: money(receipt.amount),
+        })
+      }
       rows.push({
         item: tx.downPayment.label || "Customer Down Payment Receipt",
         detail: formatPaymentSummary(tx.downPayment),

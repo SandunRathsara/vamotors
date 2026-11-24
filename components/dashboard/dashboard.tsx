@@ -50,6 +50,15 @@ export function Dashboard({ today }: { today: string }) {
           href: "/repairs",
         },
         {
+          label: "Active advances",
+          value: metrics.advances,
+          href: "/reports/advances",
+          detail:
+            metrics.expiredAdvances === null
+              ? undefined
+              : `${metrics.expiredAdvances} expired`,
+        },
+        {
           label: "Completed sales in period",
           value: metrics.completedSales,
           href: "/sales",
@@ -158,14 +167,6 @@ export function Dashboard({ today }: { today: string }) {
                 )}
               </Link>
             ))}
-            {ability.can("read", "Report", "ADVANCES") && (
-              <div className="rounded-lg border bg-card p-4">
-                <h2 className="text-sm font-medium">Active advances</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Reservation records pending integration
-                </p>
-              </div>
-            )}
           </div>
           {metrics.recentSales && (
             <section className="space-y-3">
