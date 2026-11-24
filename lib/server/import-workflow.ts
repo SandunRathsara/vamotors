@@ -261,6 +261,40 @@ function order(rows: Row[], namespace: string, errors: Issue[]) {
   const prerequisites = (row: Row) => {
     const data = row.data
     const deps = new Set<Row>()
+    if (data.type === "SALES" && data.payload.reservation) {
+      const reservation = data.payload.reservation
+      const advance =
+        !("existingId" in reservation) && reservation.namespace === namespace
+          ? sources.get(referenceKey(reservation))
+          : undefined
+      if (advance?.data.type !== "ADVANCES") {
+        errors.push(
+          rowIssue(
+            row,
+            "reservation",
+            "INVALID_STATE",
+            "A historical sale must convert an advance in the same import batch"
+          )
+        )
+      } else {
+        const depositKeys = new Set(
+          advance.data.payload.payments.map((payment) => payment.sourceKey)
+        )
+        if (
+          data.payload.payments.some((payment) =>
+            depositKeys.has(payment.sourceKey)
+          )
+        )
+          errors.push(
+            rowIssue(
+              row,
+              "payments",
+              "IMPORT_DUPLICATE",
+              "Payment source keys must be unique across the two rows of a shared sale case"
+            )
+          )
+      }
+    }
     for (const ref of adapterFor(data.type)?.dependencies?.(data) ?? []) {
       if (ref && !("existingId" in ref) && ref.namespace === namespace) {
         const dependency = sources.get(referenceKey(ref))
