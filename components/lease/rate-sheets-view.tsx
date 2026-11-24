@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   PartyDTO,
@@ -65,8 +66,11 @@ export function RateSheetsView() {
   const queries = useQueryClient()
   const [draft, setDraft] = useState(initial)
   const [cards, setCards] = useState([emptyCard()])
-  const [page, setPage] = useState(1)
-  const [filter, setFilter] = useState("")
+  const [{ page: pageParam, company: filter }, setFilters] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    company: parseAsString.withDefault(""),
+  })
+  const page = Math.max(1, pageParam)
   const [saved, setSaved] = useState("")
   const command = useRateCommand("publishRates")
   const companies = useQuery({
@@ -290,8 +294,7 @@ export function RateSheetsView() {
           className="min-h-11 w-full rounded-md border bg-background px-3 sm:max-w-sm"
           value={filter}
           onChange={(e) => {
-            setFilter(e.target.value)
-            setPage(1)
+            void setFilters({ company: e.target.value, page: 1 })
           }}
         >
           <option value="">All authorized active companies</option>
@@ -361,7 +364,7 @@ export function RateSheetsView() {
           <Button
             variant="outline"
             disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
+            onClick={() => void setFilters({ page: page - 1 })}
           >
             Previous
           </Button>
@@ -371,7 +374,7 @@ export function RateSheetsView() {
           <Button
             variant="outline"
             disabled={page * 20 >= sheets.data.total}
-            onClick={() => setPage(page + 1)}
+            onClick={() => void setFilters({ page: page + 1 })}
           >
             Next
           </Button>

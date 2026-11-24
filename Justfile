@@ -43,12 +43,12 @@ test-api feature="":
 
 [group('test')]
 test-e2e feature="":
-    pnpm exec playwright test --project=e2e {{feature}}
+    pnpm exec playwright test --project=e2e-360 --project=e2e-1920 {{feature}}
 
 # D-09: interactive debugger for E2E
 [group('test')]
 test-e2e-ui:
-    pnpm exec playwright test --project=e2e --ui
+    pnpm exec playwright test --project=e2e-360 --project=e2e-1920 --ui
 
 # D-11: coverage for unit tier, no thresholds
 [group('test')]

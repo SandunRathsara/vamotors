@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import Link from "next/link"
+import { parseAsInteger, parseAsStringEnum, useQueryStates } from "nuqs"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
   Page,
@@ -12,16 +13,27 @@ import { privateRequest, RequestError } from "@/lib/security-client"
 import { Button } from "@/components/ui/button"
 import { major } from "@/lib/money"
 
-export function CommitmentList({ canRunExpiry }: { canRunExpiry: boolean }) {
+export function CommitmentList({
+  canRunExpiry,
+  canRead,
+}: {
+  canRunExpiry: boolean
+  canRead: boolean
+}) {
   const queryClient = useQueryClient()
-  const [page, setPage] = useState(1)
-  const [kind, setKind] = useState("")
+  const kindParser = parseAsStringEnum(["", "ADVANCE", "LEASE"])
+  const [{ commitmentPage, kind }, setFilters] = useQueryStates({
+    commitmentPage: parseAsInteger.withDefault(1),
+    kind: kindParser.withDefault(""),
+  })
+  const page = Math.max(1, commitmentPage)
   const [pending, setPending] = useState(false)
   const [result, setResult] = useState("")
   const [problem, setProblem] = useState("")
   const retry = useRef("")
   const listing = useQuery({
     queryKey: ["sales", "commitments", kind, page],
+    enabled: canRead,
     queryFn: () =>
       privateRequest<{ data: Page<Visible<SaleDTO>> }>(
         `/api/v1/queries/sales?page=${page}&pageSize=20${kind ? `&kind=${kind}` : ""}`
@@ -75,8 +87,15 @@ export function CommitmentList({ canRunExpiry }: { canRunExpiry: boolean }) {
         retry.current = ""
       setProblem(error instanceof Error ? error.message : "Catch-up failed")
     } finally {
-      void queryClient.invalidateQueries({ queryKey: ["sales"] })
-      void queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      for (const key of [
+        "sales",
+        "purchases",
+        "inventory",
+        "notifications",
+        "dashboard",
+        "reports",
+      ])
+        void queryClient.invalidateQueries({ queryKey: [key] })
       setPending(false)
     }
   }
@@ -100,22 +119,26 @@ export function CommitmentList({ canRunExpiry }: { canRunExpiry: boolean }) {
       </div>
       {result && <p role="status">{result}</p>}
       {problem && <p role="alert">{problem}</p>}
-      <label className="flex items-center gap-3 text-sm">
-        Sale type
-        <select
-          className="h-9 rounded-md border bg-background px-3"
-          value={kind}
-          onChange={(event) => {
-            setKind(event.target.value)
-            setPage(1)
-          }}
-        >
-          <option value="">All reservations and leases</option>
-          <option value="ADVANCE">Advance</option>
-          <option value="LEASE">Lease</option>
-        </select>
-      </label>
-      {listing.isPending && (
+      {canRead && (
+        <label className="flex flex-wrap items-center gap-3 text-sm">
+          Sale type
+          <select
+            className="h-9 rounded-md border bg-background px-3"
+            value={kind}
+            onChange={(event) =>
+              void setFilters({
+                kind: kindParser.parse(event.target.value),
+                commitmentPage: 1,
+              })
+            }
+          >
+            <option value="">All reservations and leases</option>
+            <option value="ADVANCE">Advance</option>
+            <option value="LEASE">Lease</option>
+          </select>
+        </label>
+      )}
+      {canRead && listing.isPending && (
         <p role="status">Loading reservations and lease sales…</p>
       )}
       {listing.isError && (
@@ -123,7 +146,12 @@ export function CommitmentList({ canRunExpiry }: { canRunExpiry: boolean }) {
       )}
       {results &&
         (results.data.length ? (
-          <div className="overflow-x-auto rounded-lg border">
+          <div
+            className="overflow-x-auto rounded-lg border"
+            tabIndex={0}
+            role="region"
+            aria-label="Reservations and lease sales"
+          >
             <table className="w-full text-left text-sm">
               <thead className="border-b bg-muted/40">
                 <tr>
@@ -172,12 +200,12 @@ export function CommitmentList({ canRunExpiry }: { canRunExpiry: boolean }) {
             No matching reservations or lease sales.
           </p>
         ))}
-      {!!results && results.total > 20 && (
+      {!!results && (results.total > 20 || page > 1) && (
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
+            onClick={() => void setFilters({ commitmentPage: page - 1 })}
           >
             Previous
           </Button>
@@ -185,7 +213,7 @@ export function CommitmentList({ canRunExpiry }: { canRunExpiry: boolean }) {
           <Button
             variant="outline"
             disabled={page * 20 >= results.total}
-            onClick={() => setPage(page + 1)}
+            onClick={() => void setFilters({ commitmentPage: page + 1 })}
           >
             Next
           </Button>

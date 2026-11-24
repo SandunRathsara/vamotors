@@ -1,13 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { parseAsInteger, useQueryState } from "nuqs"
 import { useQuery } from "@tanstack/react-query"
 import { privateRequest, RequestError } from "@/lib/security-client"
 import { Button } from "@/components/ui/button"
 import { SaleSummaryRow, type VisibleCycle } from "./sales-columns"
 
 export function SalesTable() {
-  const [page, setPage] = useState(1)
+  const [pageParam, setPage] = useQueryState(
+    "soldPage",
+    parseAsInteger.withDefault(1)
+  )
+  const page = Math.max(1, pageParam)
   const query = useQuery({
     queryKey: ["sales", "list", page],
     retry: false,
@@ -38,19 +42,24 @@ export function SalesTable() {
   const cycles = query.data.data.data
   const total = query.data.data.total
 
-  if (cycles.length === 0) {
+  if (cycles.length === 0 && page === 1) {
     return (
       <div className="rounded-lg border p-6 text-sm text-muted-foreground">
-        No completed sales recorded yet. Use Complete Immediate Sale above or on an available stock purchase cycle.
+        No completed sales recorded yet.
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-lg border">
+      <div
+        className="overflow-x-auto rounded-lg border"
+        role="region"
+        aria-label="Completed sales"
+        tabIndex={0}
+      >
         <table className="w-full text-left">
-          <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
+          <thead className="border-b bg-muted/40 text-xs text-muted-foreground uppercase">
             <tr>
               <th className="px-3 py-2">Vehicle</th>
               <th className="px-3 py-2">Kind</th>
@@ -68,14 +77,14 @@ export function SalesTable() {
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
         <span>{total} sold cycles</span>
         <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
             disabled={page === 1}
-            onClick={() => setPage((p) => p - 1)}
+            onClick={() => void setPage(page - 1)}
           >
             Previous
           </Button>
@@ -83,7 +92,7 @@ export function SalesTable() {
             type="button"
             variant="outline"
             disabled={page * 20 >= total}
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => void setPage(page + 1)}
           >
             Next
           </Button>

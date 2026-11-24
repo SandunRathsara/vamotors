@@ -1,7 +1,7 @@
 "use client"
 import { ImportedBadge } from "@/components/imports/imported-badge"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type {
@@ -40,6 +40,15 @@ export function SaleDetailView({ id }: { id: string }) {
       ),
   })
   const sale = saleQuery.data?.data
+  const saleId = sale?.id
+  const heading = useRef<HTMLHeadingElement>(null)
+  const focusedSale = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!saleId || focusedSale.current === saleId || !heading.current) return
+    heading.current.focus()
+    focusedSale.current = saleId
+  }, [saleId])
 
   const cycleQuery = useQuery({
     queryKey: ["purchases", "detail", sale?.cycleId],
@@ -343,7 +352,9 @@ export function SaleDetailView({ id }: { id: string }) {
   return (
     <section className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Sale {sale.id}</h1>
+        <h1 ref={heading} tabIndex={-1} className="min-w-0 break-words text-2xl font-semibold">
+          Sale {sale.id}
+        </h1>
         <ImportedBadge provenance={sale.provenance} />
         <Link prefetch={false} className="underline" href="/sales">
           Back to sales

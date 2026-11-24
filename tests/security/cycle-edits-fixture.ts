@@ -40,7 +40,7 @@ export const refs = (row: PurchaseCycleDTO, name: string): Dependency[] =>
             ]
           : []),
       ]
-export async function fixture(root: string, source = process.cwd()) {
+export async function fixture(root: string, source = process.cwd(), startupTimeout = 20_000) {
   process.umask(0o077)
   const runId = randomUUID().slice(0, 8)
   const runtime = await privateEnvironment(join(root, "runtime.env")),
@@ -112,7 +112,7 @@ export async function fixture(root: string, source = process.cwd()) {
       { mode: 0o600 }
     )
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(Error("START_TIMEOUT")), 20000)
+      const timer = setTimeout(() => reject(Error("START_TIMEOUT")), startupTimeout)
       server!.once("exit", () => {
         clearTimeout(timer)
         reject(Error("EARLY_EXIT"))

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { parseAsString, useQueryStates } from "nuqs"
 import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
 import { useActor } from "@/components/providers/auth-boundary"
@@ -20,9 +21,9 @@ export function Dashboard({ today }: { today: string }) {
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const [purchase, setPurchase] = useState(false)
   const [sale, setSale] = useState(false)
-  const [range, setRange] = useState({
-    from: today.slice(0, 7) + "-01",
-    through: today,
+  const [range, setRange] = useQueryStates({
+    from: parseAsString.withDefault(today.slice(0, 7) + "-01"),
+    through: parseAsString.withDefault(today),
   })
   const query = useQuery({
     queryKey: ["dashboard", range],
@@ -38,7 +39,11 @@ export function Dashboard({ today }: { today: string }) {
         {
           label: "Vehicles in stock",
           value: metrics.stock,
-          href: "/vehicles?status=IN_STOCK",
+          href:
+            ability.can("read", "Vehicle") &&
+            ability.can("read", "PurchaseRecord")
+              ? "/vehicles?status=IN_STOCK"
+              : undefined,
           detail:
             metrics.held === null
               ? undefined
@@ -47,12 +52,18 @@ export function Dashboard({ today }: { today: string }) {
         {
           label: "Vehicles in repair",
           value: metrics.inRepair,
-          href: "/repairs",
+          href:
+            ability.can("read", "RepairRecord", "id") &&
+            ability.can("read", "PurchaseRecord", "status")
+              ? "/repairs"
+              : undefined,
         },
         {
           label: "Active advances",
           value: metrics.advances,
-          href: "/reports/advances",
+          href: ability.can("read", "SaleCase", "id")
+            ? "/sales?kind=ADVANCE"
+            : undefined,
           detail:
             metrics.expiredAdvances === null
               ? undefined
@@ -61,7 +72,7 @@ export function Dashboard({ today }: { today: string }) {
         {
           label: "Completed sales in period",
           value: metrics.completedSales,
-          href: "/sales",
+          href: ability.can("read", "SaleCase", "id") ? "/sales" : undefined,
         },
       ].filter(({ value }) => value !== null)
     : []
@@ -108,7 +119,7 @@ export function Dashboard({ today }: { today: string }) {
         onSubmit={(event) => {
           event.preventDefault()
           const fields = new FormData(event.currentTarget)
-          setRange({
+          void setRange({
             from: String(fields.get("from")),
             through: String(fields.get("through")),
           })
@@ -121,6 +132,7 @@ export function Dashboard({ today }: { today: string }) {
             name="from"
             required
             max={today}
+            key={range.from}
             defaultValue={range.from}
           />
         </label>
@@ -131,6 +143,7 @@ export function Dashboard({ today }: { today: string }) {
             name="through"
             required
             max={today}
+            key={range.through}
             defaultValue={range.through}
           />
         </label>
@@ -151,22 +164,36 @@ export function Dashboard({ today }: { today: string }) {
             {metrics.from} through {metrics.through}.
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {cards.map(({ label, value, href, detail }) => (
-              <Link
-                key={label}
-                href={href}
-                prefetch={false}
-                className="rounded-lg border bg-card p-4 hover:bg-accent"
-              >
-                <h2 className="text-sm font-medium">{label}</h2>
-                <p className="mt-2 text-3xl font-semibold tabular-nums">
-                  {value}
-                </p>
-                {detail && (
-                  <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
-                )}
-              </Link>
-            ))}
+            {cards.map(({ label, value, href, detail }) => {
+              const contents = (
+                <>
+                  <h2 className="text-sm font-medium">{label}</h2>
+                  <p className="mt-2 text-3xl font-semibold tabular-nums">
+                    {value}
+                  </p>
+                  {detail && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {detail}
+                    </p>
+                  )}
+                </>
+              )
+              const className = "rounded-lg border bg-card p-4"
+              return href ? (
+                <Link
+                  key={label}
+                  href={href}
+                  prefetch={false}
+                  className={className + " hover:bg-accent"}
+                >
+                  {contents}
+                </Link>
+              ) : (
+                <div key={label} className={className}>
+                  {contents}
+                </div>
+              )
+            })}
           </div>
           {metrics.recentSales && (
             <section className="space-y-3">

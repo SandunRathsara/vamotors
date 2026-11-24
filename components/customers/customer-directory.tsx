@@ -1,5 +1,6 @@
 "use client"
 import { ImportedBadge } from "@/components/imports/imported-badge"
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 import Link from "next/link"
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -26,9 +27,11 @@ export function CustomerDirectory({ id }: { id?: string }) {
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const queries = useQueryClient()
-  const [q, setQ] = useState("")
-  const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
+  const [{ page: pageParam, q: search }, setFilters] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    q: parseAsString.withDefault(""),
+  })
+  const page = Math.max(1, pageParam)
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<VisibleCustomer | null>(null)
   const [reason, setReason] = useState("")
@@ -199,8 +202,7 @@ export function CustomerDirectory({ id }: { id?: string }) {
           className="flex flex-wrap items-end gap-3"
           onSubmit={(e) => {
             e.preventDefault()
-            setSearch(q)
-            setPage(1)
+            void setFilters({ q: String(new FormData(e.currentTarget).get("q") ?? ""), page: 1 })
           }}
         >
           <div className="min-w-0 flex-1 space-y-2">
@@ -209,8 +211,9 @@ export function CustomerDirectory({ id }: { id?: string }) {
             </Label>
             <Input
               id="customer-search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              key={search}
+              name="q"
+              defaultValue={search}
               maxLength={200}
               className="min-h-11 text-base"
             />
@@ -268,7 +271,7 @@ export function CustomerDirectory({ id }: { id?: string }) {
             <Button
               variant="outline"
               disabled={page === 1}
-              onClick={() => setPage(page - 1)}
+              onClick={() => void setFilters({ page: page - 1 })}
             >
               Previous
             </Button>
@@ -276,7 +279,7 @@ export function CustomerDirectory({ id }: { id?: string }) {
             <Button
               variant="outline"
               disabled={page * list.pageSize >= list.total}
-              onClick={() => setPage(page + 1)}
+              onClick={() => void setFilters({ page: page + 1 })}
             >
               Next
             </Button>

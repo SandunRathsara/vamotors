@@ -1,5 +1,6 @@
 "use client"
 import { useRef, useState } from "react"
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -581,14 +582,17 @@ export function DisposalHistory({ cycle }: { cycle: Cycle }) {
 }
 
 export function ApprovalsList() {
-  const [status, setStatus] = useState(""),
-    [page, setPage] = useState(1)
+  const [{ page: pageParam, status }, setFilters] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    status: parseAsString.withDefault(""),
+  })
+  const page = Math.max(1, pageParam)
   const query = useQuery({
     queryKey: ["approvals", status, page],
     retry: false,
     queryFn: () =>
       privateRequest<{ data: { data: Approval[]; total: number } }>(
-        `/api/v1/queries/approvals?page=${page}&pageSize=20${status ? `&status=${status}` : ""}`
+        `/api/v1/queries/approvals?page=${page}&pageSize=20${status ? `&status=${encodeURIComponent(status)}` : ""}`
       ),
   })
   return (
@@ -604,8 +608,7 @@ export function ApprovalsList() {
         className="h-11 rounded-md border bg-background px-3"
         value={status}
         onChange={(e) => {
-          setStatus(e.target.value)
-          setPage(1)
+          void setFilters({ status: e.target.value, page: 1 })
         }}
       >
         <option value="">All</option>
@@ -655,14 +658,14 @@ export function ApprovalsList() {
             <Button
               variant="outline"
               disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => void setFilters({ page: page - 1 })}
             >
               Previous
             </Button>
             <Button
               variant="outline"
               disabled={page * 20 >= query.data.data.total}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => void setFilters({ page: page + 1 })}
             >
               Next
             </Button>

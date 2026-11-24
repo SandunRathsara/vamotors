@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import { parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates } from "nuqs"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useActor } from "@/components/providers/auth-boundary"
 import { abilityFor } from "@/lib/server/permissions"
@@ -18,23 +19,21 @@ import {
 export function PartyDirectory() {
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
-  const [kind, setKind] = useState<DirectoryKind>(
-    ability.can("read", "Supplier")
-      ? "SUPPLIER"
-      : ability.can("read", "RepairVendor")
-        ? "REPAIR_VENDOR"
-        : "FINANCE_COMPANY"
-  )
+  const defaultKind = ability.can("read", "Supplier")
+    ? "SUPPLIER" : ability.can("read", "RepairVendor") ? "REPAIR_VENDOR" : "FINANCE_COMPANY"
+  const [{ type: kind, page: pageParam, q: search, active }, setFilters] = useQueryStates({
+    type: parseAsStringEnum<DirectoryKind>(["SUPPLIER", "REPAIR_VENDOR", "FINANCE_COMPANY"]).withDefault(defaultKind),
+    page: parseAsInteger.withDefault(1),
+    q: parseAsString.withDefault(""),
+    active: parseAsStringEnum(["", "true", "false"]).withDefault(""),
+  })
+  const page = Math.max(1, pageParam)
   const type =
     kind === "FINANCE_COMPANY"
       ? "FinanceCompany"
       : kind === "SUPPLIER"
         ? "Supplier"
         : "RepairVendor"
-  const [q, setQ] = useState("")
-  const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
-  const [active, setActive] = useState("")
   const [form, setForm] = useState<{ initial?: VisibleParty } | null>(null)
   const [unresolved, setUnresolved] = useState(false)
   const [archive, setArchive] = useState<{
@@ -130,12 +129,9 @@ export function PartyDirectory() {
                 )
               }
               onClick={() => {
-                setKind(value)
-                setPage(1)
+                void setFilters({ type: value, page: 1, q: "" })
                 setForm(null)
                 setArchive(null)
-                setSearch("")
-                setQ("")
               }}
             >
               {value === "SUPPLIER"
@@ -189,17 +185,17 @@ export function PartyDirectory() {
         className="flex flex-wrap items-end gap-3"
         onSubmit={(e) => {
           e.preventDefault()
-          setSearch(q)
-          setPage(1)
+          void setFilters({ q: String(new FormData(e.currentTarget).get("q") ?? ""), page: 1 })
         }}
       >
         <div className="min-w-0 flex-1 space-y-2">
           <Label htmlFor="party-search">Search name</Label>
           <Input
             id="party-search"
-            value={q}
+            key={kind + ":" + search}
+            name="q"
+            defaultValue={search}
             maxLength={200}
-            onChange={(e) => setQ(e.target.value)}
             className="min-h-11 text-base"
           />
         </div>
@@ -209,8 +205,8 @@ export function PartyDirectory() {
             id="party-active"
             value={active}
             onChange={(e) => {
-              setActive(e.target.value)
-              setPage(1)
+              const value = e.target.value
+              void setFilters({ active: value === "true" || value === "false" ? value : "", page: 1 })
             }}
             className="min-h-11 rounded-md border bg-background px-3"
           >
@@ -363,7 +359,7 @@ export function PartyDirectory() {
             <Button
               variant="outline"
               disabled={page === 1}
-              onClick={() => setPage(page - 1)}
+              onClick={() => void setFilters({ page: page - 1 })}
             >
               Previous
             </Button>
@@ -371,7 +367,7 @@ export function PartyDirectory() {
             <Button
               variant="outline"
               disabled={page * list.pageSize >= list.total}
-              onClick={() => setPage(page + 1)}
+              onClick={() => void setFilters({ page: page + 1 })}
             >
               Next
             </Button>

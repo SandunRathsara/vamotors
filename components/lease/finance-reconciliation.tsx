@@ -1,5 +1,6 @@
 "use client"
 
+import { parseAsBoolean, parseAsString, useQueryStates } from "nuqs"
 import { useRef, useState, type FormEvent, type ReactNode } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
@@ -108,13 +109,15 @@ export function FinanceReconciliation() {
     queryKey: ["reconciliation", "companies"],
     queryFn: () => read<Company[]>("reconciliationCompanies"),
   })
-  const [selection, setSelection] = useState("")
+  const [{ company: selection, asOf: cutoff, run: runId, overdue }, setFilters] = useQueryStates({
+    company: parseAsString.withDefault(""),
+    asOf: parseAsString.withDefault(today()),
+    run: parseAsString.withDefault(""),
+    overdue: parseAsBoolean.withDefault(false),
+  })
   const companyId = selection || companies.data?.[0]?.id || ""
-  const [cutoff, setCutoff] = useState(today)
-  const [runId, setRunId] = useState("")
   const [selectedRemittance, setSelectedRemittance] = useState("")
   const [selectedEntitlement, setSelectedEntitlement] = useState("")
-  const [overdue, setOverdue] = useState(false)
   const [status, setStatus] = useState<{ message: string; error: boolean }>()
   const [pending, setPending] = useState(false)
   const retry = useRef(new Map<string, string>())
@@ -276,8 +279,7 @@ export function FinanceReconciliation() {
             className={selectClass}
             value={companyId}
             onChange={(event) => {
-              setSelection(event.target.value)
-              setRunId("")
+              void setFilters({ company: event.target.value, run: "" })
               setSelectedRemittance("")
               setSelectedEntitlement("")
             }}
@@ -298,14 +300,14 @@ export function FinanceReconciliation() {
             max={today()}
             value={cutoff}
             disabled={!!runId}
-            onChange={(event) => setCutoff(event.target.value)}
+            onChange={(event) => void setFilters({ asOf: event.target.value, run: "" })}
           />
         </Field>
         <Field label="Reconciliation view">
           <select
             className={selectClass}
             value={runId}
-            onChange={(event) => setRunId(event.target.value)}
+            onChange={(event) => void setFilters({ run: event.target.value })}
           >
             <option value="">Live balances</option>
             {data?.runs.map((run) => (
@@ -356,12 +358,12 @@ export function FinanceReconciliation() {
                 <input
                   type="checkbox"
                   checked={overdue}
-                  onChange={(event) => setOverdue(event.target.checked)}
+                  onChange={(event) => void setFilters({ overdue: event.target.checked })}
                 />{" "}
                 Overdue only
               </label>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" role="region" aria-label="Commission entitlements" tabIndex={0}>
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b text-muted-foreground">
                   <tr>
@@ -914,7 +916,7 @@ export function FinanceReconciliation() {
                               .map(remittanceRef),
                           ]
                         )
-                        setRunId(result.result.id)
+                        void setFilters({ run: result.result.id })
                       }
                     )
                   }

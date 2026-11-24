@@ -1,5 +1,6 @@
 "use client"
 import { useState } from "react"
+import { parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates } from "nuqs"
 import { useQuery } from "@tanstack/react-query"
 import type {
   UserAdminDTO,
@@ -28,9 +29,17 @@ export async function allRoles() {
 
 export function UsersTable() {
   const { can } = useCapabilities()
-  const [kind, setKind] = useState<"users" | "roles">(
-    can("User", "read") || can("User", "create") ? "users" : "roles"
-  )
+  const defaultKind = can("User", "read") || can("User", "create") ? "users" : "roles"
+  const [filters, setFilters] = useQueryStates({
+    kind: parseAsStringEnum(["users", "roles"]).withDefault(defaultKind),
+    q: parseAsString.withDefault(""),
+    active: parseAsStringEnum(["", "true", "false"]).withDefault(""),
+    roleId: parseAsString.withDefault(""),
+    page: parseAsInteger.withDefault(1),
+    direction: parseAsStringEnum(["asc", "desc"]).withDefault("asc"),
+  })
+  const { kind, q, active, roleId, direction } = filters
+  const page = Math.max(1, filters.page)
   const type = kind === "users" ? "User" : "Role"
   const readable = can(type, "read", ["id"])
   const searchable = can(
@@ -49,11 +58,6 @@ export function UsersTable() {
     ) &&
     can(type, "read", ["id", "revision"]) &&
     (type !== "User" || can("Role", "read", ["id", "revision", "grants"]))
-  const [q, setQ] = useState("")
-  const [active, setActive] = useState("")
-  const [roleId, setRoleId] = useState("")
-  const [page, setPage] = useState(1)
-  const [direction, setDirection] = useState<"asc" | "desc">("asc")
   const [user, setUser] = useState<UserAdminDTO | "new" | null>(null)
   const [role, setRole] = useState<RoleDTO | "new" | null>(null)
   const [error, setError] = useState("")
@@ -124,8 +128,7 @@ export function UsersTable() {
           disabled={!can("User", "read") && !can("User", "create")}
           variant={kind === "users" ? "default" : "outline"}
           onClick={() => {
-            setKind("users")
-            setPage(1)
+            void setFilters({ kind: "users", page: 1 })
           }}
         >
           Users
@@ -134,8 +137,7 @@ export function UsersTable() {
           disabled={!can("Role", "read") && !can("Role", "create")}
           variant={kind === "roles" ? "default" : "outline"}
           onClick={() => {
-            setKind("roles")
-            setPage(1)
+            void setFilters({ kind: "roles", page: 1 })
           }}
         >
           Roles
@@ -146,8 +148,7 @@ export function UsersTable() {
           aria-label="Search accounts or roles"
           value={q}
           onChange={(e) => {
-            setQ(e.target.value)
-            setPage(1)
+            void setFilters({ q: e.target.value, page: 1 })
           }}
           placeholder="Search name or email…"
         />
@@ -157,8 +158,8 @@ export function UsersTable() {
           aria-label="Filter access"
           value={active}
           onChange={(e) => {
-            setActive(e.target.value)
-            setPage(1)
+            const value = e.target.value
+            void setFilters({ active: value === "true" || value === "false" ? value : "", page: 1 })
           }}
         >
           <option value="">All access states</option>
@@ -173,8 +174,7 @@ export function UsersTable() {
               aria-label="Filter role"
               value={roleId}
               onChange={(e) => {
-                setRoleId(e.target.value)
-                setPage(1)
+                void setFilters({ roleId: e.target.value, page: 1 })
               }}
             >
               <option value="">All roles</option>
@@ -189,8 +189,7 @@ export function UsersTable() {
           disabled={!nameSort}
           variant="outline"
           onClick={() => {
-            setDirection(direction === "asc" ? "desc" : "asc")
-            setPage(1)
+            void setFilters({ direction: direction === "asc" ? "desc" : "asc", page: 1 })
           }}
         >
           Name {direction === "asc" ? "↑" : "↓"}
@@ -274,7 +273,7 @@ export function UsersTable() {
         <Button
           variant="outline"
           disabled={page === 1}
-          onClick={() => setPage(page - 1)}
+          onClick={() => void setFilters({ page: page - 1 })}
         >
           Previous
         </Button>
@@ -284,7 +283,7 @@ export function UsersTable() {
         <Button
           variant="outline"
           disabled={!list.data || page * 20 >= list.data.data.total}
-          onClick={() => setPage(page + 1)}
+          onClick={() => void setFilters({ page: page + 1 })}
         >
           Next
         </Button>

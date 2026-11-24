@@ -140,7 +140,7 @@ test("install caches exactly four credential-free public assets; activation dele
   await sw.caches.open("unrelated-owner-cache")
   await sw.lifecycle("activate")
   assert.deepEqual(await sw.caches.keys(), [
-    "vamotors-public-shell-v1",
+    "vamotors-public-shell-v2",
     "unrelated-owner-cache",
   ])
   assert.deepEqual(sw.state(), { claimed: true, skipped: true })
@@ -192,7 +192,14 @@ test("private responses are network-only; offline navigation returns only the ge
   await assert.rejects(
     sw.fetch("/users", { mode: "navigate", headers: new Headers({ RSC: "1" }) })
   )
-  const store = sw.stores.get("vamotors-public-shell-v1")
+  await assert.rejects(
+    sw.fetch("/documents/private", {
+      mode: "navigate",
+      headers: new Headers({ Authorization: "Bearer private" }),
+    }),
+    /Network unavailable/
+  )
+  const store = sw.stores.get("vamotors-public-shell-v2")
   assert.deepEqual(
     [...store.keys()].map((url) => new URL(url).pathname),
     assets

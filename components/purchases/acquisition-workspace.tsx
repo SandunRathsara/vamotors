@@ -1,9 +1,10 @@
 "use client"
 import { ImportedBadge } from "@/components/imports/imported-badge"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs"
 import type {
   Applied,
   Dependency,
@@ -557,24 +558,24 @@ export function AcquisitionWorkspace({
 }: {
   inventory?: boolean
 }) {
-  const params = useSearchParams(),
-    router = useRouter(),
-    { actor } = useActor(),
-    ability = abilityFor(actor.presentationGrants, actor.user.id)
-  const page = Math.max(1, Number(params.get("page") ?? "1")),
-    search = params.get("q") ?? "",
-    [draftSearch, setDraftSearch] = useState(search),
-    [form, setForm] = useState(false)
+  const router = useRouter()
+  const { actor } = useActor()
+  const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const name = inventory ? "inventory" : "purchases"
-  const navigation = useRef(params.toString())
-  useEffect(() => {
-    navigation.current = params.toString()
-  }, [params])
-  const status = params.get("status") ?? ""
-  const availability = params.get("available") ?? ""
-  const make = params.get("make") ?? ""
-  const model = params.get("model") ?? ""
-  const sort = params.get("order") ?? "id"
+  const canRead = ability.can("read", "PurchaseRecord") &&
+    (!inventory || ability.can("read", "Vehicle"))
+  const [params, setParams] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    q: parseAsString.withDefault(""),
+    status: parseAsString.withDefault(""),
+    available: parseAsString.withDefault(""),
+    make: parseAsString.withDefault(""),
+    model: parseAsString.withDefault(""),
+    order: parseAsString.withDefault("id"),
+  })
+  const { q: search, status, available: availability, make, model, order: sort } = params
+  const page = Math.max(1, params.page)
+  const [form, setForm] = useState(false)
   const filters = new URLSearchParams({
     page: String(page),
     pageSize: "20",
@@ -587,28 +588,18 @@ export function AcquisitionWorkspace({
   filters.set("sort", JSON.stringify([{ field: sort, direction: "asc" }]))
   const query = useQuery({
     queryKey: [name, filters.toString()],
+    enabled: canRead,
     retry: false,
     queryFn: () =>
       privateRequest<{
         data: { data: (Cycle & Vehicle)[]; total: number; pageSize: number }
       }>(`/api/v1/queries/${name}?${filters}`),
   })
-  function navigate(next: number, q = search) {
-    const nextParams = new URLSearchParams(navigation.current)
-    nextParams.set("page", String(next))
-    nextParams.set("q", q)
-    navigation.current = nextParams.toString()
-    router.replace(`?${nextParams}`, {
-      scroll: false,
-    })
+  function navigate(page: number, q = search) {
+    void setParams({ page, q })
   }
-  function filter(key: string, value: string) {
-    const nextParams = new URLSearchParams(navigation.current)
-    if (value) nextParams.set(key, value)
-    else nextParams.delete(key)
-    nextParams.set("page", "1")
-    navigation.current = nextParams.toString()
-    router.replace(`?${nextParams}`, { scroll: false })
+  function filter(key: "status" | "order" | "available" | "make" | "model", value: string) {
+    void setParams({ [key]: value, page: 1 })
   }
   return (
     <section className="mx-auto w-full max-w-5xl space-y-6">
@@ -631,173 +622,179 @@ export function AcquisitionWorkspace({
           }}
         />
       )}
-      <form
-        className="flex flex-wrap items-end gap-3"
-        onSubmit={(e) => {
-          e.preventDefault()
-          navigate(1, draftSearch)
-        }}
-      >
-        <div className="min-w-0 flex-1 space-y-2">
-          <Label htmlFor="acquisition-search">
-            Search make, model, engine or chassis
-          </Label>
-          <Input
-            id="acquisition-search"
-            value={draftSearch}
-            maxLength={200}
-            onChange={(e) => setDraftSearch(e.target.value)}
-            className="min-h-11 text-base"
-          />
-        </div>
-        <Button>Search</Button>
-      </form>
-      <section
-        aria-label="Persisted inventory filters"
-        className="grid gap-3 sm:grid-cols-2"
-      >
-        <div className="space-y-2">
-          <Label htmlFor="stock-status">Status filter</Label>
-          <select
-            id="stock-status"
-            value={status}
-            onChange={(e) => filter("status", e.target.value)}
-            className="min-h-11 w-full rounded-md border bg-background px-3"
+      {canRead && (
+        <>
+          <form
+            className="flex flex-wrap items-end gap-3"
+            onSubmit={(e) => {
+              e.preventDefault()
+              navigate(1, String(new FormData(e.currentTarget).get("q") ?? ""))
+            }}
           >
-            <option value="">All statuses</option>
-            <option value="PURCHASED">Purchased</option>
-            <option value="IN_STOCK">In Stock</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="stock-sort">Sort ascending</Label>
-          <select
-            id="stock-sort"
-            value={sort}
-            onChange={(e) => filter("order", e.target.value)}
-            className="min-h-11 w-full rounded-md border bg-background px-3"
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label htmlFor="acquisition-search">
+                Search make, model, engine or chassis
+              </Label>
+              <Input
+                id="acquisition-search"
+                key={search}
+                name="q"
+                defaultValue={search}
+                maxLength={200}
+                className="min-h-11 text-base"
+              />
+            </div>
+            <Button>Search</Button>
+          </form>
+          <section
+            aria-label="Persisted inventory filters"
+            className="grid gap-3 sm:grid-cols-2"
           >
-            {(inventory
-              ? ["id", "status", "available", "listedPrice"]
-              : ["id", "purchaseDate", "purchasePrice", "listedPrice", "status"]
-            ).map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </div>
-        {inventory && (
-          <>
             <div className="space-y-2">
-              <Label htmlFor="stock-available">Availability filter</Label>
+              <Label htmlFor="stock-status">Status filter</Label>
               <select
-                id="stock-available"
-                value={availability}
-                onChange={(e) => filter("available", e.target.value)}
+                id="stock-status"
+                value={status}
+                onChange={(e) => filter("status", e.target.value)}
                 className="min-h-11 w-full rounded-md border bg-background px-3"
               >
-                <option value="">All availability</option>
-                <option value="true">Available</option>
-                <option value="false">Unavailable</option>
+                <option value="">All statuses</option>
+                <option value="PURCHASED">Purchased</option>
+                <option value="IN_STOCK">In Stock</option>
               </select>
             </div>
-            {[
-              ["make", make],
-              ["model", model],
-            ].map(([key, value]) => (
-              <div key={key} className="space-y-2">
-                <Label htmlFor={`stock-${key}`}>Exact {key} filter</Label>
-                <Input
-                  id={`stock-${key}`}
-                  defaultValue={value}
-                  maxLength={200}
-                  onBlur={(e) => {
-                    if (e.target.value !== value) filter(key, e.target.value)
-                  }}
-                  className="min-h-11 text-base"
-                />
-              </div>
-            ))}
-          </>
-        )}
-      </section>
-      {query.isPending && <p role="status">Loading persisted {name}…</p>}
-      {query.isError && (
-        <p role="alert">
-          Read unavailable.{" "}
-          {query.error instanceof RequestError
-            ? query.error.code
-            : "Request failed"}{" "}
-          <button className="underline" onClick={() => void query.refetch()}>
-            Retry read
-          </button>
-        </p>
-      )}
-      {query.data && (
-        <>
-          <p role="status">{query.data.data.total} records</p>
-          {!query.data.data.total && <p>No matching authorized records.</p>}
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {query.data.data.data.map((row, i) => (
-              <li
-                key={row.id ?? i}
-                className="min-w-0 space-y-3 rounded-lg border p-4"
+            <div className="space-y-2">
+              <Label htmlFor="stock-sort">Sort ascending</Label>
+              <select
+                id="stock-sort"
+                value={sort}
+                onChange={(e) => filter("order", e.target.value)}
+                className="min-h-11 w-full rounded-md border bg-background px-3"
               >
-                <h2 className="font-semibold break-words">
-                  {row.identity?.make ?? "Make unavailable"}{" "}
-                  {row.identity?.model ?? ""}
-                </h2>
-                <p>
-                  {row.status ?? "Status unavailable"} ·{" "}
-                  {row.available === undefined
-                    ? "Availability unavailable"
-                    : row.available
-                      ? "Available"
-                      : "Unavailable stock"}
-                </p>
-                <p>Engine: {row.identity?.engineNumber ?? "Unavailable"}</p>
-                {row.receivedDate && <p>Received: {row.receivedDate}</p>}
-                {row.holdReason && (
-                  <p className="break-words">Hold: {row.holdReason}</p>
-                )}
-                {!inventory && row.purchasePrice !== undefined && (
-                  <p>Purchase price: {amount(row.purchasePrice)}</p>
-                )}
-                {row.listedPrice !== undefined && (
-                  <p>Listed price: {amount(row.listedPrice)}</p>
-                )}
-                {row.id && (
-                  <Link
-                    prefetch={false}
-                    className="inline-flex min-h-11 items-center underline"
-                    href={
-                      inventory ? `/vehicles/${row.id}` : `/purchases/${row.id}`
-                    }
+                {(inventory
+                  ? ["id", "status", "available", "listedPrice"]
+                  : ["id", "purchaseDate", "purchasePrice", "listedPrice", "status"]
+                ).map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {inventory && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="stock-available">Availability filter</Label>
+                  <select
+                    id="stock-available"
+                    value={availability}
+                    onChange={(e) => filter("available", e.target.value)}
+                    className="min-h-11 w-full rounded-md border bg-background px-3"
                   >
-                    View {inventory ? "vehicle" : "purchase"}
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => navigate(page - 1)}
-            >
-              Previous
-            </Button>
-            <span>Page {page}</span>
-            <Button
-              variant="outline"
-              disabled={page * 20 >= query.data.data.total}
-              onClick={() => navigate(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
+                    <option value="">All availability</option>
+                    <option value="true">Available</option>
+                    <option value="false">Unavailable</option>
+                  </select>
+                </div>
+                {([
+                  ["make", make],
+                  ["model", model],
+                ] as const).map(([key, value]) => (
+                  <div key={key} className="space-y-2">
+                    <Label htmlFor={`stock-${key}`}>Exact {key} filter</Label>
+                    <Input
+                      id={`stock-${key}`}
+                      key={value}
+                      defaultValue={value}
+                      maxLength={200}
+                      onBlur={(e) => {
+                        if (e.target.value !== value) filter(key, e.target.value)
+                      }}
+                      className="min-h-11 text-base"
+                    />
+                  </div>
+                ))}
+              </>
+            )}
+          </section>
+          {query.isPending && <p role="status">Loading persisted {name}…</p>}
+          {query.isError && (
+            <p role="alert">
+              Read unavailable.{" "}
+              {query.error instanceof RequestError
+                ? query.error.code
+                : "Request failed"}{" "}
+              <button className="underline" onClick={() => void query.refetch()}>
+                Retry read
+              </button>
+            </p>
+          )}
+          {query.data && (
+            <>
+              <p role="status">{query.data.data.total} records</p>
+              {!query.data.data.total && <p>No matching authorized records.</p>}
+              <ul className="grid gap-4 sm:grid-cols-2">
+                {query.data.data.data.map((row, i) => (
+                  <li
+                    key={row.id ?? i}
+                    className="min-w-0 space-y-3 rounded-lg border p-4"
+                  >
+                    <h2 className="font-semibold break-words">
+                      {row.identity?.make ?? "Make unavailable"}{" "}
+                      {row.identity?.model ?? ""}
+                    </h2>
+                    <p>
+                      {row.status ?? "Status unavailable"} ·{" "}
+                      {row.available === undefined
+                        ? "Availability unavailable"
+                        : row.available
+                          ? "Available"
+                          : "Unavailable stock"}
+                    </p>
+                    <p>Engine: {row.identity?.engineNumber ?? "Unavailable"}</p>
+                    {row.receivedDate && <p>Received: {row.receivedDate}</p>}
+                    {row.holdReason && (
+                      <p className="break-words">Hold: {row.holdReason}</p>
+                    )}
+                    {!inventory && row.purchasePrice !== undefined && (
+                      <p>Purchase price: {amount(row.purchasePrice)}</p>
+                    )}
+                    {row.listedPrice !== undefined && (
+                      <p>Listed price: {amount(row.listedPrice)}</p>
+                    )}
+                    {row.id && (
+                      <Link
+                        prefetch={false}
+                        className="inline-flex min-h-11 items-center underline"
+                        href={
+                          inventory ? `/vehicles/${row.id}` : `/purchases/${row.id}`
+                        }
+                      >
+                        View {inventory ? "vehicle" : "purchase"}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => navigate(page - 1)}
+                >
+                  Previous
+                </Button>
+                <span>Page {page}</span>
+                <Button
+                  variant="outline"
+                  disabled={page * 20 >= query.data.data.total}
+                  onClick={() => navigate(page + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </>
+          )}
         </>
       )}
     </section>
@@ -1255,6 +1252,7 @@ export function AcquisitionDetail({
   id: string
   vehicle?: boolean
 }) {
+  const router = useRouter()
   const name = vehicle ? "vehicle" : "purchase"
   const query = useQuery({
     queryKey: [vehicle ? "inventory" : "purchases", "detail", id],
@@ -1297,6 +1295,9 @@ export function AcquisitionDetail({
       {((vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row)
         ?.nextActions?.some((action) => ["completeImmediate", "placeReservation", "startFinance"].includes(action))) && (
         <RecordSaleDialog
+          onCompleted={(result) => {
+            if (result.status === "APPLIED") router.push(`/sales/${result.result.id}`)
+          }}
           fixedCycle={
             vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row
           }

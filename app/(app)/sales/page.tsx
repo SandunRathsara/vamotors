@@ -7,6 +7,11 @@ import { CommitmentList } from "@/components/sales/commitment-list"
 
 export default async function SalesPage() {
   const { actor } = await pageActor()
+  const ability = abilityFor(actor.presentationGrants, actor.user.id)
+  const canRunExpiry = ability.can("run", "ReservationExpiryJob", "through")
+  const canReadCommitments = ["id", "kind", "state"].every((field) =>
+    ability.can("read", "SaleCase", field)
+  )
   return (
     <section className="mx-auto w-full max-w-6xl space-y-6">
       <div className="space-y-1">
@@ -16,8 +21,14 @@ export default async function SalesPage() {
         </p>
       </div>
       <RecordSaleDialog />
-      <CommitmentList canRunExpiry={abilityFor(actor.presentationGrants, actor.user.id).can("run", "ReservationExpiryJob", "through")} />
-      <SalesTable />
+      {(canReadCommitments || canRunExpiry) && (
+        <CommitmentList
+          canRunExpiry={canRunExpiry}
+          canRead={canReadCommitments}
+        />
+      )}
+      {ability.can("read", "SaleCase", "id") &&
+        ability.can("read", "PurchaseRecord", "status") && <SalesTable />}
     </section>
   )
 }

@@ -170,7 +170,7 @@ async function main() {
     })
     assert.deepEqual(storage.entries, [
       {
-        name: "vamotors-public-shell-v1",
+        name: "vamotors-public-shell-v2",
         urls: assets.map((path) => `${origin}${path}`),
       },
     ])
@@ -540,6 +540,9 @@ async function main() {
           target.roles.map((r) => query<RoleDTO>(`role?id=${r.id}`))
         )
         restore = () => assign(originals)
+        // Keep the cookie and worker while avoiding an AuthBoundary reload
+        // racing the raw RSC fetch after the membership change.
+        await page.goto("/login")
         await assign([role])
         assert.equal(
           (await browserFetch(page, "/api/v1/queries/users")).status,
