@@ -76,14 +76,21 @@ try {
       invoices: string
       hash: string
     }
-    assert.equal(
-      await f.snapshot(["SaleCase", "SaleCompletion", "SaleReceipt"]),
-      before.rows
+    const saleRows = JSON.parse(
+      await f.snapshot(["SaleCase", "SaleCompletion", "SaleReceipt"])
     )
+    const baselineRows = JSON.parse(before.rows)
+    for (const rows of [saleRows, baselineRows]) {
+      for (const { row } of rows.SaleCase) {
+        assert.equal(row.legacyApproval ?? null, null)
+        delete row.legacyApproval
+      }
+    }
+    assert.deepEqual(saleRows, baselineRows)
     assert.equal(await f.snapshot(["InvoiceVersion"]), before.invoices)
     assert.equal(sha(await bytes(before.id, 1)), before.hash)
     console.log(
-      "PASS populated c2b19ed upgrade retained the invoice row and preserved identical PDF bytes."
+      "PASS populated upgrade retained the sale and invoice rows and preserved identical PDF bytes."
     )
   } else {
     if (mode === "fresh" && process.env.VAMOTORS_TEST_CURRENCY) {

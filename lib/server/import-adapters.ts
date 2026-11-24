@@ -864,6 +864,11 @@ async function historicalCommitmentSale(
         customerId,
         price: p.price,
         reference: p.reference,
+        ...(reservation &&
+        p.reference !== undefined &&
+        p.reference !== reservation.saleCase.reference
+          ? { reason: "Historical lease reference from imported sale" }
+          : {}),
         reservationId,
         downPayment: payment(down),
         companyId,

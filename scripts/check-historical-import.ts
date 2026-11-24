@@ -963,6 +963,12 @@ assert.equal(lease.provenance.imported, true)
 assert.equal(lease.state, "COMPLETED")
 assert.equal(lease.reservation.effectiveStatus, "CONVERTED")
 assert.equal(lease.finance.lenderOutstanding, "300000000")
+const financingAudit = await query("audit", {
+  type: "SaleCase",
+  id: lease.id,
+  action: "startFinance",
+})
+assert.equal(financingAudit.data[0]?.reason, "Historical lease reference from imported sale")
 const leaseCycle = await query("purchase", { cycleId: lease.cycleId })
 assert.equal(leaseCycle.financial.net, "-300000000")
 assert.equal(leaseCycle.historicalStatus, "DELIVERED")
@@ -1285,8 +1291,10 @@ if (process.argv.includes("--browser")) {
       })
     )
     const page = await context.newPage()
-    await page.goto(`${origin}/vehicles/${leaseCycle.vehicleId}?cycleId=${lease.cycleId}`)
-    await expect(page.getByText("Historical status · Delivered", { exact: true })).toBeVisible()
+    await page.goto(`${origin}/vehicles/${leaseCycle.vehicleId}`)
+    await expect(
+      page.getByText("Historical status · Delivered", { exact: true })
+    ).toBeVisible()
     await page.goto(`${origin}/imports`, {
       waitUntil: "domcontentloaded",
       timeout: 60000,
@@ -1418,7 +1426,9 @@ if (process.argv.includes("--browser")) {
     await expect(
       page.getByRole("heading", { name: "Validated preview" })
     ).toBeVisible()
-    await expect(page.getByText(`${settings.currency} 5,000,000.00`, { exact: true })).toBeVisible()
+    await expect(
+      page.getByText(`${settings.currency} 5,000,000.00`, { exact: true })
+    ).toBeVisible()
     await page.getByRole("button", { name: "Commit entire batch" }).click()
     await expect(
       page.getByText("Historical import committed.", { exact: true })
