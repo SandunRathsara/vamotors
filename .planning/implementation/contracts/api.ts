@@ -234,6 +234,7 @@ export type ImportPayloads = {
     draftId?: Id;
     noticeAttachmentId?: Id;
     noticeLines?: { key: string; amount: Money; description: string }[];
+    reversal?: { date: DateOnly; reason: string };
     allocations: { source: LegacyRef; sourceType: "SALES" | "BROKERAGE"; amount: Money; noticeLineKey?: string }[];
   };
   FINANCE_COMPANIES: Commands["createFinanceCompany"];

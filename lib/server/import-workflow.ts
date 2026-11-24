@@ -815,7 +815,8 @@ async function transition(
   })
   await audit(tx, {
     commandId,
-    userId: actor.userId,
+    userId: commandName === "confirmImport" ? null : actor.userId,
+    importActor: commandName === "confirmImport" ? actor.userId : undefined,
     entityType: "ImportBatch",
     entityId: batch.id,
     action: commandName,

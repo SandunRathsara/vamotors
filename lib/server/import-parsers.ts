@@ -526,6 +526,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
       { name: "draftId", type: "uuid", required: false, description: "Existing staged remittance for the verified notice", example: "" },
       { name: "noticeAttachmentId", type: "uuid", required: false, description: "Finalized notice attachment on that draft", example: "" },
       { name: "noticeLines", type: "json", required: false, description: "Notice line array with distinct key, amount in major units, and description", example: "" },
+      { name: "reversalDate", type: "date", required: false, description: "Date this bank receipt was reversed", example: "" },
+      { name: "reversalReason", type: "string", required: false, description: "Historical reason for reversing this bank receipt and any allocations", example: "" },
       { name: "allocations", type: "json", required: false,
         description: "Array with source type SALES/BROKERAGE, sourceKey or existingId, amount in major currency units, and optional noticeLineKey",
         example: '[{"type":"SALES","sourceKey":"sale-001","amount":"10000.00"}]' },
@@ -4897,6 +4899,8 @@ function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["RE
   const asOfDate = r.reqDate("asOfDate")
   const draftId = r.optUuid("draftId")
   const noticeAttachmentId = r.optUuid("noticeAttachmentId")
+  const reversalDate = r.optDate("reversalDate")
+  const reversalReason = r.optString("reversalReason", 2000)
   const lineSchema = reconciliationInputs.recordRemittance.shape.lines
     .innerType().element.omit({ source: true }).extend({ amount: z.string() })
   const lines = z.array(lineSchema).max(100).safeParse(r.optJson("noticeLines") ?? [])
@@ -4937,6 +4941,10 @@ function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["RE
     addError(r.errors, r.rowNumber, "asOfDate", "INVALID_INPUT", "A valid bank payment must precede or match the reconciliation cutoff", r.sourceKey)
     return null
   }
+  if (!!reversalDate !== !!reversalReason || (reversalDate && reversalDate < asOfDate)) {
+    addError(r.errors, r.rowNumber, "reversalDate", "INVALID_INPUT", "A reversal needs a reason and must follow or match the receipt and reconciliation cutoff", r.sourceKey)
+    return null
+  }
   const allocations = rows.data.flatMap((row, index) => {
     const value = parseImportMoney(row.amount)
     if (!value.ok || value.value === "0") {
@@ -4952,6 +4960,7 @@ function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["RE
     }]
   })
   return { company, payment: payment.data, asOfDate, allocations,
+    ...(reversalDate && reversalReason ? { reversal: { date: reversalDate, reason: reversalReason } } : {}),
     ...(draftId && noticeAttachmentId ? { draftId, noticeAttachmentId, noticeLines } : {}),
   }
 }
@@ -5213,6 +5222,7 @@ export function computeControlTotals(
       }
       case "REMITTANCES":
         cashInAmounts.push(minor(row.payload.payment.amount))
+        if (row.payload.reversal) cashOutAmounts.push(minor(row.payload.payment.amount))
         break
       case "ADVANCES": {
         collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)

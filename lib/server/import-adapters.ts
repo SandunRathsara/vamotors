@@ -280,7 +280,8 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
   ],
   work: ({ payload: p }) =>
     4 +
-    Number(!!p.disposal) * 3 + p.mileage.length +
+    Number(!!p.disposal) * 3 +
+    p.mileage.length +
     p.payments.length +
     p.additionalCosts.reduce((n, c) => n + 1 + c.payments.length, 0),
   async apply(ctx, { payload: p }) {
@@ -1064,7 +1065,10 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
     ...payload.allocations.map((entry) => entry.source),
   ],
   work: ({ payload }) =>
-    4 + 2 * payload.allocations.length + (payload.noticeLines?.length ?? 0),
+    4 +
+    2 * payload.allocations.length +
+    (payload.noticeLines?.length ?? 0) +
+    (payload.reversal ? 1 + payload.allocations.length : 0),
   async apply(ctx, { payload: p }) {
     const { tx, identity } = ctx
     const companyId = await ctx.resolve(p.company, "company")
@@ -1108,7 +1112,55 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
       ),
       tx
     )
-    if (!p.allocations.length) return record
+    const remittanceRef = async () =>
+      ref(
+        "Remittance",
+        await tx.remittance.findUniqueOrThrow({ where: { id: remittanceId } })
+      )
+    const reverseReceipt = async (reconciliationCommandId?: string) => {
+      if (!p.reversal) return record
+      const { date, reason } = p.reversal
+      if (reconciliationCommandId) {
+        const applied = await tx.commissionAllocation.findMany({
+          where: { remittanceId, commandId: reconciliationCommandId },
+          orderBy: { id: "asc" },
+        })
+        for (const allocation of applied) {
+          const entitlement = await tx.commissionEntitlement.findUniqueOrThrow({
+            where: { id: allocation.entitlementId },
+          })
+          await executeReconciliation(
+            identity,
+            "reverseAllocation",
+            env({ allocationId: allocation.id, reason }, [
+              await currentCompany(),
+              await remittanceRef(),
+              ref("CommissionEntitlement", entitlement),
+            ]),
+            tx
+          )
+        }
+      }
+      const original = await tx.remittancePayment.findUniqueOrThrow({
+        where: { commandId: record.commandId },
+      })
+      return executeReconciliation(
+        identity,
+        "reversePayment",
+        env(
+          {
+            sourceType: "REMITTANCE",
+            sourceId: remittanceId,
+            paymentId: original.id,
+            date,
+            reason,
+          },
+          [await currentCompany(), await remittanceRef()]
+        ),
+        tx
+      )
+    }
+    if (!p.allocations.length) return reverseReceipt()
 
     const lines = p.noticeLines?.length
       ? await tx.noticeLine.findMany({
@@ -1143,7 +1195,7 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
         amount: entry.amount,
       })
     }
-    await executeReconciliation(
+    const run = await executeReconciliation(
       identity,
       "reconcile",
       env(
@@ -1161,7 +1213,7 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
       ),
       tx
     )
-    return record
+    return reverseReceipt(run.commandId)
   },
 }
 

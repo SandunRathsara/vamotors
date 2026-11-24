@@ -460,7 +460,7 @@ export async function executeImportedWriteOff(
       ["Vehicle", row.vehicleId, after.vehicle.revision, vehicleDTO(row), vehicleDTO(after)],
       ["Disposal", disposalId, 1, null, disposalDTO(after.disposal!)],
     ] as const) {
-      await audit(step, { commandId, userId: actor.userId, entityType, entityId, action,
+      await audit(step, { commandId, userId: null, importActor: actor.userId, entityType, entityId, action,
         reason: input.reason, before, after: payload })
       const version = await writeReadVersion(step, { commandId, sequence, entityType, entityId, revision, payload })
       if (entityType === "Disposal") disposalVersionId = version.id

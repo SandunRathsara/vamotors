@@ -822,7 +822,7 @@ async function commitHistory(
   console.log(`PASS ${name} import in ${Math.round(ms)} ms`)
   return (await query("importBatchFiles", { id: batch.id })).importedRecords
 }
-async function withBankNotice(row: Record<string, string>) {
+async function withBankNotice<Row extends Record<string, string>>(row: Row) {
   const currentFinance = await query("party", {
     type: "FINANCE_COMPANY",
     id: financeId,
@@ -918,6 +918,42 @@ await commitHistory(
   "0",
   leaseNamespace
 )
+const reversedRemittance = await withBankNotice({
+  ...commitmentRows.REMITTANCES[0],
+  sourceKey: "returned-transfer",
+  reference: `RETURN-${suffix}`,
+})
+await commitHistory(
+  "historical-remittance-reversal",
+  {
+    REMITTANCES: [
+      {
+        ...reversedRemittance,
+        amount: "100.00",
+        noticeLines: JSON.stringify([
+          {
+            key: "lease",
+            amount: "100.00",
+            description: "Returned lender transfer",
+          },
+        ]),
+        allocations: JSON.stringify([
+          {
+            type: "SALES",
+            sourceKey: "lease-001",
+            amount: "100.00",
+            noticeLineKey: "lease",
+          },
+        ]),
+        reversalDate: "2026-02-01",
+        reversalReason: "Historical bank transfer reversal",
+      },
+    ],
+  },
+  "10000",
+  "10000",
+  leaseNamespace
+)
 const leaseRecord = commitmentRecords.find(
   (row: { type: string }) => row.type === "SaleCase"
 )
@@ -982,7 +1018,7 @@ await totalsDB.connect()
 try {
   const ledger = await totalsDB.query(
     `SELECT
-    (SELECT sum(a.amount)::text FROM vamotors."CommissionAllocation" a
+    (SELECT sum(CASE WHEN a."reversalOf" IS NULL THEN a.amount ELSE -a.amount END)::text FROM vamotors."CommissionAllocation" a
       JOIN vamotors."CommissionEntitlement" e ON a."entitlementId"=e.id WHERE e."saleCaseId"=$1) AS allocated,
     (SELECT "expectedAmount"::text FROM vamotors."CommissionEntitlement" WHERE "saleCaseId"=$1) AS commission`,
     [lease.id]
@@ -1005,6 +1041,24 @@ try {
       expected: "10000",
       allocated: "10000",
       line: "brokerage",
+    },
+  ])
+  const returned = await totalsDB.query(
+    `SELECT r.state, reversal."occurredDate"::text AS date, reversal.amount::text,
+       (SELECT count(*)::int FROM vamotors."CommissionAllocation" a
+        WHERE a."remittanceId"=r.id AND a."reversalOf" IS NOT NULL) AS "reversedAllocations"
+     FROM vamotors."Remittance" r
+     JOIN vamotors."RemittancePayment" original ON original."remittanceId"=r.id
+     JOIN vamotors."RemittancePayment" reversal ON reversal."reversalOf"=original.id
+     WHERE r.reference=$1`,
+    [reversedRemittance.reference]
+  )
+  assert.deepEqual(returned.rows, [
+    {
+      state: "REVERSED",
+      date: "2026-02-01",
+      amount: "10000",
+      reversedAllocations: 1,
     },
   ])
   const evidence = await totalsDB.query(
@@ -1030,17 +1084,20 @@ try {
         OR ("sourceType"='PURCHASE' AND "sourceId"=ANY($2::uuid[]))
         OR ("sourceType"='REMITTANCE' AND "sourceId"=(
           SELECT id FROM vamotors."Remittance" WHERE "companyId"=$3 AND reference=$4
+        )) OR ("sourceType"='REMITTANCE' AND "sourceId"=(
+          SELECT id FROM vamotors."Remittance" WHERE "companyId"=$3 AND reference=$5
         )) GROUP BY direction ORDER BY direction`,
     [
       historicalSaleIds,
       historicalCycleIds,
       financeId,
       commitmentRows.REMITTANCES[0].reference,
+      reversedRemittance.reference,
     ]
   )
   assert.deepEqual(cash.rows, [
-    { direction: "IN", total: "650010000" },
-    { direction: "OUT", total: "2290000000" },
+    { direction: "IN", total: "650020000" },
+    { direction: "OUT", total: "2290010000" },
   ])
 } finally {
   await totalsDB.end()
@@ -1101,6 +1158,30 @@ const loss = (await disposalReport.json()).data.data.find(
 )
 assert.equal(loss?.netLoss, "450000000")
 assert.equal(loss?.approval.legacy.approverName, "Historical Manager")
+const disposalAuditDB = new pg.Client({ connectionString: migration })
+await disposalAuditDB.connect()
+try {
+  const { rows } = await disposalAuditDB.query(
+    `SELECT a.action, a."actorKind", a."initiatedBy", a."userId", a."approverId"
+     FROM vamotors."AuditEntry" a
+     WHERE (a."entityType"='Disposal' AND a."entityId"=$1)
+        OR (a."entityType"='ImportBatch' AND a."entityId"=$2 AND a.action='confirmImport')
+     ORDER BY a.action`,
+    [disposed.disposal.id, disposed.disposal.approval.batchId]
+  )
+  assert.deepEqual(
+    rows,
+    ["confirmImport", "importWriteOff"].map((action) => ({
+      action,
+      actorKind: "IMPORT",
+      initiatedBy: disposed.disposal.approval.initiatedByAdminId,
+      userId: null,
+      approverId: null,
+    }))
+  )
+} finally {
+  await disposalAuditDB.end()
+}
 
 if (process.argv.includes("--browser")) {
   const browser = await chromium.launch({
