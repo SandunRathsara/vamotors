@@ -251,41 +251,38 @@ export function SaleDetailView({ id }: { id: string }) {
       }[] = []
       if (newPrice - newTrade !== oldPrice - oldTrade) {
         const receipts = sale.payments ?? []
+        const category = sale.kind === "LEASE" ? "DOWN_PAYMENT" : sale.kind === "ADVANCE" ? "BALANCE" : "SALE"
         const openReceipts = receipts.filter(
           (p) =>
+            p.category === category &&
             p.direction === "IN" &&
             !p.reversalOf &&
             !receipts.some((r) => r.reversalOf === p.id)
         )
-        const amount = (p: (typeof receipts)[number]) => {
-          if (p.amount === undefined) throw Error("Receipt amount is unavailable.")
-          return BigInt(p.amount)
-        }
-        const currentNet = receipts.reduce(
-          (total, p) =>
-            total + (p.direction === "IN" ? amount(p) : -amount(p)),
-          0n
-        )
-        if (openReceipts.length !== 1 || currentNet !== oldPrice - oldTrade)
-          throw Error(
-            "This edit changes the receivable balance. Exactly one unreversed original receipt is required for the automatic cash correction."
-          )
         const original = openReceipts[0]
-        if (
-          !original.id ||
-          !original.date ||
-          !original.method
-        )
-          throw Error("Original receipt facts are unavailable.")
+        if (openReceipts.length !== 1 || !original?.id || !original.amount || !original.date || !original.method)
+          throw Error("A single unreversed receipt is required for this amount correction.")
+        const amount = BigInt(original.amount) + (newPrice - newTrade) - (oldPrice - oldTrade)
+        if (amount < 0n || (sale.finance && amount === 0n))
+          throw Error("The corrected price must cover the existing advance credit and lender terms.")
+        if (sale.finance) {
+          const { companyId, principal, termMonths, doAttachmentId, issueDate } = sale.finance
+          if (!companyId || !principal || !termMonths || !doAttachmentId || !issueDate)
+            throw Error("The original finance terms are unavailable.")
+          patch.finance = {
+            companyId, financeAmount: principal, downPayment: amount.toString(), termMonths,
+            doAttachmentId, doIssueDate: issueDate,
+          }
+        }
         cashCorrections.push({
           paymentId: original.id,
           reason: editReason,
-          replacement: {
-            amount: (newPrice - newTrade).toString(),
+          ...(amount ? { replacement: {
+            amount: amount.toString(),
             date: original.date,
             method: original.method,
             ...(original.reference ? { reference: original.reference } : {}),
-          },
+          } } : {}),
         })
       }
       const env = approvalEnvelope("requestApproval").parse({
@@ -511,7 +508,7 @@ export function SaleDetailView({ id }: { id: string }) {
 
       <SaleInvoices sale={sale} cycleRevision={cycle?.revision} />
 
-      {!sale.reservation && !sale.finance && sale.nextActions?.includes("requestApproval") && (
+      {sale.state === "COMPLETED" && sale.nextActions?.includes("requestApproval") && (
         <div className="space-y-3 rounded-lg border p-4">
           <Button type="button" variant="outline" onClick={() => setEditOpen((v) => !v)}>
             {editOpen ? "Close Sale Edit Request" : "Request Sale Edit Approval"}
@@ -522,6 +519,7 @@ export function SaleDetailView({ id }: { id: string }) {
                 <div>
                   <Label htmlFor="edit-price">New Agreed Price (Major, optional)</Label>
                   <Input id="edit-price" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+                  {sale.finance && <p className="text-sm text-muted-foreground">A price correction adjusts the customer down payment. The original lender principal is preserved.</p>}
                 </div>
                 <div>
                   <Label htmlFor="edit-ref">New Reference (optional)</Label>

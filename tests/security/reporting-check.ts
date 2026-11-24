@@ -527,7 +527,7 @@ try {
   assert.equal(disposal?.proceeds, "2000")
   assert.equal(disposal?.netLoss, "8000")
   assert.ok(disposal?.approval?.reviewerName)
-  assert.match((await read("ADVANCES")).notice ?? "", /reservation/)
+  assert.equal((await read("ADVANCES")).notice, undefined)
 
   for (const period of [
     {
@@ -705,7 +705,7 @@ try {
     await page.getByRole("link", { name: "All reports" }).click()
   }
   console.log(
-    "PASS Chromium dashboard, all seven reports and fourteen downloads"
+    "PASS Chromium dashboard and every report with both export formats"
   )
 } finally {
   await browser.close()

@@ -423,7 +423,9 @@ describe("local-expiry-scheduler timer execution, resilience, and catch-up", () 
       intervalMs: 25,
       maxTicks: 2,
       output: { write: () => {} },
-      onTick: (r) => ticks.push(r),
+      onTick: (r) => {
+        if (r.event === "expiry_tick") ticks.push(r)
+      },
     })
 
     expect(ticks).toHaveLength(2)

@@ -536,6 +536,12 @@ const reportRows = (await report.json()).data.data as {
   saleId: string
   financial: { basis: string; restatedProfit: string }
 }[]
+const reviewer = await login("SECOND")
+const ref = (type: string, row: { id: string; revision: number }) => ({
+  type,
+  id: row.id,
+  revision: row.revision,
+})
 for (const [records, basis, profit] of [
   [committed.importedRecords, "507000000", "73000000"],
   [tradeBatch.importedRecords, "500000000", "80000000"],
@@ -574,17 +580,82 @@ for (const [records, basis, profit] of [
   )
   assert.equal(pdf.status, 200)
   assert.equal(pdf.headers.get("content-type"), "application/pdf")
-  assert.ok(
-    Buffer.from(await pdf.arrayBuffer())
-      .subarray(0, 5)
-      .equals(Buffer.from("%PDF-"))
-  )
+  const firstPdf = Buffer.from(await pdf.arrayBuffer())
+  assert.ok(firstPdf.subarray(0, 5).equals(Buffer.from("%PDF-")))
   const reported = reportRows.find((row) => row.saleId === sale.id)
   assert.equal(reported?.financial.basis, basis)
   assert.equal(reported?.financial.restatedProfit, profit)
+
+  const reference = `HISTORICAL-CORRECTION-${suffix}`
+  const reason = "Correct the imported sale reference"
+  const deps = [ref("SaleCase", sale), ref("PurchaseRecord", cycle)]
+  const pending = await command(
+    "requestApproval",
+    {
+      reason,
+      proposal: {
+        kind: "SALE_EDIT",
+        operation: "EDIT_COMPLETION",
+        input: {
+          saleId: sale.id,
+          reason,
+          patch: { reference },
+          cashCorrections: [],
+        },
+      },
+    },
+    deps,
+    202
+  )
+  const approvals = await query("approvals", { pageSize: "100" })
+  const approval = approvals.data.find(
+    (row: { id: string }) => row.id === pending.approvalId
+  )
+  assert.ok(approval)
+  await command(
+    "reviewApproval",
+    { approvalId: approval.id, decision: "APPROVE" },
+    [ref("ApprovalRequest", approval), ...approval.expected],
+    200,
+    reviewer
+  )
+  const corrected = await query("sale", { id: sale.id })
+  const correctedCycle = await query("purchase", { cycleId: sale.cycleId })
+  assert.equal(corrected.reference, reference)
+  assert.deepEqual(corrected.provenance, sale.provenance)
+  const queued = corrected.invoices.find(
+    (row: { saleRevision: number }) => row.saleRevision === corrected.revision
+  )
+  assert.equal(queued?.state, "PENDING")
+  await command(
+    "issueInvoice",
+    {
+      saleId: corrected.id,
+      saleRevision: corrected.revision,
+      regenerate: false,
+    },
+    [
+      ref("SaleCase", corrected),
+      ref("PurchaseRecord", correctedCycle),
+      ref("InvoiceVersion", queued),
+    ]
+  )
+  const restated = await query("sale", { id: sale.id })
+  assert.ok(
+    restated.invoices.some(
+      (row: { saleRevision: number; state: string }) =>
+        row.saleRevision === corrected.revision && row.state === "READY"
+    )
+  )
+  const original = await fetch(
+    `${origin}/api/v1/sales/${sale.id}/invoices/${ready.version}`,
+    { headers: { cookie } }
+  )
+  assert.equal(original.status, 200)
+  assert.deepEqual(Buffer.from(await original.arrayBuffer()), firstPdf)
 }
 console.log(
-  "PASS imported cash and trade-in sales issue invoices and retain basis and profit in sold reports"
+  "PASS imported cash and trade-in sales retain basis, profit, provenance, and original invoices through approved corrections and invoice restatement"
 )
 
 const availableRecord = await oneFile(

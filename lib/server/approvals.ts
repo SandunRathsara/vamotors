@@ -1,4 +1,4 @@
-import { prepareRefund, applyRefund, refundAuthority, prepareCommitmentDiscount, commitmentDiscountAuthority } from "./reservation-sales"
+import { applyFinanceError, financeErrorAuthority, prepareFinanceError, prepareRefund, applyRefund, refundAuthority, prepareCommitmentDiscount, commitmentDiscountAuthority } from "./reservation-sales"
 import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { subject } from "@casl/ability"
@@ -89,7 +89,7 @@ function saved(a: ApprovalRequest) {
   if (
     (proposal.data.kind === "WRITE_OFF" && proposal.data.input.cycleId !== a.cycleId) ||
     (proposal.data.kind === "DISCOUNT" && proposal.data.command.input.cycleId !== a.cycleId) ||
-    (proposal.data.kind === "SALE_EDIT" && proposal.data.input.saleId !== a.saleCaseId)
+    (proposal.data.kind === "SALE_EDIT" && (proposal.data.operation === "EDIT_COMPLETION" ? proposal.data.input.saleId : proposal.data.input.saleCaseId) !== a.saleCaseId)
   )
     fail("INTERNAL_ERROR", 500)
   return { proposal: proposal.data, expected: expected.data }
@@ -224,6 +224,12 @@ async function domainAuthority(
     refundAuthority(actor, sale, proposal.input)
     return
   }
+  if (proposal.operation === "CANCEL_FINANCE_ERROR") {
+    const sale = await loadSale(tx, proposal.input.saleCaseId)
+    if (!sale) fail("NOT_FOUND", 404)
+    financeErrorAuthority(actor, sale)
+    return
+  }
   const sale = await loadSale(tx, proposal.input.saleId)
   if (!sale) fail("NOT_FOUND", 404)
   requireFields(actor.ability, "SaleCase", "read", saleAuth(sale), [
@@ -333,7 +339,7 @@ async function reviewAuthority(
     "payloadHash",
     "reason",
   ])
-  if (proposal.kind === "SALE_EDIT") {
+  if (proposal.kind === "SALE_EDIT" && proposal.operation === "EDIT_COMPLETION") {
     const sale = await loadSale(tx, proposal.input.saleId)
     if (!sale) fail("NOT_FOUND", 404)
     requireFields(actor.ability, "SaleCase", "update", saleAuth(sale), [
@@ -341,6 +347,11 @@ async function reviewAuthority(
       "reason",
     ])
   }
+  if (proposal.kind === "SALE_EDIT" && proposal.operation === "CANCEL_FINANCE_ERROR")
+    requireFields(actor.ability, "ApprovalRequest", "read", rowSubject(a), [
+      "proposal.operation", "proposal.input.saleCaseId", "proposal.input.receiptReversals",
+      "proposal.input.disposition", "proposal.input.reason",
+    ])
 }
 function validInput(row: Cycle, input: WriteOff) {
   if (
@@ -473,7 +484,7 @@ export function visibleApproval(
     }
   } else {
     const saleCheckId =
-      proposal.kind === "SALE_EDIT" ? proposal.input.saleId : a.saleCaseId ?? undefined
+      a.saleCaseId ?? undefined
     const saleTarget = row.sales.find((s) => s.id === saleCheckId)
     const saleCond = {
       createdBy: saleTarget?.createdBy ?? a.requestedBy,
@@ -482,7 +493,9 @@ export function visibleApproval(
           ? proposal.command.input.customerId
           : saleTarget?.customerId,
     }
-    if (proposal.kind === "REFUND" && !["id", "payments.amount", "payments.date", "payments.direction"].every(
+    if ((proposal.kind === "REFUND" ||
+        (proposal.kind === "SALE_EDIT" && proposal.operation === "CANCEL_FINANCE_ERROR")) &&
+        !["id", "payments.id", "payments.amount", "payments.date", "payments.direction"].every(
       (field) => actor.ability.can("read", subject("SaleCase", saleCond), field))) {
       delete value.proposal
       value.redactedFields.push("proposal")
@@ -923,13 +936,15 @@ export async function executeApproval(
   } else if (rawProp?.kind === "SALE_EDIT") {
     const se = rawProp.input as
       | {
-          patch?: { price?: string; tradeIn?: { value?: string } }
+          patch?: { price?: string; tradeIn?: { value?: string }; finance?: { downPayment?: string; financeAmount?: string } }
           cashCorrections?: { replacement?: { amount?: string } }[]
         }
       | undefined
     rawAmounts.push(
       se?.patch?.price,
       se?.patch?.tradeIn?.value,
+      se?.patch?.finance?.downPayment,
+      se?.patch?.finance?.financeAmount,
       ...(se?.cashCorrections?.map((c) => c.replacement?.amount) ?? [])
     )
   }
@@ -1024,20 +1039,16 @@ export async function executeApproval(
         expected = prep.required
         snapshot = prep.snapshot
       } else {
-        requireFields(
-          actor.ability,
-          "ApprovalRequest",
-          "create",
-          { createdBy: actor.userId },
-          ["proposal", "proposal.kind", "proposal.operation", "reason", "proposal.input.saleId"]
-        )
-        const prep = await prepareSaleEditApproval(
-          tx,
-          actor,
-          input.proposal.input,
-          envelope.expected,
-          true
-        )
+        const proposal = input.proposal
+        const fields = proposal.operation === "EDIT_COMPLETION"
+          ? ["proposal.input.saleId"]
+          : ["proposal.input.saleCaseId", "proposal.input.receiptReversals",
+              "proposal.input.disposition", "proposal.input.reason"]
+        requireFields(actor.ability, "ApprovalRequest", "create", { createdBy: actor.userId },
+          ["proposal", "proposal.kind", "proposal.operation", "reason", ...fields])
+        const prep = proposal.operation === "EDIT_COMPLETION"
+          ? await prepareSaleEditApproval(tx, actor, proposal.input, envelope.expected)
+          : await prepareFinanceError(tx, actor, proposal.input, envelope.expected)
         row = prep.cycle
         saleCaseId = prep.sale.id
         expected = prep.deps
@@ -1212,6 +1223,11 @@ export async function executeApproval(
       ? await prepareRefund(tx, actor, savedValue.proposal.input, savedValue.expected)
       : null
     if (refund && canonical(refund.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
+    const financeError = savedValue.proposal.kind === "SALE_EDIT" &&
+      savedValue.proposal.operation === "CANCEL_FINANCE_ERROR"
+      ? await prepareFinanceError(tx, actor, savedValue.proposal.input, savedValue.expected, false)
+      : null
+    if (financeError && canonical(financeError.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
     if (savedValue.proposal.kind === "WRITE_OFF") {
       eligible(row)
       validInput(row, savedValue.proposal.input)
@@ -1223,7 +1239,7 @@ export async function executeApproval(
         const prepared = await prepareCommitmentDiscount(tx, actor, proposal.command, savedValue.expected)
         if (canonical(prepared.snapshot) !== canonical(a.snapshot)) fail("APPROVAL_STALE")
       }
-    } else if (savedValue.proposal.kind === "SALE_EDIT") {
+    } else if (savedValue.proposal.kind === "SALE_EDIT" && savedValue.proposal.operation === "EDIT_COMPLETION") {
       await prepareSaleEditApproval(
         tx,
         actor,
@@ -1375,7 +1391,13 @@ export async function executeApproval(
           initiatedBy: a.requestedBy, approverId: actor.userId, reason: savedValue.proposal.input.reason,
         }, refund.sale, savedValue.proposal.input)
         domainAffected = [...refs(resolved.purchaseRecord), { type: "SaleCase", id: resolved.id, revision: resolved.revision }]
-      } else if (savedValue.proposal.kind === "SALE_EDIT") {
+      } else if (savedValue.proposal.kind === "SALE_EDIT" && savedValue.proposal.operation === "CANCEL_FINANCE_ERROR" && financeError) {
+        const resolved = await applyFinanceError(tx, {
+          commandId, sequence, userId: actor.userId, action: name,
+          initiatedBy: a.requestedBy, approverId: actor.userId, reason: savedValue.proposal.input.reason,
+        }, financeError.sale, savedValue.proposal.input)
+        domainAffected = [...refs(resolved.purchaseRecord), { type: "SaleCase", id: resolved.id, revision: resolved.revision }]
+      } else if (savedValue.proposal.kind === "SALE_EDIT" && savedValue.proposal.operation === "EDIT_COMPLETION") {
         const edited = await applySaleEditApproval(tx, actor, {
           saleId: savedValue.proposal.input.saleId,
           input: savedValue.proposal.input,

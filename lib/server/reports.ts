@@ -12,6 +12,7 @@ import { reportKinds } from "../report-kinds"
 import { states } from "../state"
 import type { Actor } from "./actor"
 import type { Tx } from "./db"
+import { reservationDTO } from "./sales"
 import { CommandError, fail } from "./errors"
 import { readScope, type EnabledSubject } from "./permissions"
 import {
@@ -39,6 +40,7 @@ const kindFilters = {
   REPAIRS: ["vendorId"],
   CASH_FLOW: ["method"],
   DISPOSALS: [],
+  PURCHASES: ["status"],
 } satisfies Record<ReportKind, string[]>
 
 const filterSchema = listParams
@@ -239,7 +241,6 @@ async function completedSales(
           direction: "IN",
           reversalOf: null,
           reversal: null,
-          category: "SALE",
         },
         select: { method: true },
         distinct: ["method"],
@@ -271,7 +272,11 @@ async function completedSales(
         method: sale.receipts.length === 1 ? sale.receipts[0].method : null,
       }
     })
-    .filter((row) => !filter.method || row.method === filter.method)
+    .filter(
+      ({ sale }) =>
+        !filter.method ||
+        sale.receipts.some(({ method }) => method === filter.method)
+    )
   rows.sort(
     (a, b) => compareRows(b.date, a.date) || compareRows(a.sale.id, b.sale.id)
   )
@@ -598,19 +603,135 @@ const disposals: ReadReport = async (tx, actor, filter, asOf) => {
   )
 }
 
-const advanceNotice =
-  "Outstanding advances will be available once reservation records are connected."
-const cashNotice =
-  "Cash totals include posted purchase, cost, repair, disposal, sale, facility and brokerage fee payments. Reservation and commission reconciliation cash are pending integration."
+const purchases: ReadReport = async (tx, actor, filter, asOf) => {
+  const rows = await tx.purchaseRecord.findMany({
+    where: {
+      purchaseDate: dates(filter, asOf),
+      status: filter.status,
+      AND: [scope(actor, "PurchaseRecord", ["id", "purchaseDate", "status"])],
+    },
+    include: purchaseInclude,
+    orderBy: [{ purchaseDate: "desc" }, { id: "asc" }],
+  })
+  return rows.map((row) => {
+    const purchase = visiblePurchase(actor, row) as Visible<
+      import("../../.planning/implementation/contracts/api").PurchaseCycleDTO
+    >
+    return rowProjection<"PURCHASES">({
+      cycleId: row.id,
+      date: formatDate(row.purchaseDate),
+      vehicle: vehicleName(actor, row, row.status),
+      seller: purchase.seller?.name,
+      purchaseType: purchase.purchaseType,
+      status: row.status,
+      price: purchase.purchasePrice,
+    })
+  })
+}
 
-// Replace the advances reader and extend cashSources when T10/T13 publish facts.
+const cashNotice =
+  "Cash totals include posted sale, advance, refund, facility, brokerage, purchase, cost, repair and disposal payments. Retained advances remain counted on their original receipt date. Commission reconciliation cash is pending integration."
+
+function outstandingAdvanceWhere(
+  actor: Actor,
+  filter: Pick<Filter, "from" | "through" | "advanceStatus">,
+  asOf: string,
+  now: Date
+): Prisma.ReservationWhereInput {
+  const active = { state: "ACTIVE", expiresAt: { gt: now } }
+  const expired = {
+    OR: [{ state: "EXPIRED" }, { state: "ACTIVE", expiresAt: { lte: now } }],
+  }
+  return {
+    placedDate: dates(filter, asOf),
+    AND: [
+      scope(actor, "Reservation", ["id", "effectiveStatus", "validThrough"]),
+      filter.advanceStatus === "ACTIVE"
+        ? active
+        : filter.advanceStatus === "EXPIRED"
+          ? expired
+          : { OR: [active, expired] },
+    ],
+    saleCase: {
+      state: { in: ["RESERVED", "EXPIRED"] },
+      AND: [
+        scope(actor, "SaleCase", [
+          "id",
+          "cycleId",
+          "state",
+          "reservation.id",
+          "reservation.effectiveStatus",
+          "reservation.validThrough",
+          "payments.date",
+        ]),
+      ],
+      purchaseRecord: scope(actor, "PurchaseRecord", ["id"]),
+    },
+  }
+}
+
+const advances: ReadReport = async (tx, actor, filter, asOf) => {
+  const now = new Date()
+  const rows = await tx.reservation.findMany({
+    where: outstandingAdvanceWhere(actor, filter, asOf, now),
+    include: {
+      saleCase: {
+        include: {
+          customer: { select: { fullName: true, createdBy: true } },
+          purchaseRecord: {
+            include: {
+              vehicle: {
+                include: { activePurchase: { select: { status: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ placedDate: "desc" }, { id: "asc" }],
+  })
+  return rows.map((row) => {
+    const sale = row.saleCase
+    const cycle = sale.purchaseRecord
+    const reservation = reservationDTO(row, now)
+    const placedDate = formatDate(row.placedDate)
+    const visible = (field: string) =>
+      canRead(actor, "Reservation", row, [field]) &&
+      canRead(actor, "SaleCase", sale, [`reservation.${field}`])
+    return rowProjection<"ADVANCES">({
+      reservationId: row.id,
+      cycleId: cycle.id,
+      customer:
+        canRead(actor, "SaleCase", sale, ["customerId"]) &&
+        canRead(actor, "Customer", sale.customer, ["fullName"])
+          ? sale.customer.fullName
+          : undefined,
+      vehicle: vehicleName(actor, cycle, cycle.status),
+      placedDate,
+      state: reservation.effectiveStatus as "ACTIVE" | "EXPIRED",
+      validThrough: reservation.validThrough,
+      daysOutstanding: daysSince(placedDate, asOf),
+      daysOverdue: Math.max(0, daysSince(reservation.validThrough, asOf)),
+      amount: visible("amount") ? reservation.amount : undefined,
+      listedBasis: visible("listedBasis") ? reservation.listedBasis : undefined,
+      percentDisplay: visible("percentDisplay")
+        ? reservation.percentDisplay
+        : undefined,
+      agreed: canRead(actor, "SaleCase", sale, ["price"])
+        ? sale.agreedPrice.toString()
+        : undefined,
+    })
+  })
+}
+
 const reportSources: Record<Exclude<ReportKind, "CASH_FLOW">, ReadReport> = {
   INVENTORY: inventory,
   SOLD: sold,
   PROFIT: profit,
-  ADVANCES: async () => [],
+  ADVANCES: advances,
   REPAIRS: repairs,
   DISPOSALS: disposals,
+  PURCHASES: purchases,
 }
 
 type CashSource = {
@@ -794,7 +915,6 @@ export async function reportQuery(
             data: full ? rows : rows.slice(offset, offset + pageSize),
             total: rows.length,
             totals,
-            ...(kind === "ADVANCES" ? { notice: advanceNotice } : {}),
           }
         })()
   return { ...result, kind, page, pageSize, asOf, redactedFields: [] }
@@ -821,7 +941,7 @@ export async function dashboardQuery(
       throw error
     }
   }
-  const [stock, held, inRepair, sales] = await Promise.all([
+  const [stock, held, inRepair, sales, advanceCounts] = await Promise.all([
     availableMetric(() =>
       tx.purchaseRecord.count({
         where: inventoryWhere(actor, { status: "IN_STOCK" }, asOf),
@@ -842,6 +962,18 @@ export async function dashboardQuery(
       })
     ),
     availableMetric(() => completedSales(tx, actor, { from, through }, asOf)),
+    availableMetric(async () => {
+      if (!actor.ability.can("read", "Report", "ADVANCES"))
+        fail("FORBIDDEN", 403)
+      const now = new Date()
+      return Promise.all(
+        (["ACTIVE", "EXPIRED"] as const).map((advanceStatus) =>
+          tx.reservation.count({
+            where: outstandingAdvanceWhere(actor, { advanceStatus }, asOf, now),
+          })
+        )
+      )
+    }),
   ])
   return {
     asOf,
@@ -851,7 +983,8 @@ export async function dashboardQuery(
     held,
     inRepair,
     completedSales: sales?.length ?? null,
-    advances: null,
+    advances: advanceCounts?.[0] ?? null,
+    expiredAdvances: advanceCounts?.[1] ?? null,
     recentSales:
       sales?.slice(0, 8).map(({ sale, date }) => ({
         id: sale.id,

@@ -59,7 +59,10 @@ describe("global entry-point inventory", () => {
     for (const route of reportingAPIs) {
       const text = readFileSync(`app${route}/route.ts`, "utf8")
       expect(text).toContain("export async function GET")
-      expect(text).toContain("@/lib/server/report-http")
+      if (route === "/api/reports/audit") {
+        expect(text).toContain("await authenticate(request.headers)")
+        expect(text).toContain("await securityQuery(")
+      } else expect(text).toContain("@/lib/server/report-http")
       expect(text).not.toMatch(/mock-data|prototype/)
     }
     for (const [route, method] of Object.entries(persistedRateAPIs)) {

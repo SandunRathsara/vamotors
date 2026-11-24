@@ -2,11 +2,16 @@
 import assert from "node:assert/strict"
 import { createHash, randomUUID } from "node:crypto"
 import { join } from "node:path"
-import { execFile } from "node:child_process"
+import { execFile, execFileSync } from "node:child_process"
 import { promisify } from "node:util"
 import pg from "pg"
 import { readFile } from "node:fs/promises"
-import { chromium, request, type APIRequestContext } from "@playwright/test"
+import {
+  chromium,
+  expect,
+  request,
+  type APIRequestContext,
+} from "@playwright/test"
 import type {
   Applied,
   ApprovalDTO,
@@ -14,6 +19,7 @@ import type {
   Pending,
   PurchaseCycleDTO,
   SaleDTO,
+  ReportRow,
   UploadReady,
 } from "../../.planning/implementation/contracts/api"
 import { privateEnvironment } from "../../scripts/private-environment"
@@ -220,6 +226,28 @@ try {
     assert.ok(r.ok(), `${name} ${r.status()} ${JSON.stringify(data)}`)
     return data as Applied
   }
+  async function invoiceText(saleId: string, version: number, button: string) {
+    await page.reload()
+    const issued = waitCommand("issueInvoice")
+    await page.getByRole("button", { name: button, exact: true }).click()
+    const response = await issued
+    const outcome = await response.json()
+    assert.ok(
+      response.ok(),
+      `issueInvoice ${response.status()} ${JSON.stringify(outcome)}`
+    )
+    assert.equal(outcome.status, "APPLIED", JSON.stringify(outcome))
+    const link = page.getByRole("link", { name: `Download version ${version}` })
+    await expect(link).toBeVisible({ timeout: 60000 })
+    const download = await admin.get(
+      `/api/v1/sales/${saleId}/invoices/${version}`
+    )
+    assert.equal(download.status(), 200)
+    return execFileSync("pdftotext", ["-layout", "-", "-"], {
+      input: await download.body(),
+      encoding: "utf8",
+    })
+  }
   await page.goto(`${origin}/vehicles/${stockForBrowser.vehicleId}`)
   await page
     .getByRole("button", { name: "Complete Immediate Sale", exact: true })
@@ -254,7 +282,16 @@ try {
     buffer: Buffer.from(pdf),
   })
   await page.getByLabel("DO issue date").fill(daysAgo(1))
-  await submit("recordDO", "Record delivery order")
+  const uploadedDO = waitCommand("completeUpload")
+  const recordedDO = submit("recordDO", "Record delivery order")
+  const uploadResult = await uploadedDO
+  if (!uploadResult.ok()) {
+    void recordedDO.catch(() => {})
+    assert.fail(
+      `completeUpload ${uploadResult.status()} ${await uploadResult.text()}`
+    )
+  }
+  await recordedDO
   current = await sale(placed.result.id)
   assert.equal(current.state, "DO_RECEIVED")
   assert.equal(current.payments?.length, 2)
@@ -277,6 +314,19 @@ try {
   assert.equal(current.reservation?.effectiveStatus, "CONVERTED")
   assert.equal(current.finance?.lenderOutstanding, "80000")
   assert.equal(current.payments?.length, 2)
+  assert.equal(
+    current.invoices?.[0]?.version,
+    1,
+    "Handover queues a lease invoice"
+  )
+  const leaseV1 = await invoiceText(current.id, 1, "Generate invoice")
+  for (const label of [
+    "Advance Credit",
+    "Customer Down Payment Receipt",
+    "Financed Principal",
+    "Lender Settlement Balance",
+  ])
+    assert.match(leaseV1, new RegExp(label))
   await page.getByRole("button", { name: "Record lender receipt" }).click()
   await page.getByLabel("Received amount").fill("800")
   await submit("recordLenderReceipt", "Record lender receipt")
@@ -294,6 +344,43 @@ try {
   console.log(
     "PASS Chromium advance → lease → private DO → handover → lender receipt"
   )
+
+  await page.getByRole("button", { name: "Request Sale Edit Approval" }).click()
+  await page
+    .getByLabel("New Reference (optional)")
+    .fill("Lease correction reference")
+  await page.getByLabel("New Handover Mileage (optional)").fill("1002")
+  await page.getByLabel("New Agreed Price (Major, optional)").fill("1010")
+  await page
+    .getByLabel("Edit Approval Reason *")
+    .fill("Correct recorded handover and down payment")
+  const requestEdit = waitCommand("requestApproval")
+  await page.getByRole("button", { name: "Submit Sale Edit Approval" }).click()
+  const editResponse = await requestEdit
+  const edit = (await editResponse.json()) as Pending
+  assert.equal(editResponse.status(), 202, JSON.stringify(edit))
+  assert.equal((await sale(current.id)).revision, current.revision)
+  const reviewerContext = await browser.newContext()
+  await reviewerContext.addCookies((await second.storageState()).cookies)
+  const reviewerPage = await reviewerContext.newPage()
+  await reviewerPage.goto(`${origin}/approvals/${edit.approvalId}`)
+  const reviewResponse = reviewerPage.waitForResponse((r) =>
+    r.url().endsWith("/commands/reviewApproval")
+  )
+  await reviewerPage.getByRole("button", { name: "Commit review" }).click()
+  const reviewedEdit = await reviewResponse
+  assert.ok(reviewedEdit.ok(), JSON.stringify(await reviewedEdit.json()))
+  await reviewerContext.close()
+  const corrected = await sale(current.id)
+  assert.equal(corrected.completion?.mileage, 1002)
+  assert.equal(corrected.finance?.down, "16000")
+  assert.equal(corrected.finance?.lenderOutstanding, "0")
+  assert.equal(corrected.invoices?.[0]?.version, 2)
+  const leaseV2 = await invoiceText(current.id, 2, "Regenerate invoice")
+  assert.match(leaseV2, /Approved sale\s+correction/)
+  assert.match(leaseV2, /Lease correction reference/)
+  assert.match(leaseV2, /Lender Settlement Received/)
+  console.log("PASS Chromium lease correction approval and version 2 invoice")
 
   const warnedSale = await advance(await stock("warned"), daysAgo(5))
   const expiredSale = await advance(await stock("timer"), daysAgo(15))
@@ -442,19 +529,14 @@ try {
   )
   assert.equal((await sale(cash.id)).reservation?.listedBasis, "100000")
 
-  await command(
-    admin,
-    "convertReservation",
-    envelope(
-      {
-        reservationId: cash.reservation!.id,
-        date: now,
-        mileage: 1001,
-        balance: { amount: "95000", date: now, method: "CASH" },
-      },
-      await deps(cash)
-    )
-  )
+  await page.goto(`${origin}/sales/${cash.id}`)
+  await page.getByRole("button", { name: "Complete cash conversion" }).click()
+  await page.getByLabel("Handover mileage (km)").fill("1001")
+  await page.getByLabel("Payment method").selectOption("CASH")
+  await submit("convertReservation", "Complete cash conversion")
+  const cashV1 = await invoiceText(cash.id, 1, "Generate invoice")
+  assert.match(cashV1, /Advance Receipt/)
+  assert.match(cashV1, /Conversion Balance Receipt/)
   assert.deepEqual(
     (await sale(cash.id)).payments?.map(({ category, amount }) => [
       category,
@@ -464,6 +546,65 @@ try {
       ["ADVANCE", "5000"],
       ["BALANCE", "95000"],
     ]
+  )
+
+  const completedAdvance = await sale(cash.id)
+  const balance = completedAdvance.payments!.find(
+    (payment) => payment.category === "BALANCE"
+  )!
+  const advanceCorrection = await command<Pending>(
+    admin,
+    "requestApproval",
+    envelope(
+      {
+        reason: "Correct cash conversion receipt",
+        proposal: {
+          kind: "SALE_EDIT",
+          operation: "EDIT_COMPLETION",
+          input: {
+            saleId: cash.id,
+            reason: "Correct cash conversion receipt",
+            patch: { price: "99000" },
+            cashCorrections: [
+              {
+                paymentId: balance.id,
+                replacement: {
+                  amount: "94000",
+                  date: balance.date,
+                  method: balance.method,
+                },
+                reason: "Correct recorded balance",
+              },
+            ],
+          },
+        },
+      },
+      [ref(completedAdvance, "SaleCase"), ref(await cycle(cash.cycleId))]
+    ),
+    202
+  )
+  const advanceReview = (
+    await query<{ data: ApprovalDTO[] }>(second, "approvals?pageSize=100")
+  ).data.find((row) => row.id === advanceCorrection.approvalId)!
+  await command(
+    second,
+    "reviewApproval",
+    envelope({ approvalId: advanceReview.id, decision: "APPROVE" }, [
+      ref(advanceReview, "ApprovalRequest"),
+      ...advanceReview.expected,
+    ])
+  )
+  const restatedAdvance = await sale(cash.id)
+  assert.equal(restatedAdvance.price, "99000")
+  assert.equal(restatedAdvance.reservation?.amount, "5000")
+  assert.equal(restatedAdvance.invoices?.[0]?.version, 2)
+  assert.ok(
+    restatedAdvance.payments?.some(
+      (row) => row.reversalOf === balance.id && row.category === "BALANCE"
+    )
+  )
+  console.log(
+    "PASS Chromium cash conversion invoice and approved advance sale correction"
   )
 
   const principalRefund = await advance(await stock("lease-refund"), now)
@@ -584,6 +725,69 @@ try {
   assert.equal(new Set(refundLines.map((line) => line.refundOf)).size, 2)
   assert.equal((await cycle(cancelledLease.cycleId)).available, true)
 
+  const erroneousCycle = await stock("finance-error")
+  const erroneous = await command(
+    admin,
+    "startFinance",
+    envelope(
+      {
+        cycleId: erroneousCycle.id,
+        customerId: customer.id,
+        companyId: company.id,
+        termMonths: 24,
+        price: "100000",
+        financeAmount: "80000",
+        downPayment: { amount: "20000", date: now, method: "BANK_TRANSFER" },
+      },
+      [
+        ref(erroneousCycle),
+        ref(customer, "Customer"),
+        ref(settings, "Settings"),
+        ref(company, "FinanceCompany"),
+      ]
+    )
+  )
+  const opening = await sale(erroneous.result.id)
+  const down = opening.payments![0]
+  await page.goto(`${origin}/sales/${opening.id}`)
+  await page
+    .getByRole("button", { name: "Request finance error reversal" })
+    .click()
+  await page
+    .getByLabel("Reason", { exact: true })
+    .fill("Duplicate accounting entry")
+  const reversalRequest = waitCommand("requestApproval")
+  await page
+    .locator("form")
+    .getByRole("button", { name: "Request finance error reversal" })
+    .click()
+  const reversalResponse = await reversalRequest
+  const reversal = (await reversalResponse.json()) as Pending
+  assert.equal(reversalResponse.status(), 202, JSON.stringify(reversal))
+  const request = (
+    await query<{ data: ApprovalDTO[] }>(second, "approvals?pageSize=100")
+  ).data.find((row) => row.id === reversal.approvalId)!
+  await command(
+    second,
+    "reviewApproval",
+    envelope({ approvalId: request.id, decision: "APPROVE" }, [
+      ref(request, "ApprovalRequest"),
+      ...request.expected,
+    ])
+  )
+  const released = await sale(opening.id)
+  assert.equal(released.state, "CANCELLED")
+  assert.equal((await cycle(released.cycleId)).available, true)
+  const reversed = released.payments!.find(
+    (payment) => payment.reversalOf === down.id
+  )!
+  assert.equal(reversed.category, "DOWN_PAYMENT")
+  assert.equal(reversed.amount, down.amount)
+  assert.equal(reversed.date, down.date)
+  assert.equal(reversed.direction, "OUT")
+  assert.equal(reversed.refundOf, undefined)
+  console.log("PASS approved finance opening reversal with original cash date")
+
   const discountedCycle = await stock("discounted-advance")
   const discountedInput = {
     cycleId: discountedCycle.id,
@@ -702,6 +906,108 @@ try {
   assert.equal((await sale(retrySale.id)).state, "EXPIRED")
   console.log(
     "PASS scheduled warning/expiry, failed-run recovery, catch-up, cash conversion, forfeiture, discounts and approved cash/lease refunds"
+  )
+  const outstanding = await query<{
+    data: ReportRow["ADVANCES"][]
+    total: number
+    totals: Record<string, string>
+  }>(admin, "report?kind=ADVANCES&pageSize=100")
+  assert.equal(outstanding.data.length, outstanding.total)
+  assert.equal(
+    outstanding.data.find(
+      (row) => row.reservationId === warnedSale.reservation!.id
+    )?.state,
+    "ACTIVE"
+  )
+  assert.equal(
+    outstanding.data.find(
+      (row) => row.reservationId === retrySale.reservation!.id
+    )?.state,
+    "EXPIRED"
+  )
+  assert.equal(
+    outstanding.totals.amount,
+    outstanding.data
+      .reduce((sum, row) => sum + BigInt(row.amount), 0n)
+      .toString()
+  )
+  const cashFlow = await query<{
+    data: ReportRow["CASH_FLOW"][]
+    total: number
+    totals: Record<string, string>
+  }>(admin, "report?kind=CASH_FLOW&pageSize=100")
+  assert.equal(cashFlow.data.length, cashFlow.total)
+  for (const [direction, key] of [
+    ["IN", "cashIn"],
+    ["OUT", "cashOut"],
+  ] as const)
+    assert.equal(
+      cashFlow.totals[key],
+      cashFlow.data
+        .filter((row) => row.direction === direction)
+        .reduce((sum, row) => sum + BigInt(row.amount), 0n)
+        .toString()
+    )
+  assert.equal(
+    cashFlow.totals.net,
+    (
+      BigInt(cashFlow.totals.cashIn) - BigInt(cashFlow.totals.cashOut)
+    ).toString()
+  )
+  assert.deepEqual(
+    cashFlow.data
+      .filter((row) => row.sourceId === retained.id)
+      .map((row) => row.category),
+    ["ADVANCE"]
+  )
+  assert.ok(
+    cashFlow.data.some(
+      (row) =>
+        row.sourceId === current.id &&
+        row.category === "LENDER" &&
+        row.date === now
+    )
+  )
+  assert.ok(
+    cashFlow.data.some(
+      (row) => row.sourceId === cancelledLease.id && row.category === "REFUND"
+    )
+  )
+  const dashboard = await query<{
+    advances: number
+    recentSales: { id: string }[]
+  }>(admin, `dashboard?from=${daysAgo(3)}&through=${now}`)
+  assert.equal(
+    dashboard.advances,
+    outstanding.data.filter((row) => row.state === "ACTIVE").length
+  )
+  assert.ok(dashboard.recentSales.some(({ id }) => id === current.id))
+  await page.goto(`${origin}/dashboard`)
+  await expect(
+    page.getByRole("link", {
+      name: new RegExp(`Active advances ${dashboard.advances}`),
+    })
+  ).toBeVisible({ timeout: 30000 })
+  await page.goto(`${origin}/reports/advances?advanceStatus=EXPIRED`)
+  await expect(page.getByText(retrySale.reservation!.id)).toBeVisible()
+  await page.goto(`${origin}/reports/purchases`)
+  await expect(
+    page.getByRole("heading", { name: "Purchases per period" })
+  ).toBeVisible()
+  await expect(page.getByRole("link", { name: /export csv/i })).toBeVisible()
+  await page.goto(`${origin}/reports/audit?type=SaleCase&id=${current.id}`)
+  await expect(
+    page.getByRole("heading", { name: "Record audit history" })
+  ).toBeVisible()
+  await expect(
+    page
+      .getByText("Correct recorded handover and down payment", {
+        exact: true,
+      })
+      .first()
+  ).toBeVisible()
+  console.log(
+    "PASS Chromium dashboard, outstanding advances, purchase report and audit history; cash totals match rows"
   )
 } finally {
   await browser.close()

@@ -98,7 +98,7 @@ function makeFinancial(overrides: Partial<FinancialDTO> = {}): FinancialDTO {
 }
 
 describe("report-export", () => {
-  describe("column definitions and all 7 ReportKind CSV exports", () => {
+  describe("column definitions and all ReportKind CSV exports", () => {
     it("declares column metadata for every ReportKind", () => {
       const kinds: ReportKind[] = [
         "INVENTORY",
@@ -108,6 +108,7 @@ describe("report-export", () => {
         "REPAIRS",
         "CASH_FLOW",
         "DISPOSALS",
+        "PURCHASES",
       ]
       for (const kind of kinds) {
         const cols = REPORT_COLUMNS[kind]

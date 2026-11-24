@@ -549,6 +549,14 @@ export const saleEditInput = z
         saleDate: dateOnly.optional(),
         handoverMileage: z.number().int().min(0).max(99999999).optional(),
         notes: text.nullable().optional(),
+        finance: z.object({
+          companyId: id,
+          downPayment: moneyInput.refine((v) => v !== "0"),
+          financeAmount: moneyInput.refine((v) => v !== "0"),
+          termMonths: z.number().int().min(1).max(120),
+          doAttachmentId: id,
+          doIssueDate: dateOnly,
+        }).strict().optional(),
         tradeIn: z
           .object({
             description: text,
@@ -566,6 +574,12 @@ export const saleEditInput = z
       Object.values(v.patch).some((x) => x !== undefined) ||
       v.cashCorrections.length > 0
   )
+export const cancelFinanceErrorInput = z.object({
+  saleCaseId: id,
+  reason: text,
+  receiptReversals: z.array(id).min(1).max(100),
+  disposition: resolutionDisposition,
+}).strict()
 export const writeOffInput = z
   .object({
     cycleId: id,
@@ -579,7 +593,7 @@ export const writeOffInput = z
 export const approvalInputs = {
   requestApproval: z
     .object({
-      proposal: z.discriminatedUnion("kind", [
+      proposal: z.union([
         z
           .object({ kind: z.literal("WRITE_OFF"), input: writeOffInput })
           .strict(),
@@ -594,13 +608,18 @@ export const approvalInputs = {
             ]),
           })
           .strict(),
-        z
-          .object({
+        z.discriminatedUnion("operation", [
+          z.object({
             kind: z.literal("SALE_EDIT"),
             operation: z.literal("EDIT_COMPLETION"),
             input: saleEditInput,
-          })
-          .strict(),
+          }).strict(),
+          z.object({
+            kind: z.literal("SALE_EDIT"),
+            operation: z.literal("CANCEL_FINANCE_ERROR"),
+            input: cancelFinanceErrorInput,
+          }).strict(),
+        ]),
       ]),
       reason: text,
     })

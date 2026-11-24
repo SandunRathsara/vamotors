@@ -271,7 +271,7 @@ export function visibleSale(
   }
   if (
     "nextActions" in result &&
-    row.state === "COMPLETED" && !row.inventoryLease && !row.reservation &&
+    row.state === "COMPLETED" &&
     actor.ability.can(
       "create",
       subject("ApprovalRequest", { createdBy: actor.userId }),
@@ -295,6 +295,10 @@ export function visibleSale(
       && canUpdate("refund")
       && actor.ability.can("create", subject("ApprovalRequest", { createdBy: actor.userId }), "proposal.kind"))
       nextActions.push("requestApproval")
+    if (["FINANCE_PENDING", "DO_RECEIVED"].includes(row.state) && !row.reservation
+      && canUpdate("cancelFinanceError")
+      && actor.ability.can("create", subject("ApprovalRequest", { createdBy: actor.userId }), "proposal.operation"))
+      nextActions.push("cancelFinanceError")
     if (row.state === "FINANCE_PENDING" && canUpdate("recordDO")) nextActions.push("recordDO")
     if (row.state === "DO_RECEIVED" && canUpdate("confirmDOAndHandover")) nextActions.push("confirmDOAndHandover")
     if (row.state === "COMPLETED" && row.inventoryLease && row.inventoryLease.principal > lenderPaid(row)
@@ -1452,7 +1456,7 @@ export async function prepareSaleEditApproval(
     ...(input.cashCorrections.length ? ["cashCorrections"] : []),
   ])
 
-  if (sale.state !== "COMPLETED" || cycle.status !== "SOLD" || sale.inventoryLease || sale.reservation) fail("INVALID_STATE")
+  if (sale.state !== "COMPLETED" || cycle.status !== "SOLD") fail("INVALID_STATE")
   if (input.patch.tradeIn && sale.kind !== "TRADE_IN") fail("INVALID_INPUT", 422)
 
   let nextCustomer: { id: string; revision: number; active: boolean; fullName: string } | null = null
@@ -1472,6 +1476,20 @@ export async function prepareSaleEditApproval(
   if (sale.kind === "TRADE_IN" && (nextTradeInVal <= 0n || nextTradeInVal > nextPrice))
     fail("OVERALLOWANCE", 422)
 
+  const lease = sale.inventoryLease
+  const finance = input.patch.finance
+  if (finance) {
+    if (!lease) fail("INVALID_INPUT", 422)
+    // The lender and its contracted principal own the original entitlement.
+    if (finance.companyId !== lease.companyId || BigInt(finance.financeAmount) !== lease.principal)
+      fail("OBLIGATION_OPEN")
+    requireFields(actor.ability, "SaleCase", "read", saleAuth(sale), [
+      "finance.companyId", "finance.principal", "finance.doAttachmentId",
+    ])
+    if (finance.doAttachmentId !== lease.doAttachmentId)
+      fail("INVALID_INPUT", 422)
+  }
+
   const tradeInValueChanged =
     Boolean(input.patch.tradeIn) && nextTradeInVal !== sale.tradeIn?.value
   const customerChanged =
@@ -1487,6 +1505,11 @@ export async function prepareSaleEditApproval(
   const saleDateStr = input.patch.saleDate ?? saleDTO(sale).completion!.date
   const today = colomboToday()
   if (saleDateStr > today || saleDateStr < formatDate(cycle.purchaseDate))
+    fail("INVALID_INPUT", 422)
+  const issueDate = finance?.doIssueDate ?? (lease?.issueDate && formatDate(lease.issueDate))
+  if (lease && (!issueDate || issueDate < formatDate(lease.openedDate) || issueDate > saleDateStr))
+    fail("INVALID_INPUT", 422)
+  if (sale.reservation && saleDateStr < formatDate(sale.reservation.placedDate))
     fail("INVALID_INPUT", 422)
   const nextCycle = await tx.purchaseRecord.findFirst({
     where: { vehicleId: cycle.vehicleId, cycleNumber: { gt: cycle.cycleNumber } },
@@ -1509,44 +1532,54 @@ export async function prepareSaleEditApproval(
       fail("INVALID_INPUT", 422)
   }
 
-  // Validate cashCorrections against unreversed sale receipts
   const seenPaymentIds = new Set<string>()
-  let cashDelta = 0n
+  const projected = new Map<string, bigint>()
+  const add = (category: string, amount: bigint) =>
+    projected.set(category, (projected.get(category) ?? 0n) + amount)
+  for (const receipt of sale.receipts)
+    add(receipt.category, receipt.direction === "IN" ? receipt.amount : -receipt.amount)
   for (const corr of input.cashCorrections) {
     if (seenPaymentIds.has(corr.paymentId)) fail("INVALID_INPUT", 422)
     seenPaymentIds.add(corr.paymentId)
     const target = sale.receipts.find((r) => r.id === corr.paymentId)
     if (!target) fail("NOT_FOUND", 404)
-    if (
-      target.reversalOf !== null ||
-      sale.receipts.some((r) => r.reversalOf === target.id)
-    )
+    if (target.direction !== "IN" || target.reversalOf ||
+      sale.receipts.some((r) => r.reversalOf === target.id))
       fail("INVALID_STATE")
+    if (target.category === "ADVANCE" &&
+      (!corr.replacement || BigInt(corr.replacement.amount) !== target.amount ||
+        corr.replacement.date !== formatDate(target.occurredDate)))
+      fail("OBLIGATION_OPEN")
     if (corr.replacement) {
-      if (
-        corr.replacement.date > today ||
-        corr.replacement.date < formatDate(cycle.purchaseDate)
-      )
+      const { date, method, reference } = corr.replacement
+      if (date > today || date < formatDate(cycle.purchaseDate) ||
+        (target.category === "BALANCE" &&
+          (date < formatDate(sale.reservation!.placedDate) || date > saleDateStr)) ||
+        (target.category === "DOWN_PAYMENT" && date !== formatDate(lease!.openedDate)) ||
+        (target.category === "LENDER" &&
+          (date < formatDate(lease!.openedDate) || (method === "CASH" && !reference))))
         fail("INVALID_INPUT", 422)
-      const repAmt = BigInt(corr.replacement.amount)
-      cashDelta +=
-        target.direction === "IN"
-          ? repAmt - target.amount
-          : -(repAmt - target.amount)
-    } else {
-      cashDelta += target.direction === "IN" ? -target.amount : target.amount
     }
+    add(target.category, BigInt(corr.replacement?.amount ?? "0") - target.amount)
   }
-  const currentNet = sale.receipts.reduce(
-    (acc, r) => acc + (r.direction === "IN" ? r.amount : -r.amount),
-    0n
-  )
-  const projectedNet = currentNet + cashDelta
-  if (
-    projectedNet < 0n ||
-    projectedNet !== nextPrice - nextTradeInVal
-  )
+  const amount = (category: string) => projected.get(category) ?? 0n
+  const advance = sale.reservation?.amount ?? 0n
+  if (lease) {
+    const down = finance ? BigInt(finance.downPayment) : lease.down
+    if (amount("DOWN_PAYMENT") !== down || down + advance + lease.principal !== nextPrice ||
+        amount("LENDER") < 0n || amount("LENDER") > lease.principal)
+      fail("BALANCE_MISMATCH", 422)
+  } else if (sale.reservation) {
+    if (amount("BALANCE") !== nextPrice - advance || nextPrice < advance)
+      fail("BALANCE_MISMATCH", 422)
+    if (sale.receipts.some((receipt) => receipt.category === "BALANCE" &&
+        receipt.direction === "IN" && !receipt.reversalOf && !seenPaymentIds.has(receipt.id) &&
+        !sale.receipts.some((r) => r.reversalOf === receipt.id) &&
+        formatDate(receipt.occurredDate) > saleDateStr))
+      fail("INVALID_INPUT", 422)
+  } else if (amount("SALE") !== nextPrice - nextTradeInVal) {
     fail("BALANCE_MISMATCH", 422)
+  }
 
   const acquiredRef =
     sale.tradeIn?.acquiredPurchase && (tradeInValueChanged || customerChanged)
@@ -1647,6 +1680,17 @@ export async function applySaleEditApproval(
     },
   })
 
+  if (input.patch.finance) {
+    await tx.inventoryLease.update({
+      where: { saleCaseId: sale.id },
+      data: {
+        down: BigInt(input.patch.finance.downPayment),
+        termMonths: input.patch.finance.termMonths,
+        issueDate: new Date(input.patch.finance.doIssueDate),
+      },
+    })
+  }
+
   const latestBasis = cycle.basisVersions.at(-1)!
   const priorVersionId = sale.corrections.at(-1)?.id ?? null
 
@@ -1667,6 +1711,7 @@ export async function applySaleEditApproval(
         saleDate: input.patch.saleDate ?? beforeSale.completion!.date,
         handoverMileage:
           input.patch.handoverMileage ?? beforeSale.completion!.mileage,
+        ...(input.patch.finance ? { finance: input.patch.finance } : {}),
         ...(sale.tradeIn
           ? {
               tradeInDescription:
@@ -1765,7 +1810,7 @@ export async function applySaleEditApproval(
         purchaseRecordId: cycle.id,
         amount: orig.amount,
         direction: orig.direction === "IN" ? "OUT" : "IN",
-        category: "SALE",
+        category: orig.category,
         occurredDate: orig.occurredDate,
         method: orig.method,
         currency: orig.currency,
@@ -1785,7 +1830,7 @@ export async function applySaleEditApproval(
           purchaseRecordId: cycle.id,
           amount: BigInt(corr.replacement.amount),
           direction: orig.direction,
-          category: "SALE",
+          category: orig.category,
           occurredDate: new Date(corr.replacement.date),
           method: corr.replacement.method,
           currency: orig.currency,
@@ -1828,7 +1873,7 @@ export async function applySaleEditApproval(
       approverId: actor.userId,
       entityType,
       entityId,
-      action: "approvedSaleEdit",
+      action: entityType === "SaleCase" && (sale.reservation || sale.inventoryLease) ? "reviewApproval" : "approvedSaleEdit",
       reason: input.reason,
       before,
       after,

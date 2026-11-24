@@ -386,7 +386,7 @@ export type CommandResult = Applied | Pending | UploadReady | InvoicePending | I
 
 export type ListParams = { page: number; pageSize: 10 | 20 | 50 | 100; q?: string;
   sort: { field: string; direction: "asc" | "desc" }[]; from?: DateOnly; through?: DateOnly };
-export type ReportKind = "INVENTORY" | "SOLD" | "PROFIT" | "ADVANCES" | "REPAIRS" | "CASH_FLOW" | "DISPOSALS";
+export type ReportKind = "INVENTORY" | "SOLD" | "PROFIT" | "ADVANCES" | "REPAIRS" | "CASH_FLOW" | "DISPOSALS" | "PURCHASES";
 export type ReportFilter = ListParams & { kind: ReportKind; statuses?: State[]; available?: boolean;
   make?: string; model?: string; saleType?: "CASH" | "ADVANCE" | "LEASE" | "TRADE_IN";
   vendorId?: Id; profitOnly?: boolean; lossOnly?: boolean; method?: Method };
@@ -458,7 +458,7 @@ export type SaleDTO = { id: Id; cycleId: Id; customerId: Id; revision: Revision;
   tradeIn?: { description: string; value: Money; acquiredCycleId?: Id };
   completion?: { id: Id; date: DateOnly; mileage: number; basisVersionId: Id };
   payments?: PaymentDTO[]; timeline: { at: Instant; action: string; actorName: string }[];
-  nextActions: CommandName[]; invoices: InvoiceSummaryDTO[];
+  nextActions: (CommandName | "cancelFinanceError")[]; invoices: InvoiceSummaryDTO[];
   provenance: Provenance };
 export type InvoiceSummaryDTO = { id: Id; revision: Revision; version: number; saleRevision: Revision; number: string;
   state: "PENDING" | "READY" | "FAILED" };
@@ -563,6 +563,8 @@ export type ReportRow = {
     request: string; sentDate: DateOnly; daysInRepair: number };
   CASH_FLOW: { paymentId: Id; sourceType: string; sourceId: Id; date: DateOnly;
     amount: Money; direction: "IN" | "OUT"; method: Method; category: string };
+  PURCHASES: { cycleId: Id; vehicle: string; date: DateOnly; seller: string;
+    purchaseType: PurchaseCycleDTO["purchaseType"]; status: State; price: Money };
   DISPOSALS: { cycleId: Id; vehicle: string; date: DateOnly; reason: string; approval: ApprovalProvenance;
     method: WriteOff["method"]; basis?: Money; proceeds?: Money; netLoss?: Money };
 };
