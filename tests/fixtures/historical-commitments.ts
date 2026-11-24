@@ -125,6 +125,16 @@ export function historicalCommitmentRows(ids: FixtureIds) {
         completionBasisCosts: "[]",
         payments: JSON.stringify([
           receipt("DOWN_PAYMENT", "500000.00", "2026-01-18"),
+          {
+            ...receipt("DOWN_PAYMENT", "450000.00", "2026-01-18"),
+            sourceKey: "voided-down-payment",
+          },
+          {
+            ...receipt("DOWN_PAYMENT", "450000.00", "2026-01-18"),
+            sourceKey: "reverse-down-payment",
+            direction: "OUT",
+            reversalOfSourceKey: "voided-down-payment",
+          },
           receipt("LENDER", "1000000.00", "2026-01-22", `${prefix}-direct`),
         ]),
       },

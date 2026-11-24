@@ -755,7 +755,7 @@ export async function executeBrokerage(
     await tx.$queryRaw`SELECT id FROM vamotors.session WHERE id=${identity.sessionId}::uuid FOR SHARE`
     const actor = await currentActor(tx, identity)
     if (name === "reversePayment")
-      return reverseBrokeragePayment(tx, actor, envelope, digest, raw)
+      return reverseBrokeragePayment(tx, actor, envelope, digest, raw, !!existingTx)
     return handlers[name as BrokerageCommandName](tx, actor, envelope, digest)
   }, existingTx)
 }
@@ -2331,7 +2331,8 @@ async function reverseBrokeragePayment(
   actor: Actor,
   envelope: Envelope,
   digest: string,
-  raw: unknown
+  raw: unknown,
+  historical: boolean
 ) {
   const parsed = brokerageReversalEnvelope.safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -2380,7 +2381,8 @@ async function reverseBrokeragePayment(
       where: { id: input.paymentId },
     })
     if (!payment || payment.facilityId !== facility!.id) fail("NOT_FOUND", 404)
-    if (payment.reversalOf || payment.component === "PAYOUT")
+    if (payment.reversalOf || (payment.component === "PAYOUT" &&
+      (!historical || !input.replacement || money(input.replacement.amount) !== payment.amount)))
       fail("INVALID_STATE")
     if (
       await tx.facilityPayment.findFirst({ where: { reversalOf: payment.id } })
@@ -2395,6 +2397,7 @@ async function reverseBrokeragePayment(
         component: payment.component,
         occurredDate: payment.occurredDate,
         method: payment.method,
+        reference: payment.reference,
         reversalOf: payment.id,
         reason: input.reason,
         createdBy: actor.userId,
@@ -2474,6 +2477,7 @@ async function reverseBrokeragePayment(
         direction: opposite,
         occurredDate: payment.occurredDate,
         method: payment.method,
+        reference: payment.reference,
         reversalOf: payment.id,
         reason: input.reason,
         createdBy: actor.userId,
@@ -2505,6 +2509,7 @@ async function reverseBrokeragePayment(
   return commitDeal(tx, actor, {
     commandId,
     commandName: "reversePayment",
+    reason: input.reason,
     digest,
     scope,
     sequence,

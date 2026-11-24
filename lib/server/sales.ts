@@ -9,6 +9,7 @@ import type {
   SaleDTO,
   SaleEdit,
   ImmediateSale,
+  LegacyPayment,
 } from "../../.planning/implementation/contracts/api"
 import { database, assertEnvironment, type Tx } from "./db"
 import {
@@ -469,7 +470,50 @@ export function immediateCreateFields(input: ImmediateSale) {
   ]
 }
 
+/** Write net-zero cash history within the owning sale command and its audit. */
+export async function recordHistoricalSaleReversals(
+  tx: Tx,
+  actor: Actor,
+  sale: { id: string; purchaseRecordId: string; createdBy: string; customerId: string },
+  commandId: string,
+  entries: readonly LegacyPayment[]
+) {
+  if (!entries.length) return
+  const settings = await currentSettings(tx)
+  for (const [index, entry] of entries.entries()) {
+    requireFields(actor.ability, "SaleCase", "pay", sale, [
+      "amount", "date", "method", ...(entry.reference ? ["reference"] : []),
+    ])
+    const data = {
+      saleCaseId: sale.id,
+      purchaseRecordId: sale.purchaseRecordId,
+      amount: BigInt(entry.amount),
+      category: entry.category,
+      occurredDate: new Date(entry.date),
+      method: entry.method,
+      reference: entry.reference,
+      currency: settings.currency,
+      scale: settings.scale,
+      createdBy: actor.userId,
+      commandId,
+    }
+    const original = await tx.saleReceipt.create({
+      data: { ...data, direction: "IN", lineKey: `historical-original:${index}` },
+    })
+    await tx.saleReceipt.create({
+      data: {
+        ...data,
+        direction: "OUT",
+        lineKey: `historical-reversal:${index}`,
+        reversalOf: original.id,
+        reason: `Historical reversal of ${entry.sourceKey}`,
+      },
+    })
+  }
+}
+
 type HistoricalSale = {
+  reversedReceipts?: readonly LegacyPayment[]
   receiptReference?: string
   notes?: string
   closedAt?: string
@@ -848,6 +892,14 @@ export async function completeImmediateInTx(
       },
     })
   }
+  const reversedReceipts = params.historical?.reversedReceipts ?? []
+  if (reversedReceipts.some((entry) =>
+    entry.category !== "SALE" || entry.date > input.date ||
+    entry.date < formatDate(row.receivedDate ?? row.purchaseDate)
+  )) fail("INVALID_INPUT", 422)
+  await recordHistoricalSaleReversals(tx, actor, {
+    id: saleCaseId, purchaseRecordId: row.id, createdBy: initiatedBy, customerId: customer.id,
+  }, commandId, reversedReceipts)
   let acquiredCycle: {
     cycleId: string
     vehicleId: string

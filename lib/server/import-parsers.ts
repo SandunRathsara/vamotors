@@ -14,6 +14,7 @@ import type {
   Instant,
   LegacyApprovalEvidence,
   LegacyMetadata,
+  LegacyBrokerageStep,
   LegacyPayment,
   LegacyRef,
   Method,
@@ -24,7 +25,7 @@ import type {
 } from "../../.planning/implementation/contracts/api"
 import { A, B, bounded, minor, parseMajor, sum, tierDays } from "../money"
 import { states } from "../state"
-import { brokerageInputs, dispatchInput, financeInput, importTypes, reconciliationInputs } from "./validators"
+import { brokerageInputs, brokerageReversalInput, cashInput, dispatchInput, financeInput, importTypes, reconciliationInputs } from "./validators"
 import { canonical } from "./idempotency"
 import { validateXlsx } from "./private-files/xlsx-validation.mjs"
 
@@ -555,7 +556,7 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
       { name: "guarantors", type: "json", required: true, description: "Guarantor information",
         example: '[{"name":"Synthetic Guarantor","identity":"812345678V","address":"10 Park Lane","phone":"0776543210"}]' },
       { name: "existingDealId", type: "uuid", required: false, description: "Draft deal already holding verified historical documents", example: "" },
-      { name: "history", type: "json", required: false, description: "Ordered brokerage steps with command and input; omit the deal ID from every step", example: "" },
+      { name: "history", type: "json", required: false, description: "Ordered brokerage commands, with the deal ID omitted. Values in payment steps are in minor units. Add a sourceKey to fee, disbursement, recovery and reversal steps. A reversal references sourceKey/fee, /payout, /deduction:N, /recover:principal, /recover:charge, /recover:fee or /replacement and supplies the exact opposite payment plus reason.", example: "" },
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
@@ -4874,6 +4875,7 @@ function parsePolicySnapshot(
   return { timezone, tiers, leadDays, days }
 }
 
+const historySourceKey = z.string().trim().min(1).max(100)
 const historicalBrokerageSteps = z.array(z.discriminatedUnion("command", [
   z.object({ command: z.literal("recordEligibility"), input: brokerageInputs.recordEligibility.innerType()
     .omit({ dealId: true, guarantorId: true })
@@ -4889,7 +4891,47 @@ const historicalBrokerageSteps = z.array(z.discriminatedUnion("command", [
   z.object({ command: z.literal("rejectDeal"), input: brokerageInputs.rejectDeal.omit({ dealId: true }) }).strict(),
   z.object({ command: z.literal("completeBrokerage"), input: brokerageInputs.completeBrokerage.omit({ dealId: true }) }).strict(),
   z.object({ command: z.literal("dispatchBatch"), input: dispatchInput.omit({ sourceIds: true }) }).strict(),
+  z.object({ command: z.literal("requestFacility"), input: brokerageInputs.requestFacility.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("disburseFacility"), sourceKey: historySourceKey,
+    input: brokerageInputs.disburseFacility.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("recoverFacility"), sourceKey: historySourceKey,
+    input: brokerageInputs.recoverFacility.innerType().omit({ dealId: true })
+      .refine((value) => value.principal || value.chargeRecovery || value.fee) }).strict(),
+  z.object({ command: z.literal("recordBrokerageFee"), sourceKey: historySourceKey,
+    input: brokerageInputs.recordBrokerageFee.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("reversePayment"), sourceKey: historySourceKey,
+    input: cashInput.extend({
+      direction: z.enum(["IN", "OUT"]),
+      category: z.enum(["PROCESSING", "ADDITIONAL", "PAYOUT", "DEDUCTION", "PRINCIPAL", "CHARGE", "FEE"]),
+      reversalOfSourceKey: z.string().trim().min(1).max(130),
+      ...brokerageReversalInput.pick({ reason: true, replacement: true }).shape,
+    }).strict() }).strict(),
 ])).max(20)
+
+function historicalBrokerageCash(
+  step: LegacyBrokerageStep,
+  cashIn: bigint[],
+  cashOut: bigint[]
+) {
+  const add = (payments: (CashInput | null | undefined)[], total: bigint[]) => {
+    for (const payment of payments) if (payment) total.push(minor(payment.amount))
+  }
+  switch (step.command) {
+    case "recordBrokerageFee":
+      add([step.input.payment], cashIn)
+      break
+    case "disburseFacility":
+      add([step.input.payment, ...step.input.separatelyPaidDeductions.map((line) => line.payment)], cashOut)
+      break
+    case "recoverFacility":
+      add([step.input.principal, step.input.chargeRecovery, step.input.fee], cashIn)
+      break
+    case "reversePayment":
+      add([step.input], step.input.direction === "IN" ? cashIn : cashOut)
+      add([step.input.replacement], step.input.direction === "IN" ? cashOut : cashIn)
+      break
+  }
+}
 
 function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["REMITTANCES"] | null {
   const company = parseLegacyRefPair(r, "company", "FINANCE_COMPANIES", namespace, true)
@@ -5220,6 +5262,9 @@ export function computeControlTotals(
         collectPaymentTotals(row.payload.payments, cashInAmounts, cashOutAmounts)
         break
       }
+      case "BROKERAGE":
+        for (const step of row.payload.history ?? []) historicalBrokerageCash(step, cashInAmounts, cashOutAmounts)
+        break
       case "REMITTANCES":
         cashInAmounts.push(minor(row.payload.payment.amount))
         if (row.payload.reversal) cashOutAmounts.push(minor(row.payload.payment.amount))

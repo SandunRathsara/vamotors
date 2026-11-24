@@ -8,6 +8,7 @@ import type {
   CancelFinanceError,
   CashInput,
   Dependency,
+  LegacyPayment,
 } from "../../.planning/implementation/contracts/api"
 import { type Tx } from "./db"
 import { currentActor, type Authority as Actor, type Identity } from "./actor"
@@ -39,6 +40,7 @@ import {
 import {
   lenderPaid,
   loadSale,
+  recordHistoricalSaleReversals,
   reservationDTO,
   saleAuth,
   saleDTO,
@@ -60,6 +62,7 @@ type Context = {
   approverId?: string
 }
 type HistoricalCommitment = {
+  reversedReceipts?: readonly LegacyPayment[]
   advance?: {
     listedBasis: string
     validThrough: string
@@ -1320,6 +1323,19 @@ export async function executeCommitment<N extends CommitmentCommand>(
           break
         }
       }
+    }
+    const reversedReceipts = historical?.reversedReceipts ?? []
+    if (reversedReceipts.length) {
+      const categories = new Map<CommitmentCommand, string>([
+        ["placeReservation", "ADVANCE"], ["startFinance", "DOWN_PAYMENT"],
+        ["convertReservation", "BALANCE"], ["confirmDOAndHandover", "LENDER"],
+      ])
+      const current = await tx.saleCase.findUniqueOrThrow({ where: { id: saleId } })
+      for (const entry of reversedReceipts) {
+        if (entry.category !== categories.get(name)) fail("INVALID_INPUT", 422)
+        checkDate(entry.date, row)
+      }
+      await recordHistoricalSaleReversals(tx, actor, current, context.commandId, reversedReceipts)
     }
     const after = await publishCommitment(tx, context, row, saleId, sale)
     return {

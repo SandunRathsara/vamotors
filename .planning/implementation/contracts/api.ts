@@ -221,8 +221,13 @@ export type ApprovalProvenance =
     historicalApprovalBypass: true; legacy: LegacyApprovalEvidence };
 type HistoricalBrokerageCommand = "recordInspection" | "adjustLoan" | "setChecklist" |
   "verifyDocuments" | "setProcessingFee" | "informCompany" | "referDeal" |
-  "rejectDeal" | "completeBrokerage";
+  "rejectDeal" | "completeBrokerage" | "requestFacility";
+type HistoricalBrokeragePayment = "recordBrokerageFee" | "disburseFacility" | "recoverFacility";
 export type LegacyBrokerageStep =
+  { [K in HistoricalBrokeragePayment]: { command: K; sourceKey: string; input: Omit<Commands[K], "dealId"> } }[HistoricalBrokeragePayment] |
+  { command: "reversePayment"; sourceKey: string;
+    input: CashInput & { direction: LegacyPayment["direction"]; category: string;
+      reversalOfSourceKey: string; reason: string; replacement?: CashInput } } |
   { [K in HistoricalBrokerageCommand]: { command: K; input: Omit<Commands[K], "dealId"> } }[HistoricalBrokerageCommand] |
   { command: "recordEligibility"; input: Omit<Commands["recordEligibility"], "dealId" | "guarantorId"> & { guarantorIdentity?: string } } |
   { command: "dispatchBatch"; input: Omit<Commands["dispatchBatch"], "sourceIds"> };
