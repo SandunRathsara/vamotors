@@ -243,20 +243,40 @@ if (mode === "prepare") {
       after.migrations.includes("202611230001_immediate_sales_tradein")
     )
 
-    // Custom v14 non-admin role did NOT gain new v15 PurchaseRecord/ApprovalRequest/SaleCase permissions
+    // Custom v14 non-admin role keeps its v14 ceilings. V15 freezes the old
+    // wildcards into explicit v14 field universes, so no v15 leaf is silently
+    // conferred and no wildcard survives the expansion.
     const customAfter = after.grants
       .filter((g) => g.roleId === saved.customRoleId)
       .map((g) => g.rule)
-    assert.deepEqual(customAfter, saved.customGrants)
+    assert.equal(customAfter.length, saved.customGrants.length)
+    assert.ok(customAfter.every((g) => !g.fields.includes("*")))
     const customPurchaseRead = customAfter.filter(
       (g) => g.subject === "PurchaseRecord" && g.action === "read"
     )
+    assert.equal(customPurchaseRead.length, 1)
+    assert.ok(customPurchaseRead[0].fields.includes("financial.cashIn"))
     assert.ok(
       !customPurchaseRead.some(
         (g) =>
           g.fields.includes("tradeInSourceSaleId") ||
           g.fields.includes("financial.originalBasis") ||
+          g.fields.includes("financial.salePrice") ||
+          g.fields.includes("financial.originalProfit") ||
           g.fields.includes("financial.restatedProfit")
+      )
+    )
+    const customApprovalRead = customAfter.filter(
+      (g) => g.subject === "ApprovalRequest" && g.action === "read"
+    )
+    assert.equal(customApprovalRead.length, 1)
+    assert.ok(customApprovalRead[0].fields.includes("proposal.input.proceeds"))
+    assert.ok(
+      !customApprovalRead[0].fields.some(
+        (f) =>
+          f.includes("command.input") ||
+          f === "proposal.operation" ||
+          f.includes("patch.")
       )
     )
     assert.ok(!customAfter.some((g) => g.subject === "SaleCase"))

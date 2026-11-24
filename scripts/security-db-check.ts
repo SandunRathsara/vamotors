@@ -261,10 +261,14 @@ async function main() {
               createdBy: seedIds.staff,
             },
           })
+          // The accepted vehicle guard only attaches a
+          // non-command cycle to an existing vehicle as a repurchase cycle.
+          // This raw constraint fixture supplies that lawful shape; it is not
+          // purchase-command acceptance.
           const cycle = await tx.purchaseRecord.create({
             data: {
               vehicleId: vehicle.id,
-              cycleNumber: 1,
+              cycleNumber: 2,
               purchaseType: "CASH",
               acquisitionKind: "SUPPLIER",
               supplierId: supplier.id,
@@ -276,7 +280,7 @@ async function main() {
           })
           await tx.vehicle.update({
             where: { id: vehicle.id },
-            data: { activePurchaseId: cycle.id },
+            data: { activePurchaseId: cycle.id, revision: { increment: 1 } },
           })
           const commandId = randomUUID()
           await tx.commandReceipt.create({
@@ -326,7 +330,7 @@ async function main() {
         })
         const stored = await migrator.vehicle.findUniqueOrThrow({
           where: { id: fixture.vehicle.id },
-          include: { purchases: true },
+          include: { purchases: { orderBy: { cycleNumber: "desc" } } },
         })
         const row = {
           id: stored.id,

@@ -107,7 +107,11 @@ async function group(name: string, fn: () => Promise<void>) {
 }
 
 const suffix = randomUUID().slice(0, 8)
-const browser = await chromium.launch()
+const browser = await chromium.launch(
+  process.env.VAMOTORS_CHROMIUM_EXECUTABLE
+    ? { executablePath: process.env.VAMOTORS_CHROMIUM_EXECUTABLE }
+    : {}
+)
 const context = await browser.newContext()
 
 try {
@@ -376,6 +380,15 @@ try {
       assert.equal(s1.payments?.[0].direction, "IN")
       assert.equal(s1.payments?.[0].amount, "15000")
       sale1ReceiptId = s1.payments![0].id
+      const cashMovement = await f.db.query(
+        'SELECT "sourceType","sourceId",direction,amount FROM vamotors."CashMovement" WHERE "paymentId"=$1',
+        [sale1ReceiptId]
+      )
+      assert.equal(cashMovement.rowCount, 1)
+      assert.equal(cashMovement.rows[0].sourceType, "SALE")
+      assert.equal(cashMovement.rows[0].sourceId, sale1Id)
+      assert.equal(cashMovement.rows[0].direction, "IN")
+      assert.equal(String(cashMovement.rows[0].amount), "15000")
 
       c1 = await currentCycle(admin, c1.id)
       assert.equal(c1.status, "SOLD")
@@ -652,6 +665,10 @@ try {
       const s2 = await currentSale(admin, sale2Effect.id)
       assert.equal(s2.state, "COMPLETED")
       assert.equal(s2.price, "23500")
+      assert.equal(
+        s2.timeline.find((event) => event.action === "DISCOUNT_APPROVED_SALE")?.actorName,
+        "Synthetic Administrator B"
+      )
       c2 = await currentCycle(admin, c2.id)
       assert.equal(c2.status, "SOLD")
       assert.equal(c2.financial?.originalProfit, "3000") // 23500 - (20000 + 500 cost)
@@ -725,6 +742,7 @@ try {
       )
 
       // Even trade (netCash = 0, no inline intake) -> 0 SaleReceipt rows
+      const evenSaleKey = randomUUID()
       const evenSale = await cmd(
         "completeImmediate",
         {
@@ -742,13 +760,25 @@ try {
           },
         },
         [ref(c3), ref(custADto, "Customer")],
-        201
+        201,
+        admin,
+        evenSaleKey
       )
       const s3 = await currentSale(admin, evenSale.result.id)
       assert.equal(s3.kind, "TRADE_IN")
       assert.equal(s3.payments?.length ?? 0, 0)
       assert.equal(s3.tradeIn?.value, "35000")
       assert.equal(s3.tradeIn?.acquiredCycleId, undefined)
+      const descriptiveOnly = await f.db.query(
+        'SELECT count(*)::int c FROM vamotors."PurchaseRecord" WHERE "tradeInSourceSaleId"=$1',
+        [s3.id]
+      )
+      assert.equal(descriptiveOnly.rows[0].c, 0)
+      const evenReceipts = await f.db.query(
+        'SELECT count(*)::int c FROM vamotors."SaleReceipt" WHERE "saleCaseId"=$1',
+        [s3.id]
+      )
+      assert.equal(evenReceipts.rows[0].c, 0)
 
       // WROF-02: WRITE_OFF proposal on cycle with active/completed SaleCase fails with OBLIGATION_OPEN
       c3 = await currentCycle(admin, c3.id)
@@ -778,8 +808,25 @@ try {
         "OBLIGATION_OPEN"
       )
 
-      // Standalone intakeTradeIn + idempotent replay
+      // Original buyer remains the seller even after a customer rename.
       const custARefreshed = await currentCustomer(admin, custADto.id)
+      await cmd(
+        "updateCustomer",
+        {
+          id: custARefreshed.id,
+          values: {
+            fullName: `Buyer Alpha Renamed ${suffix}`,
+            callingName: "Alpha",
+            nicOrPassport: `NIC-A-${suffix}`,
+            address: "100 Galle Road, Colombo",
+            phone: "0771111111",
+          },
+          reason: "Buyer renamed after sale, before trade-in intake",
+        },
+        [ref(custARefreshed, "Customer")]
+      )
+
+      // Standalone intakeTradeIn + idempotent replay
       const intakeKey = randomUUID()
       const intaken = await cmd(
         "intakeTradeIn",
@@ -804,8 +851,16 @@ try {
         intakeKey
       )
       assert.equal(intaken.result.type, "SaleCase")
-      const acquiredEffect = intaken.affected.find((e) => e.type === "PurchaseRecord")!
+      const acquiredEffect = intaken.affected.find(
+        (e) => e.type === "PurchaseRecord" && e.id !== c3.id
+      )!
       assert.ok(acquiredEffect)
+      const sourceAfterIntake = await currentCycle(admin, c3.id)
+      assert.equal(sourceAfterIntake.revision, c3.revision + 1)
+      assert.equal(
+        sourceAfterIntake.sales.find((s) => s.saleCaseId === s3.id)?.revision,
+        intaken.result.revision
+      )
       const intakeReplay = await cmd(
         "intakeTradeIn",
         {
@@ -830,6 +885,38 @@ try {
       )
       assert.equal(intakeReplay.replayed, true)
       assert.equal(intakeReplay.commandId, intaken.commandId)
+      const evenReplay = await f.query<Applied>(
+        admin,
+        "commandStatus",
+        `?name=completeImmediate&idempotencyKey=${evenSaleKey}`
+      )
+      assert.equal(evenReplay.commandId, evenSale.commandId)
+      assert.ok(evenReplay.affected.every((effect) => effect.id !== acquiredEffect.id))
+
+      await statusBody(
+        admin,
+        "intakeTradeIn",
+        envelope(
+          {
+            saleId: s3.id,
+            vehicle: {
+              engineNumber: `TI-ENG-${suffix}`,
+              chassisNumber: `TI-CHS-${suffix}`,
+              make: "Toyota",
+              model: "Aqua",
+              year: 2018,
+              colour: "Silver",
+              fuelType: "HYBRID",
+              transmission: "AUTOMATIC",
+            },
+            mileage: { reading: 42000, date: "2026-10-06" },
+            listedPrice: "38000",
+          },
+          [ref(s3, "SaleCase"), ref(c3)]
+        ),
+        409,
+        "INVALID_STATE"
+      )
 
       const s3AfterIntake = await currentSale(admin, s3.id)
       assert.equal(s3AfterIntake.tradeIn?.acquiredCycleId, acquiredEffect.id)
@@ -838,6 +925,9 @@ try {
       assert.equal(tiCycle.purchasePrice, "35000")
       assert.equal(tiCycle.outstanding?.seller, "0")
       assert.equal(tiCycle.payments.length, 0)
+      assert.equal(tiCycle.seller.type, "CUSTOMER")
+      assert.equal(tiCycle.seller.id, custADto.id)
+      assert.equal(tiCycle.seller.name, `Buyer Alpha Renamed ${suffix}`)
 
       const custAAfter = await currentCustomer(admin, custARefreshed.id)
       assert.ok(
@@ -962,6 +1052,37 @@ try {
       let soldCycle4 = await currentCycle(admin, s4.cycleId)
       let acqCycle = await currentCycle(admin, tradeInCycleId)
       const originalReceiptId = s4.payments![0].id
+      const completionBefore = (
+        await f.db.query(
+          'SELECT id,"agreedPrice","originalProfit",snapshot FROM vamotors."SaleCompletion" WHERE "saleCaseId"=$1',
+          [s4.id]
+        )
+      ).rows[0]
+      assert.ok(completionBefore)
+
+      // A price/trade-in edit cannot silently desynchronize recorded cash.
+      await statusBody(
+        admin,
+        "requestApproval",
+        envelope(
+          {
+            proposal: {
+              kind: "SALE_EDIT",
+              operation: "EDIT_COMPLETION",
+              input: {
+                saleId: s4.id,
+                reason: "Price-only edit without a cash correction",
+                patch: { price: "41000" },
+                cashCorrections: [],
+              },
+            },
+            reason: "Price-only edit without a cash correction",
+          },
+          [ref(s4, "SaleCase"), ref(soldCycle4)]
+        ),
+        422,
+        "BALANCE_MISMATCH"
+      )
 
       const editProposal = (await cmd(
         "requestApproval",
@@ -998,7 +1119,16 @@ try {
           },
           reason: "Agreed updated invoice after trade appraisal",
         },
-        [ref(s4, "SaleCase"), ref(soldCycle4), ref(acqCycle)],
+        [
+          ref(s4, "SaleCase"),
+          ref(soldCycle4),
+          ref(acqCycle),
+          {
+            type: "Vehicle",
+            id: acqCycle.vehicleId,
+            revision: acqCycle.identityRevision,
+          },
+        ],
         202
       )) as unknown as Pending
 
@@ -1024,6 +1154,13 @@ try {
       soldCycle4 = await currentCycle(admin, s4.cycleId)
       assert.equal(soldCycle4.financial?.originalProfit, "20000") // immutable 40000 - 20000
       assert.equal(soldCycle4.financial?.restatedProfit, "22000") // 42000 - 20000
+      const completionAfter = (
+        await f.db.query(
+          'SELECT id,"agreedPrice","originalProfit",snapshot FROM vamotors."SaleCompletion" WHERE "saleCaseId"=$1',
+          [s4.id]
+        )
+      ).rows[0]
+      assert.deepEqual(completionAfter, completionBefore)
 
       // Acquired trade-in cycle basis restated (15000->16000 + 1000 cost + 500 repair = 17500)
       acqCycle = await currentCycle(admin, tradeInCycleId)
@@ -1078,7 +1215,16 @@ try {
             },
             reason: "Must fail since trade-in cycle already sold",
           },
-          [ref(s4, "SaleCase"), ref(soldCycle4), ref(acqCycle)]
+          [
+            ref(s4, "SaleCase"),
+            ref(soldCycle4),
+            ref(acqCycle),
+            {
+              type: "Vehicle",
+              id: acqCycle.vehicleId,
+              revision: acqCycle.identityRevision,
+            },
+          ]
         ),
         409,
         "OBLIGATION_OPEN"
@@ -1319,6 +1465,18 @@ try {
         409,
         "IDENTITY_WRITTEN_OFF"
       )
+
+      // The repurchased cycle is a real purchase-detail view, not a list fixture.
+      const page = await context.newPage()
+      try {
+        const resp = await page.goto(`${f.origin}/purchases/${c1Cycle2.id}`, {
+          waitUntil: "networkidle",
+        })
+        assert.equal(resp?.status(), 200)
+        await page.getByText("Purchase cycle 2").first().waitFor()
+      } finally {
+        await page.close()
+      }
     }
   )
 
@@ -1345,8 +1503,8 @@ try {
       cRace = await currentCycle(admin, cRace.id)
       const custCur = await currentCustomer(admin, custADto.id)
 
-      const makeRaceReq = () =>
-        admin.post("/api/v1/commands/completeImmediate", {
+      const makeRaceReq = (client: APIRequestContext) =>
+        client.post("/api/v1/commands/completeImmediate", {
           headers: { Origin: f.origin },
           data: envelope(
             {
@@ -1361,9 +1519,12 @@ try {
             [ref(cRace), ref(custCur, "Customer")]
           ),
         })
-      const [r1, r2] = await Promise.all([makeRaceReq(), makeRaceReq()])
+      const [r1, r2] = await Promise.all([makeRaceReq(admin), makeRaceReq(second)])
       const statuses = [r1.status(), r2.status()].sort((a, b) => a - b)
       assert.deepEqual(statuses, [201, 409])
+      const sold = await currentCycle(admin, cRace.id)
+      assert.equal(sold.status, "SOLD")
+      assert.equal(sold.sales.length, 1)
 
       // Scoped role & customer links amount redaction
       const limitedRole = await cmd(
@@ -1374,13 +1535,14 @@ try {
             {
               subject: "SaleCase",
               action: "read",
-              fields: ["id", "cycleId", "customerId", "kind", "state", "completion.date"],
+              fields: ["id", "cycleId", "customerId", "kind", "state", "completion.id", "completion.date"],
             },
             {
               subject: "Customer",
               action: "read",
               fields: ["id", "fullName", "callingName", "links"],
             },
+            { subject: "AuditLog", action: "read", fields: ["id", "at", "fields"] },
           ],
           reason: "Least privilege sales viewer",
         },
@@ -1410,6 +1572,17 @@ try {
         const sView = await currentSale(limitedClient, sale1Id)
         assert.equal(sView.price, undefined)
         assert.ok(sView.redactedFields?.includes("price"))
+        const completionAudit = await f.query<{
+          data: { actor?: unknown; fields: { path: string }[] }[]
+        }>(limitedClient, "audit", `?type=SaleCompletion&id=${sView.completion?.id}`)
+        assert.equal(completionAudit.data.length, 1)
+        assert.equal(completionAudit.data[0].actor, undefined)
+        assert.ok(completionAudit.data[0].fields.some(({ path }) => path === "date"))
+        assert.ok(
+          completionAudit.data[0].fields.every(
+            ({ path }) => !["agreedPrice", "originalProfit"].includes(path)
+          )
+        )
 
         const custView = await currentCustomer(limitedClient, sView.customerId)
         const sLink = custView.links.find((l) => l.id === sale1Id)
@@ -1420,14 +1593,208 @@ try {
         await limitedClient.dispose()
       }
 
+      // Purchase profit/sales projections require an independent SaleCase read.
+      const cycleOnlyRole = await cmd(
+        "saveRole",
+        {
+          name: `Cycle Only ${suffix}`,
+          grants: [
+            {
+              subject: "PurchaseRecord",
+              action: "read",
+              fields: [
+                "id",
+                "revision",
+                "vehicleId",
+                "status",
+                "available",
+                "closedAt",
+                "seller",
+                "purchaseDate",
+                "purchasePrice",
+                "listedPrice",
+                "sales",
+                "financial.currency",
+                "financial.scale",
+                "financial.purchase",
+                "financial.repairs",
+                "financial.additionalCosts",
+                "financial.basis",
+                "financial.originalBasis",
+                "financial.salePrice",
+                "financial.originalProfit",
+                "financial.restatedProfit",
+                "financial.cashIn",
+                "financial.cashOut",
+                "financial.net",
+              ],
+            },
+            { subject: "Supplier", action: "read", fields: ["id", "name", "active"] },
+          ],
+          reason: "Purchase-only viewer without SaleCase authority",
+        },
+        [],
+        201
+      )
+      const cycleOnlyEmail = `cycle-only-${suffix}@example.test`
+      const cycleOnlyPass = `TestPass-${randomUUID()}`
+      await cmd(
+        "createUser",
+        {
+          name: "Cycle Only Viewer",
+          email: cycleOnlyEmail,
+          password: cycleOnlyPass,
+          roleIds: [cycleOnlyRole.result.id],
+        },
+        [ref(cycleOnlyRole.result, "Role")],
+        201
+      )
+      const cycleOnlyClient = await request.newContext({ baseURL: f.origin })
+      assert.equal(
+        (
+          await cycleOnlyClient.post("/api/auth/sign-in/email", {
+            headers: { Origin: f.origin },
+            data: { email: cycleOnlyEmail, password: cycleOnlyPass },
+          })
+        ).status(),
+        200
+      )
+      try {
+        const cycleView = await f.query<
+          PurchaseCycleDTO & { redactedFields?: string[] }
+        >(cycleOnlyClient, "purchase", `?cycleId=${c1.id}`)
+        assert.equal(cycleView.financial?.basis, "10000")
+        for (const field of [
+          "originalBasis",
+          "salePrice",
+          "originalProfit",
+          "restatedProfit",
+          "cashIn",
+          "cashOut",
+          "net",
+        ] as const)
+          assert.equal(cycleView.financial?.[field], undefined, field)
+        assert.equal(cycleView.sales, undefined)
+        for (const field of [
+          "sales",
+          "financial.originalBasis",
+          "financial.salePrice",
+          "financial.originalProfit",
+          "financial.restatedProfit",
+          "financial.cashIn",
+        ])
+          assert.ok(cycleView.redactedFields?.includes(field), field)
+      } finally {
+        await cycleOnlyClient.dispose()
+      }
+
+      // Own-only SaleCase conditions hide another actor's sale as 404, including RSC preflight.
+      const ownOnlyRole = await cmd(
+        "saveRole",
+        {
+          name: `Own Sale Only ${suffix}`,
+          grants: [
+            {
+              subject: "SaleCase",
+              action: "read",
+              fields: ["id", "cycleId", "customerId", "price"],
+              conditions: { createdBy: "$actor.id" },
+            },
+          ],
+          reason: "Only own created sales",
+        },
+        [],
+        201
+      )
+      const ownOnlyEmail = `own-sale-${suffix}@example.test`
+      const ownOnlyPass = `TestPass-${randomUUID()}`
+      await cmd(
+        "createUser",
+        {
+          name: "Own Sale Viewer",
+          email: ownOnlyEmail,
+          password: ownOnlyPass,
+          roleIds: [ownOnlyRole.result.id],
+        },
+        [ref(ownOnlyRole.result, "Role")],
+        201
+      )
+      const ownOnlyClient = await request.newContext({ baseURL: f.origin })
+      assert.equal(
+        (
+          await ownOnlyClient.post("/api/auth/sign-in/email", {
+            headers: { Origin: f.origin },
+            data: { email: ownOnlyEmail, password: ownOnlyPass },
+          })
+        ).status(),
+        200
+      )
+      try {
+        assert.equal(
+          (
+            await ownOnlyClient.get(
+              `/api/v1/queries/sale?id=${encodeURIComponent(sale1Id)}`
+            )
+          ).status(),
+          404
+        )
+        assert.equal(
+          (await ownOnlyClient.get(`/sales/${sale1Id}`)).status(),
+          404
+        )
+      } finally {
+        await ownOnlyClient.dispose()
+      }
+
       // Direct PostgreSQL vamotors_runtime checks: cannot DELETE/UPDATE append-only SaleReceipt or SaleCompletion
+      const correction = await f.db.query(
+        'SELECT id FROM vamotors."SaleCorrection" LIMIT 1'
+      )
+      assert.ok(correction.rows[0]?.id)
       for (const stmt of [
         `DELETE FROM vamotors."SaleReceipt" WHERE id = '${sale1ReceiptId}'`,
         `UPDATE vamotors."SaleReceipt" SET amount = 1 WHERE id = '${sale1ReceiptId}'`,
         `DELETE FROM vamotors."SaleCompletion" WHERE "saleCaseId" = '${sale1Id}'`,
+        `UPDATE vamotors."SaleCorrection" SET reason = 'forged' WHERE id = '${correction.rows[0].id}'`,
+        `DELETE FROM vamotors."SaleCorrection" WHERE id = '${correction.rows[0].id}'`,
       ]) {
         await assert.rejects(f.restricted.query(stmt))
       }
+      await assert.rejects(
+        f.restricted.query(
+          `INSERT INTO vamotors."SaleReceipt"
+            (id,"saleCaseId","purchaseRecordId",amount,direction,category,"occurredDate",method,currency,scale,"createdBy","commandId","lineKey")
+            SELECT $1,"saleCaseId","purchaseRecordId",amount,direction,category,"occurredDate",method,currency,scale,"createdBy","commandId",'test'
+            FROM vamotors."SaleReceipt" WHERE id=$2`,
+          [randomUUID(), sale1ReceiptId]
+        ),
+        /SALE_RECEIPT_COMMAND_REQUIRED/
+      )
+
+      // A restricted runtime cannot forge a SOLD close without SaleCompletion evidence.
+      const pDirect = await cmd(
+        "recordPurchase",
+        purchaseInput(supplier.result.id, suffix, "direct", 100),
+        [ref(supplier.result, "Supplier")],
+        201
+      )
+      let cDirect = await currentCycle(admin, pDirect.result.id)
+      await cmd(
+        "receiveStock",
+        {
+          cycleId: cDirect.id,
+          date: "2026-10-02",
+          disposition: { kind: "RELEASE" },
+        },
+        [ref(cDirect)]
+      )
+      cDirect = await currentCycle(admin, cDirect.id)
+      await assert.rejects(
+        f.restricted.query(
+          'UPDATE vamotors."PurchaseRecord" SET status=\'SOLD\', available=false, "closedAt"=CURRENT_TIMESTAMP, revision=revision+1 WHERE id=$1',
+          [cDirect.id]
+        )
+      )
 
       // Trigger integrity check as migrator: forged zero SaleReceipt fails check constraint / trigger
       await assert.rejects(
@@ -1436,6 +1803,403 @@ try {
           [randomUUID(), sale1Id, c1.id, randomUUID(), randomUUID()]
         )
       )
+    }
+  )
+
+  await group(
+    "G7 Forced audit failure rolls back every sale fact, then the identical key retries once",
+    async () => {
+      const pFail = await cmd(
+        "recordPurchase",
+        purchaseInput(supplier.result.id, suffix, "fail", 100),
+        [ref(supplier.result, "Supplier")],
+        201
+      )
+      let cFail = await currentCycle(admin, pFail.result.id)
+      await cmd(
+        "receiveStock",
+        {
+          cycleId: cFail.id,
+          date: "2026-10-02",
+          disposition: { kind: "RELEASE" },
+        },
+        [ref(cFail)]
+      )
+      cFail = await currentCycle(admin, cFail.id)
+      const cust = await currentCustomer(admin, custADto.id)
+      const reason = `FAIL_AUDIT_${suffix}`
+      const failKey = randomUUID()
+      const input = {
+        cycleId: cFail.id,
+        customerId: cust.id,
+        kind: "CASH",
+        price: "15000",
+        date: "2026-10-09",
+        mileage: 350,
+        method: "CASH",
+        reason,
+      }
+      const failEnvelope = envelope(
+        input,
+        [ref(cFail), ref(cust, "Customer")],
+        failKey
+      )
+      await f.db.query(
+        `CREATE OR REPLACE FUNCTION vamotors.test_fail_sale_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN
+           IF NEW."entityType" = 'SaleCase' AND NEW.reason = '${reason}' THEN
+             RAISE EXCEPTION 'INJECTED_FAILURE';
+           END IF;
+           RETURN NEW;
+         END $$`
+      )
+      await f.db.query(
+        `CREATE TRIGGER test_fail_sale_audit AFTER INSERT ON vamotors."AuditEntry" FOR EACH ROW EXECUTE FUNCTION vamotors.test_fail_sale_audit()`
+      )
+      const before = await f.snapshot(allTables)
+      try {
+        const failed = await admin.post("/api/v1/commands/completeImmediate", {
+          headers: { Origin: f.origin },
+          data: failEnvelope,
+        })
+        assert.equal(failed.status(), 500)
+        assert.equal((await failed.json()).error?.code, "INTERNAL_ERROR")
+        assert.equal(await f.snapshot(allTables), before)
+      } finally {
+        await f.db.query(
+          'DROP TRIGGER IF EXISTS test_fail_sale_audit ON vamotors."AuditEntry"'
+        )
+        await f.db.query(
+          "DROP FUNCTION IF EXISTS vamotors.test_fail_sale_audit()"
+        )
+      }
+      const applied = await cmd(
+        "completeImmediate",
+        input,
+        [ref(cFail), ref(cust, "Customer")],
+        201,
+        admin,
+        failKey
+      )
+      assert.equal(applied.replayed, false)
+      const replay = await cmd(
+        "completeImmediate",
+        input,
+        [ref(cFail), ref(cust, "Customer")],
+        200,
+        admin,
+        failKey
+      )
+      assert.equal(replay.replayed, true)
+      assert.equal(replay.commandId, applied.commandId)
+      const counts = await f.db.query(
+        `SELECT
+          (SELECT count(*)::int FROM vamotors."SaleCase" WHERE "purchaseRecordId"=$1) sales,
+          (SELECT count(*)::int FROM vamotors."SaleReceipt" WHERE "saleCaseId"=$2) receipts,
+          (SELECT count(*)::int FROM vamotors."CommandReceipt" WHERE id=$3) retry_receipts`,
+        [cFail.id, applied.result.id, applied.commandId]
+      )
+      assert.deepEqual(counts.rows[0], {
+        sales: 1,
+        receipts: 1,
+        retry_receipts: 1,
+      })
+    }
+  )
+
+  await group(
+    "G8 A completed SaleCase stales a preexisting pending WRITE_OFF without disposal side effects",
+    async () => {
+      const p = await cmd(
+        "recordPurchase",
+        purchaseInput(supplier.result.id, suffix, "woStale", 100),
+        [ref(supplier.result, "Supplier")],
+        201
+      )
+      let cycle = await currentCycle(admin, p.result.id)
+      await cmd(
+        "receiveStock",
+        {
+          cycleId: cycle.id,
+          date: "2026-10-02",
+          disposition: { kind: "RELEASE" },
+        },
+        [ref(cycle)]
+      )
+      cycle = await currentCycle(admin, cycle.id)
+      const proposal = (await cmd(
+        "requestApproval",
+        {
+          proposal: {
+            kind: "WRITE_OFF",
+            input: {
+              cycleId: cycle.id,
+              date: "2026-10-03",
+              method: "SCRAPPED",
+              proceeds: "0",
+              reason: "Pending write-off before sale",
+            },
+          },
+          reason: "Pending write-off before sale",
+        },
+        [
+          ref(cycle),
+          { type: "Vehicle", id: cycle.vehicleId, revision: cycle.identityRevision },
+        ],
+        202
+      )) as unknown as Pending
+      const cust = await currentCustomer(admin, custADto.id)
+      await cmd(
+        "completeImmediate",
+        {
+          cycleId: cycle.id,
+          customerId: cust.id,
+          kind: "CASH",
+          price: "15000",
+          date: "2026-10-09",
+          mileage: 200,
+          method: "CASH",
+        },
+        [ref(cycle), ref(cust, "Customer")],
+        201
+      )
+      const apv = await currentApproval(second, proposal.approvalId)
+      await statusBody(
+        second,
+        "reviewApproval",
+        envelope(
+          {
+            approvalId: apv.id,
+            decision: "APPROVE",
+            note: "Sale has since completed",
+          },
+          reviewDeps(apv)
+        ),
+        409,
+        "APPROVAL_STALE",
+        false
+      )
+      const disposal = await f.db.query(
+        'SELECT count(*)::int c FROM vamotors."Disposal" WHERE "cycleId"=$1',
+        [cycle.id]
+      )
+      assert.equal(disposal.rows[0].c, 0)
+    }
+  )
+
+  await group(
+    "G9 360px inline-customer immediate sale, draft retention and independent 1920px context",
+    async () => {
+      const p = await cmd(
+        "recordPurchase",
+        purchaseInput(supplier.result.id, suffix, "uiSale", 100),
+        [ref(supplier.result, "Supplier")],
+        201
+      )
+      let cycle = await currentCycle(admin, p.result.id)
+      await cmd(
+        "receiveStock",
+        {
+          cycleId: cycle.id,
+          date: "2026-10-02",
+          disposition: { kind: "RELEASE" },
+        },
+        [ref(cycle)]
+      )
+      cycle = await currentCycle(admin, cycle.id)
+      const state = await admin.storageState()
+      const phone = await browser.newContext({
+        viewport: { width: 360, height: 800 },
+        storageState: state,
+      })
+      let saleHref = ""
+      try {
+        const page = await phone.newPage()
+        await page.goto(`${f.origin}/sales`, { waitUntil: "networkidle" })
+        await page
+          .getByRole("button", { name: "Complete Immediate Sale" })
+          .click()
+        await page.locator("#sale-cycle").selectOption(cycle.id)
+        await page.getByLabel("Search customers").fill(`NIC-A-${suffix}`, { timeout: 5000 })
+        await page.locator(`#sale-customer option[value="${custADto.id}"]`).waitFor({
+          state: "attached",
+        })
+        await page.getByLabel("Search customers").fill(`NIC-UI-${suffix}`)
+        await page.getByText("No matching active customers.").waitFor()
+        await page.getByRole("button", { name: "New customer inline" }).click()
+        await page.getByPlaceholder("Full name *").fill(`UI Buyer ${suffix}`)
+        await page
+          .getByPlaceholder("NIC or Passport *")
+          .fill(`NIC-UI-${suffix}`)
+        await page.getByPlaceholder("Phone *").fill("0774444444")
+        await page.getByPlaceholder("Address *").fill("10 UI Road")
+        // Calling name intentionally blank: invalid customer retains the whole sale draft.
+        await page.getByRole("button", { name: "Save Customer & Select" }).click()
+        await page
+          .getByText(/Valid customer details/)
+          .waitFor({ timeout: 10000 })
+        assert.equal(
+          await page.getByPlaceholder("Full name *").inputValue(),
+          `UI Buyer ${suffix}`
+        )
+        await page.getByPlaceholder("Calling name *").fill("UI")
+        await page.getByRole("button", { name: "Save Customer & Select" }).click()
+        await page.waitForFunction(
+          () =>
+            (
+              document.querySelector("#sale-customer") as HTMLSelectElement
+            ).value !== "",
+          undefined,
+          { timeout: 10000 }
+        )
+        await page.locator("#sale-kind").selectOption("TRADE_IN")
+        await page.locator("#sale-price").fill("150")
+        await page.locator("#sale-date").fill("2026-10-10")
+        await page.locator("#sale-mileage").fill("500")
+        await page.locator("#sale-ref").fill(`UI-TRADE-${suffix}`)
+        await page
+          .getByPlaceholder("Trade-in vehicle description *")
+          .fill("UI trade-in vehicle")
+        await page.getByPlaceholder("Trade-in valuation (Major) *").fill("50")
+        await page
+          .getByLabel("Intake trade-in vehicle into inventory now (optional)")
+          .check()
+        await page.getByPlaceholder("Engine number *").fill(`UI-ENG-${suffix}`)
+        await page.getByPlaceholder("Chassis number *").fill(`UI-CHS-${suffix}`)
+        await page.getByPlaceholder("Make *").fill("UI Make")
+        await page.getByPlaceholder("Model *").fill("UI Model")
+        await page.getByPlaceholder("Year *").fill("2020")
+        await page.getByPlaceholder("Colour *").fill("White")
+        await page.getByPlaceholder("Odometer reading *").fill("30000")
+        await page.locator("form button[type=submit]").click()
+        const link = page.getByRole("link", {
+          name: "Open completed sale detail",
+        })
+        await link.waitFor({ timeout: 15000 })
+        saleHref = (await link.getAttribute("href")) ?? ""
+        assert.match(saleHref, /^\/sales\/[0-9a-f-]{36}$/)
+        await link.click()
+        await page
+          .getByRole("heading", { level: 1, name: /^Sale / })
+          .waitFor({ timeout: 10000 })
+        await page.getByText("Completion").first().waitFor()
+        await page.getByText("Timeline").first().waitFor()
+        await page.getByText("Trade-In Consideration").first().waitFor()
+        await page
+          .getByRole("link", { name: /Acquired trade-in inventory cycle/ })
+          .waitFor()
+      } finally {
+        await phone.close()
+      }
+
+      // Independent browser context, wide viewport, no shared page state.
+      const wide = await browser.newContext({
+        viewport: { width: 1920, height: 1080 },
+        storageState: await admin.storageState(),
+      })
+      try {
+        const page = await wide.newPage()
+        await page.goto(`${f.origin}${saleHref}`, { waitUntil: "networkidle" })
+        await page.getByText("Receipts").first().waitFor()
+        await page.getByText(`UI-TRADE-${suffix}`, { exact: true }).waitFor()
+        await page.reload({ waitUntil: "networkidle" })
+        await page.getByText("Completion").first().waitFor()
+      } finally {
+        await wide.close()
+      }
+    }
+  )
+
+  await group(
+    "G10 Below-listed UI banner, manager approval page and restated sale visibility",
+    async () => {
+      const p = await cmd(
+        "recordPurchase",
+        purchaseInput(supplier.result.id, suffix, "uiDisc", 100),
+        [ref(supplier.result, "Supplier")],
+        201
+      )
+      let cycle = await currentCycle(admin, p.result.id)
+      await cmd(
+        "receiveStock",
+        {
+          cycleId: cycle.id,
+          date: "2026-10-02",
+          disposition: { kind: "RELEASE" },
+        },
+        [ref(cycle)]
+      )
+      cycle = await currentCycle(admin, cycle.id)
+      const cust = await currentCustomer(admin, custADto.id)
+      let approvalHref = ""
+      const staff = await browser.newContext({
+        viewport: { width: 1920, height: 1080 },
+        storageState: await admin.storageState(),
+      })
+      try {
+        const page = await staff.newPage()
+        await page.goto(`${f.origin}/sales`, { waitUntil: "networkidle" })
+        await page
+          .getByRole("button", { name: "Complete Immediate Sale" })
+          .click()
+        await page.locator("#sale-cycle").selectOption(cycle.id)
+        await page.locator("#sale-customer").selectOption(cust.id)
+        await page.locator("#sale-price").fill("140")
+        await page.locator("#sale-date").fill("2026-10-10")
+        await page.locator("#sale-mileage").fill("600")
+        await page.locator("form button[type=submit]").click()
+        await page
+          .getByText("Manager approval is required before recording the sale and payment.")
+          .waitFor({ timeout: 15000 })
+        await page.locator("#discount-reason").fill("UI discount approval")
+        await page.getByRole("button", { name: "Request Discount Approval" }).click()
+        const link = page.getByRole("link", {
+          name: "Open pending approval request",
+        })
+        await link.waitFor({ timeout: 15000 })
+        await page.getByText("Pending manager approval.", { exact: true }).waitFor()
+        approvalHref = (await link.getAttribute("href")) ?? ""
+        assert.match(approvalHref, /^\/approvals\/[0-9a-f-]{36}$/)
+      } finally {
+        await staff.close()
+      }
+
+      const manager = await browser.newContext({
+        viewport: { width: 1920, height: 1080 },
+        storageState: await second.storageState(),
+      })
+      try {
+        const page = await manager.newPage()
+        await page.goto(`${f.origin}${approvalHref}`, {
+          waitUntil: "networkidle",
+        })
+        await page
+          .getByRole("heading", { name: "Saved discount approval request" })
+          .waitFor()
+        await page.getByRole("button", { name: "Commit review" }).click()
+        await page.getByText(/Review committed once/).waitFor({ timeout: 15000 })
+      } finally {
+        await manager.close()
+      }
+
+      const saleRow = await f.db.query(
+        'SELECT id FROM vamotors."SaleCase" WHERE "purchaseRecordId"=$1',
+        [cycle.id]
+      )
+      assert.equal(saleRow.rowCount, 1)
+      const adminWide = await browser.newContext({
+        viewport: { width: 1920, height: 1080 },
+        storageState: await admin.storageState(),
+      })
+      try {
+        const page = await adminWide.newPage()
+        await page.goto(`${f.origin}/sales/${saleRow.rows[0].id}`, {
+          waitUntil: "networkidle",
+        })
+        await page.getByText("140.00").first().waitFor()
+      } finally {
+        await adminWide.close()
+      }
     }
   )
 

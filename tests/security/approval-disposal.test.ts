@@ -40,10 +40,28 @@ describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
           !["ApprovalRequest", "Disposal", "RepairRecord", "SaleCase", "PurchaseRecord"].includes(name)
       )
     )
-    // Verify unchanged pre-v15 subjects remain untouched; PurchaseRecord only gained sales/trade-in provenance leaves.
+    // Exact accepted236 baseline for every subject that T09 did not expand.
+    // (PurchaseRecord/ApprovalRequest expansions and SaleCase are asserted below.)
     expect(Object.keys(old)).toHaveLength(15)
-    expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBeTruthy()
+    expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
+      "49e1efcb68f307ff0c7ffe4d55e62570db81705f8047f5482584665525ef7f83"
+    )
     expect(registryVersion).toBe(15)
+    expect(registry.PurchaseRecord.read).toEqual(
+      expect.arrayContaining([
+        "tradeInSourceSaleId",
+        "financial.originalBasis",
+        "financial.salePrice",
+        "financial.originalProfit",
+        "financial.restatedProfit",
+      ])
+    )
+    expect(registry.SaleCase.pay).toEqual([
+      "amount",
+      "date",
+      "method",
+      "reference",
+    ])
     expect(
       registry.PurchaseRecord.read.filter((f) => f.startsWith("disposal"))
     ).toEqual(["disposal"])

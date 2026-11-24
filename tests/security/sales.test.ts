@@ -11,6 +11,7 @@ import {
   registry,
   registryVersion,
 } from "@/lib/server/permissions"
+import { A, C, minor, sum, tradeInResidual } from "@/lib/money"
 
 vi.mock("server-only", () => ({}))
 
@@ -220,5 +221,33 @@ describe("T09 immediate sales, trade-in, discount/sale-edit permissions & valida
         },
       }).success
     ).toBe(false)
+
+    // T09 excludes lease finance edits from EDIT_COMPLETION.
+    expect(
+      approvalEnvelope("requestApproval").safeParse({
+        ...editReq,
+        input: {
+          ...editReq.input,
+          proposal: {
+            kind: "SALE_EDIT",
+            operation: "EDIT_COMPLETION",
+            input: {
+              ...editReq.input.proposal.input,
+              patch: { finance: { companyId: uuid3 } },
+            },
+          },
+        },
+      }).success
+    ).toBe(false)
+  })
+
+  it("keeps trade-in residual arithmetic and M1 money bounds exact", () => {
+    expect(tradeInResidual(1500n, 500n)).toBe(1000n)
+    expect(tradeInResidual(1500n, 1500n)).toBe(0n)
+    expect(() => tradeInResidual(1500n, 1600n)).toThrow("OVERALLOWANCE")
+    expect(minor("99999999999999")).toBe(A)
+    expect(() => minor("100000000000000")).toThrow("MONEY_OVERFLOW")
+    expect(() => sum([C, 1n], C)).toThrow("MONEY_OVERFLOW")
+    expect(sum([A, 1n], C)).toBe(A + 1n)
   })
 })
