@@ -999,7 +999,9 @@ describe.runIf(Boolean(realPgBins))(
             "-d",
             "postgres",
             "-c",
-            "CREATE DATABASE vamotors_src; CREATE DATABASE vamotors_dst;",
+            "CREATE DATABASE vamotors_src",
+            "-c",
+            "CREATE DATABASE vamotors_dst",
           ],
           { env: adminEnv, stdio: "pipe" }
         )
