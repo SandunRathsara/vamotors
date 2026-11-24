@@ -50,6 +50,8 @@ import {
 
 export const saleInclude = {
   customer: true,
+  reservation: true,
+  inventoryLease: true,
   purchaseRecord: { include: purchaseInclude },
   receipts: {
     orderBy: [
@@ -103,6 +105,27 @@ async function resolveActorNames(
   return new Map(users.map((u) => [u.id, u.name]))
 }
 
+export const lenderPaid = (row: SaleRow) => row.receipts
+  .filter((receipt) => receipt.category === "LENDER")
+  .reduce((total, receipt) => total + (receipt.direction === "IN" ? receipt.amount : -receipt.amount), 0n)
+
+export function reservationDTO(row: NonNullable<SaleRow["reservation"]>, now = new Date()) {
+  const expiryFlagPending = row.state === "ACTIVE" && row.expiresAt <= now
+  const policy = row.policySnapshot as { percentDisplay: string }
+  return {
+    id: row.id,
+    revision: row.revision,
+    amount: row.amount.toString(),
+    listedBasis: row.listedBasis.toString(),
+    percentDisplay: policy.percentDisplay,
+    validThrough: formatDate(row.validThrough),
+    expiresAt: row.expiresAt.toISOString(),
+    effectiveStatus: (expiryFlagPending ? "EXPIRED" : row.state) as NonNullable<SaleDTO["reservation"]>["effectiveStatus"],
+    expiryFlagPending,
+    ...(row.retainedAmount !== null ? { retainedAmount: row.retainedAmount.toString() } : {}),
+  }
+}
+
 export function saleDTO(
   row: SaleRow,
   actorNames: ReadonlyMap<string, string> = new Map()
@@ -110,10 +133,23 @@ export function saleDTO(
   const timeline: SaleDTO["timeline"] = [
     {
       at: row.openedAt.toISOString(),
-      action: row.approvalId ? "DISCOUNT_APPROVED_SALE" : "COMPLETED",
+      action: row.reservation ? "RESERVATION_PLACED" : row.inventoryLease ? "FINANCE_STARTED" : row.approvalId ? "DISCOUNT_APPROVED_SALE" : "COMPLETED",
       actorName:
         actorNames.get(row.completion?.createdBy ?? row.createdBy) ?? "System",
     },
+    ...(row.reservation?.warnedAt ? [{
+      at: row.reservation.warnedAt.toISOString(), action: "ADVANCE_EXPIRING", actorName: "System",
+    }] : []),
+    ...(row.reservation?.expiredAt ? [{
+      at: row.reservation.expiredAt.toISOString(), action: "ADVANCE_EXPIRED", actorName: "System",
+    }] : []),
+    ...(row.inventoryLease?.issueDate ? [{
+      at: row.inventoryLease.issueDate.toISOString(), action: "DO_RECEIVED", actorName: "Staff",
+    }] : []),
+    ...(row.completion && (row.reservation || row.inventoryLease) ? [{
+      at: row.completion.recordedAt.toISOString(), action: "HANDOVER_COMPLETED",
+      actorName: actorNames.get(row.completion.createdBy) ?? "Staff",
+    }] : []),
     ...row.receipts.map((r) => ({
       at: r.recordedAt.toISOString(),
       action: `SALE_RECEIPT_${r.direction}${r.reversalOf ? "_REVERSAL" : ""}`,
@@ -140,6 +176,19 @@ export function saleDTO(
     state: row.state,
     price: row.agreedPrice.toString(),
     ...(row.reference !== null ? { reference: row.reference } : {}),
+    ...(row.reservation ? { reservation: reservationDTO(row.reservation) } : {}),
+    ...(row.inventoryLease ? {
+      finance: {
+        companyId: row.inventoryLease.companyId,
+        companyName: row.inventoryLease.companyName,
+        down: row.inventoryLease.down.toString(),
+        principal: row.inventoryLease.principal.toString(),
+        termMonths: row.inventoryLease.termMonths,
+        ...(row.inventoryLease.doAttachmentId ? { doAttachmentId: row.inventoryLease.doAttachmentId } : {}),
+        ...(row.inventoryLease.issueDate ? { issueDate: formatDate(row.inventoryLease.issueDate) } : {}),
+        lenderOutstanding: (row.inventoryLease.principal - lenderPaid(row)).toString(),
+      },
+    } : {}),
     ...(row.tradeIn
       ? {
           tradeIn: {
@@ -173,6 +222,7 @@ export function saleDTO(
       ...(r.reference !== null ? { reference: r.reference } : {}),
       recordedAt: r.recordedAt.toISOString(),
       ...(r.reversalOf !== null ? { reversalOf: r.reversalOf } : {}),
+      ...(r.refundOf !== null ? { refundOf: r.refundOf } : {}),
     })),
     timeline,
     nextActions: [],
@@ -221,7 +271,7 @@ export function visibleSale(
   }
   if (
     "nextActions" in result &&
-    row.state === "COMPLETED" &&
+    row.state === "COMPLETED" && !row.inventoryLease && !row.reservation &&
     actor.ability.can(
       "create",
       subject("ApprovalRequest", { createdBy: actor.userId }),
@@ -235,7 +285,22 @@ export function visibleSale(
   ) {
     nextActions.push("requestApproval")
   }
-  if ("nextActions" in result) result.nextActions = nextActions
+  if ("nextActions" in result) {
+    const canUpdate = (field: string) => actor.ability.can("update", subject("SaleCase", saleAuth(row)), field)
+    if (row.state === "RESERVED" || row.state === "EXPIRED") {
+      for (const action of ["convertReservation", "cancelRetained", "startFinance"])
+        if (canUpdate(action)) nextActions.push(action)
+    }
+    if (["RESERVED", "EXPIRED", "FINANCE_PENDING", "DO_RECEIVED"].includes(row.state)
+      && canUpdate("refund")
+      && actor.ability.can("create", subject("ApprovalRequest", { createdBy: actor.userId }), "proposal.kind"))
+      nextActions.push("requestApproval")
+    if (row.state === "FINANCE_PENDING" && canUpdate("recordDO")) nextActions.push("recordDO")
+    if (row.state === "DO_RECEIVED" && canUpdate("confirmDOAndHandover")) nextActions.push("confirmDOAndHandover")
+    if (row.state === "COMPLETED" && row.inventoryLease && row.inventoryLease.principal > lenderPaid(row)
+      && canUpdate("recordLenderReceipt")) nextActions.push("recordLenderReceipt")
+    result.nextActions = nextActions
+  }
   result.redactedFields = [
     ...new Set(result.redactedFields.filter((f) => f !== "createdBy")),
   ]
@@ -1380,7 +1445,7 @@ export async function prepareSaleEditApproval(
     ...(input.cashCorrections.length ? ["cashCorrections"] : []),
   ])
 
-  if (sale.state !== "COMPLETED" || cycle.status !== "SOLD") fail("INVALID_STATE")
+  if (sale.state !== "COMPLETED" || cycle.status !== "SOLD" || sale.inventoryLease || sale.reservation) fail("INVALID_STATE")
   if (input.patch.tradeIn && sale.kind !== "TRADE_IN") fail("INVALID_INPUT", 422)
 
   let nextCustomer: { id: string; revision: number; active: boolean; fullName: string } | null = null
@@ -1841,6 +1906,20 @@ export async function authenticatedSaleDetail(headers: Headers, saleId: string) 
     },
     { isolationLevel: "RepeatableRead" }
   )
+}
+
+export async function commitmentList(tx: Tx, actor: Actor, args: Record<string, string>) {
+  const parsed = listParams.extend({ kind: z.enum(["ADVANCE", "LEASE"]).optional() }).strict().safeParse(args)
+  if (!parsed.success) fail("INVALID_INPUT", 422)
+  const { kind, page, pageSize } = parsed.data
+  const scope = readScope(actor.grants, actor.userId, "SaleCase", ["id", "kind", "state"])
+  const where = { AND: [scope, { kind: kind ?? { in: ["ADVANCE", "LEASE"] } }] }
+  const [rows, total] = await Promise.all([
+    tx.saleCase.findMany({ where, include: saleInclude, orderBy: [{ openedAt: "desc" }, { id: "asc" }], skip: (page-1)*pageSize, take: pageSize }),
+    tx.saleCase.count({ where }),
+  ])
+  const names = await resolveActorNames(tx, rows)
+  return { ok: true, data: rows.map((row) => visibleSale(actor, row, names)), total, page, pageSize, asOf: new Date().toISOString(), redactedFields: [] }
 }
 
 export async function saleQuery(

@@ -14,6 +14,7 @@ import {
   persistedRateAPIs,
   persistedRatePages,
   privateAttachmentAPIs,
+  schedulerAPI,
   importStagingPages,
   approvalPages,
   brokeragePages,
@@ -42,6 +43,7 @@ describe("global entry-point inventory", () => {
         ...Object.keys(persistedRateAPIs),
         ...Object.keys(privateAttachmentAPIs),
         invoiceDownload,
+        schedulerAPI,
         "/api/auth/[...all]",
         "/api/v1/commands/[name]",
         "/api/v1/queries/[name]",
@@ -69,6 +71,11 @@ describe("global entry-point inventory", () => {
       if (method === "POST") expect(text).toContain("sameOrigin(request)")
       expect(text).not.toMatch(/mock-data|prototype/)
     }
+    const job = readFileSync(`app${schedulerAPI}/route.ts`, "utf8")
+    expect(job).toContain("export async function POST")
+    expect(job).toContain("await authenticateScheduler(request)")
+    expect(job).toContain("sameOrigin(request)")
+    expect(job).not.toMatch(/mock-data|prototype/)
     for (const [route, method] of Object.entries({
       ...privateAttachmentAPIs,
       [invoiceDownload]: "GET",

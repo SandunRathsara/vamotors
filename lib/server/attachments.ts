@@ -3,7 +3,7 @@ import { constants } from "node:fs"
 import { open, statfs } from "node:fs/promises"
 import { isAbsolute, join } from "node:path"
 import { randomUUID } from "node:crypto"
-import type { ImportBatch, BrokerageDeal } from "@prisma/client"
+import type { ImportBatch, BrokerageDeal, SaleCase } from "@prisma/client"
 import type {
   Applied,
   Dependency,
@@ -208,11 +208,12 @@ const declaration = (u: Intent): Declaration => ({
 export type UploadTarget =
   | { type: "IMPORT_BATCH"; row: ImportBatch }
   | { type: "BROKERAGE_DEAL"; row: BrokerageDeal }
+  | { type: "SALE_CASE"; row: SaleCase }
 const targetRef = (target: UploadTarget): Dependency =>
   target.type === "IMPORT_BATCH"
     ? { type: "ImportBatch", id: target.row.id, revision: target.row.revision }
     : {
-        type: "BrokerageDeal",
+        type: target.type === "SALE_CASE" ? "SaleCase" : "BrokerageDeal",
         id: target.row.id,
         revision: target.row.revision,
       }
@@ -235,12 +236,20 @@ const dealSubject = (row: BrokerageDeal) => ({
 async function loadTarget(
   tx: Tx,
   actor: Actor,
-  type: "IMPORT_BATCH" | "BROKERAGE_DEAL",
+  type: UploadTarget["type"],
   id: string,
   write: boolean
 ): Promise<UploadTarget> {
   if (type === "IMPORT_BATCH")
     return { type, row: await loadBatch(tx, actor, id, write) }
+  if (type === "SALE_CASE") {
+    if (write) await tx.$queryRaw`SELECT id FROM vamotors."SaleCase" WHERE id=${id}::uuid FOR UPDATE`
+    const row = await tx.saleCase.findUnique({ where: { id } })
+    if (!row || row.kind !== "LEASE") fail("NOT_FOUND", 404)
+    requireFields(actor.ability, "SaleCase", "read", row, ["id", "revision", "finance.doAttachmentId"])
+    if (write) requireFields(actor.ability, "SaleCase", "update", row, ["recordDO"])
+    return { type, row }
+  }
   await tx.$queryRaw`SELECT id FROM vamotors."BrokerageDeal" WHERE id=${id}::uuid FOR UPDATE`
   const row = await tx.brokerageDeal.findUnique({ where: { id } })
   if (!row) fail("NOT_FOUND", 404)
@@ -294,8 +303,8 @@ async function loadIntent(tx: Tx, actor: Actor, uploadId: string) {
   const target = await loadTarget(
     tx,
     actor,
-    source.targetType as "IMPORT_BATCH" | "BROKERAGE_DEAL",
-    (source.batchId ?? source.brokerageDealId)!,
+    source.targetType as UploadTarget["type"],
+    (source.batchId ?? source.brokerageDealId ?? source.saleCaseId)!,
     true
   )
   await tx.$queryRaw`SELECT id FROM vamotors."UploadIntent" WHERE id=${uploadId}::uuid FOR UPDATE`
@@ -307,7 +316,9 @@ async function loadIntent(tx: Tx, actor: Actor, uploadId: string) {
     upload.environmentId !== runtimeConfig().ENVIRONMENT_ID ||
     (upload.targetType === "IMPORT_BATCH"
       ? upload.purpose !== "IMPORT_SOURCE"
-      : ![
+      : upload.targetType === "SALE_CASE"
+        ? upload.purpose !== "DO"
+        : ![
           "INSPECTION",
           "PARTICIPANT_DOCUMENT",
           "VEHICLE_DOCUMENT",
@@ -324,6 +335,8 @@ function capturedTarget(target: UploadTarget, upload: Intent) {
       uploadRef(upload),
     ])
   if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
+    fail("INVALID_STATE")
+  if (target.type === "SALE_CASE" && target.row.state !== "FINANCE_PENDING")
     fail("INVALID_STATE")
 }
 const uploadReady = (u: Intent): UploadReady => ({
@@ -453,7 +466,7 @@ export async function initUpload(
         existing.targetType !== target.type ||
         (target.type === "IMPORT_BATCH"
           ? existing.batchId !== target.row.id
-          : existing.brokerageDealId !== target.row.id)
+          : target.type === "SALE_CASE" ? existing.saleCaseId !== target.row.id : existing.brokerageDealId !== target.row.id)
       )
         fail("IDEMPOTENCY_MISMATCH")
       authorizeDocument(actor, existing, "put")
@@ -466,12 +479,14 @@ export async function initUpload(
     checkRefs(envelope.expected, [targetRef(target)])
     if (target.type === "IMPORT_BATCH" && target.row.state !== "STAGED")
       fail("INVALID_STATE")
+    if (target.type === "SALE_CASE" && target.row.state !== "FINANCE_PENDING") fail("INVALID_STATE")
     const now = new Date(),
       commandId = randomUUID()
     const upload = await tx.uploadIntent.create({
       data: {
         id: uploadId,
         targetType: target.type,
+        saleCaseId: target.type === "SALE_CASE" ? target.row.id : null,
         batchId: target.type === "IMPORT_BATCH" ? target.row.id : null,
         brokerageDealId: target.type === "BROKERAGE_DEAL" ? target.row.id : null,
         photoCategory:
@@ -688,17 +703,7 @@ export async function completeUpload(
               id: upload.id,
               revision: upload.currentAttempt!.uploadRevision,
             },
-            target.type === "IMPORT_BATCH"
-              ? {
-                  type: "ImportBatch" as const,
-                  id: target.row.id,
-                  revision: upload.currentAttempt!.targetRevision,
-                }
-              : {
-                  type: "BrokerageDeal" as const,
-                  id: target.row.id,
-                  revision: upload.currentAttempt!.targetRevision,
-                },
+            { ...targetRef(target), revision: upload.currentAttempt!.targetRevision },
           ]
         : [uploadRef(upload), targetRef(target)]
     )
@@ -829,6 +834,7 @@ export async function completeUpload(
       data: {
         id: attachmentId,
         targetType: target.type,
+        saleCaseId: target.type === "SALE_CASE" ? target.row.id : null,
         batchId: target.type === "IMPORT_BATCH" ? target.row.id : null,
         brokerageDealId:
           target.type === "BROKERAGE_DEAL" ? target.row.id : null,
@@ -858,7 +864,7 @@ export async function completeUpload(
       include: intentInclude,
     })
     const owner =
-      target.type === "IMPORT_BATCH"
+      target.type === "SALE_CASE" ? target.row : target.type === "IMPORT_BATCH"
         ? await tx.importBatch.update({
             where: { id: target.row.id },
             data: { revision: bump(target.row.revision) },
@@ -868,7 +874,7 @@ export async function completeUpload(
             data: { revision: bump(target.row.revision) },
           })
     const ownerChange =
-      target.type === "IMPORT_BATCH"
+      target.type === "SALE_CASE" ? null : target.type === "IMPORT_BATCH"
         ? {
             entityType: "ImportBatch" as const,
             entityId: target.row.id,
@@ -924,7 +930,7 @@ export async function completeUpload(
         before: uploadDTO(upload),
         after: uploadDTO(final),
       },
-      ownerChange,
+      ...(ownerChange ? [ownerChange] : []),
     ]) {
       await audit(tx, {
         ...change,
@@ -974,7 +980,9 @@ export async function authorizedAttachment(
 ) {
   const row = await tx.attachment.findUnique({ where: { id: attachmentId } })
   if (!row) fail("NOT_FOUND", 404)
-  if (row.targetType === "BROKERAGE_DEAL") {
+  if (row.targetType === "SALE_CASE" && row.saleCaseId) {
+    await loadTarget(tx, actor, "SALE_CASE", row.saleCaseId, false)
+  } else if (row.targetType === "BROKERAGE_DEAL") {
     const deal = row.brokerageDealId
       ? await tx.brokerageDeal.findUnique({ where: { id: row.brokerageDealId } })
       : null

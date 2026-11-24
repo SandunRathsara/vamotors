@@ -123,6 +123,8 @@ describe("T06b staging trust boundaries", () => {
               "DispatchBatch",
               "CommissionEntitlement",
               "Report",
+              "Reservation",
+              "ReservationExpiryJob",
               "SaleCase",
             ].includes(name)
         )

@@ -481,6 +481,59 @@ export type SaleCommand = keyof typeof saleInputs
 export function saleEnvelope(name: SaleCommand) {
   return customerEnvelope("createCustomer").extend({ input: saleInputs[name] })
 }
+const commitmentOpening = z.object({
+  cycleId: id,
+  customerId: id,
+  price: moneyInput.refine((v) => v !== "0"),
+  reference: text.max(200).optional(),
+  reason: text.optional(),
+})
+const resolutionDisposition = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("RELEASE") }).strict(),
+  z.object({ kind: z.literal("HOLD"), reason: text }).strict(),
+])
+const resolutionInput = z.object({
+  reason: text,
+  disposition: resolutionDisposition,
+  retainedAmount: moneyInput,
+})
+const handover = z.object({
+  date: dateOnly,
+  mileage: z.number().int().min(0).max(99999999),
+})
+export const commitmentInputs = {
+  placeReservation: commitmentOpening.extend({ receipt: cashInput }).strict(),
+  startFinance: commitmentOpening.extend({
+    reservationId: id.optional(),
+    downPayment: cashInput,
+    financeAmount: moneyInput.refine((v) => v !== "0"),
+    companyId: id,
+    termMonths: z.number().int().min(1).max(120),
+  }).strict(),
+  convertReservation: handover.extend({
+    reservationId: id, balance: cashInput.nullable(), reason: text.optional(),
+  }).strict(),
+  cancelRetained: resolutionInput.extend({ reservationId: id }).strict(),
+  recordDO: z.object({ saleCaseId: id, attachmentId: id, issueDate: dateOnly }).strict(),
+  confirmDOAndHandover: handover.extend({ saleCaseId: id }).strict(),
+  recordLenderReceipt: z.object({ saleCaseId: id, payment: cashInput }).strict(),
+} as const
+export type CommitmentCommand = keyof typeof commitmentInputs
+export const commitmentEnvelope = <N extends CommitmentCommand>(name: N) =>
+  customerEnvelope("createCustomer").extend({ input: commitmentInputs[name] })
+export const refundInput = z.union([
+  resolutionInput.extend({ reservationId: id, refund: cashInput }).strict(),
+  resolutionInput.extend({ saleCaseId: id, refund: cashInput }).strict(),
+])
+export const expiryEnvelope = customerEnvelope("createCustomer").extend({
+  expected: z.tuple([]),
+  input: z.object({
+    through: z.string().datetime({ offset: true }).optional(),
+    cursor: z.string().max(100).optional(),
+    limit: z.number().int().min(1).max(100).default(100),
+  }).strict(),
+})
+
 const saleCashCorrection = z
   .object({ paymentId: id, replacement: cashInput.optional(), reason: text })
   .strict()
@@ -530,15 +583,15 @@ export const approvalInputs = {
         z
           .object({ kind: z.literal("WRITE_OFF"), input: writeOffInput })
           .strict(),
+        z.object({ kind: z.literal("REFUND"), input: refundInput }).strict(),
         z
           .object({
             kind: z.literal("DISCOUNT"),
-            command: z
-              .object({
-                name: z.literal("completeImmediate"),
-                input: immediateSaleInput,
-              })
-              .strict(),
+            command: z.discriminatedUnion("name", [
+              z.object({ name: z.literal("completeImmediate"), input: immediateSaleInput }).strict(),
+              z.object({ name: z.literal("placeReservation"), input: commitmentInputs.placeReservation }).strict(),
+              z.object({ name: z.literal("startFinance"), input: commitmentInputs.startFinance }).strict(),
+            ]),
           })
           .strict(),
         z
@@ -843,12 +896,14 @@ export const attachmentCommands = {
     .object({
       target: z.discriminatedUnion("type", [
         z.object({ type: z.literal("IMPORT_BATCH"), id: attachmentId }).strict(),
+        z.object({ type: z.literal("SALE_CASE"), id: attachmentId }).strict(),
         z
           .object({ type: z.literal("BROKERAGE_DEAL"), id: attachmentId })
           .strict(),
       ]),
       purpose: z.enum([
         "IMPORT_SOURCE",
+        "DO",
         "INSPECTION",
         "PARTICIPANT_DOCUMENT",
         "VEHICLE_DOCUMENT",
@@ -870,7 +925,9 @@ export const attachmentCommands = {
         value.contentType
       )
       const isImport = value.target.type === "IMPORT_BATCH"
+      const isSale = value.target.type === "SALE_CASE"
       if (
+        (isSale !== (value.purpose === "DO")) ||
         (isImport &&
           (value.purpose !== "IMPORT_SOURCE" ||
             ![

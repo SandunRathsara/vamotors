@@ -26,8 +26,10 @@ import { approvalQuery, approvalReplay, approvalAudit } from "./approvals"
 import { notificationQuery, notificationReplay } from "./notifications"
 import { repairReplay } from "./repairs"
 import { brokerageQuery, brokerageAudit, brokerageReplay } from "./brokerage"
-import { saleQuery, saleReplay, saleAudit } from "./sales"
 import { invoiceQuery, invoiceReplay } from "./invoices"
+import { commitmentReplay } from "./reservation-sales"
+import { expiryHealth } from "./reservation-expiry"
+import { saleQuery, saleReplay, saleAudit, commitmentList } from "./sales"
 import { runtimeConfig } from "./config"
 
 const canAdminister = (actor: Actor) =>
@@ -106,6 +108,8 @@ export async function securityQuery(
       if (name === "approvals") return approvalQuery(tx, actor, args)
       if (name === "notifications") return notificationQuery(tx, actor, args)
       if (name === "invoice") return invoiceQuery(tx, actor, args)
+      if (name === "jobHealth") return expiryHealth(tx, actor)
+      if (name === "sales") return commitmentList(tx, actor, args)
       if (name === "sale") return saleQuery(tx, actor, args)
       if (
         name === "audit" &&
@@ -156,6 +160,8 @@ export async function securityQuery(
               "completeImmediate",
               "intakeTradeIn",
               "issueInvoice",
+              "placeReservation", "startFinance", "convertReservation", "cancelRetained",
+              "recordDO", "confirmDOAndHandover", "recordLenderReceipt",
             ]),
             idempotencyKey: id,
           })
@@ -177,6 +183,9 @@ export async function securityQuery(
         const resultType = (receipt.result as { type?: string }).type
         if (resultType === "BrokerageDeal" || resultType === "DispatchBatch")
           return brokerageReplay(tx, actor, receipt)
+        if (["placeReservation", "startFinance", "convertReservation", "cancelRetained",
+          "recordDO", "confirmDOAndHandover", "recordLenderReceipt"].includes(parsed.data.name))
+          return commitmentReplay(tx, actor, receipt)
         return ["requestApproval", "reviewApproval"].includes(parsed.data.name)
           ? approvalReplay(tx, actor, receipt)
           : ["markNotificationRead", "markAllNotificationsRead"].includes(

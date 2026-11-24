@@ -46,7 +46,7 @@ export type ImmediateSale = { cycleId: Id; customerId: Id; price: Money; date: D
 export type Reserve = { cycleId: Id; customerId: Id; price: Money; receipt: CashInput;
   reference?: string; reason?: string };
 export type StartFinance = { cycleId: Id; customerId: Id; price: Money; downPayment: CashInput;
-  financeAmount: Money; companyId: Id; termMonths: number; reference?: string; reason?: string };
+  financeAmount: Money; companyId: Id; termMonths: number; reservationId?: Id; reference?: string; reason?: string };
 export type SaleEdit = { saleId: Id; reason: string; patch: {
   customerId?: Id; price?: Money; reference?: string | null; saleDate?: DateOnly;
   handoverMileage?: number; notes?: string | null;
@@ -204,7 +204,7 @@ export interface Commands {
   confirmImport: { batchId: Id; previewHash: string; controlTotals: ControlTotals };
   startReportExport: { filter: Omit<ReportFilter, "page" | "pageSize">; format: "CSV" | "PDF" };
   continueReportExport: { exportId: Id }; // bounded resumable generation, never changes filter
-  runExpiry: { through: Instant; cursor?: string; limit: number };
+  runExpiry: { through?: Instant; cursor?: string; limit: number };
 }
 export type ImportType = "SUPPLIERS" | "CUSTOMERS" | "REPAIR_VENDORS" | "VEHICLES" | "SALES" | "REPAIRS" | "ADVANCES";
 export type LegacyRef = { namespace: string; type: ImportType | "FINANCE_COMPANIES";
@@ -432,7 +432,7 @@ export interface Queries {
 export type Provenance = { imported: false } | { imported: true; batchId: Id; row: number; sourceKey: string;
   contributingRows: { rowId: Id; type: ImportType; sourceKey: string }[] };
 export type PaymentDTO = CashInput & { id: Id; direction: "IN" | "OUT"; category: string;
-  recordedAt: Instant; reversalOf?: Id };
+  recordedAt: Instant; reversalOf?: Id; refundOf?: Id };
 export type FinancialDTO = { currency: string; scale: 2; purchase: Money; repairs: Money;
   additionalCosts: Money; basis: Money; originalBasis?: Money; salePrice?: Money;
   originalProfit?: Money; restatedProfit?: Money; cashIn: Money; cashOut: Money; net: Money };
@@ -443,9 +443,9 @@ export type VehicleDTO = { id: Id; identity: VehicleInput; cycleId: Id; revision
 export type SaleDTO = { id: Id; cycleId: Id; customerId: Id; revision: Revision;
   kind: "CASH" | "ADVANCE" | "LEASE" | "TRADE_IN"; state: string; price: Money;
   reference?: string; reservation?: { id: Id; revision: Revision; amount: Money; listedBasis: Money; percentDisplay: string;
-    validThrough: DateOnly; expiresAt: Instant; effectiveStatus: "ACTIVE" | "EXPIRED" | "CONVERTED" | "REFUNDED" | "CANCELLED";
+    validThrough: DateOnly; expiresAt: Instant; effectiveStatus: "ACTIVE" | "EXPIRED" | "CONVERTING" | "CONVERTED" | "REFUNDED" | "CANCELLED";
     expiryFlagPending: boolean; retainedAmount?: Money };
-  finance?: { companyId: Id; down: Money; principal: Money; termMonths: number;
+  finance?: { companyId: Id; companyName?: string; down: Money; principal: Money; termMonths: number;
     doAttachmentId?: Id; issueDate?: DateOnly; lenderOutstanding: Money };
   tradeIn?: { description: string; value: Money; acquiredCycleId?: Id };
   completion?: { id: Id; date: DateOnly; mileage: number; basisVersionId: Id };
@@ -562,8 +562,10 @@ export type ReportResponse = { [K in ReportKind]: Page<ReportRow[K]> & { kind: K
 export type DispatchPreview = { source: "VEHICLE_SALE" | "BROKERAGE"; id: Id;
   revision: Revision; checklistHash: string; ready: boolean;
   blockers: { code: ErrorCode; field: string; message: string }[] };
-export type JobHealth = { lastSuccess: Instant | null; lastFailure: Instant | null; stale: boolean;
-  latestRun: { id: Id; status: "SUCCESS" | "PARTIAL" | "FAILED"; cursor: string | null } | null };
+export type ExpiryRunStatus = { id: Id; status: "RUNNING" | "SUCCESS" | "PARTIAL" | "FAILED";
+  through: Instant; finishedAt?: Instant };
+export type JobHealth = { lastSuccess: ExpiryRunStatus | null; lastFailure: ExpiryRunStatus | null;
+  latest: ExpiryRunStatus | null; stale: boolean };
 export type CurrentActorDTO = { user: { id: Id; name: string; active: true };
   authzRevision: string; // opaque fingerprint of CURRENT activation/user+role/rule versions, not a session token
   roles: { id: Id; name: string; revision: Revision }[];

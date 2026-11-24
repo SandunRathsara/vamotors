@@ -1,6 +1,9 @@
 import { authenticate } from "@/lib/server/actor"
 import { executeAdmin } from "@/lib/server/admin"
 import { executeRepair } from "@/lib/server/repairs"
+import { executeExpiry } from "@/lib/server/reservation-expiry"
+import { executeCommitment } from "@/lib/server/reservation-sales"
+import { commitmentInputs, type CommitmentCommand } from "@/lib/server/validators"
 import { executeSale } from "@/lib/server/sales"
 import { issueInvoice } from "@/lib/server/invoices"
 import {
@@ -67,6 +70,9 @@ export async function POST(
       const result = await issueInvoice(identity, await boundedJSON(request))
       return noStoreJSON(result, result.status === "DOCUMENT_PENDING" ? 202 : 200)
     }
+    if (name === "runExpiry") return noStoreJSON(await executeExpiry(identity, await boundedJSON(request)))
+    if (Object.hasOwn(commitmentInputs, name))
+      return noStoreJSON(await executeCommitment(identity, name as CommitmentCommand, await boundedJSON(request)))
     const customer = Object.hasOwn(customerCommands, name)
     const party = Object.hasOwn(partyCommands, name)
     const rates = Object.hasOwn(rateCommands, name)

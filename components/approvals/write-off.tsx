@@ -764,11 +764,8 @@ export function ApprovalDetail({
     }
   }
   const input = a.proposal?.kind === "WRITE_OFF" ? a.proposal.input : undefined
-  const discount =
-    a.proposal?.kind === "DISCOUNT" &&
-    a.proposal.command?.name === "completeImmediate"
-      ? a.proposal.command.input
-      : undefined
+  const discount = a.proposal?.kind === "DISCOUNT" ? a.proposal.command?.input : undefined
+  const refund = a.proposal?.kind === "REFUND" ? a.proposal.input : undefined
   const saleEdit =
     a.proposal?.kind === "SALE_EDIT" &&
     a.proposal.operation === "EDIT_COMPLETION"
@@ -786,7 +783,7 @@ export function ApprovalDetail({
           ? "Saved discount approval request"
           : a.proposal?.kind === "SALE_EDIT"
             ? "Saved sale edit approval request"
-            : "Saved write-off request"}
+            : refund ? "Saved refund request" : "Saved write-off request"}
       </h1>
       <dl className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
         {[
@@ -809,11 +806,11 @@ export function ApprovalDetail({
             : []),
           ...(discount
             ? [
-                ["Sale kind", discount.kind],
+                ["Sale kind", "kind" in discount ? discount.kind : "receipt" in discount ? "Advance" : "Inventory lease"],
                 ["Discounted price", money(discount.price)],
                 ["Customer ID", discount.customerId],
-                ["Sale date", discount.date],
-                ["Handover mileage", discount.mileage?.toString()],
+                ["Date", "date" in discount ? discount.date : "receipt" in discount ? discount.receipt?.date : "downPayment" in discount ? discount.downPayment?.date : undefined],
+                ["Handover mileage", "mileage" in discount ? discount.mileage?.toString() : undefined],
               ]
             : []),
           ...(saleEdit
@@ -824,6 +821,16 @@ export function ApprovalDetail({
                 ["Patched sale date", saleEdit.patch?.saleDate],
               ]
             : []),
+          ...(refund ? [
+            ["Refund amount", refund.refund?.amount ? money(refund.refund.amount) : undefined],
+            ["Refund date", refund.refund?.date],
+            ["Refund method", refund.refund?.method],
+            ["Refund reference", refund.refund?.reference],
+            ["Retained amount", refund.retainedAmount ? money(refund.retainedAmount) : undefined],
+            ["Disposition", refund.disposition?.kind],
+            ["Hold reason", refund.disposition?.kind === "HOLD" ? refund.disposition.reason : undefined],
+            ["Refund reason", refund.reason],
+          ] : []),
           ["Reviewer", a.reviewedBy],
           ["Reviewed at", a.reviewedAt],
           ["Review note", a.reviewNote],

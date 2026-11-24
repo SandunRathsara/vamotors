@@ -22,6 +22,8 @@ import { Label } from "@/components/ui/label"
 import { SaleInvoices } from "./sale-invoices"
 import { Textarea } from "@/components/ui/textarea"
 
+import { CommitmentActions } from "./commitment-actions"
+
 type VisibleSale = Visible<SaleDTO>
 type VisibleCycle = Visible<PurchaseCycleDTO>
 type VisibleCustomer = Visible<CustomerDTO>
@@ -401,6 +403,8 @@ export function SaleDetailView({ id }: { id: string }) {
         </div>
       </dl>
 
+      <CommitmentActions sale={sale} cycle={cycle} customer={customer} />
+
       {cycle?.financial && (
         <div className="rounded-lg border p-4 text-sm space-y-1">
           <h2 className="font-semibold">Cycle Financial Summary</h2>
@@ -505,7 +509,7 @@ export function SaleDetailView({ id }: { id: string }) {
 
       <SaleInvoices sale={sale} cycleRevision={cycle?.revision} />
 
-      {sale.nextActions?.includes("requestApproval") && (
+      {!sale.reservation && !sale.finance && sale.nextActions?.includes("requestApproval") && (
         <div className="space-y-3 rounded-lg border p-4">
           <Button type="button" variant="outline" onClick={() => setEditOpen((v) => !v)}>
             {editOpen ? "Close Sale Edit Request" : "Request Sale Edit Approval"}
