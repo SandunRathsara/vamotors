@@ -157,15 +157,17 @@ export function PartyDetail({ kind, id }: { kind: DirectoryKind; id: string }) {
                   ) : (
                     <>
                       <p>
-                        {contribution.state === "PENDING_DOMAIN"
-                          ? "History pending — known references below are not complete history."
-                          : "Ready — all visible records in this domain at the response time."}
+                        {contribution.state === "READY" ||
+                        domain === "purchases" ||
+                        domain === "repairs"
+                          ? "Records visible to your account."
+                          : "No linked records available in this view."}
                       </p>
                       {contribution.links?.map((link, i) => (
                         <p key={i} className="break-words">
                           {link.type} · {link.id ?? "Identity unavailable"} ·{" "}
                           {link.date ?? "Date unavailable"} ·{" "}
-                          {link.status ?? "Status unavailable"} ·{" "}
+                          {link.status ?? "Status unavailable"}{" "}
                           {link.type === "PURCHASE" && link.id ? (
                             <Link
                               prefetch={false}
@@ -182,12 +184,20 @@ export function PartyDetail({ kind, id }: { kind: DirectoryKind; id: string }) {
                             >
                               View repair
                             </Link>
-                          ) : (
-                            "Navigation pending"
-                          )}
+                          ) : link.type === "BROKERAGE" && link.id ? (
+                            <Link
+                              prefetch={false}
+                              className="underline"
+                              href={`/lease-deals/${link.id}`}
+                            >
+                              View brokerage deal
+                            </Link>
+                          ) : null}
                         </p>
                       ))}
-                      {contribution.state === "READY" &&
+                      {(contribution.state === "READY" ||
+                        domain === "purchases" ||
+                        domain === "repairs") &&
                         contribution.links?.length === 0 && (
                           <p>No visible records in this domain</p>
                         )}

@@ -541,6 +541,20 @@ try {
   }
   const positive = await complete("2000", "APPROVE")
   await pair(positive, "authorized original receipt after terminal revision")
+  // Losing workflow-create blocks the requester's own receipt, but not the
+  // reviewer's receipt while the originator still has domain authority.
+  await change(requesterId, true, [roles.noRequestCreate.id])
+  await pair(positive, "only ApprovalRequest.create revoked")
+  await inspect(
+    "requester's own receipt still requires workflow-create",
+    () =>
+      status(requester!, positive.request.idempotencyKey, "requestApproval"),
+    403,
+    "FORBIDDEN",
+    undefined,
+    true
+  )
+  await change(requesterId, true, [roles.full.id])
   const beforeRevocation = await f.query<CurrentActorDTO>(
     requester,
     "currentActor"
@@ -820,15 +834,19 @@ try {
               ).rows[0].n,
               1
             )
-            assert.equal(
-              (
-                await f.db.query(
-                  'SELECT count(*)::int AS n FROM vamotors."AuditEntry" WHERE "commandId"=$1',
-                  [applied.commandId]
-                )
-              ).rows[0].n,
-              1
+            const audits = await f.db.query(
+              'SELECT "entityType", action FROM vamotors."AuditEntry" WHERE "commandId"=$1 ORDER BY "entityType", action',
+              [applied.commandId]
             )
+            assert.deepEqual(audits.rows, [
+              { entityType: "User", action: "update" },
+              ...(deactivate
+                ? []
+                : [
+                    { entityType: "UserRole", action: "create" },
+                    { entityType: "UserRole", action: "delete" },
+                  ]),
+            ])
             assert.equal(recovered.status(), 409)
             assert.equal(result.error.code, "APPROVAL_STALE")
             await pair(

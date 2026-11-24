@@ -17,6 +17,10 @@ import type {
 import { privateRequest, RequestError } from "@/lib/security-client"
 import { major, parseMajor } from "@/lib/money"
 import { approvalEnvelope, saleEnvelope } from "@/lib/server/validators"
+import {
+  MileageDecreaseReason,
+  useAcquisitionMileage,
+} from "@/components/purchases/mileage-fields"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -98,6 +102,14 @@ export function SaleDetailView({ id }: { id: string }) {
     notes: "",
   })
   const [intakeReading, setIntakeReading] = useState("0")
+  const [intakeDecreaseReason, setIntakeDecreaseReason] = useState("")
+  const intakeMileage = useAcquisitionMileage(
+    intakeVehicle.engineNumber,
+    intakeVehicle.chassisNumber,
+    intakeReading,
+    sale?.completion?.date ?? "",
+    intakeOpen
+  )
   const [intakeListed, setIntakeListed] = useState("")
   const [intakeMsg, setIntakeMsg] = useState("")
   const [intakePending, setIntakePending] = useState(false)
@@ -119,7 +131,14 @@ export function SaleDetailView({ id }: { id: string }) {
 
   async function submitIntake(e: React.FormEvent) {
     e.preventDefault()
-    if (!sale?.id || !sale.revision || !cycle?.id || !cycle.revision || intakePending)
+    if (
+      !sale?.id ||
+      !sale.revision ||
+      !cycle?.id ||
+      !cycle.revision ||
+      intakePending ||
+      (!intakeBody && intakeMileage.checking)
+    )
       return
     setIntakePending(true)
     setIntakeMsg("")
@@ -164,6 +183,9 @@ export function SaleDetailView({ id }: { id: string }) {
             mileage: {
               reading: Number(intakeReading),
               date: sale.completion?.date ?? "",
+              ...(intakeMileage.decreased
+                ? { decreaseReason: intakeDecreaseReason }
+                : {}),
             },
             ...(intakeListed.trim() ? { listedPrice: parseMajor(intakeListed) } : {}),
           },
@@ -457,17 +479,91 @@ export function SaleDetailView({ id }: { id: string }) {
         <form onSubmit={submitIntake} className="space-y-3 rounded-lg border p-4">
           <h3 className="font-semibold">Intake Trade-In Vehicle</h3>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Input required placeholder="Engine number *" value={intakeVehicle.engineNumber} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, engineNumber: e.target.value })} />
-            <Input required placeholder="Chassis number *" value={intakeVehicle.chassisNumber} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, chassisNumber: e.target.value })} />
-            <Input required placeholder="Make *" value={intakeVehicle.make} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, make: e.target.value })} />
-            <Input required placeholder="Model *" value={intakeVehicle.model} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, model: e.target.value })} />
-            <Input required type="number" placeholder="Year *" value={intakeVehicle.year} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, year: e.target.value })} />
-            <Input required placeholder="Colour *" value={intakeVehicle.colour} onChange={(e) => setIntakeVehicle({ ...intakeVehicle, colour: e.target.value })} />
-            <Input required type="number" min={0} placeholder="Odometer *" value={intakeReading} onChange={(e) => setIntakeReading(e.target.value)} />
-            <Input placeholder="Listed price (optional)" value={intakeListed} onChange={(e) => setIntakeListed(e.target.value)} />
+            <Input
+              required
+              placeholder="Engine number *"
+              value={intakeVehicle.engineNumber}
+              onChange={(e) =>
+                setIntakeVehicle({
+                  ...intakeVehicle,
+                  engineNumber: e.target.value,
+                })
+              }
+            />
+            <Input
+              required
+              placeholder="Chassis number *"
+              value={intakeVehicle.chassisNumber}
+              onChange={(e) =>
+                setIntakeVehicle({
+                  ...intakeVehicle,
+                  chassisNumber: e.target.value,
+                })
+              }
+            />
+            <Input
+              required
+              placeholder="Make *"
+              value={intakeVehicle.make}
+              onChange={(e) =>
+                setIntakeVehicle({ ...intakeVehicle, make: e.target.value })
+              }
+            />
+            <Input
+              required
+              placeholder="Model *"
+              value={intakeVehicle.model}
+              onChange={(e) =>
+                setIntakeVehicle({ ...intakeVehicle, model: e.target.value })
+              }
+            />
+            <Input
+              required
+              type="number"
+              placeholder="Year *"
+              value={intakeVehicle.year}
+              onChange={(e) =>
+                setIntakeVehicle({ ...intakeVehicle, year: e.target.value })
+              }
+            />
+            <Input
+              required
+              placeholder="Colour *"
+              value={intakeVehicle.colour}
+              onChange={(e) =>
+                setIntakeVehicle({ ...intakeVehicle, colour: e.target.value })
+              }
+            />
+            <Input
+              required
+              type="number"
+              min={0}
+              placeholder="Odometer *"
+              value={intakeReading}
+              onChange={(e) => setIntakeReading(e.target.value)}
+            />
+            {intakeMileage.decreased && (
+              <MileageDecreaseReason
+                value={intakeDecreaseReason}
+                onChange={setIntakeDecreaseReason}
+                disabled={intakePending || !!intakeBody}
+              />
+            )}
+            <Input
+              placeholder="Listed price (optional)"
+              value={intakeListed}
+              onChange={(e) => setIntakeListed(e.target.value)}
+            />
           </div>
-          {intakeMsg && <p role="status" className="text-sm">{intakeMsg}</p>}
-          <Button type="submit" disabled={intakePending}>
+          {intakeMsg && (
+            <p role="status" className="text-sm">
+              {intakeMsg}
+            </p>
+          )}
+          <Button
+            type="submit"
+            disabled={intakePending || (!intakeBody && intakeMileage.checking)}
+          >
             {intakePending ? "Acquiring…" : "Confirm Trade-In Intake"}
           </Button>
         </form>

@@ -966,7 +966,6 @@ export function CycleCosts({ cycle }: { cycle: Cycle }) {
         </p>
       )}
       <p>
-        Repairs, closed-cycle restatement and sales/repurchase remain pending.
         To change a payee or move between recipients, explicitly reverse the old
         entry, correct terms, reload, then record a fresh dated payment. A
         replacement always keeps the original category; it cannot move money.

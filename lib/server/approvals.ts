@@ -276,10 +276,6 @@ async function currentRequesterAuthority(
   const requester = await userAuthority(tx, a.requestedBy)
   if (!requester?.user.active) fail("APPROVAL_STALE")
   try {
-    requireFields(requester.ability, "ApprovalRequest", "create", rowSubject(a), [
-      "proposal",
-      "proposal.kind",
-    ])
     await domainAuthority(tx, requester, row, a)
   } catch (e) {
     if (e instanceof CommandError) fail("APPROVAL_STALE")
@@ -294,6 +290,45 @@ function requestAuthority(actor: Authority, row: Cycle, input: WriteOff) {
     visiblePurchase(actor, row),
     input,
     true
+  )
+}
+function requireWorkflowCreate(
+  actor: Authority,
+  proposal: Exclude<ReturnType<typeof saved>["proposal"], { kind: "WRITE_OFF" }>
+) {
+  const fields = ["proposal", "proposal.kind", "reason"]
+  switch (proposal.kind) {
+    case "DISCOUNT":
+      fields.push(
+        "proposal.command",
+        "proposal.command.name",
+        "proposal.command.input"
+      )
+      break
+    case "REFUND":
+      fields.push(
+        ...Object.keys(proposal.input).map((key) => `proposal.input.${key}`)
+      )
+      break
+    case "SALE_EDIT":
+      fields.push("proposal.operation")
+      if (proposal.operation === "EDIT_COMPLETION")
+        fields.push("proposal.input.saleId")
+      else
+        fields.push(
+          "proposal.input.saleCaseId",
+          "proposal.input.receiptReversals",
+          "proposal.input.disposition",
+          "proposal.input.reason"
+        )
+      break
+  }
+  requireFields(
+    actor.ability,
+    "ApprovalRequest",
+    "create",
+    { createdBy: actor.userId },
+    fields
   )
 }
 async function reviewAuthority(
@@ -779,7 +814,10 @@ export async function approvalReplay(
     const savedProposal = saved(a).proposal
     if (savedProposal.kind === "WRITE_OFF")
       requestAuthority(actor, row, savedProposal.input)
-    else await domainAuthority(tx, actor, row, a)
+    else {
+      requireWorkflowCreate(actor, savedProposal)
+      await domainAuthority(tx, actor, row, a)
+    }
     return {
       ok: true,
       status: "PENDING_APPROVAL",
@@ -1075,13 +1113,7 @@ export async function executeApproval(
             : {}),
         }
       } else if (input.proposal.kind === "DISCOUNT") {
-        requireFields(
-          actor.ability,
-          "ApprovalRequest",
-          "create",
-          { createdBy: actor.userId },
-          ["proposal", "proposal.kind", "reason", "proposal.command", "proposal.command.name", "proposal.command.input"]
-        )
+        requireWorkflowCreate(actor, input.proposal)
         if (input.proposal.command.name === "completeImmediate") {
           const prep = await prepareDiscountApproval(tx, actor, input.proposal.command.input, envelope.expected)
           row = prep.cycle
@@ -1095,25 +1127,36 @@ export async function executeApproval(
         }
         if (envelope.expected.length !== expected.length) fail("INVALID_INPUT", 422)
       } else if (input.proposal.kind === "REFUND") {
-        requireFields(actor.ability, "ApprovalRequest", "create", { createdBy: actor.userId },
-          ["proposal", "proposal.kind", "reason", ...Object.keys(input.proposal.input).map((key) => `proposal.input.${key}`)])
-        const prep = await prepareRefund(tx, actor, input.proposal.input, envelope.expected)
-        if (envelope.expected.length !== prep.required.length) fail("INVALID_INPUT", 422)
+        requireWorkflowCreate(actor, input.proposal)
+        const prep = await prepareRefund(
+          tx,
+          actor,
+          input.proposal.input,
+          envelope.expected
+        )
+        if (envelope.expected.length !== prep.required.length)
+          fail("INVALID_INPUT", 422)
         row = prep.sale.purchaseRecord
         saleCaseId = prep.sale.id
         expected = prep.required
         snapshot = prep.snapshot
       } else {
         const proposal = input.proposal
-        const fields = proposal.operation === "EDIT_COMPLETION"
-          ? ["proposal.input.saleId"]
-          : ["proposal.input.saleCaseId", "proposal.input.receiptReversals",
-              "proposal.input.disposition", "proposal.input.reason"]
-        requireFields(actor.ability, "ApprovalRequest", "create", { createdBy: actor.userId },
-          ["proposal", "proposal.kind", "proposal.operation", "reason", ...fields])
-        const prep = proposal.operation === "EDIT_COMPLETION"
-          ? await prepareSaleEditApproval(tx, actor, proposal.input, envelope.expected)
-          : await prepareFinanceError(tx, actor, proposal.input, envelope.expected)
+        requireWorkflowCreate(actor, proposal)
+        const prep =
+          proposal.operation === "EDIT_COMPLETION"
+            ? await prepareSaleEditApproval(
+                tx,
+                actor,
+                proposal.input,
+                envelope.expected
+              )
+            : await prepareFinanceError(
+                tx,
+                actor,
+                proposal.input,
+                envelope.expected
+              )
         row = prep.cycle
         saleCaseId = prep.sale.id
         expected = prep.deps

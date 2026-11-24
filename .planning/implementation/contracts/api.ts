@@ -146,7 +146,7 @@ export interface Commands {
   cancelRetained: { reservationId: Id; reason: string; disposition: Disposition; retainedAmount: Money };
   startFinance: StartFinance;
   recordDO: { saleCaseId: Id; attachmentId: Id; issueDate: DateOnly };
-  confirmDOAndHandover: { saleCaseId: Id; date: DateOnly; mileage: number };
+  confirmDOAndHandover: { saleCaseId: Id; date: DateOnly; mileage: number; reason?: string };
   recordLenderReceipt: { saleCaseId: Id; payment: CashInput };
   normalizeDelivered: { cycleId: Id; reason: string };
   initUpload: { target: Omit<AttachmentTarget, "type"> & { type: Exclude<AttachmentTarget["type"], "EXPORT_JOB"> };
