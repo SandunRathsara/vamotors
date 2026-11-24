@@ -1,9 +1,38 @@
 import "server-only"
 import type { Prisma } from "@prisma/client"
 import type { Tx } from "./db"
-import { fieldsFor, type EnabledSubject } from "./permissions"
+import { fieldsFor, readScope, type EnabledSubject } from "./permissions"
 import { canonical } from "./idempotency"
 import { fail } from "./errors"
+import type { Authority } from "./actor"
+import { dateOnly } from "./validators"
+import { z } from "zod"
+
+export const auditFilterInputs = {
+  from: dateOnly.optional(),
+  through: dateOnly.optional(),
+  action: z.string().trim().min(1).max(100).optional(),
+}
+
+export function auditScope(
+  actor: Authority,
+  { from, through, action }: { from?: string; through?: string; action?: string }
+): Prisma.AuditEntryWhereInput {
+  if (from && through && from > through) fail("INVALID_INPUT", 422)
+  const until = through ? new Date(through) : undefined
+  if (until) until.setUTCDate(until.getUTCDate() + 1)
+  return {
+    ...readScope(actor.grants, actor.userId, "AuditLog", [
+      "id",
+      "at",
+      ...(action ? ["action"] : []),
+    ]),
+    ...(action ? { action } : {}),
+    ...(from || until
+      ? { recordedAt: { gte: from ? new Date(from) : undefined, lt: until } }
+      : {}),
+  }
+}
 
 const saleCompletionFields = [
   "id",
@@ -16,11 +45,16 @@ const saleCompletionFields = [
   "originalProfit",
 ] as const
 
+export const joinAuditFields = {
+  UserRole: ["userId", "roleId", "assignedBy", "assignedAt"],
+  RolePermission: ["roleId", "permissionId"],
+} as const
+
 /** Audit only DTO fields; credentials/hashes/tokens can never be named. */
 function diffFields(
   fields: readonly string[],
   before: Record<string, unknown> | null,
-  after: Record<string, unknown>
+  after: Record<string, unknown> | null
 ) {
   const diff: Record<string, { before: unknown; after: unknown }> = {}
   for (const key of fields) {
@@ -53,14 +87,14 @@ export async function audit(
   input: {
     commandId: string
     userId: string | null
-    entityType: EnabledSubject | "SaleCompletion" | "InvoiceVersion"
+    entityType: EnabledSubject | "SaleCompletion" | "InvoiceVersion" | keyof typeof joinAuditFields
     entityId: string
     action: string
     reason?: string
     initiatedBy?: string
     approverId?: string
     before: Record<string, unknown> | null
-    after: Record<string, unknown>
+    after: Record<string, unknown> | null
   }
 ) {
   return tx.auditEntry.create({
@@ -75,23 +109,19 @@ export async function audit(
       reason: input.reason,
       initiatedBy: input.initiatedBy,
       approverId: input.approverId,
-      fieldDiff:
+      fieldDiff: diffFields(
         input.entityType === "SaleCompletion"
-          ? diffFields(saleCompletionFields, input.before, input.after)
+          ? saleCompletionFields
           : input.entityType === "InvoiceVersion"
-            ? diffFields(
-                [
-                  "id",
-                  "revision",
-                  "version",
-                  "saleRevision",
-                  "number",
-                  "state",
-                ],
-                input.before,
-                input.after
-              )
-            : fieldDiff(input.entityType, input.before, input.after),
+            ? ["id", "revision", "version", "saleRevision", "number", "state"]
+            : input.entityType === "UserRole" || input.entityType === "RolePermission"
+              ? joinAuditFields[input.entityType]
+              : input.entityType === "FinanceCompany"
+                ? [...fieldsFor("FinanceCompany", "read"), "reconciliationWatermark"]
+                : fieldsFor(input.entityType, "read"),
+        input.before,
+        input.after
+      ),
     },
   })
 }
@@ -99,6 +129,7 @@ export async function audit(
 /** Five nonfinancial templates only; no caller-supplied message material. */
 export async function notify(
   tx: Tx,
+  context: { commandId: string; userId: string | null },
   input: {
     recipientUserId: string
     eventKey: string
@@ -112,13 +143,23 @@ export async function notify(
     targetId: string
   }
 ) {
-  await tx.notification.createMany({ data: input, skipDuplicates: true })
-  return tx.notification.findUniqueOrThrow({
-    where: {
-      recipientUserId_eventKey: {
-        recipientUserId: input.recipientUserId,
-        eventKey: input.eventKey,
-      },
+  const [created] = await tx.notification.createManyAndReturn({
+    data: input,
+    skipDuplicates: true,
+  })
+  if (!created) return
+  await audit(tx, {
+    ...context,
+    entityType: "Notification",
+    entityId: created.id,
+    action: "createNotification",
+    before: null,
+    after: {
+      id: created.id,
+      revision: created.revision,
+      kind: created.kind,
+      createdAt: created.createdAt.toISOString(),
+      target: { type: created.targetType, id: created.targetId },
     },
   })
 }

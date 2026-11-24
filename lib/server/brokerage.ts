@@ -30,7 +30,7 @@ import type {
 import { database, assertEnvironment, type Tx } from "./db"
 import { authenticate, currentActor, type Actor, type Identity } from "./actor"
 import { transaction, nextBusinessSequence } from "./transactions"
-import { writeReadVersion, fieldDiff } from "./audit"
+import { writeReadVersion, fieldDiff, auditFilterInputs, auditScope } from "./audit"
 import { inputDigest, canonical } from "./idempotency"
 import { runtimeConfig } from "./config"
 import {
@@ -2655,7 +2655,7 @@ export async function brokerageAudit(
   raw: unknown
 ) {
   const parsed = listParams
-    .extend({
+    .extend({ ...auditFilterInputs,
       type: z.enum(["BrokerageDeal", "CashFacility"]),
       id,
     })
@@ -2679,7 +2679,7 @@ export async function brokerageAudit(
   const where = {
     AND: [
       { entityType: type, entityId },
-      readScope(actor.grants, actor.userId, "AuditLog", ["id", "at"]),
+      auditScope(actor, parsed.data),
     ],
   }
   const [entries, total] = await Promise.all([

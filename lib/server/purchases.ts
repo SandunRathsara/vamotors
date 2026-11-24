@@ -24,7 +24,7 @@ import {
   currentWrittenOff,
 } from "./disposals"
 import { transaction, nextBusinessSequence } from "./transactions"
-import { audit, writeReadVersion } from "./audit"
+import { audit, auditFilterInputs, auditScope, writeReadVersion } from "./audit"
 import { inputDigest } from "./idempotency"
 import { runtimeConfig } from "./config"
 import {
@@ -631,6 +631,11 @@ export function visibleRepair(actor: Actor, row: Row, repair: Repair) {
     !actor.ability.can("read", subject("RepairVendor", repair.vendor), "id")
   )
     delete projected.vendorId
+  if (
+    "vendorId" in projected &&
+    actor.ability.can("read", subject("RepairVendor", repair.vendor), "name")
+  )
+    projected.vendorName = repair.vendor.name
   return projected
 }
 const repairReadable = (
@@ -2372,7 +2377,7 @@ function availableCycleEdits(actor: Actor, row: Row): CycleEditCommand[] {
       name: "addMileage",
       input: { cycleId: row.id, mileage: { reading: 0, date: "" } },
     },
-    { name: "setListedPrice", input: { cycleId: row.id, amount: "0" } },
+    { name: "setListedPrice", input: { cycleId: row.id, amount: "0", reason: "" } },
     {
       name: "editVehicle",
       input: {
@@ -3863,6 +3868,47 @@ export async function executeCycleMoney(
   }, existingTx)
 }
 
+async function cycleHistory(tx: Tx, actor: Actor, rows: Row[]) {
+  const readable = rows.filter((row) =>
+    actor.ability.can("read", subject("PurchaseRecord", auth(row)), "id") &&
+    actor.ability.can("read", subject("PurchaseRecord", auth(row)), "status") &&
+    actor.ability.can("read", subject("Vehicle", vehicleAuth(row)), "status")
+  )
+  const ids = readable.map((row) => row.id)
+  if (!ids.length) return new Map()
+  const [events, delivered] = await Promise.all([
+    tx.statusEvent.findMany({
+      where: { cycleId: { in: ids } },
+      orderBy: [{ recordedAt: "asc" }, { command: { businessSequence: "asc" } }, { id: "asc" }],
+      select: { id: true, cycleId: true, from: true, to: true, action: true, occurredAt: true },
+    }),
+    tx.importSourceRow.findMany({
+      where: {
+        sourceType: "VEHICLES",
+        targetVersion: { entityType: "PurchaseRecord", entityId: { in: ids } },
+        batch: { state: "COMMITTED" },
+        metadata: { path: ["historicalStatus"], equals: "DELIVERED" },
+      },
+      select: { targetVersion: { select: { entityId: true } } },
+    }),
+  ])
+  const historicalCycles = new Set(delivered.map((row) => row.targetVersion.entityId))
+  return new Map(readable.map((row) => {
+    const completion = row.saleCompletion
+    const historicalDelivered = row.status === "SOLD" && historicalCycles.has(row.id) &&
+      !!row.closedAt && !!completion &&
+      row.basisVersions.some((basis) => basis.id === completion.basisVersionId) &&
+      row.mileage.some((reading) => reading.sourceSaleCompletionId === completion.id)
+    return [row.id, {
+      statusHistory: events.filter((event) => event.cycleId === row.id).map((event) => ({
+        id: event.id, from: event.from, to: event.to, action: event.action,
+        at: event.occurredAt.toISOString(),
+      })),
+      ...(historicalDelivered ? { historicalStatus: "DELIVERED" as const } : {}),
+    }]
+  }))
+}
+
 export async function purchaseQuery(
   tx: Tx,
   actor: Actor,
@@ -3882,7 +3928,7 @@ export async function purchaseQuery(
   }
   if (name === "audit") {
     const parsed = listParams
-      .extend({
+      .extend({ ...auditFilterInputs,
         type: z.enum([
           "Vehicle",
           "PurchaseRecord",
@@ -3955,7 +4001,7 @@ export async function purchaseQuery(
     const where = {
       entityType: input.type,
       entityId: input.id,
-      ...readScope(actor.grants, actor.userId, "AuditLog", ["id", "at"]),
+      ...auditScope(actor, input),
     }
     const [entries, total] = await Promise.all([
       tx.auditEntry.findMany({
@@ -4332,7 +4378,9 @@ export async function purchaseQuery(
     if (!input.success) fail("INVALID_INPUT", 422)
     const row = await load(tx, input.data.cycleId)
     if (!row) fail("NOT_FOUND", 404)
-    return visiblePurchase(actor, row)
+    const visible = visiblePurchase(actor, row)
+    const history = await cycleHistory(tx, actor, [row])
+    return { ...visible, ...history.get(row.id) }
   }
   if (name === "vehicle") {
     const input = z
@@ -4358,7 +4406,8 @@ export async function purchaseQuery(
       ) ?? (!input.data.cycleId ? cycles[0] : undefined)
     if (!selected) fail("NOT_FOUND", 404)
     const visible = visibleVehicle(actor, selected)
-    const visibleCycles = cycles.map((c) => visiblePurchase(actor, c))
+    const history = await cycleHistory(tx, actor, cycles)
+    const visibleCycles = cycles.map((c) => ({ ...visiblePurchase(actor, c), ...history.get(c.id) }))
     const repairsVisible = visibleCycles.every((c) => Array.isArray(c.repairs))
     return {
       ...visible,

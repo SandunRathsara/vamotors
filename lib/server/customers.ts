@@ -88,6 +88,11 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
         state: true,
         agreedPrice: true,
         completion: { select: { saleDate: true } },
+        corrections: {
+          orderBy: { version: "desc" },
+          take: 1,
+          select: { correctedSnapshot: true },
+        },
       },
       orderBy: [{ openedAt: "asc" }, { id: "asc" }],
     })
@@ -132,13 +137,12 @@ async function visibleCustomer(tx: Tx, actor: Actor, row: Customer) {
       }
       const amount = actor.ability.can("read", saleSubject, "price")
       if (!amount) visible.redactedFields.push("links.amount")
+      const correction = s.corrections[0]?.correctedSnapshot as { saleDate?: string } | undefined
       return [
         {
           type: "SALE",
           id: s.id,
-          date: (s.completion?.saleDate ?? s.openedAt)
-            .toISOString()
-            .slice(0, 10),
+          date: correction?.saleDate ?? (s.completion?.saleDate ?? s.openedAt).toISOString().slice(0, 10),
           status: s.state,
           ...(amount ? { amount: s.agreedPrice.toString() } : {}),
         },

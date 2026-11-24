@@ -825,6 +825,13 @@ async function openCommitment(
       row.id !== input.cycleId
     )
       fail("INVALID_STATE")
+    if (input.reference !== undefined && input.reference !== sale.reference) {
+      requireFields(actor.ability, "SaleCase", "update", saleAuth(sale), [
+        "patch.reference",
+        "reason",
+      ])
+      if (!input.reason) fail("INVALID_INPUT", 422)
+    }
   } else {
     checkStock(row)
     requireFields(

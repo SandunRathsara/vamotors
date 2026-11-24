@@ -55,7 +55,7 @@ import {
   loadSale,
   saleAuth,
 } from "./sales"
-import { audit, writeReadVersion, notify } from "./audit"
+import { audit, auditFilterInputs, auditScope, writeReadVersion, notify } from "./audit"
 import { canonical, inputDigest } from "./idempotency"
 import { runtimeConfig } from "./config"
 import { project, readScope, requireFields } from "./permissions"
@@ -757,7 +757,7 @@ export async function approvalAudit(
   args: Record<string, string>
 ) {
   const parsed = listParams
-    .extend({ type: z.enum(["ApprovalRequest", "Disposal"]), id })
+    .extend({ ...auditFilterInputs, type: z.enum(["ApprovalRequest", "Disposal"]), id })
     .strict()
     .safeParse(args)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -779,7 +779,7 @@ export async function approvalAudit(
   const where = {
     AND: [
       { entityType: input.type, entityId: input.id },
-      readScope(actor.grants, actor.userId, "AuditLog", ["id", "at"]),
+      auditScope(actor, input),
     ],
   }
   const [rows, total] = await Promise.all([
@@ -1125,7 +1125,7 @@ export async function executeApproval(
         payload: approvalDTO(a),
       })
       for (const recipientUserId of recipients)
-        await notify(tx, {
+        await notify(tx, { commandId, userId: actor.userId }, {
           recipientUserId,
           eventKey: `approval:required:${a.id}:1`,
           kind: "APPROVAL_REQUIRED",
@@ -1429,7 +1429,7 @@ export async function executeApproval(
       revision: updated.revision,
       payload: approvalDTO(updated),
     })
-    await notify(tx, {
+    await notify(tx, { commandId, userId: actor.userId }, {
       recipientUserId: a.requestedBy,
       eventKey: `approval:outcome:${a.id}:${updated.revision}`,
       kind: "APPROVAL_OUTCOME",

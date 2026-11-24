@@ -18,7 +18,7 @@ import {
   type Identity,
 } from "./actor"
 import { transaction, nextBusinessSequence } from "./transactions"
-import { audit, writeReadVersion } from "./audit"
+import { audit, auditFilterInputs, auditScope, writeReadVersion } from "./audit"
 import { inputDigest } from "./idempotency"
 import { runtimeConfig } from "./config"
 import {
@@ -2023,7 +2023,7 @@ export async function saleAudit(
   args: Record<string, string>
 ) {
   const parsed = listParams
-    .extend({ type: z.enum(["SaleCase", "SaleCompletion"]), id })
+    .extend({ ...auditFilterInputs, type: z.enum(["SaleCase", "SaleCompletion"]), id })
     .strict()
     .safeParse(args)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -2068,7 +2068,7 @@ export async function saleAudit(
   const where = {
     AND: [
       { entityType: input.type, entityId: input.id },
-      readScope(actor.grants, actor.userId, "AuditLog", ["id", "at"]),
+      auditScope(actor, input),
     ],
   }
   const [rows, total] = await Promise.all([
@@ -2103,9 +2103,13 @@ export async function saleAudit(
       at: entry.recordedAt.toISOString(),
       actor: {
         kind: entry.actorKind,
-        ...(entry.userId ? { userId: entry.userId, name: userMap.get(entry.userId) } : {}),
+        ...(entry.userId && actor.ability.can("read", subject("User", { id: entry.userId }), "id")
+          ? { userId: entry.userId, name: actor.ability.can("read", subject("User", { id: entry.userId }), "name") ? userMap.get(entry.userId) : undefined }
+          : {}),
       },
-      ...(entry.reason ? { reason: entry.reason } : {}),
+      ...(entry.reason && (entry.action !== "startFinance" || canReadDiff("reference"))
+        ? { reason: entry.reason }
+        : {}),
       fields,
     })
   })

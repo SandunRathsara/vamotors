@@ -235,7 +235,7 @@ const dealSubject = (row: BrokerageDeal) => ({
   ...row,
   financeCompanyId: row.companyId,
 })
-async function loadTarget(
+export async function loadTarget(
   tx: Tx,
   actor: Actor,
   type: UploadTarget["type"],

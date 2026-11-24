@@ -46,7 +46,7 @@ describe("open-cycle mileage, asking price and physical wire boundaries", () => 
   it("retains zero and maximum canonical asking price, rejects unsafe wire money", () => {
     for (const amount of ["0", "99999999999999"])
       expect(
-        cycleEditInputs.setListedPrice.parse({ cycleId: id, amount }).amount
+        cycleEditInputs.setListedPrice.parse({ cycleId: id, amount, reason: "Price review" }).amount
       ).toBe(amount)
     for (const amount of [
       0,
@@ -58,9 +58,13 @@ describe("open-cycle mileage, asking price and physical wire boundaries", () => 
       null,
     ])
       expect(
-        cycleEditInputs.setListedPrice.safeParse({ cycleId: id, amount })
+        cycleEditInputs.setListedPrice.safeParse({ cycleId: id, amount, reason: "Price review" })
           .success
       ).toBe(false)
+  })
+  it("rejects an asking price edit without a written reason", () => {
+    for (const reason of [undefined, "   "])
+      expect(cycleEditInputs.setListedPrice.safeParse({ cycleId: id, amount: "0", reason }).success).toBe(false)
   })
   it("requires actual Gregorian dates and integer bounded mileage; no empty reasons", () => {
     for (const reading of [0, 99999999])

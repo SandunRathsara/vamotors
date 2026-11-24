@@ -264,8 +264,19 @@ try {
   await page.getByLabel("Down payment").fill("150")
   await page.getByLabel("Term (months)").fill("12")
   await page.getByLabel("Payment date").fill(daysAgo(2))
+  await page.getByLabel("Sale reference", { exact: true }).fill("Converted case reference")
+  await page.getByRole("button", { name: "Convert to lease sale", exact: true }).last().click()
+  assert.equal(await page.getByLabel("Reason for changing the sale reference").evaluate((input: HTMLInputElement) => input.validity.valueMissing), true)
+  await page.getByLabel("Reason for changing the sale reference").fill("Retain the corrected case reference")
   await submit("startFinance", "Convert to lease sale")
   let current = await sale(placed.result.id)
+  assert.equal(current.reference, "Converted case reference")
+  const conversionAudit = await query<{ data: { reason?: string; fields: { path: string; before: unknown; after: unknown }[] }[] }>(
+    admin,
+    `audit?type=SaleCase&id=${current.id}&action=startFinance`
+  )
+  assert.equal(conversionAudit.data[0]?.reason, "Retain the corrected case reference")
+  assert.ok(conversionAudit.data[0]?.fields.some((field) => field.path === "reference" && field.after === current.reference))
   assert.equal(current.state, "FINANCE_PENDING")
   assert.equal(current.finance?.principal, "80000")
   assert.equal(current.payments?.length, 2)
@@ -608,6 +619,30 @@ try {
   )
 
   const principalRefund = await advance(await stock("lease-refund"), now)
+  await command(
+    admin,
+    "startFinance",
+    envelope(
+      {
+        reservationId: principalRefund.reservation!.id,
+        cycleId: principalRefund.cycleId,
+        reference: "Changed without reason",
+        customerId: customer.id,
+        price: "100000",
+        companyId: company.id,
+        financeAmount: "80000",
+        termMonths: 12,
+        downPayment: { amount: "15000", date: now, method: "BANK_TRANSFER" },
+      },
+      [
+        ...(await deps(principalRefund)),
+        ref(settings, "Settings"),
+        ref(customer, "Customer"),
+        ref(company, "FinanceCompany"),
+      ]
+    ),
+    422
+  )
   await command(
     admin,
     "startFinance",

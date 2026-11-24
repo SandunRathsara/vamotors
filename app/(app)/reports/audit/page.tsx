@@ -11,27 +11,7 @@ import { authenticate } from "@/lib/server/actor"
 import { CommandError } from "@/lib/server/errors"
 import { pageActor } from "@/lib/server/pages"
 import { abilityFor } from "@/lib/server/permissions"
-import { securityQuery } from "@/lib/server/queries"
-
-const recordTypes = [
-  "PurchaseRecord",
-  "Vehicle",
-  "VehicleCost",
-  "RepairRecord",
-  "SaleCase",
-  "SaleCompletion",
-  "ApprovalRequest",
-  "Disposal",
-  "Customer",
-  "Supplier",
-  "RepairVendor",
-  "FinanceCompany",
-  "BrokerageDeal",
-  "CashFacility",
-  "User",
-  "Role",
-  "Settings",
-] as const
+import { auditRecordTypes, securityQuery } from "@/lib/server/queries"
 
 export default async function AuditReport({
   searchParams,
@@ -43,14 +23,18 @@ export default async function AuditReport({
     "read",
     "AuditLog"
   )
-  const { type, id, page } = await searchParams
+  const filters = await searchParams
+  const { type, id, relatedId, from, through, action, page } = filters
   const params = new URLSearchParams()
   let result: Page<Visible<AuditDTO>> | undefined
   let error: string | undefined
   if (canRead && typeof type === "string" && typeof id === "string" && id) {
     params.set("type", type)
     params.set("id", id)
-    if (typeof page === "string") params.set("page", page)
+    for (const key of ["relatedId", "from", "through", "action", "page"] as const) {
+      const value = filters[key]
+      if (typeof value === "string" && value.trim()) params.set(key, value)
+    }
     try {
       result = (await securityQuery(
         await authenticate(await headers()),
@@ -61,7 +45,7 @@ export default async function AuditReport({
       if (!(cause instanceof CommandError)) throw cause
       error =
         cause.status === 422
-          ? "Enter a valid record type and ID."
+          ? "Check the record type, IDs and filters."
           : "This record’s audit history is unavailable."
     }
   }
@@ -91,7 +75,7 @@ export default async function AuditReport({
                 }
                 className="h-9 rounded-md border bg-background px-2"
               >
-                {recordTypes.map((recordType) => (
+                {auditRecordTypes.map((recordType) => (
                   <option key={recordType}>{recordType}</option>
                 ))}
               </select>
@@ -104,6 +88,23 @@ export default async function AuditReport({
                 defaultValue={typeof id === "string" ? id : ""}
                 className="w-80 max-w-full"
               />
+            </label>
+            <label className="grid gap-1.5 text-sm">
+              Related ID
+              <Input name="relatedId" defaultValue={typeof relatedId === "string" ? relatedId : ""} />
+              <span className="text-xs text-muted-foreground">Role ID for UserRole, permission ID for RolePermission</span>
+            </label>
+            <label className="grid gap-1.5 text-sm">
+              From date (UTC)
+              <Input type="date" name="from" defaultValue={typeof from === "string" ? from : ""} />
+            </label>
+            <label className="grid gap-1.5 text-sm">
+              Through date (UTC)
+              <Input type="date" name="through" defaultValue={typeof through === "string" ? through : ""} />
+            </label>
+            <label className="grid gap-1.5 text-sm">
+              Action
+              <Input name="action" maxLength={100} defaultValue={typeof action === "string" ? action : ""} />
             </label>
             <Button type="submit">View history</Button>
           </form>
