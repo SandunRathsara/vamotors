@@ -88,3 +88,10 @@ GRANT SELECT, INSERT ON vamotors."ApprovalRequest", vamotors."Disposal", vamotor
 GRANT UPDATE (state, revision, "reviewedBy", "reviewedAt", "reviewNote", "reviewerName", "reviewCommandId", "appliedCommandId") ON vamotors."ApprovalRequest" TO vamotors_runtime;
 GRANT UPDATE ("closedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;
 GRANT UPDATE ("activePurchaseId") ON vamotors."Vehicle" TO vamotors_runtime;
+-- T09: immediate sales, trade-in, discount & sale-edit approvals, repurchase.
+GRANT SELECT ("tradeInSourceSaleId"), INSERT ("sellerCustomerId", "tradeInSourceSaleId"), UPDATE ("sellerCustomerId") ON vamotors."PurchaseRecord" TO vamotors_runtime;
+GRANT SELECT ("sourceSaleCompletionId"), INSERT ("sourceSaleCompletionId") ON vamotors."MileageReading" TO vamotors_runtime;
+GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."ApprovalRequest" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."SaleCase", vamotors."SaleReceipt", vamotors."SaleCompletion", vamotors."SaleCorrection", vamotors."TradeInConsideration" TO vamotors_runtime;
+GRANT UPDATE ("customerId", "agreedPrice", reference, notes, revision) ON vamotors."SaleCase" TO vamotors_runtime;
+GRANT UPDATE ("customerId", description, value, "acquiredVehicleId", "acquiredPurchaseId", "intakeCommandId") ON vamotors."TradeInConsideration" TO vamotors_runtime;

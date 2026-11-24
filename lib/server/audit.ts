@@ -108,12 +108,26 @@ export async function writeReadVersion(
       | "Document"
       | "RepairRecord"
       | "ApprovalRequest"
+      | "SaleCase"
+      | "SaleCompletion"
     entityId: string
     revision: number
     payload: Record<string, unknown>
   }
 ) {
-  const allowed = fieldsFor(input.entityType, "read")
+  const allowed =
+    input.entityType === "SaleCompletion"
+      ? [
+          "id",
+          "saleCaseId",
+          "purchaseRecordId",
+          "date",
+          "handoverMileage",
+          "agreedPrice",
+          "basisVersionId",
+          "originalProfit",
+        ]
+      : fieldsFor(input.entityType, "read")
   if (
     Object.keys(input.payload).some(
       (k) =>

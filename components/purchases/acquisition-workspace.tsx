@@ -28,6 +28,7 @@ import {
   RepairCommands,
   RepairHistory,
 } from "@/components/repairs/repair-workspace"
+import { RecordSaleDialog } from "@/components/sales/record-sale-dialog"
 import { SettlementFields, settlementFromDraft } from "./settlement-fields"
 import {
   WriteOffRequest,
@@ -1097,6 +1098,14 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
           ["Purchase price", amount(cycle.purchasePrice)],
           ["Listed price", amount(cycle.listedPrice)],
           ["Basis", amount(cycle.financial?.basis)],
+          ...(cycle.financial?.salePrice !== undefined
+            ? [
+                ["Original basis", amount(cycle.financial?.originalBasis)],
+                ["Sale price", amount(cycle.financial?.salePrice)],
+                ["Original profit", amount(cycle.financial?.originalProfit)],
+                ["Restated profit", amount(cycle.financial?.restatedProfit)],
+              ]
+            : []),
           ["Currency", cycle.financial?.currency],
           ["Seller outstanding", amount(cycle.outstanding?.seller)],
           ["Settlement outstanding", amount(cycle.outstanding?.settlement)],
@@ -1207,10 +1216,34 @@ function CycleDetail({ cycle }: { cycle: Cycle }) {
         </p>
       )) ?? <p>Unavailable</p>}
       <DisposalHistory cycle={cycle} />
-      <p>
-        Repairs and sales remain pending. Receipt and availability changes do
-        not imply completed downstream history.
-      </p>
+      {cycle.tradeInSourceSaleId && (
+        <p>
+          Acquired via Trade-In:{" "}
+          <Link
+            prefetch={false}
+            className="underline"
+            href={`/sales/${cycle.tradeInSourceSaleId}`}
+          >
+            Source sale {cycle.tradeInSourceSaleId}
+          </Link>
+        </p>
+      )}
+      {cycle.sales && cycle.sales.length > 0 && (
+        <div className="space-y-1">
+          <h3 className="font-semibold">Completed Sales</h3>
+          {cycle.sales.map((s) => (
+            <p key={s.saleCaseId}>
+              <Link
+                prefetch={false}
+                className="underline"
+                href={`/sales/${s.saleCaseId}`}
+              >
+                {s.kind} · {s.state} · {s.date ?? ""} ({s.saleCaseId})
+              </Link>
+            </p>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
@@ -1260,6 +1293,14 @@ export function AcquisitionDetail({
           (vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row) ?? {}
         }
       />
+      {((vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row)
+        ?.nextActions?.includes("completeImmediate")) && (
+        <RecordSaleDialog
+          fixedCycle={
+            vehicle ? row?.cycles?.find((c) => c.id === row.cycleId) : row
+          }
+        />
+      )}
       {query.isPending && <p role="status">Loading persisted detail…</p>}
       {query.isError && (
         <p role="alert">

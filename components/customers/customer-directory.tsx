@@ -406,12 +406,19 @@ export function CustomerDirectory({ id }: { id?: string }) {
             <p className="text-sm text-muted-foreground">
               {row.links?.length
                 ? "Authorized linked records"
-                : "No linked business records are available under your current permissions. Sale and brokerage history will appear when those domains are implemented."}
+                : "No linked business records are available under your current permissions."}
             </p>
           </section>
           {row.links?.map((link) => (
             <p key={`${link.type}:${link.id}`} className="text-sm break-words">
-              {link.type} · {link.id} · {link.date} · {link.status}
+              <Link
+                prefetch={false}
+                className="underline"
+                href={link.type === "SALE" ? `/sales/${link.id}` : `/purchases/${link.id}`}
+              >
+                {link.type} · {link.id}
+              </Link>{" "}
+              · {link.date} · {link.status}
               {link.amount !== undefined ? ` · ${link.amount} minor units` : ""}
             </p>
           ))}

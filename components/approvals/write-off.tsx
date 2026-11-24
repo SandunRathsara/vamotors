@@ -130,6 +130,8 @@ export function WriteOffRequest({
     if (!body) return
     try {
       const parsed = approvalEnvelope("requestApproval").parse(JSON.parse(body))
+      if (parsed.input.proposal.kind !== "WRITE_OFF")
+        throw Error("Expected WRITE_OFF proposal")
       const value = parsed.input.proposal.input
       const cycleRef = parsed.expected.find((r) => r.type === "PurchaseRecord"),
         physicalRef = parsed.expected.find((r) => r.type === "Vehicle")
@@ -593,8 +595,8 @@ export function ApprovalsList() {
     <section className="mx-auto max-w-5xl space-y-5">
       <h1 className="text-2xl font-semibold">Approvals</h1>
       <p>
-        Version-bound write-off requests. Other approval kinds remain pending
-        their real domain workflows.
+        Version-bound approval requests for write-offs, below-listed discounts,
+        and post-completion sale edits.
       </p>
       <Label htmlFor="approval-status">Status</Label>
       <select
@@ -719,7 +721,7 @@ export function ApprovalDetail({
         const dependencies = a.expected?.filter(
           (r): r is Dependency => !!r.type && !!r.id && !!r.revision
         )
-        if (!a.id || !a.revision || !dependencies || dependencies.length !== 2)
+        if (!a.id || !a.revision || !dependencies || dependencies.length < 1)
           throw Error("Readable exact saved dependencies required")
         const parsed = approvalEnvelope("reviewApproval").safeParse({
           schemaVersion: 1,
@@ -762,6 +764,16 @@ export function ApprovalDetail({
     }
   }
   const input = a.proposal?.kind === "WRITE_OFF" ? a.proposal.input : undefined
+  const discount =
+    a.proposal?.kind === "DISCOUNT" &&
+    a.proposal.command?.name === "completeImmediate"
+      ? a.proposal.command.input
+      : undefined
+  const saleEdit =
+    a.proposal?.kind === "SALE_EDIT" &&
+    a.proposal.operation === "EDIT_COMPLETION"
+      ? a.proposal.input
+      : undefined
   const canNote = abilityFor(actor.presentationGrants, actor.user.id).can(
     "approve",
     subject("ApprovalRequest", { createdBy: a.requestedBy }),
@@ -769,21 +781,49 @@ export function ApprovalDetail({
   )
   return (
     <section className="mx-auto max-w-5xl space-y-5">
-      <h1 className="text-2xl font-semibold">Saved write-off request</h1>
+      <h1 className="text-2xl font-semibold">
+        {a.proposal?.kind === "DISCOUNT"
+          ? "Saved discount approval request"
+          : a.proposal?.kind === "SALE_EDIT"
+            ? "Saved sale edit approval request"
+            : "Saved write-off request"}
+      </h1>
       <dl className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2">
         {[
           ["Request", a.id],
+          ["Kind", a.proposal?.kind],
           ["State", a.state],
           ["Requester", a.requestedBy],
           ["Requested at", a.requestedAt],
           ["Approval request reason", a.reason],
-          ["Disposal reason", input?.reason],
-          ["Disposal date", input?.date],
-          ["Method", input?.method],
-          ["Proposed proceeds", money(input?.proceeds)],
-          ["Actual receipt date", input?.receipt?.date],
-          ["Actual receipt method", input?.receipt?.method],
-          ["Receipt reference", input?.receipt?.reference],
+          ...(input
+            ? [
+                ["Disposal reason", input.reason],
+                ["Disposal date", input.date],
+                ["Method", input.method],
+                ["Proposed proceeds", money(input.proceeds)],
+                ["Actual receipt date", input.receipt?.date],
+                ["Actual receipt method", input.receipt?.method],
+                ["Receipt reference", input.receipt?.reference],
+              ]
+            : []),
+          ...(discount
+            ? [
+                ["Sale kind", discount.kind],
+                ["Discounted price", money(discount.price)],
+                ["Customer ID", discount.customerId],
+                ["Sale date", discount.date],
+                ["Handover mileage", discount.mileage?.toString()],
+              ]
+            : []),
+          ...(saleEdit
+            ? [
+                ["Target Sale", saleEdit.saleId],
+                ["Edit reason", saleEdit.reason],
+                ["Patched price", saleEdit.patch?.price ? money(saleEdit.patch.price) : undefined],
+                ["Patched sale date", saleEdit.patch?.saleDate],
+              ]
+            : []),
           ["Reviewer", a.reviewedBy],
           ["Reviewed at", a.reviewedAt],
           ["Review note", a.reviewNote],

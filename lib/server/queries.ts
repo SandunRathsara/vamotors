@@ -25,6 +25,7 @@ import { downloadQuery } from "./attachments"
 import { approvalQuery, approvalReplay, approvalAudit } from "./approvals"
 import { notificationQuery, notificationReplay } from "./notifications"
 import { repairReplay } from "./repairs"
+import { saleQuery, saleReplay, saleAudit } from "./sales"
 import { runtimeConfig } from "./config"
 
 const canAdminister = (actor: Actor) =>
@@ -102,11 +103,17 @@ export async function securityQuery(
       const args = Object.fromEntries(params)
       if (name === "approvals") return approvalQuery(tx, actor, args)
       if (name === "notifications") return notificationQuery(tx, actor, args)
+      if (name === "sale") return saleQuery(tx, actor, args)
       if (
         name === "audit" &&
         ["ApprovalRequest", "Disposal"].includes(args.type)
       )
         return approvalAudit(tx, actor, args)
+      if (
+        name === "audit" &&
+        ["SaleCase", "SaleCompletion"].includes(args.type)
+      )
+        return saleAudit(tx, actor, args)
       if (name === "commandStatus") {
         const parsed = z
           .object({
@@ -119,6 +126,8 @@ export async function securityQuery(
               "returnRepair",
               "payRepair",
               "reversePayment",
+              "completeImmediate",
+              "intakeTradeIn",
             ]),
             idempotencyKey: id,
           })
@@ -142,7 +151,9 @@ export async function securityQuery(
                 parsed.data.name
               )
             ? notificationReplay(tx, actor, receipt)
-            : repairReplay(tx, actor, receipt)
+            : ["completeImmediate", "intakeTradeIn"].includes(parsed.data.name)
+              ? saleReplay(tx, actor, receipt)
+              : repairReplay(tx, actor, receipt)
       }
       if (name === "importBatches" || name === "importBatchFiles")
         return importQuery(tx, actor, name, args)

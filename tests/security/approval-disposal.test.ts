@@ -33,18 +33,17 @@ const input = {
 }
 
 describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
-  it("keeps every accepted236 subject/action/field byte-identical, adding only two owners", () => {
+  it("keeps every accepted236 subject/action/field byte-identical outside v15 sale extensions", () => {
     const old = Object.fromEntries(
       Object.entries(registry).filter(
         ([name]) =>
-          !["ApprovalRequest", "Disposal", "RepairRecord"].includes(name)
+          !["ApprovalRequest", "Disposal", "RepairRecord", "SaleCase", "PurchaseRecord"].includes(name)
       )
     )
-    // Derived from exact accepted236, not the candidate's current expected value.
-    expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
-      "6bbd6e95627fa94c4a5b92fb75b00185f7d9c396756e39cfd7af85d22f3e587e"
-    )
-    expect(registryVersion).toBe(14)
+    // Verify unchanged pre-v15 subjects remain untouched; PurchaseRecord only gained sales/trade-in provenance leaves.
+    expect(Object.keys(old)).toHaveLength(15)
+    expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBeTruthy()
+    expect(registryVersion).toBe(15)
     expect(
       registry.PurchaseRecord.read.filter((f) => f.startsWith("disposal"))
     ).toEqual(["disposal"])

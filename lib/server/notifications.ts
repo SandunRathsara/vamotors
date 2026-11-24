@@ -46,7 +46,9 @@ function dto(actor: Authority, row: Notification) {
           ? `/vehicles/${row.targetId}`
           : row.targetType === "RepairRecord"
             ? `/repairs/${row.targetId}`
-            : ""
+            : row.targetType === "SaleCase"
+              ? `/sales/${row.targetId}`
+              : ""
   const label = labels[row.kind as keyof typeof labels]
   if (!label || !href) fail("INTERNAL_ERROR", 500)
   const projected = project(actor.ability, "Notification", {

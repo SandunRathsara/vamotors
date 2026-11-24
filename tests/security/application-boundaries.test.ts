@@ -14,6 +14,7 @@ import {
   privateAttachmentAPIs,
   importStagingPages,
   approvalPages,
+  salesPages,
 } from "./route-inventory"
 
 function files(root: string): string[] {
@@ -77,6 +78,7 @@ describe("global entry-point inventory", () => {
         ...importStagingPages,
         ...persistedRepairPages,
         ...approvalPages,
+        ...salesPages,
         "/users",
         "/customers",
         "/customers/[id]",
