@@ -212,6 +212,18 @@ describe("repair receipt recovery shares current authority, not old state", () =
 
   it("uses the accepted notification reader and exact repair href without financial message material", async () => {
     const tx = {
+      approvalRequest: { findMany: vi.fn().mockResolvedValue([]) },
+      purchaseRecord: { findMany: vi.fn().mockResolvedValue([]) },
+      vehicle: { findMany: vi.fn().mockResolvedValue([]) },
+      repairRecord: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: rid, createdBy: uid, cycle: { createdBy: uid } },
+          ]),
+      },
+      saleCase: { findMany: vi.fn().mockResolvedValue([]) },
+      customer: { findMany: vi.fn().mockResolvedValue([]) },
       notification: {
         findMany: vi.fn().mockResolvedValue([
           {
@@ -236,7 +248,7 @@ describe("repair receipt recovery shares current authority, not old state", () =
     })
     expect(result.data[0].title).toBe("Repair returned")
     expect(result.data[0].body).toBe(
-      "Open the record to view its current authorized details."
+      "Open the record to view its current details."
     )
   })
 })

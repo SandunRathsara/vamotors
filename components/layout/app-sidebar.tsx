@@ -6,6 +6,7 @@ import {
   Users,
   Calculator,
   FileUp,
+  FileText,
   ClipboardCheck,
 } from "lucide-react"
 import {
@@ -114,6 +115,16 @@ export function AppSidebar() {
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {finance.can("read", "Report") && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/reports" prefetch={false}>
+                  <FileText />
+                  Reports
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           {administration && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild>

@@ -1,9 +1,6 @@
-export {
-  unavailable as GET,
-  unavailable as HEAD,
-  unavailable as OPTIONS,
-  unavailable as POST,
-  unavailable as PUT,
-  unavailable as PATCH,
-  unavailable as DELETE,
-} from "@/lib/server/unavailable"
+import { reportEndpoint } from "@/lib/server/report-http"
+
+export const dynamic = "force-dynamic"
+export async function GET(request: Request) {
+  return reportEndpoint(request, "INVENTORY")
+}

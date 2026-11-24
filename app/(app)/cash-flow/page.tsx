@@ -1,1 +1,8 @@
-export { UnavailablePage as default } from "@/lib/server/pages"
+import {
+  ReportPage,
+  type ReportPageProps,
+} from "@/components/reports/report-page"
+
+export default function Page(props: ReportPageProps) {
+  return <ReportPage kind="CASH_FLOW" {...props} />
+}

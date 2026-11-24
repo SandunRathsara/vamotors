@@ -1,10 +1,8 @@
 // Explicit entry-point inventory. Source test fails when a route is added/removed.
 export const legacyAPIs = [
   "/api/approvals",
-  "/api/cash-flow",
   "/api/customers",
   "/api/customers/[id]",
-  "/api/dashboard",
   "/api/lease-deals",
   "/api/lease-deals/[id]",
   "/api/lease-dispatch",
@@ -12,13 +10,8 @@ export const legacyAPIs = [
   "/api/notifications",
   "/api/purchases",
   "/api/repairs",
-  "/api/reports/advances",
   "/api/reports/audit",
-  "/api/reports/profit",
   "/api/reports/purchases",
-  "/api/reports/repairs",
-  "/api/reports/sales",
-  "/api/reports/stock",
   "/api/sales",
   "/api/sales/[id]",
   "/api/settings",
@@ -27,6 +20,16 @@ export const legacyAPIs = [
   "/api/users",
   "/api/vehicles",
   "/api/vehicles/[id]",
+]
+export const reportingAPIs = [
+  "/api/cash-flow",
+  "/api/dashboard",
+  "/api/reports/advances",
+  "/api/reports/disposals",
+  "/api/reports/profit",
+  "/api/reports/repairs",
+  "/api/reports/sales",
+  "/api/reports/stock",
 ]
 export const persistedRateAPIs = {
   "/api/lease-comparison": "POST",
@@ -46,17 +49,20 @@ export const brokeragePages = [
   "/lease-dispatch",
 ]
 export const salesPages = ["/sales", "/sales/[id]"]
-export const unavailablePages = [
-  "/cash-flow",
-  "/lease-reconciliation",
+export const reportingPages = [
   "/reports",
+  "/cash-flow",
   "/reports/advances",
-  "/reports/audit",
+  "/reports/disposals",
   "/reports/profit",
-  "/reports/purchases",
   "/reports/repairs",
   "/reports/sales",
   "/reports/stock",
+]
+export const unavailablePages = [
+  "/lease-reconciliation",
+  "/reports/audit",
+  "/reports/purchases",
 ]
 export const methods = [
   "GET",

@@ -146,6 +146,7 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
               "CashFacility",
               "DispatchBatch",
               "CommissionEntitlement",
+              "Report",
             ].includes(s)
         )
         .sort(([a], [b]) => a.localeCompare(b))
@@ -162,7 +163,7 @@ describe("T08 direct repair contract and unchanged accepted c462 ceilings", () =
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
       "d8e294c777f211a134d2e0a006b8d061ab62bdfa7b92c9cff8c82387de420def"
     )
-    expect(registryVersion).toBe(16)
+    expect(registryVersion).toBe(17)
     expect(
       attenuation(
         [{ subject: "PurchaseRecord", action: "read", fields: ["repairs"] }],

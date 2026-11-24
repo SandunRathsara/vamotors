@@ -579,6 +579,7 @@ model PurchaseRecord {
   @@unique([vehicleId, cycleNumber])
   @@unique([tradeInSourceSaleId, sellerCustomerId])
   @@index([status, available, purchaseDate, id])
+  @@index([purchaseDate, id])
   @@schema("vamotors")
 }
 
@@ -640,6 +641,7 @@ model PurchasePayment {
   @@unique([commandId, lineKey])
   @@unique([reversalOf, cycleId])
   @@index([cycleId, occurredDate, id])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 
@@ -707,6 +709,7 @@ model Disposal {
 
   @@unique([id, cycleId])
   @@unique([approvalId, cycleId])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 
@@ -730,6 +733,7 @@ model DisposalReceipt {
 
   @@unique([commandId, lineKey])
   @@index([cycleId, occurredDate, id])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 
@@ -795,6 +799,7 @@ model SaleReceipt {
   @@unique([reversalOf, saleCaseId, purchaseRecordId])
   @@index([saleCaseId, occurredDate, id])
   @@index([purchaseRecordId, occurredDate, id])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 
@@ -823,6 +828,7 @@ model SaleCompletion {
   @@unique([id, saleCaseId])
   @@unique([id, purchaseRecordId])
   @@unique([saleCaseId, purchaseRecordId])
+  @@index([saleDate, id])
   @@schema("vamotors")
 }
 
@@ -927,6 +933,7 @@ model CostPayment {
   @@unique([commandId, lineKey])
   @@unique([reversalOf, costId, cycleId])
   @@index([costId, occurredDate, id])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 
@@ -955,6 +962,7 @@ model RepairRecord {
   @@unique([id, cycleId])
   @@index([cycleId, sentDate, id])
   @@index([vendorId, returnedDate, sentDate, id])
+  @@index([returnedDate, sentDate, id])
   @@schema("vamotors")
 }
 
@@ -986,6 +994,7 @@ model RepairPayment {
   @@unique([commandId, lineKey])
   @@unique([reversalOf, repairId, cycleId])
   @@index([repairId, occurredDate, id])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 
@@ -1432,6 +1441,7 @@ model FacilityPayment {
   @@unique([commandId, lineKey])
   @@unique([id, facilityId])
   @@index([facilityId, occurredDate, id])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 
@@ -1454,6 +1464,7 @@ model BrokerageFeeReceipt {
 
   @@unique([commandId, lineKey])
   @@index([dealId, occurredDate, id])
+  @@index([occurredDate, id])
   @@schema("vamotors")
 }
 

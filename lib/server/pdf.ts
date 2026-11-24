@@ -137,6 +137,7 @@ export interface ReportPdfInput {
   } | null
   columns: ReportPdfColumn[]
   rows: Record<string, string | number | null | undefined>[]
+  maxPages?: number
   totals?: ReportPdfSummaryItem[]
 }
 
@@ -1534,47 +1535,51 @@ export function renderReportPdf(report: ReportPdfInput): Uint8Array {
         return wrapText(text, Math.max(col.width - 8, 12), "F1", cellFontSize)
       })
       const maxLines = Math.max(...wrappedCells.map((c) => c.length))
-      const rowH = maxLines * cellLineH + 6
+      const lineCapacity = () => Math.floor((y - minBottomY - 6) / cellLineH)
+      if (maxLines > lineCapacity()) startPage()
 
-      if (y - rowH < minBottomY) {
-        startPage()
-      }
+      for (let offset = 0; offset < maxLines; ) {
+        if (lineCapacity() < 1)
+          throw new RangeError("REPORT_PDF_HEADER_TOO_TALL")
+        const lines = Math.min(lineCapacity(), maxLines - offset)
+        const rowH = lines * cellLineH + 6
+        if (rIdx % 2 === 1)
+          currentPage!.fillRect(
+            margin,
+            y - rowH,
+            contentWidth,
+            rowH,
+            COLOR_ZEBRA_BG
+          )
 
-      if (rIdx % 2 === 1) {
-        currentPage!.fillRect(
+        colLayouts.forEach((col, index) => {
+          wrappedCells[index]
+            .slice(offset, offset + lines)
+            .forEach((line, row) => {
+              currentPage!.textAligned(
+                line,
+                margin + col.x + 4,
+                Math.max(col.width - 8, 12),
+                y - 10 - row * cellLineH,
+                "F1",
+                cellFontSize,
+                col.align,
+                COLOR_TEXT
+              )
+            })
+        })
+        currentPage!.line(
           margin,
           y - rowH,
-          contentWidth,
-          rowH,
-          COLOR_ZEBRA_BG
+          margin + contentWidth,
+          y - rowH,
+          COLOR_RULE,
+          0.4
         )
+        y -= rowH
+        offset += lines
+        if (offset < maxLines) startPage()
       }
-
-      colLayouts.forEach((col, cIdx) => {
-        const lines = wrappedCells[cIdx]
-        lines.forEach((ln, li) => {
-          currentPage!.textAligned(
-            ln,
-            margin + col.x + 4,
-            Math.max(col.width - 8, 12),
-            y - 10 - li * cellLineH,
-            "F1",
-            cellFontSize,
-            col.align,
-            COLOR_TEXT
-          )
-        })
-      })
-
-      currentPage!.line(
-        margin,
-        y - rowH,
-        margin + contentWidth,
-        y - rowH,
-        COLOR_RULE,
-        0.4
-      )
-      y -= rowH
     }
   }
 
@@ -1627,6 +1632,8 @@ export function renderReportPdf(report: ReportPdfInput): Uint8Array {
 
   // Running Footers on every page
   const totalPages = pages.length
+  if (report.maxPages !== undefined && totalPages > report.maxPages)
+    throw new RangeError("REPORT_PDF_PART_TOO_LARGE")
   pages.forEach((page, idx) => {
     page.line(
       margin,
