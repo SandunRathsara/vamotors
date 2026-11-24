@@ -11,6 +11,7 @@ import { currentActor, type Actor, type Identity } from "./actor"
 import { assertEnvironment, database, type Tx } from "./db"
 import { authorizedAttachment, privateStorage } from "./attachments"
 import { audit, writeReadVersion } from "./audit"
+import { executeImportedWriteOff } from "./approvals"
 import { CommandError, fail } from "./errors"
 import { canonical } from "./idempotency"
 import {
@@ -23,6 +24,7 @@ import {
 } from "./import-staging"
 import {
   adapterFor,
+  archiveImportedParty,
   ImportRowError,
   need,
   type ImportContext,
@@ -429,7 +431,14 @@ async function runGraph(
       return committed.targetVersion.entityId
     },
   }
-  const imported = []
+  const imported: {
+    row: Row
+    keys: string[]
+    versionId: string
+    targetId: string
+    sequence: bigint
+    disposal?: { rowId: string; versionId: string }
+  }[] = []
   for (const row of rows) {
     const keys = keysOf(row)
     const priorCosts = preview ? new Map(costIds) : null
@@ -500,6 +509,53 @@ async function runGraph(
       costIds.clear()
       for (const [key, id] of priorCosts!) costIds.set(key, id)
       errors.push(rowIssue(row, field, code, message))
+    }
+  }
+  if (errors.length) return errors
+  for (const entry of imported) {
+    const { row } = entry
+    if (row.data.type !== "VEHICLES" || !row.data.payload.disposal) continue
+    const {
+      closedAt,
+      disposal: { legacyApproval, ...terms },
+    } = row.data.payload
+    const rowId = randomUUID()
+    if (preview) await tx.$executeRawUnsafe("SAVEPOINT import_disposal")
+    try {
+      const versionId = await executeImportedWriteOff(
+        tx,
+        identity,
+        {
+          cycleId: entry.targetId,
+          ...terms,
+        },
+        {
+          batchId: batch.id,
+          rowId,
+          closedAt: closedAt!,
+          legacy: legacyApproval,
+        }
+      )
+      entry.disposal = { rowId, versionId }
+      if (preview)
+        await tx.$executeRawUnsafe("RELEASE SAVEPOINT import_disposal")
+    } catch (error) {
+      if (
+        !preview ||
+        (!(error instanceof CommandError) && !isDbConstraintError(error))
+      )
+        throw error
+      await tx.$executeRawUnsafe("ROLLBACK TO SAVEPOINT import_disposal")
+      await tx.$executeRawUnsafe("RELEASE SAVEPOINT import_disposal")
+      errors.push(
+        rowIssue(
+          row,
+          "disposal",
+          error instanceof CommandError ? error.code : "IMPORT_CONSTRAINT",
+          (error instanceof CommandError && error.safeMessage) ||
+            "The historical write-off could not be applied"
+        )
+      )
     }
   }
   if (errors.length) return errors
@@ -613,6 +669,36 @@ async function runGraph(
         )
     }
   }
+  if (!errors.length) {
+    for (const entry of imported) {
+      try {
+        const archived = await archiveImportedParty(
+          ctx,
+          entry.row.data,
+          entry.targetId
+        )
+        if (!archived) continue
+        const version = await tx.entityReadVersion.findFirstOrThrow({
+          where: {
+            entityId: entry.targetId,
+            entityType: archived.result.type,
+            commandId: archived.commandId,
+          },
+        })
+        entry.versionId = version.id
+      } catch (error) {
+        if (!(error instanceof CommandError) || !preview) throw error
+        errors.push(
+          rowIssue(
+            entry.row,
+            "isActive",
+            error.code,
+            error.safeMessage ?? "The party could not be archived"
+          )
+        )
+      }
+    }
+  }
   if (preview || errors.length) return errors
 
   await tx.importedFile.createMany({
@@ -622,7 +708,14 @@ async function runGraph(
       batchId: batch.id,
     })),
   })
-  for (const { row, keys, versionId, targetId, sequence } of imported) {
+  for (const {
+    row,
+    keys,
+    versionId,
+    targetId,
+    sequence,
+    disposal,
+  } of imported) {
     const file = prepared.files.find(
       (f) => f.source.attachmentId === row.source.attachmentId
     )!
@@ -643,6 +736,19 @@ async function runGraph(
         targetVersionId: versionId,
       },
     })
+    if (disposal)
+      await tx.importSourceRow.create({
+        data: {
+          id: disposal.rowId,
+          batchId: batch.id,
+          fileHash: file.sha256,
+          namespace: batch.namespace,
+          sourceType: "VEHICLE_DISPOSAL",
+          sourceKey: keys[0],
+          rowNumber: row.rowNumber,
+          targetVersionId: disposal.versionId,
+        },
+      })
     if (row.data.type === "VEHICLES") {
       const cycle = await tx.purchaseRecord.findUniqueOrThrow({
         where: { id: targetId },

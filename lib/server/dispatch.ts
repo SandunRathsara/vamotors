@@ -181,7 +181,8 @@ function readiness(row: DealRow) {
 
 export async function executeDispatch(
   identity: Identity,
-  raw: unknown
+  raw: unknown,
+  existingTx?: Tx
 ): Promise<Applied> {
   const parsed = dispatchEnvelope.safeParse(raw)
   if (!parsed.success) fail("INVALID_INPUT", 422)
@@ -412,7 +413,7 @@ export async function executeDispatch(
       )
     }
     throw new CommandError("RETRYABLE_TRANSACTION", 503, true)
-  })
+  }, existingTx)
 }
 
 async function loadBatch(tx: Tx, actor: Actor, batchId: string) {

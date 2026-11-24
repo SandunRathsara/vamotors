@@ -6,7 +6,6 @@ import type {
   CashInput,
   Contact,
   ControlTotals,
-  CustomerInput,
   DateOnly,
   Disposition,
   ImportPayloads,
@@ -25,7 +24,7 @@ import type {
 } from "../../.planning/implementation/contracts/api"
 import { A, B, bounded, minor, parseMajor, sum, tierDays } from "../money"
 import { states } from "../state"
-import { brokerageInputs, financeInput, importTypes, reconciliationInputs } from "./validators"
+import { brokerageInputs, dispatchInput, financeInput, importTypes, reconciliationInputs } from "./validators"
 import { canonical } from "./idempotency"
 import { validateXlsx } from "./private-files/xlsx-validation.mjs"
 
@@ -506,6 +505,14 @@ const extensionKey: ImportColumnSpec = {
   name: "sourceKey", type: "string", required: true, description: "Unique source key",
   example: "legacy-001",
 }
+const activeColumn: ImportColumnSpec = {
+  name: "isActive",
+  type: "boolean",
+  required: false,
+  description: "False to archive the party after importing its historical relationships",
+  example: "",
+}
+
 export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
   REMITTANCES: {
     version: 1, type: "REMITTANCES", columns: [
@@ -516,8 +523,11 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
       { name: "amount", type: "money", required: true, description: "Received amount in major currency units", example: "10000.00" },
       { name: "date", type: "date", required: true, description: "Date of receipt", example: "2026-01-30" },
       { name: "asOfDate", type: "date", required: true, description: "Historical reconciliation cutoff", example: "2026-01-30" },
+      { name: "draftId", type: "uuid", required: false, description: "Existing staged remittance for the verified notice", example: "" },
+      { name: "noticeAttachmentId", type: "uuid", required: false, description: "Finalized notice attachment on that draft", example: "" },
+      { name: "noticeLines", type: "json", required: false, description: "Notice line array with distinct key, amount in major units, and description", example: "" },
       { name: "allocations", type: "json", required: false,
-        description: "Array of allocations with type SALES/BROKERAGE, sourceKey or existingId, and amount in major currency units",
+        description: "Array with source type SALES/BROKERAGE, sourceKey or existingId, amount in major currency units, and optional noticeLineKey",
         example: '[{"type":"SALES","sourceKey":"sale-001","amount":"10000.00"}]' },
       ...LEGACY_METADATA_COLUMNS,
     ],
@@ -542,6 +552,8 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         example: "11111111-1111-4111-8111-111111111111" },
       { name: "guarantors", type: "json", required: true, description: "Guarantor information",
         example: '[{"name":"Synthetic Guarantor","identity":"812345678V","address":"10 Park Lane","phone":"0776543210"}]' },
+      { name: "existingDealId", type: "uuid", required: false, description: "Draft deal already holding verified historical documents", example: "" },
+      { name: "history", type: "json", required: false, description: "Ordered brokerage steps with command and input; omit the deal ID from every step", example: "" },
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
@@ -551,6 +563,7 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
     columns: [
       ...PARTY_COMMON_COLUMNS,
       ...PARTY_FLAT_CONTACT_ALIASES,
+      activeColumn,
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
@@ -569,6 +582,7 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
       },
       ...PARTY_COMMON_COLUMNS.slice(8),
       ...PARTY_FLAT_CONTACT_ALIASES,
+      activeColumn,
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
@@ -640,6 +654,7 @@ export const IMPORT_SCHEMAS: Record<ImportType, ImportTemplateSchema> = {
         description: "Optional customer notes",
         example: "Synthetic customer record",
       },
+      activeColumn,
       ...LEGACY_METADATA_COLUMNS,
     ],
   },
@@ -3197,6 +3212,7 @@ function parseDirectoryRow<K extends "SUPPLIERS" | "REPAIR_VENDORS">(
   const specialisation =
     type === "REPAIR_VENDORS" ? r.optString("specialisation", 2000) : undefined
   const notes = r.optString("notes", 2000)
+  const isActive = r.optBool("isActive")
   const contacts = parseContactsField(r)
 
   if (r.errors.length > errStart || !name || !category) return null
@@ -3210,11 +3226,12 @@ function parseDirectoryRow<K extends "SUPPLIERS" | "REPAIR_VENDORS">(
     ...(recurring !== undefined ? { recurring } : {}),
     ...(specialisation !== undefined ? { specialisation } : {}),
     ...(notes !== undefined ? { notes } : {}),
+    ...(isActive !== undefined ? { isActive } : {}),
     contacts,
   }
 }
 
-function parseCustomerRow(r: RowReader): CustomerInput | null {
+function parseCustomerRow(r: RowReader): ImportPayloads["CUSTOMERS"] | null {
   const errStart = r.errors.length
   const fullName = r.reqString("fullName", 200)
   const callingName = r.reqString("callingName", 200)
@@ -3237,6 +3254,7 @@ function parseCustomerRow(r: RowReader): CustomerInput | null {
   const email = r.optEmail("email")
   const drivingLicence = r.optString("drivingLicence", 100)
   const notes = r.optString("notes", 2000)
+  const isActive = r.optBool("isActive")
 
   if (
     r.errors.length > errStart ||
@@ -3257,6 +3275,7 @@ function parseCustomerRow(r: RowReader): CustomerInput | null {
     ...(email !== undefined ? { email } : {}),
     ...(drivingLicence !== undefined ? { drivingLicence } : {}),
     ...(notes !== undefined ? { notes } : {}),
+    ...(isActive !== undefined ? { isActive } : {}),
   }
 }
 
@@ -4853,18 +4872,60 @@ function parsePolicySnapshot(
   return { timezone, tiers, leadDays, days }
 }
 
+const historicalBrokerageSteps = z.array(z.discriminatedUnion("command", [
+  z.object({ command: z.literal("recordEligibility"), input: brokerageInputs.recordEligibility.innerType()
+    .omit({ dealId: true, guarantorId: true })
+    .extend({ guarantorIdentity: z.string().trim().min(1).max(200).optional() })
+    .refine((step) => (step.target === "GUARANTOR") === !!step.guarantorIdentity) }).strict(),
+  z.object({ command: z.literal("recordInspection"), input: brokerageInputs.recordInspection.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("adjustLoan"), input: brokerageInputs.adjustLoan.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("setChecklist"), input: brokerageInputs.setChecklist.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("verifyDocuments"), input: brokerageInputs.verifyDocuments.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("setProcessingFee"), input: brokerageInputs.setProcessingFee.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("informCompany"), input: brokerageInputs.informCompany.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("referDeal"), input: brokerageInputs.referDeal.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("rejectDeal"), input: brokerageInputs.rejectDeal.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("completeBrokerage"), input: brokerageInputs.completeBrokerage.omit({ dealId: true }) }).strict(),
+  z.object({ command: z.literal("dispatchBatch"), input: dispatchInput.omit({ sourceIds: true }) }).strict(),
+])).max(20)
+
 function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["REMITTANCES"] | null {
   const company = parseLegacyRefPair(r, "company", "FINANCE_COMPANIES", namespace, true)
   const reference = r.reqString("reference", 200)
   const amount = r.reqMoney("amount", { positive: true })
   const date = r.reqDate("date")
   const asOfDate = r.reqDate("asOfDate")
+  const draftId = r.optUuid("draftId")
+  const noticeAttachmentId = r.optUuid("noticeAttachmentId")
+  const lineSchema = reconciliationInputs.recordRemittance.shape.lines
+    .innerType().element.omit({ source: true }).extend({ amount: z.string() })
+  const lines = z.array(lineSchema).max(100).safeParse(r.optJson("noticeLines") ?? [])
+  if (!lines.success) {
+    addError(r.errors, r.rowNumber, "noticeLines", "INVALID_JSON", "Expected notice lines with key, description and amount", r.sourceKey)
+    return null
+  }
+  if (!!draftId !== !!noticeAttachmentId || (lines.data.length && !noticeAttachmentId)) {
+    addError(r.errors, r.rowNumber, "noticeAttachmentId", "INVALID_INPUT", "Supply the staged draft and its finalized notice together", r.sourceKey)
+    return null
+  }
+  const noticeLines = lines.data.flatMap((line, index) => {
+    const amount = parseImportMoney(line.amount, { positive: true })
+    if (!amount.ok) {
+      addError(r.errors, r.rowNumber, `noticeLines[${index}].amount`, amount.code, amount.message, r.sourceKey)
+      return []
+    }
+    return [{ ...line, amount: amount.value }]
+  })
+  const lineKeys = new Set(noticeLines.map((line) => line.key))
+  if (lineKeys.size !== noticeLines.length)
+    addError(r.errors, r.rowNumber, "noticeLines", "DUPLICATE_SOURCE_KEY", "Notice line keys must be unique", r.sourceKey)
   const raw = r.optJson("allocations") ?? []
   const rows = z.array(z.object({
     type: z.enum(["SALES", "BROKERAGE"]),
     sourceKey: z.string().trim().min(1).max(200).optional(),
     existingId: z.string().uuid().optional(),
     amount: z.string(),
+    noticeLineKey: z.string().trim().min(1).max(200).optional(),
   }).strict().refine((row) => !!row.sourceKey !== !!row.existingId)).max(100).safeParse(raw)
   if (!rows.success) {
     addError(r.errors, r.rowNumber, "allocations", "INVALID_JSON", "Expected allocation type, source key or UUID, and amount", r.sourceKey)
@@ -4884,9 +4945,15 @@ function parseRemittanceRow(r: RowReader, namespace: string): ImportPayloads["RE
     }
     const source = row.existingId ? { existingId: row.existingId.toLowerCase() }
       : { namespace, type: row.type, sourceKey: row.sourceKey! }
-    return [{ source, sourceType: row.type, amount: value.value }]
+    if (row.noticeLineKey && !lineKeys.has(row.noticeLineKey))
+      addError(r.errors, r.rowNumber, `allocations[${index}].noticeLineKey`, "INVALID_INPUT", "Allocation must name a line in noticeLines", r.sourceKey)
+    return [{ source, sourceType: row.type, amount: value.value,
+      ...(row.noticeLineKey ? { noticeLineKey: row.noticeLineKey } : {}),
+    }]
   })
-  return { company, payment: payment.data, asOfDate, allocations }
+  return { company, payment: payment.data, asOfDate, allocations,
+    ...(draftId && noticeAttachmentId ? { draftId, noticeAttachmentId, noticeLines } : {}),
+  }
 }
 
 function parseAdvanceRow(
@@ -5260,7 +5327,8 @@ function collectDistinctKeys(
         break
       case "BROKERAGE":
         addRef(row.payload.customer)
-        referencedExistingIds.add(row.payload.quoteId)
+        if (row.payload.quoteId) referencedExistingIds.add(row.payload.quoteId)
+        if (row.payload.existingDealId) referencedExistingIds.add(row.payload.existingDealId)
         break
       case "CUSTOMERS":
         customerIdentities.add(
@@ -5603,6 +5671,21 @@ export async function parseImportBuffer<K extends ImportType>(
         break
       }
       case "BROKERAGE": {
+        const existingDealId = reader.optUuid("existingDealId")
+        const history = historicalBrokerageSteps.safeParse(reader.optJson("history") ?? [])
+        if (!history.success) {
+          for (const issue of history.error.issues)
+            addError(rowErrors, row.rowNumber, ["history", ...issue.path].join("."), "INVALID_INPUT", issue.message, sourceKey)
+          break
+        }
+        const progress = history.data.length ? { history: history.data } : {}
+        if (existingDealId) {
+          if (!history.data.length || reader.hasAny(["customerSourceKey", "customerExistingId", "quoteId", "guarantors"]))
+            addError(rowErrors, row.rowNumber, "existingDealId", "INVALID_INPUT",
+              "Supply historical steps for the existing deal and clear intake columns", sourceKey)
+          else payload = { existingDealId, ...progress } as ImportPayloads[K]
+          break
+        }
         const customer = parseLegacyRefPair(reader, "customer", "CUSTOMERS", namespace, true)
         const quoteId = reader.optUuid("quoteId")
         const guarantors = brokerageInputs.openBrokerage.shape.guarantors.safeParse(reader.optJson("guarantors"))
@@ -5611,7 +5694,7 @@ export async function parseImportBuffer<K extends ImportType>(
           for (const issue of guarantors.error.issues)
             addError(rowErrors, row.rowNumber, ["guarantors", ...issue.path].join("."), "INVALID_INPUT", issue.message, sourceKey)
         if (customer && quoteId && guarantors.success)
-          payload = { customer, quoteId, guarantors: guarantors.data } as ImportPayloads[K]
+          payload = { customer, quoteId, guarantors: guarantors.data, ...progress } as ImportPayloads[K]
         break
       }
       case "SUPPLIERS":

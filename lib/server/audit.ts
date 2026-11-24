@@ -152,6 +152,7 @@ export async function writeReadVersion(
       | "Reservation"
       | "Remittance"
       | "ReconciliationRun"
+      | "Disposal"
     entityId: string
     revision: number
     payload: Record<string, unknown>

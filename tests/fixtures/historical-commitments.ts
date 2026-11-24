@@ -35,7 +35,38 @@ export function historicalCommitmentRows(ids: FixtureIds) {
       supplierExistingId: supplierId,
       status: ["DELIVERED", "IN_STOCK", "IN_STOCK", "ADVANCE_EXPIRED"][i],
       available: String(i === 1 || i === 2),
-      ...(i === 0 ? { listedPrice: "5600000.00" } : {}),
+      ...(i === 0
+        ? {
+            listedPrice: "5600000.00",
+            payments: JSON.stringify([
+              {
+                ...receipt("SELLER", "2500000.00", "2026-01-10"),
+                sourceKey: "first",
+                direction: "OUT",
+              },
+              {
+                ...receipt("SELLER", "2500000.00", "2026-01-10"),
+                sourceKey: "reverse-first",
+                reversalOfSourceKey: "first",
+              },
+              {
+                ...receipt(
+                  "SELLER",
+                  "3000000.00",
+                  "2026-01-11",
+                  `${prefix}-seller`
+                ),
+                sourceKey: "second",
+                direction: "OUT",
+              },
+              {
+                ...receipt("SELLER", "2000000.00", "2026-01-12"),
+                sourceKey: "last",
+                direction: "OUT",
+              },
+            ]),
+          }
+        : {}),
       closedAt: state === "CONVERTED" ? "2026-01-20T00:00:00.000Z" : "",
       additionalCosts: "[]",
     })),

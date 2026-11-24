@@ -2,6 +2,7 @@
 import assert from "node:assert/strict"
 import { createHash, randomUUID } from "node:crypto"
 import { dirname, join } from "node:path"
+import { readFile } from "node:fs/promises"
 import pg from "pg"
 import { chromium, expect } from "@playwright/test"
 import { authorizedMigration, privateEnvironment } from "./private-environment"
@@ -99,7 +100,9 @@ const fixture = {
             ? `V${suffix}`
             : c.name === "sourceKey"
               ? "vnd-001"
-              : c.example
+              : c.name === "isActive"
+                ? "false"
+                : c.example
         ),
       ],
     },
@@ -253,6 +256,18 @@ assert.equal(
 const committed = await query("importBatchFiles", { id: batch.id })
 assert.equal(committed.state, "COMMITTED")
 assert.equal(committed.importedRecords.length, types.length)
+const archivedVendor = committed.importedRecords.find(
+  (record: { type: string }) => record.type === "RepairVendor"
+)
+assert.equal(
+  (
+    await query("party", {
+      type: "REPAIR_VENDOR",
+      id: new URL(archivedVendor.href, origin).pathname.split("/").at(-1)!,
+    })
+  ).active,
+  false
+)
 const purchase = committed.importedRecords.find(
   (record: { type: string }) => record.type === "PurchaseRecord"
 )
@@ -349,7 +364,7 @@ const finance = await oneFile(
   csv("FINANCE_COMPANIES", {
     name: `Import Finance ${suffix}`,
     financePolicy:
-      '{"path":"REFERRAL","commission":{"basis":"FIXED","fixed":"10000","rateBps":0},"processingFee":"0","reconciliationMethod":"PER_DEAL"}',
+      '{"path":"REFERRAL","commission":{"basis":"FIXED","fixed":"10000","rateBps":0},"processingFee":"0","reconciliationMethod":"PERIOD_NOTICE"}',
   })
 )
 const financeId = new URL(finance.href, origin).pathname.split("/").at(-1)!
@@ -411,19 +426,66 @@ const quote = (
 const customerRecord = committed.importedRecords.find(
   (record: { type: string }) => record.type === "Customer"
 )
+const financeParty = await query("party", {
+  type: "FINANCE_COMPANY",
+  id: financeId,
+})
+const contactId = financeParty.contacts[0].id
+const checkedAt = "2026-01-15T09:00:00.000Z"
+const history = [
+  {
+    command: "recordEligibility",
+    input: {
+      target: "CUSTOMER",
+      outcome: "CONFIRMED",
+      contactId,
+      checkedAt,
+      feedback: "Historical confirmation",
+    },
+  },
+  {
+    command: "recordEligibility",
+    input: {
+      target: "GUARANTOR",
+      guarantorIdentity: "812345678V",
+      outcome: "CONFIRMED",
+      contactId,
+      checkedAt,
+      feedback: "Historical confirmation",
+    },
+  },
+  {
+    command: "referDeal",
+    input: {
+      contactId,
+      referredAt: "2026-01-16T09:00:00.000Z",
+      sentContact: { name: "Synthetic Buyer", phone: "0771234567" },
+      feedback: "Historical referral",
+    },
+  },
+  {
+    command: "completeBrokerage",
+    input: {
+      contactId,
+      at: "2026-01-17T09:00:00.000Z",
+      feedback: "Historical completion",
+    },
+  },
+]
 const brokerage = await oneFile(
   "BROKERAGE",
   csv("BROKERAGE", {
     customerSourceKey: "",
     customerExistingId: customerRecord.href.split("/").at(-1),
     quoteId: quote.id,
+    history: JSON.stringify(history),
   })
 )
 const importedDeal = await query("brokerageDeal", {
   id: brokerage.href.split("/").at(-1),
 })
 assert.equal(importedDeal.provenance.imported, true)
-assert.equal(importedDeal.state, "INTAKE")
+assert.equal(importedDeal.state, "COMPLETED")
 console.log("PASS finance-company and quote-backed brokerage intake imports")
 
 const tradeNamespace = `trade-in-${suffix}`
@@ -760,6 +822,81 @@ async function commitHistory(
   console.log(`PASS ${name} import in ${Math.round(ms)} ms`)
   return (await query("importBatchFiles", { id: batch.id })).importedRecords
 }
+async function withBankNotice(row: Record<string, string>) {
+  const currentFinance = await query("party", {
+    type: "FINANCE_COMPANY",
+    id: financeId,
+  })
+  const { result: draft } = await command(
+    "stageRemittance",
+    {
+      companyId: financeId,
+      reference: row.reference,
+    },
+    [ref("FinanceCompany", currentFinance)],
+    201
+  )
+  const notice = await readFile("public/pwa-icon-192.png")
+  const ready = await command(
+    "initUpload",
+    {
+      target: { type: "REMITTANCE", id: draft.id },
+      purpose: "RECONCILIATION_NOTICE",
+      filename: "historical-notice.png",
+      contentType: "image/png",
+      sha256: createHash("sha256").update(notice).digest("hex"),
+      size: notice.length,
+    },
+    [draft],
+    201
+  )
+  const uploaded = await fetch(`${origin}${ready.putUrl}`, {
+    method: "PUT",
+    headers: { origin, cookie, ...ready.requiredHeaders },
+    body: new Uint8Array(notice),
+  })
+  assert.ok(uploaded.ok)
+  const { result: attachment } = await command(
+    "completeUpload",
+    { uploadId: ready.uploadId },
+    [
+      draft,
+      { type: "UploadIntent", id: ready.uploadId, revision: ready.revision },
+    ]
+  )
+  return {
+    ...row,
+    amount: "500100.00",
+    draftId: draft.id,
+    noticeAttachmentId: attachment.id,
+    noticeLines: JSON.stringify([
+      {
+        key: "lease",
+        amount: "500000.00",
+        description: "Vehicle principal instalment",
+      },
+      {
+        key: "brokerage",
+        amount: "100.00",
+        description: "Brokerage commission",
+      },
+    ]),
+    allocations: JSON.stringify([
+      {
+        type: "SALES",
+        sourceKey: "lease-001",
+        amount: "500000.00",
+        noticeLineKey: "lease",
+      },
+      {
+        type: "BROKERAGE",
+        existingId: importedDeal.id,
+        amount: "100.00",
+        noticeLineKey: "brokerage",
+      },
+    ]),
+  }
+}
 const leaseNamespace = `lease-and-remittance-${suffix}`
 const commitmentRecords = await commitHistory(
   "historical-lease",
@@ -768,16 +905,16 @@ const commitmentRecords = await commitHistory(
     ADVANCES: commitmentRows.ADVANCES.slice(0, 1),
     SALES: commitmentRows.SALES,
   },
-  "200000000",
-  "500000000",
+  "450000000",
+  "750000000",
   leaseNamespace
 )
 await commitHistory(
   "historical-remittance",
   {
-    REMITTANCES: commitmentRows.REMITTANCES,
+    REMITTANCES: [await withBankNotice(commitmentRows.REMITTANCES[0])],
   },
-  "50000000",
+  "50010000",
   "0",
   leaseNamespace
 )
@@ -854,6 +991,22 @@ try {
     allocated: "50000000",
     commission: "10000",
   })
+  const brokerLedger = await totalsDB.query(
+    `SELECT e.state, e."expectedAmount"::text AS expected, a.amount::text AS allocated, l.key AS line
+     FROM vamotors."CommissionEntitlement" e
+     JOIN vamotors."CommissionAllocation" a ON a."entitlementId"=e.id
+     JOIN vamotors."NoticeLine" l ON l.id=a."noticeLineId"
+     WHERE e."brokerageDealId"=$1`,
+    [importedDeal.id]
+  )
+  assert.deepEqual(brokerLedger.rows, [
+    {
+      state: "SETTLED",
+      expected: "10000",
+      allocated: "10000",
+      line: "brokerage",
+    },
+  ])
   const evidence = await totalsDB.query(
     `SELECT s."legacyApproval" AS approval, r.metadata->>'historicalStatus' AS status
      FROM vamotors."SaleCase" s
@@ -886,8 +1039,8 @@ try {
     ]
   )
   assert.deepEqual(cash.rows, [
-    { direction: "IN", total: "400000000" },
-    { direction: "OUT", total: "2040000000" },
+    { direction: "IN", total: "650010000" },
+    { direction: "OUT", total: "2290000000" },
   ])
 } finally {
   await totalsDB.end()
@@ -895,6 +1048,59 @@ try {
 console.log(
   "PASS historical advances, lease handover, invoice and remittance allocation"
 )
+
+const disposalRecords = await commitHistory(
+  "historical-write-off",
+  {
+    VEHICLES: [
+      {
+        ...commitmentRows.VEHICLES[1],
+        sourceKey: "written-off",
+        cycleSourceKey: "written-off-cycle",
+        engineNumber: `discard-engine-${suffix}`,
+        chassisNumber: `discard-chassis-${suffix}`,
+        status: "WRITTEN_OFF",
+        available: "false",
+        closedAt: "2026-01-20T00:00:00.000Z",
+        disposalDate: "2026-01-20",
+        disposalReason: "Historical damage",
+        disposalMethod: "AUCTIONED",
+        disposalProceeds: "500000.00",
+        disposalReceiptAmount: "500000.00",
+        disposalReceiptDate: "2026-01-20",
+        disposalReceiptMethod: "CASH",
+        disposalApproverName: "Historical Manager",
+        disposalApprovalReference: "DISPOSAL-42",
+      },
+    ],
+  },
+  "50000000",
+  "500000000"
+)
+const disposed = await query("purchase", {
+  cycleId: recordId(
+    disposalRecords.find(
+      (record: { type: string }) => record.type === "PurchaseRecord"
+    ).href
+  ),
+})
+assert.equal(disposed.status, "WRITTEN_OFF")
+assert.equal(disposed.disposal.approval.kind, "IMPORTED")
+assert.equal(
+  disposed.disposal.approval.legacy.approverName,
+  "Historical Manager"
+)
+assert.equal(disposed.financial.net, "-450000000")
+const disposalReport = await fetch(
+  `${origin}/api/reports/disposals?from=2026-01-20&through=2026-01-20`,
+  { headers: { cookie } }
+)
+assert.equal(disposalReport.status, 200)
+const loss = (await disposalReport.json()).data.data.find(
+  (item: { cycleId: string }) => item.cycleId === disposed.id
+)
+assert.equal(loss?.netLoss, "450000000")
+assert.equal(loss?.approval.legacy.approverName, "Historical Manager")
 
 if (process.argv.includes("--browser")) {
   const browser = await chromium.launch({
@@ -1078,8 +1284,19 @@ if (process.argv.includes("--browser")) {
           .href.split("?")[0]
       ),
     })
+    const browserNotice = await withBankNotice(browserHistory.REMITTANCES[0])
+    browserNotice.allocations = JSON.stringify([
+      {
+        type: "SALES",
+        sourceKey: "lease-001",
+        amount: "500000.00",
+        noticeLineKey: "lease",
+      },
+    ])
     const newTypes = ["VEHICLES", "ADVANCES", "SALES", "REMITTANCES"] as const
-    await page.getByRole("checkbox", { name: "suppliers", exact: true }).uncheck()
+    await page
+      .getByRole("checkbox", { name: "suppliers", exact: true })
+      .uncheck()
     for (const type of newTypes)
       await page
         .getByRole("checkbox", { name: display(type), exact: true })
@@ -1092,7 +1309,10 @@ if (process.argv.includes("--browser")) {
       await uploadInBrowser(
         type,
         `lease-${type.toLowerCase()}.csv`,
-        csv(type, browserHistory[type][0])
+        csv(
+          type,
+          type === "REMITTANCES" ? browserNotice : browserHistory[type][0]
+        )
       )
     await page.getByRole("button", { name: "Validate and preview" }).click()
     await expect(

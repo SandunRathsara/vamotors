@@ -57,7 +57,7 @@ export async function importProvenance(
     contributingRows: [
       {
         rowId: row.id,
-        type: (row.sourceType === "VEHICLE_IDENTITY"
+        type: (["VEHICLE_IDENTITY", "VEHICLE_DISPOSAL"].includes(row.sourceType)
           ? "VEHICLES"
           : row.sourceType) as ImportType,
         sourceKey: row.sourceKey,

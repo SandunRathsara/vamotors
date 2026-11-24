@@ -15,7 +15,7 @@ import type { Identity } from "./actor"
 import type { Tx } from "./db"
 import { CommandError } from "./errors"
 import { executeCustomer } from "./customers"
-import { executeBrokerage } from "./brokerage"
+import { dealChecklistHash, dealInclude, executeBrokerage } from "./brokerage"
 import { currentSettings } from "./settings"
 import { executeParty } from "./parties"
 import {
@@ -90,18 +90,114 @@ function payment(input: LegacyPayment) {
   }
 }
 
-function outflows(rows: LegacyPayment[], category: string, field = "payments") {
-  need(
-    rows.every(
-      (p) =>
-        p.direction === "OUT" &&
-        p.category === category &&
-        !p.reversalOfSourceKey
-    ),
-    field,
-    `Expected unreversed ${category} outflows`
-  )
-  return rows
+type PaymentOwner = {
+  type: "PURCHASE" | "COST" | "REPAIR"
+  id: string
+  cycleId: string
+}
+
+async function applyHistoricalPayments(
+  { tx, identity }: ImportContext,
+  owner: PaymentOwner,
+  rows: LegacyPayment[]
+) {
+  const payments = new Map<string, { id: string; source: LegacyPayment }>()
+  const reversed = new Set<string>()
+  for (const entry of [...rows].sort((a, b) => a.date.localeCompare(b.date))) {
+    const field = `payments.${entry.sourceKey}`
+    need(
+      owner.type === "PURCHASE"
+        ? ["SELLER", "SETTLEMENT"].includes(entry.category)
+        : entry.category === owner.type,
+      field,
+      "Payment category does not match its owner"
+    )
+    const expected: Dependency[] = [await cycleRef(tx, owner.cycleId)]
+    if (owner.type === "COST")
+      expected.push(
+        ref(
+          "VehicleCost",
+          await tx.vehicleCost.findUniqueOrThrow({ where: { id: owner.id } })
+        )
+      )
+    if (owner.type === "REPAIR")
+      expected.push(
+        ref(
+          "RepairRecord",
+          await tx.repairRecord.findUniqueOrThrow({ where: { id: owner.id } })
+        )
+      )
+    if (entry.reversalOfSourceKey) {
+      const original = payments.get(entry.reversalOfSourceKey)
+      need(
+        original &&
+          !reversed.has(entry.reversalOfSourceKey) &&
+          entry.direction === "IN" &&
+          entry.amount === original.source.amount &&
+          entry.date === original.source.date &&
+          entry.method === original.source.method &&
+          entry.reference === original.source.reference &&
+          entry.category === original.source.category,
+        field,
+        "A reversal must match an earlier unreversed outflow in this source"
+      )
+      const raw = env(
+        {
+          sourceType: owner.type,
+          sourceId: owner.id,
+          paymentId: original.id,
+          reason: `Historical reversal of ${entry.reversalOfSourceKey}`,
+        },
+        expected
+      )
+      if (owner.type === "REPAIR")
+        await executeRepair(identity, "reversePayment", raw, tx)
+      else await executeCycleMoney(identity, "reversePayment", raw, tx)
+      reversed.add(entry.reversalOfSourceKey)
+      continue
+    }
+    need(
+      entry.direction === "OUT",
+      field,
+      "An inflow must reference the source payment it reverses"
+    )
+    const applied =
+      owner.type === "REPAIR"
+        ? await executeRepair(
+            identity,
+            "payRepair",
+            env({ repairId: owner.id, payment: payment(entry) }, expected),
+            tx
+          )
+        : owner.type === "COST"
+          ? await executeCycleMoney(
+              identity,
+              "payCost",
+              env({ costId: owner.id, payment: payment(entry) }, expected),
+              tx
+            )
+          : await executeCycleMoney(
+              identity,
+              "payPurchase",
+              env(
+                {
+                  cycleId: owner.cycleId,
+                  recipient: entry.category,
+                  payment: payment(entry),
+                },
+                expected
+              ),
+              tx
+            )
+    const where = { commandId: applied.commandId }
+    const recorded =
+      owner.type === "REPAIR"
+        ? await tx.repairPayment.findFirstOrThrow({ where })
+        : owner.type === "COST"
+          ? await tx.costPayment.findFirstOrThrow({ where })
+          : await tx.purchasePayment.findFirstOrThrow({ where })
+    payments.set(entry.sourceKey, { id: recorded.id, source: entry })
+  }
 }
 
 function directory<K extends "SUPPLIERS" | "REPAIR_VENDORS">(
@@ -109,11 +205,12 @@ function directory<K extends "SUPPLIERS" | "REPAIR_VENDORS">(
 ): ImportAdapter<K> {
   const adapter = {
     work: ({ payload }: { payload: ImportPayloads["SUPPLIERS"] }) =>
-      1 + payload.contacts.length,
+      1 + payload.contacts.length + Number(payload.isActive === false),
     async apply(
       { tx, identity }: ImportContext,
       { payload }: { payload: ImportPayloads["SUPPLIERS"] }
     ) {
+      const { isActive: _isActive, ...values } = payload
       const where = payload.nicOrRegNumber
         ? {
             nicOrRegNumber: {
@@ -138,7 +235,7 @@ function directory<K extends "SUPPLIERS" | "REPAIR_VENDORS">(
       return executeParty(
         identity,
         "createDirectoryParty",
-        env({ type: kind, values: payload }),
+        env({ type: kind, values }),
         tx
       )
     },
@@ -183,7 +280,8 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
   ],
   work: ({ payload: p }) =>
     4 +
-    p.mileage.length +
+    Number(!!p.disposal) * 3 + p.mileage.length +
+    p.payments.length +
     p.additionalCosts.reduce((n, c) => n + 1 + c.payments.length, 0),
   async apply(ctx, { payload: p }) {
     const { tx, identity } = ctx
@@ -194,6 +292,7 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
         "IN_REPAIR",
         "SOLD",
         "DELIVERED",
+        "WRITTEN_OFF",
         "ADVANCE_PLACED",
         "ADVANCE_EXPIRED",
         "FINANCE_PENDING",
@@ -285,22 +384,19 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
         ["SELLER", p.settlement?.cashToSeller ?? p.purchasePrice],
         ["SETTLEMENT", p.settlement?.amount ?? "0"],
       ].filter(([, amount]) => amount !== "0")
-      need(
+      const ordinaryPayment =
         p.payments.length === paymentParts.length &&
-          paymentParts.every(([category, amount]) =>
-            p.payments.some(
-              (entry) =>
-                entry.category === category &&
-                entry.amount === amount &&
-                entry.date === p.purchaseDate &&
-                entry.direction === "OUT" &&
-                !entry.reversalOfSourceKey &&
-                entry.method === p.payments[0]?.method
-            )
-          ),
-        "payments",
-        "Supply one full acquisition payment per nonzero component, using the purchase date and a shared method"
-      )
+        paymentParts.every(([category, amount]) =>
+          p.payments.some(
+            (entry) =>
+              entry.category === category &&
+              entry.amount === amount &&
+              entry.date === p.purchaseDate &&
+              entry.direction === "OUT" &&
+              !entry.reversalOfSourceKey &&
+              entry.method === p.payments[0]?.method
+          )
+        )
       result = await recordPurchase(
         identity,
         env(
@@ -308,7 +404,7 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
             ...common,
             supplierId,
             purchaseDate: p.purchaseDate,
-            paymentMethod: p.payments[0].method,
+            paymentMethod: p.payments[0]?.method ?? "CASH",
             ...(p.purchaseType === "LEASE_SETTLEMENT"
               ? { purchaseType: p.purchaseType, settlement: settlement! }
               : {
@@ -321,8 +417,15 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
         tx,
         Object.fromEntries(
           p.payments.map((entry) => [entry.category, entry.reference])
-        )
+        ),
+        !ordinaryPayment
       )
+      if (!ordinaryPayment)
+        await applyHistoricalPayments(
+          ctx,
+          { type: "PURCHASE", id: result.result.id, cycleId: result.result.id },
+          p.payments
+        )
     }
 
     const acquisition = result.affected.find(
@@ -394,11 +497,6 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
     }
     for (const cost of p.additionalCosts) {
       const { sourceKey, date, payments, ...values } = cost
-      const [first, ...rest] = outflows(
-        payments,
-        "COST",
-        "additionalCosts.payments"
-      )
       const key = ctx.key("VEHICLES", sourceKey)
       need(
         !ctx.costIds.has(key),
@@ -413,27 +511,17 @@ const vehicles: ImportAdapter<"VEHICLES"> = {
             cycleId,
             ...values,
             incurredDate: date,
-            payment: first && payment(first),
           },
           [await cycleRef(tx, cycleId)]
         ),
         tx
       )
       const costId = created.result.id
-      for (const entry of rest) {
-        const current = await tx.vehicleCost.findUniqueOrThrow({
-          where: { id: costId },
-        })
-        await executeCycleMoney(
-          identity,
-          "payCost",
-          env({ costId, payment: payment(entry) }, [
-            await cycleRef(tx, cycleId),
-            ref("VehicleCost", current),
-          ]),
-          tx
-        )
-      }
+      await applyHistoricalPayments(
+        ctx,
+        { type: "COST", id: costId, cycleId },
+        payments
+      )
       ctx.costIds.set(key, costId)
     }
     return { ...result, result: acquisition }
@@ -483,7 +571,6 @@ const repairs: ImportAdapter<"REPAIRS"> = {
     )
     const repairId = sent.result.id
     if (p.returnedDate) {
-      const [first, ...rest] = outflows(p.payments, "REPAIR")
       await executeRepair(
         identity,
         "returnRepair",
@@ -494,7 +581,6 @@ const repairs: ImportAdapter<"REPAIRS"> = {
             invoiceDate: p.invoiceDate,
             invoiceAmount: p.invoiceAmount,
             summary: p.summary,
-            payment: first && payment(first),
           },
           [
             await cycleRef(tx, cycleId),
@@ -503,20 +589,11 @@ const repairs: ImportAdapter<"REPAIRS"> = {
         ),
         tx
       )
-      for (const entry of rest) {
-        const repair = await tx.repairRecord.findUniqueOrThrow({
-          where: { id: repairId },
-        })
-        await executeRepair(
-          identity,
-          "payRepair",
-          env({ repairId, payment: payment(entry) }, [
-            await cycleRef(tx, cycleId),
-            ref("RepairRecord", repair),
-          ]),
-          tx
-        )
-      }
+      await applyHistoricalPayments(
+        ctx,
+        { type: "REPAIR", id: repairId, cycleId },
+        p.payments
+      )
       if (ctx.releaseAfterRepair.has(cycleId))
         await executeStock(
           identity,
@@ -986,7 +1063,8 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
     payload.company,
     ...payload.allocations.map((entry) => entry.source),
   ],
-  work: ({ payload }) => 4 + 2 * payload.allocations.length,
+  work: ({ payload }) =>
+    4 + 2 * payload.allocations.length + (payload.noticeLines?.length ?? 0),
   async apply(ctx, { payload: p }) {
     const { tx, identity } = ctx
     const companyId = await ctx.resolve(p.company, "company")
@@ -997,19 +1075,24 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
       need(company, "company", "Finance company could not be resolved")
       return ref("FinanceCompany", company)
     }
-    const stage = await executeReconciliation(
-      identity,
-      "stageRemittance",
-      env(
-        {
-          companyId,
-          reference: p.payment.reference,
-        },
-        [await currentCompany()]
-      ),
-      tx
-    )
-    const remittanceId = stage.result.id
+    const staged = p.draftId
+      ? await tx.remittance.findUnique({ where: { id: p.draftId } })
+      : (
+          await executeReconciliation(
+            identity,
+            "stageRemittance",
+            env(
+              {
+                companyId,
+                reference: p.payment.reference,
+              },
+              [await currentCompany()]
+            ),
+            tx
+          )
+        ).result
+    need(staged, "draftId", "Staged remittance could not be resolved")
+    const remittanceId = staged.id
     const record = await executeReconciliation(
       identity,
       "recordRemittance",
@@ -1018,14 +1101,21 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
           draftId: remittanceId,
           companyId,
           payment: p.payment,
-          lines: [],
+          noticeAttachmentId: p.noticeAttachmentId,
+          lines: p.noticeLines ?? [],
         },
-        [await currentCompany(), ref("Remittance", stage.result)]
+        [await currentCompany(), ref("Remittance", staged)]
       ),
       tx
     )
     if (!p.allocations.length) return record
 
+    const lines = p.noticeLines?.length
+      ? await tx.noticeLine.findMany({
+          where: { remittanceId },
+          select: { key: true, id: true },
+        })
+      : []
     const entitlements: Dependency[] = []
     const allocations = []
     for (const [index, entry] of p.allocations.entries()) {
@@ -1048,6 +1138,8 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
       allocations.push({
         remittanceId,
         entitlementId: entitlement.id,
+        noticeLineId: lines.find((line) => line.key === entry.noticeLineKey)
+          ?.id,
         amount: entry.amount,
       })
     }
@@ -1073,11 +1165,138 @@ const remittances: ImportAdapter<"REMITTANCES"> = {
   },
 }
 
+export async function archiveImportedParty(
+  ctx: ImportContext,
+  row: TypedImportRow,
+  id: string
+) {
+  const { identity, tx } = ctx
+  if (
+    row.type !== "CUSTOMERS" &&
+    row.type !== "SUPPLIERS" &&
+    row.type !== "REPAIR_VENDORS"
+  )
+    return
+  if (row.payload.isActive !== false) return
+  const reason = row.legacy?.notes ?? "Archived in the historical source"
+  if (row.type === "CUSTOMERS") {
+    const current = await tx.customer.findUniqueOrThrow({ where: { id } })
+    return executeCustomer(
+      identity,
+      "archiveParty",
+      env(
+        {
+          type: "CUSTOMER",
+          id,
+          active: false,
+          reason,
+        },
+        [ref("Customer", current)]
+      ),
+      tx
+    )
+  }
+  const supplier = row.type === "SUPPLIERS"
+  const current = supplier
+    ? await tx.supplier.findUniqueOrThrow({ where: { id } })
+    : await tx.repairVendor.findUniqueOrThrow({ where: { id } })
+  return executeParty(
+    identity,
+    "archiveParty",
+    env(
+      {
+        type: supplier ? "SUPPLIER" : "REPAIR_VENDOR",
+        id,
+        active: false,
+        reason,
+      },
+      [ref(supplier ? "Supplier" : "RepairVendor", current)]
+    ),
+    tx
+  )
+}
+
+async function restoreBrokerageProgress(
+  { tx, identity }: ImportContext,
+  dealId: string,
+  history: NonNullable<ImportPayloads["BROKERAGE"]["history"]>,
+  opened?: Applied
+) {
+  let result = opened
+  for (const step of history) {
+    const deal = await tx.brokerageDeal.findUnique({
+      where: { id: dealId },
+      include: dealInclude,
+    })
+    need(deal, "existingDealId", "Brokerage deal could not be resolved")
+    const dealRef = ref("BrokerageDeal", deal)
+    if (step.command === "dispatchBatch") {
+      const dispatched = await executeBrokerage(
+        identity,
+        step.command,
+        env(
+          {
+            ...step.input,
+            sourceIds: [
+              {
+                type: "BROKERAGE",
+                id: deal.id,
+                revision: deal.revision,
+                checklistHash: dealChecklistHash(deal),
+              },
+            ],
+          },
+          [dealRef]
+        ),
+        tx
+      )
+      const updated = dispatched.affected.find(
+        (item) => item.type === "BrokerageDeal" && item.id === deal.id
+      )
+      need(updated, "history", "Dispatch did not update this deal")
+      result = { ...dispatched, result: updated }
+    } else {
+      let input: unknown = { ...step.input, dealId }
+      if (step.command === "recordEligibility") {
+        const { guarantorIdentity, ...evidence } = step.input
+        const guarantor = deal.guarantors.find(
+          (item) => item.identity === guarantorIdentity
+        )
+        need(
+          !guarantorIdentity || guarantor,
+          "history",
+          "Guarantor identity is not on the deal"
+        )
+        input = { ...evidence, dealId, guarantorId: guarantor?.id }
+      }
+      result = await executeBrokerage(
+        identity,
+        step.command,
+        env(input, [
+          dealRef,
+          ref(
+            "FinanceCompany",
+            await tx.financeCompany.findUniqueOrThrow({
+              where: { id: deal.companyId },
+            })
+          ),
+        ]),
+        tx
+      )
+    }
+  }
+  need(result, "history", "Expected at least one historical step")
+  return result
+}
+
 export const importAdapters = {
   SUPPLIERS: directory<"SUPPLIERS">("SUPPLIER"),
   CUSTOMERS: {
-    apply: ({ tx, identity }, { payload }) =>
-      executeCustomer(identity, "createCustomer", env(payload), tx),
+    work: ({ payload }) => (payload.isActive === false ? 2 : 1),
+    apply: (
+      { tx, identity },
+      { payload: { isActive: _isActive, ...values } }
+    ) => executeCustomer(identity, "createCustomer", env(values), tx),
   },
   REPAIR_VENDORS: directory<"REPAIR_VENDORS">("REPAIR_VENDOR"),
   VEHICLES: vehicles,
@@ -1105,9 +1324,23 @@ export const importAdapters = {
   },
   BROKERAGE: {
     dependencies: ({ payload }) => [payload.customer],
-    work: ({ payload }) => 4 + payload.guarantors.length,
+    work: ({ payload }) =>
+      4 +
+      (payload.guarantors?.length ?? 0) +
+      3 * (payload.history?.length ?? 0),
     async apply(ctx, { payload }) {
       const { tx, identity } = ctx
+      if (payload.existingDealId)
+        return restoreBrokerageProgress(
+          ctx,
+          payload.existingDealId,
+          payload.history ?? []
+        )
+      need(
+        payload.customer,
+        "customer",
+        "Customer is required for a new brokerage deal"
+      )
       const customerId = await ctx.resolve(payload.customer, "customer")
       const customer = await tx.customer.findUnique({
         where: { id: customerId },
@@ -1129,7 +1362,7 @@ export const importAdapters = {
           "IMPORT_DUPLICATE"
         )
       const settings = await currentSettings(tx)
-      return executeBrokerage(
+      const opened = await executeBrokerage(
         identity,
         "openBrokerage",
         env({ customerId, quoteId: quote.id, guarantors: payload.guarantors }, [
@@ -1139,6 +1372,12 @@ export const importAdapters = {
           ref("Settings", settings),
         ]),
         tx
+      )
+      return restoreBrokerageProgress(
+        ctx,
+        opened.result.id,
+        payload.history ?? [],
+        opened
       )
     },
   },

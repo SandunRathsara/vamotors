@@ -741,7 +741,7 @@ export async function executeBrokerage(
   raw: unknown,
   existingTx?: Tx
 ): Promise<Applied> {
-  if (name === "dispatchBatch") return executeDispatch(identity, raw)
+  if (name === "dispatchBatch") return executeDispatch(identity, raw, existingTx)
   const parsed =
     name === "reversePayment"
       ? brokerageReversalEnvelope.safeParse(raw)

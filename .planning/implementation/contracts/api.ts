@@ -219,22 +219,31 @@ export type ApprovalProvenance =
   { kind: "CURRENT"; approvalId: Id; reviewerId: Id; reviewerName: string; reviewedAt: Instant } |
   { kind: "IMPORTED"; batchId: Id; rowId: Id; initiatedByAdminId: Id;
     historicalApprovalBypass: true; legacy: LegacyApprovalEvidence };
+type HistoricalBrokerageCommand = "recordInspection" | "adjustLoan" | "setChecklist" |
+  "verifyDocuments" | "setProcessingFee" | "informCompany" | "referDeal" |
+  "rejectDeal" | "completeBrokerage";
+export type LegacyBrokerageStep =
+  { [K in HistoricalBrokerageCommand]: { command: K; input: Omit<Commands[K], "dealId"> } }[HistoricalBrokerageCommand] |
+  { command: "recordEligibility"; input: Omit<Commands["recordEligibility"], "dealId" | "guarantorId"> & { guarantorIdentity?: string } } |
+  { command: "dispatchBatch"; input: Omit<Commands["dispatchBatch"], "sourceIds"> };
 export type ImportPayloads = {
   REMITTANCES: {
     company: LegacyRef;
     payment: CashInput & { method: "BANK_TRANSFER"; reference: string };
     asOfDate: DateOnly;
-    allocations: { source: LegacyRef; sourceType: "SALES" | "BROKERAGE"; amount: Money }[];
+    draftId?: Id;
+    noticeAttachmentId?: Id;
+    noticeLines?: { key: string; amount: Money; description: string }[];
+    allocations: { source: LegacyRef; sourceType: "SALES" | "BROKERAGE"; amount: Money; noticeLineKey?: string }[];
   };
   FINANCE_COMPANIES: Commands["createFinanceCompany"];
-  BROKERAGE: {
-    customer: LegacyRef;
-    quoteId: Id;
-    guarantors: Commands["openBrokerage"]["guarantors"];
-  };
-  SUPPLIERS: DirectoryInput;
-  CUSTOMERS: CustomerInput;
-  REPAIR_VENDORS: DirectoryInput;
+  BROKERAGE: ({ customer: LegacyRef; quoteId: Id; guarantors: Commands["openBrokerage"]["guarantors"];
+      existingDealId?: never } |
+    { existingDealId: Id; customer?: never; quoteId?: never; guarantors?: never }) &
+    { history?: LegacyBrokerageStep[] };
+  SUPPLIERS: DirectoryInput & { isActive?: boolean };
+  CUSTOMERS: CustomerInput & { isActive?: boolean };
+  REPAIR_VENDORS: DirectoryInput & { isActive?: boolean };
   VEHICLES: { vehicle: VehicleInput; supplier?: LegacyRef; sellerCustomer?: LegacyRef;
     tradeInSale?: LegacyRef; cycleSourceKey: string; cycleNumber: number;
     purchaseType: "CASH" | "LEASE_SETTLEMENT" | "BRAND_NEW"; purchaseDate: DateOnly;
