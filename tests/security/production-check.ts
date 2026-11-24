@@ -1353,16 +1353,32 @@ async function main() {
         await expect(
           a.getByRole("link", { name: "Users & Roles", exact: true })
         ).toBeHidden()
+        const lookupParams: Record<string, string> = {
+          reconciliation: `?companyId=${guessedID}`,
+          remittances: `?companyId=${guessedID}`,
+          reconciliationEntitlement: `?id=${guessedID}`,
+          remittance: `?id=${guessedID}`,
+          importBatchFiles: `?id=${guessedID}`,
+          download: `?attachmentId=${guessedID}`,
+          quote: `?id=${guessedID}`,
+          vehicle: `?id=${guessedID}`,
+          purchase: `?cycleId=${guessedID}`,
+          vehicleIdentity: "?engineNumber=UNKNOWN-T05A&chassisNumber=UNKNOWN-T05A",
+          parties: "?type=SUPPLIER",
+          party: `?type=SUPPLIER&id=${guessedID}`,
+        }
         for (const name of queryNames.filter((n) => n !== "currentActor"))
           assert.equal(
             (
               await admin.request.get(
-                `/api/v1/queries/${name}${name === "vehicle" ? `?id=${guessedID}` : name === "purchase" ? `?cycleId=${guessedID}` : name === "vehicleIdentity" ? "?engineNumber=UNKNOWN-T05A&chassisNumber=UNKNOWN-T05A" : name === "parties" ? "?type=SUPPLIER" : name === "party" ? "?type=SUPPLIER&id=00000000-0000-4000-8000-000000000099" : ""}`
+                `/api/v1/queries/${name}${lookupParams[name] ?? ""}`
               )
             ).status(),
             name === "vehicleIdentity"
               ? 200
               : [
+                    "reconciliationCompanies",
+                    "importBatches",
                     "permissionRegistry",
                     "customers",
                     "parties",
