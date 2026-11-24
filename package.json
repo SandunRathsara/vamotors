@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "private": true,
+  "packageManager": "pnpm@12.4.2",
   "scripts": {
     "dev": "portless run next dev --turbopack",
     "dev:port": "next dev --turbopack -p 8000",
