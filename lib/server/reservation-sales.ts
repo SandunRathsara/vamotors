@@ -1,3 +1,4 @@
+import { refreshLenderEntitlement } from "./reconciliation"
 import "server-only"
 import { randomUUID } from "node:crypto"
 import type { VehicleStatus } from "@prisma/client"
@@ -465,7 +466,7 @@ async function complete(
         sourceType: "VEHICLE_SALE",
         expectedAmount,
         policySnapshot: lease.policySnapshot!,
-        eligibleAt: new Date(),
+        eligibleAt: date,
         sentDate: date,
         sentDateSource: "HANDOVER",
         createdBy: userId,
@@ -1178,6 +1179,15 @@ export async function executeCommitment<N extends CommitmentCommand>(
             fail("BALANCE_MISMATCH", 422)
           authorizePayment(actor, sale, payment)
           await recordPayment(tx, context, sale.id, row.id, payment, "LENDER")
+          const entitlement = await tx.commissionEntitlement.findUnique({ where: { saleCaseId: sale.id } })
+          if (entitlement) {
+            const current = await refreshLenderEntitlement(tx, entitlement.id)
+            await audit(tx, {
+              ...context, entityType: "CommissionEntitlement", entityId: entitlement.id,
+              before: { revision: entitlement.revision, state: entitlement.state },
+              after: { revision: current.revision, state: current.state },
+            })
+          }
           await tx.saleCase.update({
             where: { id: sale.id },
             data: { revision: { increment: 1 } },

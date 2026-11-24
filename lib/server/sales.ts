@@ -52,6 +52,10 @@ export const saleInclude = {
   customer: true,
   reservation: true,
   inventoryLease: true,
+  entitlement: { select: {
+    allocations: { select: { amount: true, reversalOf: true } },
+    discrepancies: { where: { resolution: "CARRY_CREDIT" }, select: { allocationId: true, expectedMinusAllocated: true } },
+  } },
   purchaseRecord: { include: purchaseInclude },
   receipts: {
     orderBy: [
@@ -105,9 +109,23 @@ async function resolveActorNames(
   return new Map(users.map((u) => [u.id, u.name]))
 }
 
-export const lenderPaid = (row: SaleRow) => row.receipts
+export const directLenderPaid = (row: SaleRow) => row.receipts
   .filter((receipt) => receipt.category === "LENDER")
   .reduce((total, receipt) => total + (receipt.direction === "IN" ? receipt.amount : -receipt.amount), 0n)
+
+export function lenderPaid(row: SaleRow) {
+  const direct = directLenderPaid(row)
+  if (!row.inventoryLease) return direct
+  const allocated = (row.entitlement?.allocations ?? []).reduce(
+    (total, item) => total + (item.reversalOf ? -item.amount : item.amount), 0n
+  )
+  const reversed = new Set(row.entitlement?.allocations.map((item) => item.reversalOf))
+  const carried = (row.entitlement?.discrepancies ?? []).reduce(
+    (total, item) => reversed.has(item.allocationId) ? total : total - item.expectedMinusAllocated, 0n
+  )
+  const received = allocated + direct - carried
+  return received > row.inventoryLease.principal ? row.inventoryLease.principal : received
+}
 
 export function reservationDTO(row: NonNullable<SaleRow["reservation"]>, now = new Date()) {
   const expiryFlagPending = row.state === "ACTIVE" && row.expiresAt <= now

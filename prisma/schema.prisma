@@ -157,6 +157,10 @@ model BusinessSequence {
 }
 
 model CommandReceipt {
+  reconciliationRuns ReconciliationRun[]
+  remittancePayments RemittancePayment[]
+  stagedRemittances Remittance[]
+  commissionAllocations CommissionAllocation[]
   id                    String              @id @db.Uuid
   environmentId         String              @db.Uuid
   actorKey              String
@@ -296,6 +300,10 @@ model Settings {
 }
 
 model FinanceCompany {
+  reconciliationWatermark DateTime? @db.Date
+  entitlements CommissionEntitlement[]
+  remittances Remittance[]
+  reconciliationRuns ReconciliationRun[]
   inventoryLeases     InventoryLease[]
   id                  String                 @id @default(uuid()) @db.Uuid
   name                String
@@ -384,6 +392,7 @@ model Quote {
 }
 
 model FinancePolicyVersion {
+  reconciliationRuns ReconciliationRun[]
   id          String          @id @default(uuid()) @db.Uuid
   companyId   String          @db.Uuid
   company     FinanceCompany  @relation("policies", fields: [companyId], references: [id], onDelete: Restrict)
@@ -1166,6 +1175,8 @@ model ImportBatch {
 }
 
 model UploadIntent {
+  remittanceId String? @db.Uuid
+  remittance Remittance? @relation(fields: [remittanceId], references: [id], onDelete: Restrict)
   saleCaseId             String?         @db.Uuid
   saleCase               SaleCase?       @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
   id                     String          @id @default(uuid()) @db.Uuid
@@ -1228,6 +1239,9 @@ model UploadAttempt {
 }
 
 model Attachment {
+  remittanceId String? @db.Uuid
+  remittance Remittance? @relation("remittanceDocuments", fields: [remittanceId], references: [id], onDelete: Restrict)
+  noticeFor Remittance? @relation("recordedNotice")
   saleCaseId       String?         @db.Uuid
   saleCase         SaleCase?       @relation(fields: [saleCaseId], references: [id], onDelete: Restrict)
   deliveryOrderFor InventoryLease?
@@ -1602,6 +1616,9 @@ model DispatchItem {
 }
 
 model CommissionEntitlement {
+  company FinanceCompany @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  allocations CommissionAllocation[]
+  discrepancies CommissionDiscrepancy[]
   id              String         @id @default(uuid()) @db.Uuid
   companyId       String         @db.Uuid
   sourceType      String         @default("BROKERAGE")
@@ -1621,6 +1638,152 @@ model CommissionEntitlement {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  @@unique([id, companyId])
   @@index([companyId, state, sentDate, id])
+  @@schema("vamotors")
+}
+
+model Remittance {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company FinanceCompany @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  reference String
+  state String @default("STAGED")
+  revision Int @default(1)
+  method String
+  policyVersion Int
+  currency String
+  scale Int
+  createdBy String @db.Uuid
+  createdAt DateTime @default(now())
+  commandId String @unique @db.Uuid
+  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  noticeAttachmentId String? @unique @db.Uuid
+  notice Attachment? @relation("recordedNotice", fields: [noticeAttachmentId], references: [id], onDelete: Restrict)
+  documents Attachment[] @relation("remittanceDocuments")
+  uploads UploadIntent[]
+  payments RemittancePayment[]
+  lines NoticeLine[]
+  allocations CommissionAllocation[]
+  discrepancies CommissionDiscrepancy[]
+
+  @@unique([companyId, reference])
+  @@unique([id, companyId])
+  @@schema("vamotors")
+}
+
+model RemittancePayment {
+  id String @id @default(uuid()) @db.Uuid
+  remittanceId String @db.Uuid
+  remittance Remittance @relation(fields: [remittanceId], references: [id], onDelete: Restrict)
+  discrepancyId String? @db.Uuid
+  discrepancy CommissionDiscrepancy? @relation(fields: [discrepancyId, remittanceId], references: [id, remittanceId], onDelete: Restrict)
+  amount BigInt
+  occurredDate DateTime @db.Date
+  direction String
+  category String
+  method String
+  reference String
+  reversalOf String? @unique @db.Uuid
+  original RemittancePayment? @relation("remittancePaymentReversal", fields: [reversalOf], references: [id], onDelete: Restrict)
+  reversal RemittancePayment? @relation("remittancePaymentReversal")
+  reason String?
+  commandId String @unique @db.Uuid
+  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  recordedAt DateTime @default(now())
+
+  @@index([remittanceId, occurredDate, id])
+  @@index([occurredDate, id])
+  @@schema("vamotors")
+}
+
+model NoticeLine {
+  id String @id @default(uuid()) @db.Uuid
+  remittanceId String @db.Uuid
+  remittance Remittance @relation(fields: [remittanceId], references: [id], onDelete: Restrict)
+  key String
+  sourceType String?
+  sourceId String? @db.Uuid
+  amount BigInt
+  description String
+  allocations CommissionAllocation[]
+
+  @@unique([id, remittanceId])
+  @@unique([remittanceId, key])
+  @@schema("vamotors")
+}
+
+model ReconciliationRun {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  company FinanceCompany @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  policyId String @db.Uuid
+  policy FinancePolicyVersion @relation(fields: [policyId, companyId], references: [id, companyId], onDelete: Restrict)
+  policyVersion Int
+  method String
+  asOfDate DateTime @db.Date
+  previousWatermarkDate DateTime? @db.Date
+  newWatermarkDate DateTime? @db.Date
+  snapshot Json
+  completedBy String @db.Uuid
+  completedAt DateTime @default(now())
+  commandId String @unique @db.Uuid
+  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  allocations CommissionAllocation[]
+  discrepancies CommissionDiscrepancy[]
+
+  @@unique([id, companyId])
+  @@index([companyId, completedAt, id])
+  @@schema("vamotors")
+}
+
+model CommissionAllocation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  runId String @db.Uuid
+  run ReconciliationRun @relation(fields: [runId, companyId], references: [id, companyId], onDelete: Restrict)
+  remittanceId String @db.Uuid
+  remittance Remittance @relation(fields: [remittanceId, companyId], references: [id, companyId], onDelete: Restrict)
+  entitlementId String @db.Uuid
+  entitlement CommissionEntitlement @relation(fields: [entitlementId, companyId], references: [id, companyId], onDelete: Restrict)
+  noticeLineId String? @db.Uuid
+  noticeLine NoticeLine? @relation(fields: [noticeLineId, remittanceId], references: [id, remittanceId], onDelete: Restrict)
+  amount BigInt
+  reversalOf String? @unique @db.Uuid
+  original CommissionAllocation? @relation("allocationReversal", fields: [reversalOf], references: [id], onDelete: Restrict)
+  reversal CommissionAllocation? @relation("allocationReversal")
+  reason String?
+  recordedAt DateTime @default(now())
+  commandId String @db.Uuid
+  command CommandReceipt @relation(fields: [commandId], references: [id], onDelete: Restrict)
+  discrepancies CommissionDiscrepancy[]
+
+  @@unique([id, entitlementId, remittanceId], map: "allocation_discrepancy_owner_key")
+  @@index([remittanceId, entitlementId])
+  @@index([entitlementId, id])
+  @@schema("vamotors")
+}
+
+model CommissionDiscrepancy {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @db.Uuid
+  runId String @db.Uuid
+  run ReconciliationRun @relation(fields: [runId, companyId], references: [id, companyId], onDelete: Restrict)
+  entitlementId String @db.Uuid
+  entitlement CommissionEntitlement @relation(fields: [entitlementId, companyId], references: [id, companyId], onDelete: Restrict)
+  remittanceId String? @db.Uuid
+  remittance Remittance? @relation(fields: [remittanceId, companyId], references: [id, companyId], onDelete: Restrict)
+  allocationId String? @db.Uuid
+  allocation CommissionAllocation? @relation(fields: [allocationId, entitlementId, remittanceId], references: [id, entitlementId, remittanceId], onDelete: Restrict)
+  classification String
+  expectedMinusAllocated BigInt
+  resolution String
+  reason String
+  recordedAt DateTime @default(now())
+  returns RemittancePayment[]
+
+  @@unique([id, remittanceId])
+  @@index([entitlementId, id])
+  @@index([remittanceId, id])
   @@schema("vamotors")
 }

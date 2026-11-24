@@ -125,3 +125,9 @@ GRANT UPDATE ("doAttachmentId","issueDate") ON vamotors."InventoryLease" TO vamo
 GRANT UPDATE (status,"startedAt","finishedAt","nextCursor",outcome) ON vamotors."JobRun" TO vamotors_runtime;
 GRANT UPDATE (state,kind) ON vamotors."SaleCase" TO vamotors_runtime;
 GRANT SELECT ("saleCaseId"), INSERT ("saleCaseId") ON vamotors."Attachment", vamotors."UploadIntent" TO vamotors_runtime;
+-- T13: finance reconciliation retains payment, allocation and resolution history.
+GRANT SELECT, INSERT ON vamotors."Remittance", vamotors."RemittancePayment", vamotors."NoticeLine",
+  vamotors."ReconciliationRun", vamotors."CommissionAllocation", vamotors."CommissionDiscrepancy" TO vamotors_runtime;
+GRANT UPDATE (revision, state, "noticeAttachmentId") ON vamotors."Remittance" TO vamotors_runtime;
+GRANT UPDATE (revision, state, "updatedAt") ON vamotors."CommissionEntitlement" TO vamotors_runtime;
+GRANT UPDATE ("reconciliationWatermark") ON vamotors."FinanceCompany" TO vamotors_runtime;

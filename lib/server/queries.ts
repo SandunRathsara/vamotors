@@ -1,3 +1,4 @@
+import { reconciliationRead, reconciliationQueries, reconciliationReplay } from "./reconciliation"
 import "server-only"
 import { z } from "zod"
 import { database, assertEnvironment } from "./db"
@@ -109,6 +110,7 @@ export async function securityQuery(
       if (name === "notifications") return notificationQuery(tx, actor, args)
       if (name === "invoice") return invoiceQuery(tx, actor, args)
       if (name === "jobHealth") return expiryHealth(tx, actor)
+      if (reconciliationQueries.has(name)) return reconciliationRead(tx, actor, name, args)
       if (name === "sales") return commitmentList(tx, actor, args)
       if (name === "sale") return saleQuery(tx, actor, args)
       if (
@@ -162,6 +164,7 @@ export async function securityQuery(
               "issueInvoice",
               "placeReservation", "startFinance", "convertReservation", "cancelRetained",
               "recordDO", "confirmDOAndHandover", "recordLenderReceipt",
+              "stageRemittance", "recordRemittance", "reconcile", "reverseAllocation", "returnRemittanceOverpayment",
             ]),
             idempotencyKey: id,
           })
@@ -181,6 +184,8 @@ export async function securityQuery(
         if (!receipt) return { ok: true, status: "NOT_COMMITTED" }
         if (parsed.data.name === "issueInvoice") return invoiceReplay(tx, actor, receipt)
         const resultType = (receipt.result as { type?: string }).type
+        if (resultType === "Remittance" || resultType === "ReconciliationRun")
+          return reconciliationReplay(tx, actor, receipt)
         if (resultType === "BrokerageDeal" || resultType === "DispatchBatch")
           return brokerageReplay(tx, actor, receipt)
         if (["placeReservation", "startFinance", "convertReservation", "cancelRetained",

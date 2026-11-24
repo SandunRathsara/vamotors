@@ -1648,17 +1648,18 @@ const handlers: Record<BrokerageCommandName, Handler> = {
       },
     })
     const policy = deal.effectivePolicySnapshot as Record<string, unknown>
+    const expectedAmount = expectedCommission(policy, deal.approvedLoan)
     const entitlement = await tx.commissionEntitlement.create({
       data: {
         companyId: deal.companyId,
         sourceType: "BROKERAGE",
         brokerageDealId: deal.id,
-        expectedAmount: expectedCommission(policy, deal.approvedLoan),
+        expectedAmount,
         policySnapshot: policy as Prisma.InputJsonObject,
         eligibleAt: at,
         sentDate: new Date(`${colomboDate(at)}T00:00:00.000Z`),
         sentDateSource: "REFERRAL",
-        state: "OPEN",
+        state: expectedAmount === 0n ? "SETTLED" : "OPEN",
         revision: 1,
         createdBy: actor.userId,
         commandId,

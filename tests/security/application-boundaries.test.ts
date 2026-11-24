@@ -18,6 +18,7 @@ import {
   importStagingPages,
   approvalPages,
   brokeragePages,
+  financePages,
   salesPages,
 } from "./route-inventory"
 
@@ -103,6 +104,7 @@ describe("global entry-point inventory", () => {
         ...persistedRepairPages,
         ...approvalPages,
         ...brokeragePages,
+        ...financePages,
         ...salesPages,
         "/dashboard",
         "/users",
@@ -121,7 +123,7 @@ describe("global entry-point inventory", () => {
       expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8").trim()).toBe(
         'export { UnavailablePage as default } from "@/lib/server/pages"'
       )
-    for (const path of brokeragePages)
+    for (const path of [...brokeragePages, ...financePages])
       expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8")).toContain(
         "await pageActor()"
       )

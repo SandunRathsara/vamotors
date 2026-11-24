@@ -601,9 +601,9 @@ const disposals: ReadReport = async (tx, actor, filter, asOf) => {
 const advanceNotice =
   "Outstanding advances will be available once reservation records are connected."
 const cashNotice =
-  "Cash totals include posted purchase, cost, repair, disposal, sale, facility and brokerage fee payments. Reservation and commission reconciliation cash are pending integration."
+  "Cash totals include posted purchase, cost, repair, disposal, sale, facility, brokerage fee and reconciliation payments."
 
-// Replace the advances reader and extend cashSources when T10/T13 publish facts.
+// Replace the advances reader when reservation reporting is connected.
 const reportSources: Record<Exclude<ReportKind, "CASH_FLOW">, ReadReport> = {
   INVENTORY: inventory,
   SOLD: sold,
@@ -670,6 +670,11 @@ const cashSources: CashSource[] = [
     ],
   },
   {
+    kind: "REMITTANCE",
+    joins: Prisma.sql`JOIN vamotors."Remittance" m_owner ON m_owner.id = m."sourceId"`,
+    requirements: [["m_owner", "Remittance", ["id", ...payments]]],
+  },
+  {
     kind: "BROKERAGE_FEE",
     joins: Prisma.sql`JOIN vamotors."BrokerageDeal" b ON b.id = m."sourceId"`,
     requirements: [["b", "BrokerageDeal", ["id", "processingFee"]]],
@@ -680,6 +685,8 @@ function cashScope(
   actor: Actor,
   [alias, type, fields]: CashSource["requirements"][number]
 ) {
+  // Existing report grants retain their prior coverage when remittances are added.
+  if (type === "Remittance" && !actor.ability.can("read", type)) return Prisma.sql`false`
   const conditions = scope(actor, type, fields).OR
   if (!conditions) return Prisma.sql`true`
   // Alias and column names come from the hardcoded source list and registry.

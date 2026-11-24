@@ -122,6 +122,8 @@ describe("T06b staging trust boundaries", () => {
               "CashFacility",
               "DispatchBatch",
               "CommissionEntitlement",
+              "Remittance",
+              "ReconciliationRun",
               "Report",
               "Reservation",
               "ReservationExpiryJob",
