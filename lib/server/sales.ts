@@ -31,6 +31,7 @@ import {
 import { project, readScope, requireFields } from "./permissions"
 import { fail, CommandError } from "./errors"
 import { currentSettings } from "./settings"
+import { invoiceDetail, queueInvoice } from "./invoice-data"
 import { A, C, tradeInResidual } from "../money"
 import {
   acquireVehicleCycle,
@@ -818,6 +819,7 @@ export async function completeImmediateInTx(
 
   const afterPurchase = (await loadPurchase(tx, row.id))!
   const afterSale = (await loadSale(tx, saleCaseId))!
+  await queueInvoice(tx, afterSale, settings, actor.userId, commandId, sequence)
   const actorNames = await resolveActorNames(tx, [afterSale])
   const afterSaleDto = saleDTO(afterSale, actorNames)
 
@@ -1410,7 +1412,7 @@ export async function prepareSaleEditApproval(
   )
     fail("OBLIGATION_OPEN")
 
-  const saleDateStr = input.patch.saleDate ?? formatDate(sale.completion.saleDate)
+  const saleDateStr = input.patch.saleDate ?? saleDTO(sale).completion!.date
   const today = colomboToday()
   if (saleDateStr > today || saleDateStr < formatDate(cycle.purchaseDate))
     fail("INVALID_INPUT", 422)
@@ -1590,9 +1592,9 @@ export async function applySaleEditApproval(
         agreedPrice: nextPrice.toString(),
         reference: nextReference,
         notes: nextNotes,
-        saleDate: input.patch.saleDate ?? formatDate(sale.completion!.saleDate),
+        saleDate: input.patch.saleDate ?? beforeSale.completion!.date,
         handoverMileage:
-          input.patch.handoverMileage ?? sale.completion!.handoverMileage,
+          input.patch.handoverMileage ?? beforeSale.completion!.mileage,
         ...(sale.tradeIn
           ? {
               tradeInDescription:
@@ -1731,6 +1733,13 @@ export async function applySaleEditApproval(
   })
 
   const afterSale = (await loadSale(tx, sale.id))!
+  const latestInvoice = await tx.invoiceVersion.findFirst({
+    where: { completionId: afterSale.completion!.id },
+    orderBy: { version: "desc" },
+  })
+  await queueInvoice(
+    tx, afterSale, await currentSettings(tx), actor.userId, commandId, sequence, latestInvoice
+  )
   const afterCycle = afterSale.purchaseRecord
   const afterNames = await resolveActorNames(tx, [afterSale])
   const afterSaleDto = saleDTO(afterSale, afterNames)
@@ -1828,7 +1837,7 @@ export async function authenticatedSaleDetail(headers: Headers, saleId: string) 
       const sale = await loadSale(tx, saleId)
       if (!sale) fail("NOT_FOUND", 404)
       const names = await resolveActorNames(tx, [sale])
-      return visibleSale(actor, sale, names)
+      return invoiceDetail(tx, actor, sale, visibleSale(actor, sale, names))
     },
     { isolationLevel: "RepeatableRead" }
   )
@@ -1844,7 +1853,7 @@ export async function saleQuery(
   const sale = await loadSale(tx, parsed.data.id)
   if (!sale) fail("NOT_FOUND", 404)
   const names = await resolveActorNames(tx, [sale])
-  return visibleSale(actor, sale, names)
+  return invoiceDetail(tx, actor, sale, visibleSale(actor, sale, names))
 }
 
 export async function saleAudit(

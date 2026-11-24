@@ -819,6 +819,7 @@ model SaleCompletion {
   recordedAt       DateTime          @default(now())
   corrections      SaleCorrection[]
   mileageReading   MileageReading?
+  invoiceVersions  InvoiceVersion[]
 
   @@unique([id, saleCaseId])
   @@unique([id, purchaseRecordId])
@@ -850,6 +851,33 @@ model SaleCorrection {
   commandId         String             @unique @db.Uuid
   command           CommandReceipt     @relation(fields: [commandId], references: [id], onDelete: Restrict)
   recordedAt        DateTime           @default(now())
+
+  invoiceVersions   InvoiceVersion[]
+
+  @@unique([id, completionId])
+  @@unique([completionId, version])
+  @@schema("vamotors")
+}
+
+model InvoiceVersion {
+  id             String         @id @default(uuid()) @db.Uuid
+  completionId   String         @db.Uuid
+  completion     SaleCompletion @relation(fields: [completionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  correctionId   String?        @db.Uuid
+  correction     SaleCorrection? @relation(fields: [correctionId, completionId], references: [id, completionId], onDelete: Restrict, onUpdate: NoAction)
+  version        Int
+  saleRevision   Int
+  number         String         @unique
+  snapshot       Json
+  finalKey       String         @unique
+  state          String         @default("PENDING")
+  revision       Int            @default(1)
+  createdAt      DateTime       @default(now())
+  generationAt   DateTime?
+  generatorId    String?        @db.Uuid
+  generatorName  String?
+  size           Int?
+  sha256         String?
 
   @@unique([completionId, version])
   @@schema("vamotors")

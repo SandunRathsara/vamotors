@@ -27,6 +27,7 @@ import { notificationQuery, notificationReplay } from "./notifications"
 import { repairReplay } from "./repairs"
 import { brokerageQuery, brokerageAudit, brokerageReplay } from "./brokerage"
 import { saleQuery, saleReplay, saleAudit } from "./sales"
+import { invoiceQuery, invoiceReplay } from "./invoices"
 import { runtimeConfig } from "./config"
 
 const canAdminister = (actor: Actor) =>
@@ -104,6 +105,7 @@ export async function securityQuery(
       const args = Object.fromEntries(params)
       if (name === "approvals") return approvalQuery(tx, actor, args)
       if (name === "notifications") return notificationQuery(tx, actor, args)
+      if (name === "invoice") return invoiceQuery(tx, actor, args)
       if (name === "sale") return saleQuery(tx, actor, args)
       if (
         name === "audit" &&
@@ -153,6 +155,7 @@ export async function securityQuery(
               "recordBrokerageFee",
               "completeImmediate",
               "intakeTradeIn",
+              "issueInvoice",
             ]),
             idempotencyKey: id,
           })
@@ -170,6 +173,7 @@ export async function securityQuery(
           },
         })
         if (!receipt) return { ok: true, status: "NOT_COMMITTED" }
+        if (parsed.data.name === "issueInvoice") return invoiceReplay(tx, actor, receipt)
         const resultType = (receipt.result as { type?: string }).type
         if (resultType === "BrokerageDeal" || resultType === "DispatchBatch")
           return brokerageReplay(tx, actor, receipt)

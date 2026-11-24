@@ -53,7 +53,7 @@ export async function audit(
   input: {
     commandId: string
     userId: string
-    entityType: EnabledSubject | "SaleCompletion"
+    entityType: EnabledSubject | "SaleCompletion" | "InvoiceVersion"
     entityId: string
     action: string
     reason?: string
@@ -77,7 +77,20 @@ export async function audit(
       fieldDiff:
         input.entityType === "SaleCompletion"
           ? diffFields(saleCompletionFields, input.before, input.after)
-          : fieldDiff(input.entityType, input.before, input.after),
+          : input.entityType === "InvoiceVersion"
+            ? diffFields(
+                [
+                  "id",
+                  "revision",
+                  "version",
+                  "saleRevision",
+                  "number",
+                  "state",
+                ],
+                input.before,
+                input.after
+              )
+            : fieldDiff(input.entityType, input.before, input.after),
     },
   })
 }
