@@ -37,14 +37,14 @@ describe("bounded WRITE_OFF protocol and accepted236 permissions", () => {
     const old = Object.fromEntries(
       Object.entries(registry).filter(
         ([name]) =>
-          !["ApprovalRequest", "Disposal", "RepairRecord"].includes(name)
+          !["ApprovalRequest", "Disposal", "RepairRecord", "BrokerageDeal", "CashFacility", "DispatchBatch", "CommissionEntitlement"].includes(name)
       )
     )
     // Derived from exact accepted236, not the candidate's current expected value.
     expect(createHash("sha256").update(JSON.stringify(old)).digest("hex")).toBe(
       "6bbd6e95627fa94c4a5b92fb75b00185f7d9c396756e39cfd7af85d22f3e587e"
     )
-    expect(registryVersion).toBe(14)
+    expect(registryVersion).toBe(15)
     expect(
       registry.PurchaseRecord.read.filter((f) => f.startsWith("disposal"))
     ).toEqual(["disposal"])

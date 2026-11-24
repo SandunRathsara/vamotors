@@ -88,3 +88,22 @@ GRANT SELECT, INSERT ON vamotors."ApprovalRequest", vamotors."Disposal", vamotor
 GRANT UPDATE (state, revision, "reviewedBy", "reviewedAt", "reviewNote", "reviewerName", "reviewCommandId", "appliedCommandId") ON vamotors."ApprovalRequest" TO vamotors_runtime;
 GRANT UPDATE ("closedAt") ON vamotors."PurchaseRecord" TO vamotors_runtime;
 GRANT UPDATE ("activePurchaseId") ON vamotors."Vehicle" TO vamotors_runtime;
+-- T11b/T12 brokerage: explicit current-table grants only.
+GRANT SELECT, INSERT ON vamotors."BrokerageDeal" TO vamotors_runtime;
+GRANT UPDATE (state, revision, "approvedLoan", "quoteStatus", "currentQuoteSelectionId", "fileReference", "informedContactId", "informedAt", "rejectionReason", "rejectedAt", "completedAt", "processingFee", "processingFeeOverridden", "updatedAt") ON vamotors."BrokerageDeal" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."DealQuoteSelection", vamotors."GuarantorParticipation", vamotors."EligibilityCheck", vamotors."VerificationEvent", vamotors."DealEvent" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."InspectionPhoto" TO vamotors_runtime;
+GRANT UPDATE ("isCurrent") ON vamotors."InspectionPhoto" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."ChecklistItem" TO vamotors_runtime;
+GRANT UPDATE (label, "participantId", applicability, "applicabilityReason", collected, quantity, revision, "updatedAt") ON vamotors."ChecklistItem" TO vamotors_runtime;
+GRANT DELETE ON vamotors."ChecklistItem" TO vamotors_runtime;
+GRANT SELECT, INSERT, DELETE ON vamotors."ChecklistDocument" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."ProcessingIssue" TO vamotors_runtime;
+GRANT UPDATE ("resolvedAt", resolution, revision, "updatedAt") ON vamotors."ProcessingIssue" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."ProcessingIssueFeedback" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."CashFacility" TO vamotors_runtime;
+GRANT UPDATE (deductions, net, "separatelyRecoverableCharges", state, revision, "updatedAt") ON vamotors."CashFacility" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."FacilityPayment", vamotors."BrokerageFeeReceipt" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."DispatchBatch", vamotors."DispatchItem" TO vamotors_runtime;
+GRANT SELECT, INSERT ON vamotors."CommissionEntitlement" TO vamotors_runtime;
+GRANT INSERT ("targetType", "brokerageDealId", "photoCategory") ON vamotors."UploadIntent", vamotors."Attachment" TO vamotors_runtime;

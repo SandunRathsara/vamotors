@@ -7,6 +7,7 @@ import {
   sameOrigin,
 } from "@/lib/server/http"
 import { rateRead } from "@/lib/server/rates"
+import { dispatchRead } from "@/lib/server/dispatch"
 import { fail } from "@/lib/server/errors"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -38,10 +39,14 @@ export async function POST(
     const identity = await authenticate(request.headers)
     sameOrigin(request)
     const { name } = await context.params
-    if (name !== "compare" && name !== "loanMaxima") fail("NOT_FOUND", 404)
+    if (name !== "compare" && name !== "loanMaxima" && name !== "dispatchPreview") fail("NOT_FOUND", 404)
+    const body = await boundedJSON(request)
     return noStoreJSON({
       ok: true,
-      data: await rateRead(identity, name, await boundedJSON(request)),
+      data:
+        name === "dispatchPreview"
+          ? await dispatchRead(identity, body)
+          : await rateRead(identity, name, body),
       redactedFields: [],
       asOf: new Date().toISOString(),
     })

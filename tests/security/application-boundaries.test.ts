@@ -14,6 +14,7 @@ import {
   privateAttachmentAPIs,
   importStagingPages,
   approvalPages,
+  brokeragePages,
 } from "./route-inventory"
 
 function files(root: string): string[] {
@@ -77,6 +78,7 @@ describe("global entry-point inventory", () => {
         ...importStagingPages,
         ...persistedRepairPages,
         ...approvalPages,
+        ...brokeragePages,
         "/users",
         "/customers",
         "/customers/[id]",
@@ -92,6 +94,10 @@ describe("global entry-point inventory", () => {
     for (const path of unavailablePages)
       expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8").trim()).toBe(
         'export { UnavailablePage as default } from "@/lib/server/pages"'
+      )
+    for (const path of brokeragePages)
+      expect(readFileSync(`app/(app)${path}/page.tsx`, "utf8")).toContain(
+        "await pageActor()"
       )
     expect(readFileSync("app/(app)/users/page.tsx", "utf8")).toContain(
       "await pageActor(true)"

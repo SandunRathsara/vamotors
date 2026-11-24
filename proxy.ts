@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { authenticate } from "@/lib/server/actor"
 import { repairPagePurchase } from "@/lib/server/repair-detail"
+import { brokeragePageDetail } from "@/lib/server/brokerage"
 import { authenticatedApprovalDetail } from "@/lib/server/approvals"
 import { CommandError, publicError } from "@/lib/server/errors"
 
@@ -15,6 +16,26 @@ export async function proxy(request: NextRequest) {
     } catch (error) {
       // Resolve before any layout/loading RSC stream can commit a soft200.
       response = publicError(error, crypto.randomUUID())
+    }
+  }
+  const brokerage = request.nextUrl.pathname.match(/^\/lease-deals\/([^/]+)\/?$/)
+  if (brokerage && ["GET", "HEAD"].includes(request.method)) {
+    try {
+      await brokeragePageDetail(request.headers, brokerage[1])
+    } catch (error) {
+      if (
+        error instanceof CommandError &&
+        (error.status === 401 || error.code === "ACCOUNT_INACTIVE")
+      )
+        response = NextResponse.redirect(
+          new URL("/login?reason=access-changed", request.url)
+        )
+      else if (
+        error instanceof CommandError &&
+        [403, 404].includes(error.status)
+      )
+        response = new NextResponse("Not Found", { status: 404 })
+      else response = new NextResponse("Request failed", { status: 500 })
     }
   }
   const approval = request.nextUrl.pathname.match(/^\/approvals\/([^/]+)\/?$/)

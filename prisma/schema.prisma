@@ -887,8 +887,12 @@ model ImportBatch {
 
 model UploadIntent {
   id                     String          @id @default(uuid()) @db.Uuid
-  batchId                String          @db.Uuid
-  batch                  ImportBatch     @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  targetType             String          @default("IMPORT_BATCH")
+  batchId                String?         @db.Uuid
+  batch                  ImportBatch?    @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  brokerageDealId        String?         @db.Uuid
+  brokerageDeal          BrokerageDeal?  @relation(fields: [brokerageDealId], references: [id], onDelete: Restrict)
+  photoCategory          String?
   environmentId          String          @db.Uuid
   createdBy              String          @db.Uuid
   createdAt              DateTime        @default(now())
@@ -911,6 +915,7 @@ model UploadIntent {
   events                 UploadEvent[]
 
   @@index([batchId, id])
+  @@index([brokerageDealId, id])
   @@schema("vamotors")
 }
 
@@ -942,8 +947,12 @@ model UploadAttempt {
 
 model Attachment {
   id             String        @id @default(uuid()) @db.Uuid
-  batchId        String        @db.Uuid
-  batch          ImportBatch   @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  targetType     String        @default("IMPORT_BATCH")
+  batchId        String?       @db.Uuid
+  batch          ImportBatch?  @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  brokerageDealId String?      @db.Uuid
+  brokerageDeal  BrokerageDeal? @relation(fields: [brokerageDealId], references: [id], onDelete: Restrict)
+  photoCategory  String?
   uploadIntentId String        @unique @db.Uuid
   upload         UploadIntent  @relation(fields: [uploadIntentId], references: [id], onDelete: Restrict)
   attemptId      String        @unique @db.Uuid
@@ -975,5 +984,355 @@ model UploadEvent {
   commandId  String       @db.Uuid
 
   @@unique([uploadId, revision])
+  @@schema("vamotors")
+}
+
+// ── T11b/T12 external brokerage ─────────────────────────────────────────────
+
+// Immutable path, state machine and financial policy snapshots. No owned
+// Vehicle/PurchaseRecord is ever created for a brokerage deal.
+model BrokerageDeal {
+  id                       String                @id @default(uuid()) @db.Uuid
+  customerId               String                @db.Uuid
+  companyId                String                @db.Uuid
+  externalVehicle          Json
+  path                     String
+  state                    String                @default("INTAKE")
+  originalQuoteId          String                @db.Uuid
+  currentQuoteSelectionId  String?               @unique @db.Uuid
+  currentQuoteSelection    DealQuoteSelection?   @relation("currentSelection", fields: [currentQuoteSelectionId], references: [id], onDelete: Restrict)
+  selections               DealQuoteSelection[] @relation("dealSelections")
+  quoteStatus              String                @default("SUPPORTED")
+  requestedLoan            BigInt
+  approvedLoan             BigInt
+  processingFee            BigInt
+  processingFeeOverridden  Boolean               @default(false)
+  effectivePolicySnapshot  Json
+  chargesSnapshot          Json
+  fileReference            String?
+  informedContactId        String?               @db.Uuid
+  informedAt               DateTime?
+  rejectionReason          String?
+  rejectedAt               DateTime?
+  completedAt              DateTime?
+  commandId                String                @unique @db.Uuid
+  revision                 Int                   @default(1)
+  createdBy                String                @db.Uuid
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  guarantors               GuarantorParticipation[]
+  eligibility              EligibilityCheck[]
+  photos                   InspectionPhoto[]
+  checklist                ChecklistItem[]
+  verification             VerificationEvent[]
+  events                   DealEvent[]
+  issues                   ProcessingIssue[]
+  facility                 CashFacility?
+  feeReceipts              BrokerageFeeReceipt[]
+  entitlement              CommissionEntitlement?
+  dispatchItem             DispatchItem?
+  uploads                  UploadIntent[]
+  attachments              Attachment[]
+
+  @@index([companyId, state, id])
+  @@index([customerId, id])
+  @@schema("vamotors")
+}
+
+// Append-only, versioned quote history. Original and replacements are retained.
+model DealQuoteSelection {
+  id                      String         @id @default(uuid()) @db.Uuid
+  dealId                  String         @db.Uuid
+  deal                    BrokerageDeal  @relation("dealSelections", fields: [dealId], references: [id], onDelete: Restrict)
+  currentFor              BrokerageDeal? @relation("currentSelection")
+  version                 Int
+  quoteId                 String         @db.Uuid
+  replacedSelectionId     String?        @db.Uuid
+  selectedBy              String         @db.Uuid
+  selectedAt              DateTime
+  contactId               String?        @db.Uuid
+  reason                  String?
+  rateSnapshot            Json
+  effectivePolicySnapshot Json
+  chargesSnapshot         Json
+  path                    String
+  createdAt               DateTime       @default(now())
+
+  @@unique([dealId, version])
+  @@unique([id, dealId])
+  @@schema("vamotors")
+}
+
+model GuarantorParticipation {
+  id                String        @id @default(uuid()) @db.Uuid
+  dealId            String        @db.Uuid
+  deal              BrokerageDeal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  name              String
+  identity          String
+  normalizedIdentity String
+  address           String
+  phone             String
+  role              String?
+  createdBy         String        @db.Uuid
+  createdAt         DateTime      @default(now())
+
+  @@unique([dealId, normalizedIdentity])
+  @@schema("vamotors")
+}
+
+model EligibilityCheck {
+  id                String        @id @default(uuid()) @db.Uuid
+  dealId            String        @db.Uuid
+  deal              BrokerageDeal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  target            String
+  guarantorId       String?       @db.Uuid
+  outcome           String
+  companyContactId  String        @db.Uuid
+  feedback          String
+  checkedAt         DateTime
+  actorId           String        @db.Uuid
+  supersedesId      String?       @db.Uuid
+  commandId         String        @db.Uuid
+  createdAt         DateTime      @default(now())
+
+  @@index([dealId, createdAt, id])
+  @@schema("vamotors")
+}
+
+model InspectionPhoto {
+  id            String        @id @default(uuid()) @db.Uuid
+  dealId        String        @db.Uuid
+  deal          BrokerageDeal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  category      String
+  version       Int
+  attachmentId  String        @db.Uuid
+  isCurrent     Boolean       @default(true)
+  createdBy     String        @db.Uuid
+  createdAt     DateTime      @default(now())
+  commandId     String        @db.Uuid
+
+  @@unique([dealId, category, version])
+  @@schema("vamotors")
+}
+
+model ChecklistItem {
+  id                 String          @id @default(uuid()) @db.Uuid
+  dealId             String          @db.Uuid
+  deal               BrokerageDeal   @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  uniqueKey          String
+  kind               String
+  label              String?
+  participantId      String?         @db.Uuid
+  applicability      String
+  applicabilityReason String?
+  collected          Boolean
+  quantity           Int             @default(0)
+  revision           Int             @default(1)
+  commandId          String          @db.Uuid
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  documents          ChecklistDocument[]
+
+  @@unique([dealId, uniqueKey])
+  @@schema("vamotors")
+}
+
+model ChecklistDocument {
+  checklistItemId String        @db.Uuid
+  checklistItem   ChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Restrict)
+  attachmentId    String        @db.Uuid
+
+  @@id([checklistItemId, attachmentId])
+  @@schema("vamotors")
+}
+
+model VerificationEvent {
+  id               String        @id @default(uuid()) @db.Uuid
+  dealId           String        @db.Uuid
+  deal             BrokerageDeal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  checklistHash    String
+  quoteSelectionId String        @db.Uuid
+  outcome          String
+  issues           Json
+  companyContactId String        @db.Uuid
+  confirmedAt      DateTime
+  feedback         String
+  actorId          String        @db.Uuid
+  commandId        String        @db.Uuid
+  createdAt        DateTime      @default(now())
+
+  @@index([dealId, createdAt, id])
+  @@schema("vamotors")
+}
+
+model DealEvent {
+  id         String        @id @default(uuid()) @db.Uuid
+  dealId     String        @db.Uuid
+  deal       BrokerageDeal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  kind       String
+  contactId  String?       @db.Uuid
+  at         DateTime
+  text       String
+  commandId  String        @db.Uuid
+  createdAt  DateTime      @default(now())
+
+  @@index([dealId, createdAt, id])
+  @@schema("vamotors")
+}
+
+model ProcessingIssue {
+  id            String        @id @default(uuid()) @db.Uuid
+  dealId        String        @db.Uuid
+  deal          BrokerageDeal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  kind          String
+  text          String
+  openedAt      DateTime
+  blocksStep    String?
+  resolvedAt    DateTime?
+  resolution    String?
+  createdBy     String        @db.Uuid
+  revision      Int           @default(1)
+  commandId     String        @db.Uuid
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  feedback      ProcessingIssueFeedback[]
+
+  @@index([dealId, createdAt, id])
+  @@schema("vamotors")
+}
+
+model ProcessingIssueFeedback {
+  id               String          @id @default(uuid()) @db.Uuid
+  issueId          String          @db.Uuid
+  issue            ProcessingIssue @relation(fields: [issueId], references: [id], onDelete: Restrict)
+  companyContactId String          @db.Uuid
+  at               DateTime
+  feedback         String
+  resolve          Boolean
+  actorId          String          @db.Uuid
+  commandId        String          @db.Uuid
+  createdAt        DateTime        @default(now())
+
+  @@index([issueId, createdAt, id])
+  @@schema("vamotors")
+}
+
+model CashFacility {
+  id                         String           @id @default(uuid()) @db.Uuid
+  dealId                     String           @unique @db.Uuid
+  deal                       BrokerageDeal    @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  requestedAt                DateTime
+  gross                      BigInt
+  deductions                 Json
+  fee                        BigInt
+  feeMode                    String
+  net                        BigInt
+  separatelyRecoverableCharges BigInt
+  reason                     String
+  state                      String           @default("REQUESTED")
+  revision                   Int              @default(1)
+  createdBy                  String           @db.Uuid
+  commandId                  String           @unique @db.Uuid
+  createdAt                  DateTime         @default(now())
+  updatedAt                  DateTime         @updatedAt
+  payments                   FacilityPayment[]
+
+  @@schema("vamotors")
+}
+
+model FacilityPayment {
+  id           String       @id @default(uuid()) @db.Uuid
+  facilityId   String       @db.Uuid
+  facility     CashFacility @relation(fields: [facilityId], references: [id], onDelete: Restrict)
+  amount       BigInt
+  direction    String
+  component    String
+  occurredDate DateTime     @db.Date
+  method       String
+  reference    String?
+  reversalOf   String?      @unique @db.Uuid
+  reason       String?
+  createdBy    String       @db.Uuid
+  commandId    String       @db.Uuid
+  lineKey      String
+  recordedAt   DateTime     @default(now())
+
+  @@unique([commandId, lineKey])
+  @@unique([id, facilityId])
+  @@index([facilityId, occurredDate, id])
+  @@schema("vamotors")
+}
+
+model BrokerageFeeReceipt {
+  id           String        @id @default(uuid()) @db.Uuid
+  dealId       String        @db.Uuid
+  deal         BrokerageDeal @relation(fields: [dealId], references: [id], onDelete: Restrict)
+  category     String
+  amount       BigInt
+  direction    String
+  occurredDate DateTime      @db.Date
+  method       String
+  reference    String?
+  reversalOf   String?       @unique @db.Uuid
+  reason       String?
+  createdBy    String        @db.Uuid
+  commandId    String        @db.Uuid
+  lineKey      String
+  recordedAt   DateTime      @default(now())
+
+  @@unique([commandId, lineKey])
+  @@index([dealId, occurredDate, id])
+  @@schema("vamotors")
+}
+
+model DispatchBatch {
+  id            String         @id @default(uuid()) @db.Uuid
+  handedOverAt  DateTime
+  courier       String
+  tracking      String?
+  createdBy     String         @db.Uuid
+  createdAt     DateTime       @default(now())
+  commandId     String         @unique @db.Uuid
+  revision      Int            @default(1)
+  items         DispatchItem[]
+
+  @@schema("vamotors")
+}
+
+model DispatchItem {
+  id              String         @id @default(uuid()) @db.Uuid
+  batchId         String         @db.Uuid
+  batch           DispatchBatch  @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  sourceType      String         @default("BROKERAGE")
+  brokerageDealId String?        @unique @db.Uuid
+  brokerageDeal   BrokerageDeal? @relation(fields: [brokerageDealId], references: [id], onDelete: Restrict)
+  saleCaseId      String?        @unique @db.Uuid
+  sourceRevision  Int
+  checklistHash   String
+  sentAt          DateTime
+
+  @@schema("vamotors")
+}
+
+model CommissionEntitlement {
+  id              String         @id @default(uuid()) @db.Uuid
+  companyId       String         @db.Uuid
+  sourceType      String         @default("BROKERAGE")
+  brokerageDealId String?        @unique @db.Uuid
+  brokerageDeal   BrokerageDeal? @relation(fields: [brokerageDealId], references: [id], onDelete: Restrict)
+  saleCaseId      String?        @unique @db.Uuid
+  expectedAmount  BigInt
+  policySnapshot  Json
+  eligibleAt      DateTime
+  sentDate        DateTime       @db.Date
+  sentDateSource  String
+  state           String         @default("OPEN")
+  revision        Int            @default(1)
+  createdBy       String         @db.Uuid
+  commandId       String         @unique @db.Uuid
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([companyId, state, sentDate, id])
   @@schema("vamotors")
 }

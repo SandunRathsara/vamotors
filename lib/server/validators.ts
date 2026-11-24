@@ -688,6 +688,43 @@ export const importTypes = [
   "ADVANCES",
 ] as const
 const attachmentId = id.transform((value) => value.toLowerCase())
+export const photoCategory = z.enum([
+  "FRONT",
+  "BACK",
+  "LEFT",
+  "RIGHT",
+  "CHASSIS",
+  "ENGINE",
+  "METER",
+  "DEALER_WITH_VEHICLE",
+  "CUSTOMER_WITH_VEHICLE",
+])
+export const checklistKind = z.enum([
+  "CUSTOMER_ID",
+  "GUARANTOR_ID",
+  "PASSPORT_PHOTOS",
+  "BANK_PASSBOOK",
+  "ADDRESS_PROOF",
+  "RELATIONSHIP_PROOF",
+  "AFFIDAVIT",
+  "REGISTRATION_BOOK",
+  "DELETION_LETTER",
+  "REVENUE_LICENSE",
+  "EXTRA_KEY",
+  "TRANSFER_PAPER",
+  "PREVIOUS_OWNER_ID",
+  "PROCESSING_DOCUMENT",
+])
+export const documentContentTypes = z.enum([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+])
+const importContentTypes = z.enum([
+  "text/csv",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+])
 export const attachmentCommands = {
   stageImport: z
     .object({
@@ -701,23 +738,57 @@ export const attachmentCommands = {
     .strict(),
   initUpload: z
     .object({
-      target: z
-        .object({ type: z.literal("IMPORT_BATCH"), id: attachmentId })
-        .strict(),
-      purpose: z.literal("IMPORT_SOURCE"),
-      filename: z.string().min(1).max(200),
-      contentType: z.enum([
-        "text/csv",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      target: z.discriminatedUnion("type", [
+        z.object({ type: z.literal("IMPORT_BATCH"), id: attachmentId }).strict(),
+        z
+          .object({ type: z.literal("BROKERAGE_DEAL"), id: attachmentId })
+          .strict(),
       ]),
+      purpose: z.enum([
+        "IMPORT_SOURCE",
+        "INSPECTION",
+        "PARTICIPANT_DOCUMENT",
+        "VEHICLE_DOCUMENT",
+        "PROCESSING_DOCUMENT",
+      ]),
+      filename: z.string().min(1).max(200),
+      contentType: z.union([importContentTypes, documentContentTypes]),
       size: z
         .number()
         .int()
         .min(1)
         .max(5 * 1024 * 1024),
       sha256: z.string().regex(/^[a-f0-9]{64}$/),
+      category: photoCategory.optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((value, ctx) => {
+      const image = ["image/jpeg", "image/png", "image/webp"].includes(
+        value.contentType
+      )
+      const isImport = value.target.type === "IMPORT_BATCH"
+      if (
+        (isImport &&
+          (value.purpose !== "IMPORT_SOURCE" ||
+            ![
+              "text/csv",
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ].includes(value.contentType) ||
+            value.category !== undefined)) ||
+        (!isImport &&
+          (value.purpose === "IMPORT_SOURCE" ||
+            (value.purpose === "INSPECTION" &&
+              (!image || value.category === undefined)) ||
+            (value.purpose !== "INSPECTION" &&
+              (value.category !== undefined ||
+                (!image && value.contentType !== "application/pdf"))))) ||
+        (image && value.size > 2 * 1024 * 1024)
+      )
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid upload target/purpose/category/size",
+        })
+    }),
   completeUpload: z.object({ uploadId: attachmentId }).strict(),
 } as const
 export type AttachmentCommand = keyof typeof attachmentCommands
@@ -735,3 +806,298 @@ export const attachmentEnvelope = (name: AttachmentCommand) =>
       ),
     input: attachmentCommands[name],
   })
+
+// ── T11b/T12 brokerage ───────────────────────────────────────────────────────
+export const instant = z.string().datetime({ precision: 3 })
+const positiveOrZeroMoney = moneyInput
+export const guarantorInput = z
+  .object({
+    name,
+    identity: text.max(100),
+    address: text,
+    phone: customerInput.shape.phone,
+  })
+  .strict()
+export const facilityDeduction = z
+  .object({
+    label: name,
+    amount: positiveOrZeroMoney,
+    recipient: name,
+    handling: z.enum(["WITHHELD", "PAID_BY_DEALERSHIP"]),
+  })
+  .strict()
+export const facilityTerms = z
+  .object({
+    gross: positiveMoney,
+    deductions: z.array(facilityDeduction).max(50),
+    fee: positiveOrZeroMoney,
+    feeMode: z.enum(["WITHHELD", "SEPARATE"]),
+    separatelyRecoverableCharges: positiveOrZeroMoney,
+  })
+  .strict()
+  .refine(
+    (v) =>
+      BigInt(v.separatelyRecoverableCharges) <=
+      v.deductions
+        .filter((d) => d.handling === "PAID_BY_DEALERSHIP")
+        .reduce((n, d) => n + BigInt(d.amount), 0n)
+  )
+const eligibilityTarget = z.enum(["CUSTOMER", "GUARANTOR", "VEHICLE"])
+export const brokerageInputs = {
+  openBrokerage: z
+    .object({
+      customerId: id,
+      guarantors: z.array(guarantorInput).min(1).max(20),
+      quoteId: id,
+      facility: facilityTerms.optional(),
+    })
+    .strict(),
+  recordEligibility: z
+    .object({
+      dealId: id,
+      target: eligibilityTarget,
+      guarantorId: id.optional(),
+      outcome: z.enum(["CONFIRMED", "REJECTED"]),
+      contactId: id,
+      checkedAt: instant,
+      feedback: text,
+    })
+    .strict()
+    .refine((v) => (v.target === "GUARANTOR") === (v.guarantorId !== undefined)),
+  recordInspection: z
+    .object({
+      dealId: id,
+      photos: z
+        .array(
+          z.object({ category: photoCategory, attachmentId: id }).strict()
+        )
+        .min(1)
+        .max(9)
+        .refine(
+          (rows) =>
+            new Set(rows.map((r) => r.category)).size === rows.length
+        ),
+    })
+    .strict(),
+  adjustLoan: z
+    .object({
+      dealId: id,
+      amount: positiveMoney,
+      contactId: id,
+      feedback: text,
+      confirmedAt: instant,
+    })
+    .strict(),
+  replaceDealQuote: z
+    .object({
+      dealId: id,
+      quoteId: id,
+      reason: text,
+      contactId: id,
+      confirmedAt: instant,
+    })
+    .strict(),
+  setChecklist: z
+    .object({
+      dealId: id,
+      items: z
+        .array(
+          z
+            .object({
+              kind: checklistKind,
+              label: name.optional(),
+              participantId: id.optional(),
+              applicability: z.enum(["REQUIRED", "NOT_REQUIRED", "OPTIONAL"]),
+              reason: text.optional(),
+              collected: z.boolean(),
+              quantity: z.number().int().min(0).max(1000000),
+              attachmentIds: z
+                .array(id)
+                .max(20)
+                .refine((v) => new Set(v).size === v.length),
+            })
+            .strict()
+        )
+        .max(100)
+        .refine(
+          (rows) =>
+            new Set(
+              rows.map((r) => `${r.kind}:${r.participantId ?? ""}`)
+            ).size === rows.length
+        ),
+    })
+    .strict(),
+  verifyDocuments: z
+    .object({
+      dealId: id,
+      checklistHash: z.string().regex(/^[a-f0-9]{64}$/),
+      outcome: z.enum(["CLEAN", "ISSUES", "RESOLVED"]),
+      issues: z
+        .array(
+          z
+            .object({
+              itemKey: name,
+              description: text,
+              resolved: z.boolean(),
+            })
+            .strict()
+        )
+        .max(100)
+        .refine(
+          (rows) => new Set(rows.map((r) => r.itemKey)).size === rows.length
+        ),
+      contactId: id,
+      confirmedAt: instant,
+      feedback: text,
+    })
+    .strict(),
+  setProcessingFee: z
+    .object({ dealId: id, amount: positiveOrZeroMoney, reason: text })
+    .strict(),
+  informCompany: z
+    .object({
+      dealId: id,
+      contactId: id,
+      informedAt: instant,
+      fileReference: text.max(200),
+      feedback: text,
+    })
+    .strict(),
+  referDeal: z
+    .object({
+      dealId: id,
+      contactId: id,
+      referredAt: instant,
+      sentContact: z
+        .object({ name, phone: customerInput.shape.phone })
+        .strict(),
+      feedback: text,
+    })
+    .strict(),
+  rejectDeal: z
+    .object({ dealId: id, contactId: id, at: instant, reason: text })
+    .strict(),
+  completeBrokerage: z
+    .object({ dealId: id, contactId: id, at: instant, feedback: text })
+    .strict(),
+  openIssue: z
+    .object({
+      dealId: id,
+      kind: z.enum(["BLOCKER", "DELAY_INQUIRY", "NON_REMITTANCE"]),
+      text,
+      at: instant,
+      blocksStep: z.enum(["DISPATCH", "COMPLETE"]).optional(),
+      contactId: id.optional(),
+      feedback: text.optional(),
+    })
+    .strict()
+    .refine(
+      (v) =>
+        (v.kind === "BLOCKER") === (v.blocksStep !== undefined) &&
+        (v.contactId === undefined) === (v.feedback === undefined)
+    ),
+  recordIssueFeedback: z
+    .object({
+      issueId: id,
+      contactId: id,
+      at: instant,
+      feedback: text,
+      resolve: z.boolean(),
+    })
+    .strict(),
+  requestFacility: z
+    .object({ dealId: id, terms: facilityTerms, reason: text })
+    .strict(),
+  disburseFacility: z
+    .object({
+      dealId: id,
+      payment: cashInput.nullable(),
+      separatelyPaidDeductions: z
+        .array(
+          z
+            .object({
+              index: z.number().int().min(0).max(49),
+              payment: cashInput,
+            })
+            .strict()
+        )
+        .max(50)
+        .refine(
+          (rows) => new Set(rows.map((r) => r.index)).size === rows.length
+        ),
+    })
+    .strict(),
+  recoverFacility: z
+    .object({
+      dealId: id,
+      principal: cashInput.nullable(),
+      chargeRecovery: cashInput.nullable(),
+      fee: cashInput.nullable(),
+    })
+    .strict()
+    .refine((v) => v.principal || v.chargeRecovery || v.fee),
+  recordBrokerageFee: z
+    .object({
+      dealId: id,
+      category: z.enum(["PROCESSING", "ADDITIONAL"]),
+      payment: cashInput,
+    })
+    .strict(),
+} as const
+export type BrokerageCommandName = keyof typeof brokerageInputs
+export function brokerageEnvelope(name: BrokerageCommandName) {
+  return customerEnvelope("createCustomer").extend({
+    input: brokerageInputs[name],
+  })
+}
+export const brokerageReversalInput = z
+  .object({
+    sourceType: z.enum(["FACILITY", "BROKERAGE_FEE"]),
+    sourceId: id,
+    paymentId: id,
+    replacement: cashInput.optional(),
+    reason: text,
+  })
+  .strict()
+export const brokerageReversalEnvelope = customerEnvelope("createCustomer")
+  .extend({ input: brokerageReversalInput })
+export const dispatchInput = z
+  .object({
+    sourceIds: z
+      .array(
+        z
+          .object({
+            type: z.enum(["BROKERAGE", "VEHICLE_SALE"]),
+            id,
+            revision,
+            checklistHash: z.string().regex(/^[a-f0-9]{64}$/),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(50)
+      .refine((rows) => new Set(rows.map((r) => r.id)).size === rows.length),
+    handedOverAt: instant,
+    courier: text.max(200),
+    tracking: text.max(200).optional(),
+  })
+  .strict()
+export const dispatchEnvelope = customerEnvelope("createCustomer").extend({
+  input: dispatchInput,
+})
+export const brokerageQueryParams = listParams.extend({
+  companyId: id.optional(),
+  status: z.string().max(40).optional(),
+  includeRejected: z
+    .union([z.literal("true"), z.literal("false"), z.boolean()])
+    .optional(),
+})
+export const dispatchPreviewInput = z
+  .object({
+    sourceIds: z
+      .array(z.object({ type: z.enum(["VEHICLE_SALE", "BROKERAGE"]), id }).strict())
+      .min(1)
+      .max(50)
+      .refine((rows) => new Set(rows.map((r) => r.id)).size === rows.length),
+  })
+  .strict()

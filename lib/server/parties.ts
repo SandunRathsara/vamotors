@@ -910,10 +910,53 @@ export async function partyQuery(
         links.push(link)
       }
     }
+    if (domain === "brokerage") {
+      if (!actor.ability.can("read", subject(type, auth), "id")) {
+        visible.redactedFields.push(path)
+        continue
+      }
+      const rows = await tx.brokerageDeal.findMany({
+        where: {
+          AND: [
+            { companyId: id },
+            readScope(actor.grants, actor.userId, "BrokerageDeal"),
+          ],
+        },
+        select: {
+          id: true,
+          createdAt: true,
+          state: true,
+          approvedLoan: true,
+        },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      })
+      for (const deal of rows) {
+        const record = subject("BrokerageDeal", deal)
+        if (
+          !["id", "createdAt", "state"].every((f) =>
+            actor.ability.can("read", record, f)
+          )
+        )
+          continue
+        const link: Record<string, unknown> = {
+          type: "BROKERAGE",
+          id: deal.id,
+          date: deal.createdAt.toISOString().slice(0, 10),
+          status: deal.state,
+        }
+        if (actor.ability.can("read", record, "approvedLoan"))
+          link.amount = deal.approvedLoan.toString()
+        else visible.redactedFields.push(`${path}.links.amount`)
+        links.push(link)
+      }
+    }
     // Static pending capability: absent downstream implementations are NOT
     // authoritative empty histories. Read failures above propagate normally.
     contributions[domain] = {
-      state: domain === "settlementPurchases" ? "READY" : "PENDING_DOMAIN",
+      state:
+        domain === "settlementPurchases" || domain === "brokerage"
+          ? "READY"
+          : "PENDING_DOMAIN",
       links,
     }
   }
