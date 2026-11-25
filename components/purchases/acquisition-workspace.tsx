@@ -286,6 +286,7 @@ export function AcquisitionForm({
             <select
               id="supplier"
               value={supplier?.id ?? ""}
+              onFocus={() => void suppliers.refetch({ cancelRefetch: false })}
               className="min-h-11 w-full rounded-md border bg-background px-3"
               onChange={(e) =>
                 setSupplier(

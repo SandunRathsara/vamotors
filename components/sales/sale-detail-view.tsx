@@ -9,6 +9,7 @@ import type {
   AuditDTO,
   CustomerDTO,
   Dependency,
+  PartyDetailDTO,
   Pending,
   PurchaseCycleDTO,
   SaleDTO,
@@ -21,6 +22,8 @@ import {
   MileageDecreaseReason,
   useAcquisitionMileage,
 } from "@/components/purchases/mileage-fields"
+import { useActor } from "@/components/providers/auth-boundary"
+import { abilityFor } from "@/lib/server/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -35,6 +38,8 @@ type VisibleCustomer = Visible<CustomerDTO>
 
 export function SaleDetailView({ id }: { id: string }) {
   const queries = useQueryClient()
+  const { actor } = useActor()
+  const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const saleQuery = useQuery({
     queryKey: ["sales", "detail", id],
     retry: false,
@@ -56,7 +61,7 @@ export function SaleDetailView({ id }: { id: string }) {
 
   const cycleQuery = useQuery({
     queryKey: ["purchases", "detail", sale?.cycleId],
-    enabled: !!sale?.cycleId,
+    enabled: !!sale?.cycleId && ability.can("read", "PurchaseRecord", "id"),
     retry: false,
     queryFn: () =>
       privateRequest<{ data: VisibleCycle }>(
@@ -67,7 +72,7 @@ export function SaleDetailView({ id }: { id: string }) {
 
   const customerQuery = useQuery({
     queryKey: ["customers", "detail", sale?.customerId],
-    enabled: !!sale?.customerId,
+    enabled: !!sale?.customerId && ability.can("read", "Customer", "id"),
     retry: false,
     queryFn: () =>
       privateRequest<{ data: VisibleCustomer }>(
@@ -76,9 +81,35 @@ export function SaleDetailView({ id }: { id: string }) {
   })
   const customer = customerQuery.data?.data
 
+  const companyId = sale?.finance?.companyId
+  const companyQuery = useQuery({
+    queryKey: ["party", "FINANCE_COMPANY", companyId],
+    enabled: !!companyId && ability.can("read", "FinanceCompany", "id"),
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: Visible<PartyDetailDTO> }>(
+        `/api/v1/queries/party?type=FINANCE_COMPANY&id=${encodeURIComponent(companyId!)}`
+      ),
+  })
+  const readableCompanyId = companyQuery.data?.data.id
+  const acquiredCycleId = sale?.tradeIn?.acquiredCycleId
+  const acquiredCycleQuery = useQuery({
+    queryKey: ["purchases", "detail", acquiredCycleId],
+    enabled: !!acquiredCycleId && ability.can("read", "PurchaseRecord", "id"),
+    retry: false,
+    queryFn: () =>
+      privateRequest<{ data: VisibleCycle }>(
+        `/api/v1/queries/purchase?cycleId=${encodeURIComponent(acquiredCycleId!)}`
+      ),
+  })
+  const readableAcquiredCycleId = acquiredCycleQuery.data?.data.id
+
   const auditQuery = useQuery({
     queryKey: ["sales", "audit", id],
-    enabled: !!sale?.id,
+    enabled:
+      !!sale?.id &&
+      ability.can("read", "AuditLog", "id") &&
+      ability.can("read", "AuditLog", "at"),
     retry: false,
     queryFn: () =>
       privateRequest<{ data: { data: Visible<AuditDTO>[] } }>(
@@ -497,13 +528,13 @@ export function SaleDetailView({ id }: { id: string }) {
         <div>
           <dt className="text-xs text-muted-foreground">Customer</dt>
           <dd>
-            {sale.customerId ? (
+            {customer?.id ? (
               <Link
                 prefetch={false}
                 className="underline"
-                href={`/customers/${sale.customerId}`}
+                href={`/customers/${customer.id}`}
               >
-                {customer?.fullName ?? sale.customerId}
+                {customer.fullName ?? customer.id}
               </Link>
             ) : (
               "Unavailable"
@@ -513,13 +544,13 @@ export function SaleDetailView({ id }: { id: string }) {
         <div>
           <dt className="text-xs text-muted-foreground">Source Cycle</dt>
           <dd>
-            {sale.cycleId ? (
+            {cycle?.id ? (
               <Link
                 prefetch={false}
                 className="underline"
-                href={`/purchases/${sale.cycleId}`}
+                href={`/purchases/${cycle.id}`}
               >
-                Purchase cycle {sale.cycleId}
+                Purchase cycle {cycle.id}
               </Link>
             ) : (
               "Unavailable"
@@ -528,7 +559,16 @@ export function SaleDetailView({ id }: { id: string }) {
         </div>
       </dl>
 
-      <CommitmentActions sale={sale} cycle={cycle} customer={customer} />
+      <CommitmentActions
+        sale={sale}
+        cycle={cycle}
+        customer={customer}
+        companyHref={
+          readableCompanyId
+            ? `/third-parties/${readableCompanyId}?type=FINANCE_COMPANY`
+            : undefined
+        }
+      />
 
       {cycle?.financial && (
         <div className="space-y-1 rounded-lg border p-4 text-sm">
@@ -549,13 +589,13 @@ export function SaleDetailView({ id }: { id: string }) {
             {sale.tradeIn.description ?? "Unavailable"} · Value:{" "}
             {moneyStr(sale.tradeIn.value)}
           </p>
-          {sale.tradeIn.acquiredCycleId ? (
+          {readableAcquiredCycleId ? (
             <Link
               prefetch={false}
               className="underline"
-              href={`/purchases/${sale.tradeIn.acquiredCycleId}`}
+              href={`/purchases/${readableAcquiredCycleId}`}
             >
-              Acquired trade-in inventory cycle: {sale.tradeIn.acquiredCycleId}
+              Acquired trade-in inventory cycle: {readableAcquiredCycleId}
             </Link>
           ) : (
             sale.nextActions?.includes("intakeTradeIn") && (

@@ -35,6 +35,7 @@ import {
   currentSettingsRef,
   FinanceCompanyField,
   FinancePaymentFields,
+  type FinancePaymentDraft,
   useCurrencyLabel,
   type CompanyOption,
 } from "./commitment-fields"
@@ -55,7 +56,6 @@ export function RecordSaleDialog({
   onOpenChange?: (open: boolean) => void
 }) {
   const queries = useQueryClient()
-  const currency = useCurrencyLabel()
   const { actor } = useActor()
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const canCreate = (action: string) => {
@@ -80,6 +80,7 @@ export function RecordSaleDialog({
     canCreate("startFinance")
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen ?? uncontrolledOpen
+  const currency = useCurrencyLabel(open && canRecord)
   const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
     const resolved = typeof next === "function" ? next(open) : next
     if (onOpenChange) onOpenChange(resolved)
@@ -96,6 +97,10 @@ export function RecordSaleDialog({
         : "LEASE"
   )
   const [company, setCompany] = useState<CompanyOption>()
+  const [financePayment, setFinancePayment] = useState<FinancePaymentDraft>({
+    downPayment: "",
+    termMonths: "",
+  })
   const immediate = kind === "CASH" || kind === "TRADE_IN"
   const command =
     kind === "ADVANCE"
@@ -573,7 +578,7 @@ export function RecordSaleDialog({
     netPreview = ""
   }
 
-  if (!canRecord) return null
+  if (!canRecord || controlledOpen === false) return null
   return (
     <div className="space-y-4">
       <Button type="button" onClick={() => setOpen((v) => !v)}>
@@ -646,6 +651,9 @@ export function RecordSaleDialog({
               id="sale-customer"
               className="h-11 w-full rounded-md border bg-background px-3"
               value={buyer?.id ?? ""}
+              onFocus={() =>
+                void customersQuery.refetch({ cancelRefetch: false })
+              }
               onChange={(e) =>
                 setBuyer(customerOptions.find((c) => c.id === e.target.value))
               }
@@ -843,7 +851,10 @@ export function RecordSaleDialog({
                 value={company?.id ?? ""}
                 onChange={setCompany}
               />
-              <FinancePaymentFields />
+              <FinancePaymentFields
+                draft={financePayment}
+                onChange={setFinancePayment}
+              />
             </div>
           )}
           {kind === "TRADE_IN" && (

@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto"
 import type { Locator, Page } from "@playwright/test"
 import type {
+  Applied,
   CustomerDTO,
   PurchaseCycleDTO,
 } from "@/.planning/implementation/contracts/api"
 import { test, expect } from "../fixtures-local"
-import { envelope, purchaseInput, ref } from "../security/cycle-edits-fixture"
+import { envelope, ref } from "../security/cycle-edits-fixture"
 
 async function activate(page: Page, target: Locator) {
   await page.bringToFront()
@@ -80,14 +81,39 @@ test("permission-aware navigation and purchase to invoice, reports and reconcili
       ),
       201
     )
-    const acquisition = await local.command(
-      admin,
-      "recordPurchase",
-      envelope(purchaseInput(supplier.result.id, tag, tag, 100), [
-        ref(supplier.result, "Supplier"),
-      ]),
-      201
-    )
+    await page.context().addCookies((await admin.storageState()).cookies)
+    await page.goto(local.origin + "/dashboard")
+    await page
+      .getByRole("button", { name: "New purchase", exact: true })
+      .press("Enter")
+    await page.getByLabel("Search active suppliers by name").fill(tag)
+    await page.locator("#supplier").selectOption(supplier.result.id)
+    for (const [field, value] of Object.entries({
+      engineNumber: `UX-E-${tag}`,
+      chassisNumber: `UX-C-${tag}`,
+      make: `CycleEdits ${tag}`,
+      model: "Keyboard",
+      year: "2026",
+      colour: "Blue",
+      purchasePrice: "100",
+      listedPrice: "150",
+      purchaseDate: "2026-10-01",
+      mileageDate: "2026-10-01",
+      mileage: "100",
+    })) {
+      await page.locator(`#acquisition-${field}`).fill(value)
+    }
+    await page.locator("#acquisition-purchaseType").selectOption("BRAND_NEW")
+    const recordPurchase = page.getByRole("button", {
+      name: "Record fully paid acquisition",
+    })
+    await expect(recordPurchase).toBeEnabled()
+    const [recorded] = await Promise.all([
+      page.waitForResponse((r) => r.url().endsWith("/commands/recordPurchase")),
+      recordPurchase.press("Enter"),
+    ])
+    const acquisition = (await recorded.json()) as Applied
+    expect(recorded.status()).toBe(201)
     const cycle = await local.query<PurchaseCycleDTO>(
       admin,
       "purchase",
@@ -122,7 +148,6 @@ test("permission-aware navigation and purchase to invoice, reports and reconcili
       "customer",
       `?id=${customer.result.id}`
     )
-    await page.context().addCookies((await admin.storageState()).cookies)
     const mobile = viewport!.width === 360
     const toggle = page.getByRole("button", { name: "Toggle Sidebar" })
     const nav = page.getByRole("navigation", { name: "Main navigation" })

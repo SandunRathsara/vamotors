@@ -28,6 +28,7 @@ import {
   useCurrencyLabel,
   FinanceCompanyField,
   FinancePaymentFields,
+  type FinancePaymentDraft,
   type CompanyOption,
 } from "./commitment-fields"
 
@@ -69,10 +70,12 @@ export function CommitmentActions({
   sale,
   cycle,
   customer,
+  companyHref,
 }: {
   sale: Visible<SaleDTO>
   cycle?: Visible<PurchaseCycleDTO>
   customer?: Visible<CustomerDTO>
+  companyHref?: string
 }) {
   const queryClient = useQueryClient()
   const currency = useCurrencyLabel()
@@ -83,6 +86,10 @@ export function CommitmentActions({
     reason: "",
   })
   const [company, setCompany] = useState<CompanyOption>()
+  const [financePayment, setFinancePayment] = useState<FinancePaymentDraft>({
+    downPayment: "",
+    termMonths: "",
+  })
   const [saleReference, setSaleReference] = useState<string>()
   const [hold, setHold] = useState(false)
   const [pending, setPending] = useState(false)
@@ -414,7 +421,14 @@ export function CommitmentActions({
         <div className="space-y-1">
           <h2 className="font-semibold">Inventory lease</h2>
           <p>
-            {lease.companyName} · {lease.termMonths} months
+            {companyHref ? (
+              <Link prefetch={false} className="underline" href={companyHref}>
+                {lease.companyName ?? "Finance company"}
+              </Link>
+            ) : (
+              lease.companyName
+            )}{" "}
+            · {lease.termMonths} months
           </p>
           <p>
             Down payment {money(lease.down)} · Finance {money(lease.principal)}{" "}
@@ -470,7 +484,10 @@ export function CommitmentActions({
                     value={company?.id ?? ""}
                     onChange={setCompany}
                   />
-                  <FinancePaymentFields />
+                  <FinancePaymentFields
+                    draft={financePayment}
+                    onChange={setFinancePayment}
+                  />
                   <Label className="grid gap-2">
                     Sale reference
                     <Input
