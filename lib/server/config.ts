@@ -25,6 +25,10 @@ export function runtimeConfig(
     fail("ENVIRONMENT_UNAVAILABLE", 503)
   const config = result.data
   const origin = new URL(config.APP_ORIGIN)
+  const isLoopback = ["localhost", "127.0.0.1"].includes(origin.hostname)
+  const isTailscaleHttps =
+    origin.protocol === "https:" &&
+    /^[a-z0-9-]+(?:\.[a-z0-9-]+)+\.ts\.net$/i.test(origin.hostname)
   if (
     !databaseURL(
       config.DATABASE_URL,
@@ -33,13 +37,12 @@ export function runtimeConfig(
     ) ||
     config.APP_ORIGIN !== origin.origin ||
     config.BETTER_AUTH_URL !== config.APP_ORIGIN ||
-    (config.APP_ENV === "local" &&
-      !["localhost", "127.0.0.1"].includes(origin.hostname)) ||
+    (config.APP_ENV === "local" && !isLoopback && !isTailscaleHttps) ||
     (origin.protocol !== "https:" &&
       !(
         origin.protocol === "http:" &&
         ["local", "disposable-test"].includes(config.APP_ENV) &&
-        ["localhost", "127.0.0.1"].includes(origin.hostname)
+        isLoopback
       ))
   )
     fail("ENVIRONMENT_UNAVAILABLE", 503)
