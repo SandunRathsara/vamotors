@@ -584,6 +584,7 @@ export function RepairCommands({
                   required
                   className="min-h-11 w-full rounded border bg-background p-2"
                   value={vendor?.id ?? ""}
+                  onFocus={() => void vendors.refetch({ cancelRefetch: false })}
                   onChange={(e) =>
                     setVendor(
                       vendors.data?.data.data.find(

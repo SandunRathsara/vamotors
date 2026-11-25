@@ -21,6 +21,8 @@ export function Dashboard({ today }: { today: string }) {
   const ability = abilityFor(actor.presentationGrants, actor.user.id)
   const [purchase, setPurchase] = useState(false)
   const [sale, setSale] = useState(false)
+  const [saleDraftKey, setSaleDraftKey] = useState(0)
+  const canStartSale = ability.can("create", "SaleCase", "price")
   const [range, setRange] = useQueryStates({
     from: parseAsString.withDefault(today.slice(0, 7) + "-01"),
     through: parseAsString.withDefault(today),
@@ -82,7 +84,7 @@ export function Dashboard({ today }: { today: string }) {
         {ability.can("create", "PurchaseRecord", "purchasePrice") && (
           <Button onClick={() => setPurchase(!purchase)}>New purchase</Button>
         )}
-        {ability.can("create", "SaleCase", "price") && (
+        {canStartSale && (
           <Button variant="outline" onClick={() => setSale(true)}>
             New sale
           </Button>
@@ -104,12 +106,14 @@ export function Dashboard({ today }: { today: string }) {
           }}
         />
       )}
-      {sale && (
+      {canStartSale && (
         <RecordSaleDialog
+          key={saleDraftKey}
           open={sale}
           onOpenChange={setSale}
           onCompleted={() => {
             setSale(false)
+            setSaleDraftKey((key) => key + 1)
             void query.refetch()
           }}
         />

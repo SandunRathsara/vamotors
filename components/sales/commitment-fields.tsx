@@ -15,7 +15,7 @@ export function FinanceCompanyField({
   value: string
   onChange: (company?: CompanyOption) => void
 }) {
-  const { data, isError } = useQuery({
+  const { data, isError, refetch } = useQuery({
     queryKey: ["parties", "lease-company-options"],
     queryFn: () =>
       privateRequest<{ data: { data: CompanyOption[] } }>(
@@ -31,6 +31,7 @@ export function FinanceCompanyField({
         name="company"
         value={value}
         className="h-10 rounded-md border bg-background px-3"
+        onFocus={() => void refetch({ cancelRefetch: false })}
         onChange={(event) =>
           onChange(
             data?.data.data.find((company) => company.id === event.target.value)
@@ -63,17 +64,43 @@ export function useCurrencyLabel(enabled = true) {
   return data?.data.currency ? ` (${data.data.currency})` : ""
 }
 
-export function FinancePaymentFields() {
+export type FinancePaymentDraft = { downPayment: string; termMonths: string }
+
+export function FinancePaymentFields({
+  draft,
+  onChange,
+}: {
+  draft: FinancePaymentDraft
+  onChange: (draft: FinancePaymentDraft) => void
+}) {
   const currency = useCurrencyLabel()
   return (
     <>
       <Label className="grid gap-2">
         Down payment{currency}
-        <Input inputMode="decimal" name="downPayment" required />
+        <Input
+          inputMode="decimal"
+          name="downPayment"
+          required
+          value={draft.downPayment}
+          onChange={(event) =>
+            onChange({ ...draft, downPayment: event.target.value })
+          }
+        />
       </Label>
       <Label className="grid gap-2">
         Term (months)
-        <Input type="number" name="termMonths" min={1} max={120} required />
+        <Input
+          type="number"
+          name="termMonths"
+          min={1}
+          max={120}
+          required
+          value={draft.termMonths}
+          onChange={(event) =>
+            onChange({ ...draft, termMonths: event.target.value })
+          }
+        />
       </Label>
     </>
   )
