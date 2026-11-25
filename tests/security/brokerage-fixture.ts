@@ -345,7 +345,7 @@ export async function fixture(
   async function upload(
     client: APIRequestContext,
     input: {
-      type: "BROKERAGE_DEAL" | "IMPORT_BATCH"
+      type: "BROKERAGE_DEAL" | "IMPORT_BATCH" | "REMITTANCE"
       id: string
       revision: number
       purpose: string
@@ -355,6 +355,11 @@ export async function fixture(
       category?: string
     }
   ) {
+    const ownerType = {
+      BROKERAGE_DEAL: "BrokerageDeal",
+      IMPORT_BATCH: "ImportBatch",
+      REMITTANCE: "Remittance",
+    } as const
     const { createHash } = await import("node:crypto")
     const sha256 = createHash("sha256").update(input.bytes).digest("hex")
     const init = await client.post("/api/v1/commands/initUpload", {
@@ -371,8 +376,7 @@ export async function fixture(
         },
         [
           {
-            type:
-              input.type === "BROKERAGE_DEAL" ? "BrokerageDeal" : "ImportBatch",
+            type: ownerType[input.type],
             id: input.id,
             revision: input.revision,
           },
@@ -391,8 +395,7 @@ export async function fixture(
       data: envelope({ uploadId: ready.uploadId }, [
         { type: "UploadIntent", id: ready.uploadId, revision: ready.revision },
         {
-          type:
-            input.type === "BROKERAGE_DEAL" ? "BrokerageDeal" : "ImportBatch",
+          type: ownerType[input.type],
           id: input.id,
           revision: input.revision,
         },

@@ -1645,7 +1645,7 @@ model CommissionEntitlement {
   state           String         @default("OPEN")
   revision        Int            @default(1)
   createdBy       String         @db.Uuid
-  commandId       String         @unique @db.Uuid
+  commandId       String         @db.Uuid
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
